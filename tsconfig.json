@@ -1,0 +1,4 @@
+{
+  "extends": "./EMP/src/tsconfig.json",
+  "include": ["EMP/src/**/*.ts", "EMP/src/**/*.d.ts"]
+}

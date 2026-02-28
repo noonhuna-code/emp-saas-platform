@@ -1,0 +1,28 @@
+{
+  "manifest_version": 2,
+  "name": "LeaveFlow",
+  "version": "1.0",
+  "description": "LeaveFlow Role Based Extension",
+
+  "browser_action": {
+    "default_popup": "dist/popup.html",
+    "default_title": "LeaveFlow"
+  },
+
+  "background": {
+    "scripts": ["background.js"]
+  },
+
+  "permissions": [
+    "tabs",
+    "storage",
+    "http://localhost:5174/*",
+    "https://*/*"
+  ],
+
+  "applications": {
+    "gecko": {
+      "id": "leaveflow@example.com"
+    }
+  }
+}

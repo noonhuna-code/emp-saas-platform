@@ -1,0 +1,27 @@
+{
+  "name": "leaveflow",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev:dashboard": "cd apps/dashboard && vite",
+    "dev:extension": "cd apps/extension && vite",
+    "build:dashboard": "cd apps/dashboard && vite build",
+    "build:extension": "cd apps/extension && vite build",
+    "check": "tsc --noEmit",
+    "backend:verify": "npm run check && node -e \"console.log('Backend verification passed')\""
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "devDependencies": {
+    "@vitejs/plugin-react": "^5.1.4",
+    "typescript": "^5.9.2",
+    "vite": "^7.3.1"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.95.3",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4"
+  }
+}
