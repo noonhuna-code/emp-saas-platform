@@ -1,4 +1,4 @@
-import { CompanyContextBadge } from "./CompanyContextBadge";
+﻿import { CompanyContextBadge } from "./CompanyContextBadge";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import type { BillingNavigationContext } from "@/lib/types/billing";
 
@@ -6,11 +6,23 @@ export const Topbar = ({
   role,
   companyId,
   email,
+  fullName,
+  avatarUrl,
+  lastLoginAt,
+  shiftStartTime,
+  shiftEndTime,
+  shiftHours,
   billingContext
 }: {
   role: string | null;
   companyId: string | null;
   email: string | null | undefined;
+  fullName?: string | null;
+  avatarUrl?: string | null;
+  lastLoginAt?: string | null;
+  shiftStartTime?: string | null;
+  shiftEndTime?: string | null;
+  shiftHours?: number | null;
   billingContext: BillingNavigationContext | null;
 }) => {
   const subscription = billingContext?.subscription ?? null;
@@ -41,13 +53,27 @@ export const Topbar = ({
     return null;
   })();
 
+  const lastLoginText = (() => {
+    if (!lastLoginAt) return null;
+    const value = new Date(lastLoginAt);
+    if (!Number.isFinite(value.getTime())) return null;
+    return value.toLocaleString();
+  })();
+
+  const shiftText = (() => {
+    if (!shiftStartTime || !shiftEndTime) return null;
+    const hoursLabel = typeof shiftHours === "number" ? ` (${shiftHours}h)` : "";
+    return `${shiftStartTime} - ${shiftEndTime}${hoursLabel}`;
+  })();
+
+  const identityLabel = fullName ?? email ?? "Authenticated user";
+
   return (
     <header className="topbar">
       <div className="stack" style={{ gap: 4 }}>
         <strong>Employee Management</strong>
-        <span className="muted" style={{ fontSize: 13 }}>
-          {email ?? "Authenticated user"}
-        </span>
+        <span className="muted" style={{ fontSize: 13 }}>{identityLabel}</span>
+        {lastLoginText ? <span className="muted" style={{ fontSize: 12 }}>Last login: {lastLoginText}</span> : null}
       </div>
       <div className="row">
         {subscription ? (
@@ -61,7 +87,7 @@ export const Topbar = ({
             }`}
           >
             <span>{subscription.planName}</span>
-            <span style={{ margin: "0 6px" }}>·</span>
+            <span style={{ margin: "0 6px" }}>|</span>
             <span>{subscription.status}</span>
           </div>
         ) : null}
@@ -73,10 +99,32 @@ export const Topbar = ({
         {seatSummary ? (
           <div className="badge" title="Billable seats in current subscription">
             <span>Seats</span>
-            <span style={{ margin: "0 6px" }}>·</span>
+            <span style={{ margin: "0 6px" }}>|</span>
             <span>{seatLimitText}</span>
           </div>
         ) : null}
+        {shiftText ? (
+          <div className="badge" title="Today's shift window">
+            <span>Shift</span>
+            <span style={{ margin: "0 6px" }}>|</span>
+            <span>{shiftText}</span>
+          </div>
+        ) : null}
+        <div className="badge" title={identityLabel}>
+          {avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={avatarUrl}
+              alt="Profile"
+              width={20}
+              height={20}
+              style={{ borderRadius: "50%", marginRight: 8, objectFit: "cover" }}
+            />
+          ) : (
+            <span style={{ marginRight: 8 }}>{(identityLabel[0] ?? "U").toUpperCase()}</span>
+          )}
+          <span>{fullName ?? email ?? "User"}</span>
+        </div>
         <CompanyContextBadge companyId={companyId} role={role} />
         <ThemeToggle />
         <form action="/api/auth/logout" method="post">
