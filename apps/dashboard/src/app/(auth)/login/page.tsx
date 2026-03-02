@@ -27,7 +27,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
     <div className="auth-shell">
       <section className="card auth-card stack">
         <div>
-          <h1>LeaveFlow</h1>
+          <h1>EMP SaaS Platform</h1>
           <p className="muted">Phase 1 dashboard access</p>
         </div>
         <form className="form-grid" action="/api/auth/login" method="post">

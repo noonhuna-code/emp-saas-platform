@@ -19,7 +19,7 @@ export async function GET(request: Request) {
       return finalizeRoute(route, endpoint, jsonError("Authentication required", 401, route.requestId));
     }
 
-    const { ctx } = await buildAttendanceRouteContext(route.ctx);
+    const { ctx } = await buildAttendanceRouteContext(route.ctx, ["manage_attendance", "view_attendance"]);
     const url = new URL(request.url);
     const page = parsePositiveInt(url.searchParams.get("page"), 1, { min: 1, max: 1000 });
     const pageSize = parsePositiveInt(url.searchParams.get("pageSize"), 20, { min: 1, max: 100 });

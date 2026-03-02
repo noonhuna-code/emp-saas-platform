@@ -8,8 +8,15 @@ export type DashboardServerSession = {
   sessionId: string | null;
   userId: string | null;
   email: string | null;
+  fullName: string | null;
+  avatarUrl: string | null;
+  lastLoginAt: string | null;
+  shiftStartTime: string | null;
+  shiftEndTime: string | null;
+  shiftHours: number | null;
   companyId: string | null;
   userProfileId: string | null;
+  employeeId: string | null;
   role: string | null;
   permissions: string[];
 };
@@ -71,6 +78,8 @@ const resolveUserProfile = async (
 ): Promise<{
   userId: string;
   email: string | null;
+  fullName: string | null;
+  avatarUrl: string | null;
   companyId: string;
   userProfileId: string;
   userUpdatedAt: string | null;
@@ -84,7 +93,7 @@ const resolveUserProfile = async (
 
   const { data: profile, error: profileError } = await supabase
     .from("user_profiles")
-    .select("id, company_id")
+    .select("id, company_id, full_name, avatar_url")
     .eq("user_id", userData.user.id)
     .is("is_deleted", false)
     .maybeSingle();
@@ -100,6 +109,8 @@ const resolveUserProfile = async (
   return {
     userId: userData.user.id,
     email: userData.user.email ?? null,
+    fullName: profile.full_name ?? null,
+    avatarUrl: profile.avatar_url ?? null,
     companyId: profile.company_id,
     userProfileId: profile.id,
     userUpdatedAt: userData.user.updated_at ?? null
@@ -110,6 +121,24 @@ const parseDate = (value?: string | null): Date | null => {
   if (!value) return null;
   const parsed = new Date(value);
   return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
+const parseTimeToMinutes = (value?: string | null): number | null => {
+  if (!value) return null;
+  const [hourRaw, minuteRaw] = value.split(":");
+  const hour = Number(hourRaw);
+  const minute = Number(minuteRaw);
+  if (!Number.isFinite(hour) || !Number.isFinite(minute)) return null;
+  return hour * 60 + minute;
+};
+
+const computeShiftHours = (start?: string | null, end?: string | null): number | null => {
+  const startMinutes = parseTimeToMinutes(start);
+  const endMinutes = parseTimeToMinutes(end);
+  if (startMinutes === null || endMinutes === null) return null;
+  const totalMinutes = endMinutes >= startMinutes ? endMinutes - startMinutes : 24 * 60 - startMinutes + endMinutes;
+  if (totalMinutes <= 0) return null;
+  return Math.round((totalMinutes / 60) * 10) / 10;
 };
 
 const revokeSession = async (
@@ -271,6 +300,125 @@ const resolveRolesAndPermissions = async (
   };
 };
 
+const resolveLastLoginAt = async (
+  accessToken: string,
+  companyId: string,
+  userId: string,
+  sessionId: string | null
+): Promise<string | null> => {
+  if (!sessionId) return null;
+  const supabase = createUserScopedSupabaseServerClient(accessToken);
+  const { data, error } = await supabase
+    .from("auth_sessions")
+    .select("created_at")
+    .eq("id", sessionId)
+    .eq("company_id", companyId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error || !data?.created_at) {
+    return null;
+  }
+
+  return data.created_at as string;
+};
+
+const resolveTodayShiftSummary = async (
+  accessToken: string,
+  companyId: string,
+  userProfileId: string
+): Promise<{ employeeId: string | null; shiftStartTime: string | null; shiftEndTime: string | null; shiftHours: number | null }> => {
+  const supabase = createUserScopedSupabaseServerClient(accessToken);
+
+  const { data: employee, error: employeeError } = await supabase
+    .from("employees")
+    .select("id")
+    .eq("company_id", companyId)
+    .eq("user_profile_id", userProfileId)
+    .is("is_deleted", false)
+    .maybeSingle();
+
+  if (employeeError || !employee?.id) {
+    return {
+      employeeId: null,
+      shiftStartTime: null,
+      shiftEndTime: null,
+      shiftHours: null
+    };
+  }
+
+  const today = new Date().toISOString().slice(0, 10);
+
+  const { data: attendance, error: attendanceError } = await supabase
+    .from("attendance_records")
+    .select("shift_start_time, shift_end_time")
+    .eq("company_id", companyId)
+    .eq("employee_id", employee.id as string)
+    .eq("attendance_date", today)
+    .is("is_deleted", false)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!attendanceError && attendance) {
+    const shiftStartTime = (attendance.shift_start_time as string | null) ?? null;
+    const shiftEndTime = (attendance.shift_end_time as string | null) ?? null;
+    return {
+      employeeId: employee.id as string,
+      shiftStartTime,
+      shiftEndTime,
+      shiftHours: computeShiftHours(shiftStartTime, shiftEndTime)
+    };
+  }
+
+  const { data: assignment, error: assignmentError } = await supabase
+    .from("employee_shift_assignments")
+    .select("shift_template_id")
+    .eq("company_id", companyId)
+    .eq("employee_id", employee.id as string)
+    .lte("effective_from", today)
+    .or(`effective_to.is.null,effective_to.gte.${today}`)
+    .is("is_deleted", false)
+    .order("effective_from", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (assignmentError || !assignment?.shift_template_id) {
+    return {
+      employeeId: employee.id as string,
+      shiftStartTime: null,
+      shiftEndTime: null,
+      shiftHours: null
+    };
+  }
+
+  const { data: template, error: templateError } = await supabase
+    .from("shift_templates")
+    .select("start_time, end_time")
+    .eq("company_id", companyId)
+    .eq("id", assignment.shift_template_id as string)
+    .is("is_deleted", false)
+    .maybeSingle();
+
+  if (templateError || !template) {
+    return {
+      employeeId: employee.id as string,
+      shiftStartTime: null,
+      shiftEndTime: null,
+      shiftHours: null
+    };
+  }
+
+  const shiftStartTime = (template.start_time as string | null) ?? null;
+  const shiftEndTime = (template.end_time as string | null) ?? null;
+  return {
+    employeeId: employee.id as string,
+    shiftStartTime,
+    shiftEndTime,
+    shiftHours: computeShiftHours(shiftStartTime, shiftEndTime)
+  };
+};
+
 export const getServerSession = async (): Promise<DashboardServerSession> => {
   const cookieStore = await cookies();
   const accessToken = cookieStore.get("lf_access_token")?.value ?? null;
@@ -284,8 +432,15 @@ export const getServerSession = async (): Promise<DashboardServerSession> => {
       sessionId,
       userId: null,
       email: null,
+      fullName: null,
+      avatarUrl: null,
+      lastLoginAt: null,
+      shiftStartTime: null,
+      shiftEndTime: null,
+      shiftHours: null,
       companyId: null,
       userProfileId: null,
+      employeeId: null,
       role: null,
       permissions: []
     };
@@ -300,8 +455,15 @@ export const getServerSession = async (): Promise<DashboardServerSession> => {
       sessionId,
       userId: null,
       email: null,
+      fullName: null,
+      avatarUrl: null,
+      lastLoginAt: null,
+      shiftStartTime: null,
+      shiftEndTime: null,
+      shiftHours: null,
       companyId: null,
       userProfileId: null,
+      employeeId: null,
       role: null,
       permissions: []
     };
@@ -320,14 +482,25 @@ export const getServerSession = async (): Promise<DashboardServerSession> => {
       sessionId,
       userId: null,
       email: null,
+      fullName: null,
+      avatarUrl: null,
+      lastLoginAt: null,
+      shiftStartTime: null,
+      shiftEndTime: null,
+      shiftHours: null,
       companyId: null,
       userProfileId: null,
+      employeeId: null,
       role: null,
       permissions: []
     };
   }
 
   const { role, permissions } = await resolveRolesAndPermissions(accessToken, identity.userId, identity.companyId);
+  const [lastLoginAt, shiftSummary] = await Promise.all([
+    resolveLastLoginAt(accessToken, identity.companyId, identity.userId, sessionId),
+    resolveTodayShiftSummary(accessToken, identity.companyId, identity.userProfileId)
+  ]);
 
   return {
     accessToken,
@@ -335,8 +508,15 @@ export const getServerSession = async (): Promise<DashboardServerSession> => {
     sessionId,
     userId: identity.userId,
     email: identity.email,
+    fullName: identity.fullName,
+    avatarUrl: identity.avatarUrl,
+    lastLoginAt,
+    shiftStartTime: shiftSummary.shiftStartTime,
+    shiftEndTime: shiftSummary.shiftEndTime,
+    shiftHours: shiftSummary.shiftHours,
     companyId: identity.companyId,
     userProfileId: identity.userProfileId,
+    employeeId: shiftSummary.employeeId,
     role,
     permissions
   };

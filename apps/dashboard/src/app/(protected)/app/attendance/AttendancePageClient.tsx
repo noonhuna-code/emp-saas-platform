@@ -102,7 +102,7 @@ export const AttendancePageClient = ({
           <div>
             <h1 style={{ margin: 0 }}>Attendance</h1>
             <p className="muted" style={{ margin: "6px 0 0" }}>
-              Phase 2 Attendance Core. All mutations run through server-side service wrappers.
+              Track daily attendance, time status, and correction requests.
             </p>
           </div>
           {todayData ? <span className="badge">Today: {todayData.todayDate}</span> : null}
@@ -142,4 +142,3 @@ export const AttendancePageClient = ({
     </div>
   );
 };
-

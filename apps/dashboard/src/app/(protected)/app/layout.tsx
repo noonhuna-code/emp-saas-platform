@@ -11,6 +11,10 @@ export default async function ProtectedAppLayout({ children }: { children: React
     redirect("/login");
   }
 
+  if (session.permissions.includes("view_all_companies") || session.permissions.includes("view_global_audit")) {
+    redirect("/platform");
+  }
+
   let billingContext: Awaited<ReturnType<typeof getBillingNavigationContext>>["data"] | null = null;
   try {
     const ctx = await buildServiceContext();
@@ -27,9 +31,16 @@ export default async function ProtectedAppLayout({ children }: { children: React
       session={{
         userId: session.userId,
         companyId: session.companyId,
+        employeeId: session.employeeId,
         role: session.role,
         permissions: session.permissions,
-        email: session.email
+        email: session.email,
+        fullName: session.fullName,
+        avatarUrl: session.avatarUrl,
+        lastLoginAt: session.lastLoginAt,
+        shiftStartTime: session.shiftStartTime,
+        shiftEndTime: session.shiftEndTime,
+        shiftHours: session.shiftHours
       }}
       billingContext={billingContext}
     >

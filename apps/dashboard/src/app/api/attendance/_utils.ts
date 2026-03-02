@@ -7,9 +7,15 @@ export type AttendanceRouteContext = {
   ctx: ServiceContext;
 };
 
-export const buildAttendanceRouteContext = async (ctxOverride?: ServiceContext): Promise<AttendanceRouteContext> => {
+export const buildAttendanceRouteContext = async (
+  ctxOverride?: ServiceContext,
+  requiredPermissions: string[] = ["manage_attendance"]
+): Promise<AttendanceRouteContext> => {
   const ctx = ctxOverride ?? (await buildServiceContext());
-  requireServerPermission("manage_attendance", ctx);
+  const hasRequiredPermission = requiredPermissions.some((permission) => ctx.permissions.includes(permission));
+  if (!hasRequiredPermission) {
+    requireServerPermission(requiredPermissions[0] ?? "manage_attendance", ctx);
+  }
   return { ctx };
 };
 
@@ -54,6 +60,9 @@ export const sanitizeAttendanceServiceError = (error?: string): string => {
   if (error.startsWith("Missing permission:")) {
     return "Permission denied";
   }
+  if (error === "Permission denied") {
+    return "Permission denied";
+  }
 
   return "Attendance operation failed";
 };
@@ -61,6 +70,7 @@ export const sanitizeAttendanceServiceError = (error?: string): string => {
 export const mapAttendanceServiceErrorStatus = (error?: string): number => {
   if (!error) return 500;
   if (error.startsWith("Missing permission:")) return 403;
+  if (error === "Permission denied") return 403;
   if (
     error === "Attendance record not found" ||
     error === "Correction not found"

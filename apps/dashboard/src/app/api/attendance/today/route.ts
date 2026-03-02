@@ -18,7 +18,7 @@ export async function GET() {
       return finalizeRoute(route, endpoint, jsonError("Authentication required", 401, route.requestId));
     }
 
-    const { ctx } = await buildAttendanceRouteContext(route.ctx);
+    const { ctx } = await buildAttendanceRouteContext(route.ctx, ["manage_attendance", "view_attendance"]);
     const result = await getAttendanceToday(ctx);
     if (!result.ok || !result.data) {
       return finalizeRoute(

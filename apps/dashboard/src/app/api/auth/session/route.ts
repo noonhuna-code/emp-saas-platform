@@ -16,9 +16,16 @@ export async function GET() {
         data: {
           userId: session.userId,
           companyId: session.companyId,
+          employeeId: session.employeeId,
           role: session.role,
           permissions: session.permissions,
-          email: session.email
+          email: session.email,
+          fullName: session.fullName,
+          avatarUrl: session.avatarUrl,
+          lastLoginAt: session.lastLoginAt,
+          shiftStartTime: session.shiftStartTime,
+          shiftEndTime: session.shiftEndTime,
+          shiftHours: session.shiftHours
         }
       })
     );

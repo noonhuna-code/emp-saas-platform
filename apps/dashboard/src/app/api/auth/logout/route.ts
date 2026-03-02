@@ -5,26 +5,34 @@ import { createUserScopedSupabaseServerClient } from "@/lib/server/supabase-serv
 import { enforceAuthRateLimit } from "@emp/lib/auth-rate-limit";
 import { revokeAuthSession } from "@/lib/server/auth";
 
-export async function POST(request: Request) {
+const clearAuthCookies = (response: NextResponse) => {
+  for (const name of ["lf_access_token", "lf_refresh_token", "lf_session", "lf_session_id", "lf_role", "lf_permissions"]) {
+    response.cookies.set(name, "", { httpOnly: true, sameSite: "lax", path: "/", expires: new Date(0) });
+  }
+};
+
+const handleLogout = async (request: Request, applyRateLimit: boolean) => {
   const route = await beginRoute();
   const endpoint = "/api/auth/logout";
 
   const supabase = createUserScopedSupabaseServerClient();
 
-  try {
-    await enforceAuthRateLimit(supabase, request, {
-      includeIp: true,
-      includeEmail: false,
-      windowSeconds: 60,
-      maxAttempts: 60,
-      lockMinutes: 1
-    });
-  } catch {
-    const response = NextResponse.redirect(
-      new URL(`/login?error=${encodeURIComponent("Too many requests. Try again later.")}`, request.url),
-      { status: 429 }
-    );
-    return finalizeRoute(route, endpoint, response);
+  if (applyRateLimit) {
+    try {
+      await enforceAuthRateLimit(supabase, request, {
+        includeIp: true,
+        includeEmail: false,
+        windowSeconds: 60,
+        maxAttempts: 60,
+        lockMinutes: 1
+      });
+    } catch {
+      const response = NextResponse.redirect(
+        new URL(`/login?error=${encodeURIComponent("Too many requests. Try again later.")}`, request.url),
+        { status: 429 }
+      );
+      return finalizeRoute(route, endpoint, response);
+    }
   }
 
   const response = NextResponse.redirect(new URL("/login", request.url));
@@ -39,8 +47,14 @@ export async function POST(request: Request) {
     }
   }
 
-  for (const name of ["lf_access_token", "lf_refresh_token", "lf_session", "lf_session_id", "lf_role", "lf_permissions"]) {
-    response.cookies.set(name, "", { httpOnly: true, sameSite: "lax", path: "/", expires: new Date(0) });
-  }
+  clearAuthCookies(response);
   return finalizeRoute(route, endpoint, response);
+};
+
+export async function GET(request: Request) {
+  return handleLogout(request, false);
+}
+
+export async function POST(request: Request) {
+  return handleLogout(request, true);
 }

@@ -1,6 +1,6 @@
-## LeaveFlow Monorepo (Dashboard + Firefox Extension)
+## EMP SaaS Platform Monorepo (Dashboard + Firefox Extension)
 
-This folder is the root of the LeaveFlow frontend:
+This folder is the root of the EMP SaaS frontend:
 
 - `apps/dashboard` — main SaaS web dashboard (React 18 + Vite + TS)
 - `apps/extension` — Firefox MV3 extension popup + background

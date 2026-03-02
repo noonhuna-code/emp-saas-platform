@@ -43,7 +43,7 @@ export const PayslipsPageClient = () => {
       <div className="page-header">
         <div>
           <h1>Payslips</h1>
-          <p className="muted">Read-only payroll entry snapshots. Tenant-scoped and permission-safe.</p>
+          <p className="muted">View your payroll history and open detailed payslip snapshots.</p>
         </div>
       </div>
 

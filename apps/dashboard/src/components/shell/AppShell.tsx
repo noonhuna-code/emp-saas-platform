@@ -15,12 +15,22 @@ export const AppShell = async ({
 }) => {
   return (
     <div className="layout-shell">
-      <Sidebar permissions={session.permissions} entitlements={billingContext?.entitlements ?? null} />
+      <Sidebar
+        permissions={session.permissions}
+        hasEmployeeContext={Boolean(session.employeeId)}
+        entitlements={billingContext?.entitlements ?? null}
+      />
       <div className="content-area">
         <Topbar
           role={session.role}
           companyId={session.companyId}
           email={session.email}
+          fullName={session.fullName}
+          avatarUrl={session.avatarUrl}
+          lastLoginAt={session.lastLoginAt}
+          shiftStartTime={session.shiftStartTime}
+          shiftEndTime={session.shiftEndTime}
+          shiftHours={session.shiftHours}
           billingContext={billingContext}
         />
         <main>

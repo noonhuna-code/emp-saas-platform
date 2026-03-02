@@ -306,6 +306,31 @@ const requireAttendanceEntitlement = async (ctx: ServiceContext): Promise<void> 
   await requirePlanFeature(ctx, "feature.core_attendance");
 };
 
+const requireSelfAttendanceAccess = (ctx: ServiceContext): void => {
+  if (ctx.permissions.includes("manage_attendance") || ctx.permissions.includes("view_attendance")) {
+    return;
+  }
+  requirePermission("manage_attendance", ctx);
+};
+
+const ensureSelfOrManageAttendance = async (
+  ctx: ServiceContext,
+  employeeId: string
+): Promise<void> => {
+  if (ctx.permissions.includes("manage_attendance")) {
+    return;
+  }
+
+  if (!ctx.permissions.includes("view_attendance")) {
+    requirePermission("manage_attendance", ctx);
+  }
+
+  const currentEmployeeId = await resolveCurrentEmployeeId(ctx.supabase, ctx);
+  if (!currentEmployeeId || currentEmployeeId !== employeeId) {
+    throw new Error("Permission denied");
+  }
+};
+
 const loadCorrectionForReview = async (
   client: SupabaseClient,
   ctx: ServiceContext,
@@ -358,7 +383,7 @@ export const getAttendanceToday = async (
 ): Promise<ServiceResult<AttendanceTodayResponse>> => {
   try {
     await requireAttendanceEntitlement(ctx);
-    requirePermission("manage_attendance", ctx);
+    requireSelfAttendanceAccess(ctx);
 
     const employeeId = await resolveCurrentEmployeeId(ctx.supabase, ctx);
     if (!employeeId) {
@@ -465,7 +490,7 @@ export const getAttendanceHistory = async (
 ): Promise<ServiceResult<AttendanceHistoryResponse>> => {
   try {
     await requireAttendanceEntitlement(ctx);
-    requirePermission("manage_attendance", ctx);
+    requireSelfAttendanceAccess(ctx);
 
     const employeeId = await resolveCurrentEmployeeId(ctx.supabase, ctx);
     if (!employeeId) {
@@ -653,7 +678,7 @@ export const clockIn = async (
 ): Promise<ServiceResult<{ attendanceId: string }>> => {
   try {
     await requireAttendanceEntitlement(ctx);
-    requirePermission("manage_attendance", ctx);
+    await ensureSelfOrManageAttendance(ctx, employeeId);
     assertEmployeeScope(employeeId, ctx);
 
     const today = new Date().toISOString().slice(0, 10);
@@ -739,7 +764,7 @@ export const clockOut = async (
 ): Promise<ServiceResult<{ attendanceId: string }>> => {
   try {
     await requireAttendanceEntitlement(ctx);
-    requirePermission("manage_attendance", ctx);
+    await ensureSelfOrManageAttendance(ctx, employeeId);
     assertEmployeeScope(employeeId, ctx);
     const today = new Date().toISOString().slice(0, 10);
 
@@ -797,7 +822,7 @@ export async function requestAttendanceCorrection(
 ): Promise<ServiceResult<{ requestId: string }>> {
   try {
     await requireAttendanceEntitlement(ctx);
-    requirePermission("manage_attendance", ctx);
+    requireSelfAttendanceAccess(ctx);
 
     const payload = normalizeCorrectionRequestInput(reasonOrPayload);
     if (!payload.reason || !payload.reason.trim()) {
@@ -820,7 +845,9 @@ export async function requestAttendanceCorrection(
       return { ok: false, error: "Attendance record not found" };
     }
 
-    assertEmployeeScope(attendance.employee_id as string, ctx);
+    const attendanceEmployeeId = attendance.employee_id as string;
+    await ensureSelfOrManageAttendance(ctx, attendanceEmployeeId);
+    assertEmployeeScope(attendanceEmployeeId, ctx);
     validateRequestedCorrectionTimes(attendance as AttendanceRecordForCorrection, payload);
 
     const actorProfileId = await getActorProfileId(ctx.supabase, ctx);

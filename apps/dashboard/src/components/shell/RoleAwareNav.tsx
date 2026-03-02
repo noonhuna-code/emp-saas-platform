@@ -8,6 +8,7 @@ export type NavItem = {
   label: string;
   permission?: string;
   permissionsAny?: string[];
+  requiresEmployeeContext?: boolean;
   featureKey?: string;
   featureAnyKeys?: string[];
 };
@@ -15,10 +16,12 @@ export type NavItem = {
 export const RoleAwareNav = ({
   items,
   permissions,
+  hasEmployeeContext,
   entitlements
 }: {
   items: NavItem[];
   permissions: string[];
+  hasEmployeeContext?: boolean;
   entitlements?: Record<string, unknown> | null;
 }) => {
   const pathname = usePathname();
@@ -29,6 +32,7 @@ export const RoleAwareNav = ({
   };
 
   const visibleItems = items.filter((item) => {
+    if (item.requiresEmployeeContext && !hasEmployeeContext) return false;
     if (!item.permission && (!item.permissionsAny || item.permissionsAny.length === 0)) return true;
     if (item.permission && permissions.includes(item.permission)) return true;
     if (item.permissionsAny && item.permissionsAny.some((p) => permissions.includes(p))) return true;

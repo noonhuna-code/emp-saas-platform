@@ -20,7 +20,7 @@ export async function POST(request: Request) {
       return finalizeRoute(route, endpoint, jsonError("Authentication required", 401, route.requestId));
     }
 
-    const { ctx } = await buildAttendanceRouteContext(route.ctx);
+    const { ctx } = await buildAttendanceRouteContext(route.ctx, ["manage_attendance", "view_attendance"]);
     const body = (await request.json()) as Partial<AttendanceCorrectionRequestInput>;
 
     const attendanceId = typeof body.attendanceId === "string" ? body.attendanceId.trim() : "";

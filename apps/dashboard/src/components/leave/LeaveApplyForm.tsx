@@ -32,10 +32,11 @@ export const LeaveApplyForm = ({
       <h3>Apply for Leave</h3>
       <div className="grid-two">
         <label>
-          Leave Type ID
+          Leave Type
           <input
             value={payload.leave_type_id}
             onChange={(event) => handleChange("leave_type_id", event.target.value)}
+            placeholder="Enter leave type id"
             required
           />
         </label>

@@ -82,6 +82,8 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const route = await beginRoute();
   const endpoint = "/api/auth/login";
+  const ENABLE_LOGIN_RATE_LIMIT = process.env.ENABLE_LOGIN_RATE_LIMIT === "true";
+  const ENABLE_LOGIN_AUDIT = process.env.ENABLE_LOGIN_AUDIT === "true";
   const MFA_THRESHOLD = 60;
   const HARD_FLAG_THRESHOLD = 80;
   const LOCK_THRESHOLD = 90;
@@ -100,22 +102,24 @@ export async function POST(request: Request) {
     const emailHash = getEmailHash(email);
     const geoCountry = getGeoCountry(request);
 
-    try {
-      await enforceAuthRateLimit(supabase, request, {
-        email,
-        includeEmail: true,
-        includeIp: true,
-        windowSeconds: 60,
-        maxAttempts: 5,
-        lockMinutes: 5
-      });
-    } catch (rateLimitError) {
-      const reason = rateLimitError instanceof Error ? rateLimitError.message : "UNKNOWN_RATE_LIMIT_ERROR";
-      const isBlocked = reason.includes("AUTH_RATE_LIMITED");
-      logAuthStage(route.requestId, isBlocked ? "rate_limit_blocked" : "rate_limit_unavailable", { emailHash, reason });
-      if (isBlocked) {
-        const response = redirectToLoginWithErrorCode(request, "RATE_LIMITED");
-        return finalizeRoute(route, endpoint, response);
+    if (ENABLE_LOGIN_RATE_LIMIT) {
+      try {
+        await enforceAuthRateLimit(supabase, request, {
+          email,
+          includeEmail: true,
+          includeIp: true,
+          windowSeconds: 60,
+          maxAttempts: 5,
+          lockMinutes: 5
+        });
+      } catch (rateLimitError) {
+        const reason = rateLimitError instanceof Error ? rateLimitError.message : "UNKNOWN_RATE_LIMIT_ERROR";
+        const isBlocked = reason.includes("AUTH_RATE_LIMITED");
+        logAuthStage(route.requestId, isBlocked ? "rate_limit_blocked" : "rate_limit_unavailable", { emailHash, reason });
+        if (isBlocked) {
+          const response = redirectToLoginWithErrorCode(request, "RATE_LIMITED");
+          return finalizeRoute(route, endpoint, response);
+        }
       }
     }
 
@@ -143,39 +147,39 @@ export async function POST(request: Request) {
       return finalizeRoute(route, endpoint, response);
     }
 
-    try {
-      if (data.user?.id) {
-        const audit = await auditAuthByUserId(data.user.id, { autoHeal: true });
-        logAuthStage(route.requestId, "post_sign_in_audit", {
-          authUser: audit.authUser,
-          profile: audit.profile,
-          membership: audit.membership,
-          platformRole: audit.platformRole,
-          profileCreated: audit.healed.profileCreated,
-          membershipCreated: audit.healed.membershipCreated,
-          platformRoleAssigned: audit.healed.platformRoleAssigned
+    if (ENABLE_LOGIN_AUDIT) {
+      try {
+        if (data.user?.id) {
+          const audit = await auditAuthByUserId(data.user.id, { autoHeal: true });
+          logAuthStage(route.requestId, "post_sign_in_audit", {
+            authUser: audit.authUser,
+            profile: audit.profile,
+            membership: audit.membership,
+            platformRole: audit.platformRole,
+            profileCreated: audit.healed.profileCreated,
+            membershipCreated: audit.healed.membershipCreated,
+            platformRoleAssigned: audit.healed.platformRoleAssigned
+          });
+
+          if (audit.profile !== "exists") {
+            await supabase.auth.signOut();
+            const response = redirectToLoginWithErrorCode(request, "PROVISIONING_INCOMPLETE");
+            return finalizeRoute(route, endpoint, response);
+          }
+
+          if (audit.membership !== "exists") {
+            await supabase.auth.signOut();
+            const response = redirectToLoginWithErrorCode(request, "ROLE_MISSING");
+            return finalizeRoute(route, endpoint, response);
+          }
+        }
+      } catch (errorAudit) {
+        logAuthStage(route.requestId, "post_sign_in_audit_failed", {
+          error: errorAudit instanceof Error ? errorAudit.message : "Unknown error"
         });
-
-        if (audit.profile !== "exists") {
-          await supabase.auth.signOut();
-          const response = redirectToLoginWithErrorCode(request, "PROVISIONING_INCOMPLETE");
-          return finalizeRoute(route, endpoint, response);
-        }
-
-        if (audit.membership !== "exists") {
-          await supabase.auth.signOut();
-          const response = redirectToLoginWithErrorCode(request, "ROLE_MISSING");
-          return finalizeRoute(route, endpoint, response);
-        }
+        // Do not block valid auth if the optional audit helper fails.
+        // Session/membership validity is still enforced by subsequent auth context build.
       }
-    } catch (errorAudit) {
-      logAuthStage(route.requestId, "post_sign_in_audit_failed", {
-        error: errorAudit instanceof Error ? errorAudit.message : "Unknown error"
-      });
-      const code = mapLoginErrorCode(errorAudit);
-      await supabase.auth.signOut();
-      const response = redirectToLoginWithErrorCode(request, code);
-      return finalizeRoute(route, endpoint, response);
     }
 
     let shouldLock = false;
