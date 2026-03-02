@@ -109,10 +109,14 @@ export async function POST(request: Request) {
         maxAttempts: 5,
         lockMinutes: 5
       });
-    } catch {
-      logAuthStage(route.requestId, "rate_limit_blocked", { emailHash });
-      const response = redirectToLoginWithErrorCode(request, "RATE_LIMITED");
-      return finalizeRoute(route, endpoint, response);
+    } catch (rateLimitError) {
+      const reason = rateLimitError instanceof Error ? rateLimitError.message : "UNKNOWN_RATE_LIMIT_ERROR";
+      const isBlocked = reason.includes("AUTH_RATE_LIMITED");
+      logAuthStage(route.requestId, isBlocked ? "rate_limit_blocked" : "rate_limit_unavailable", { emailHash, reason });
+      if (isBlocked) {
+        const response = redirectToLoginWithErrorCode(request, "RATE_LIMITED");
+        return finalizeRoute(route, endpoint, response);
+      }
     }
 
     logAuthStage(route.requestId, "before_sign_in", { emailHash });
