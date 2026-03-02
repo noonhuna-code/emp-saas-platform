@@ -15,10 +15,9 @@ const handleLogout = async (request: Request, applyRateLimit: boolean) => {
   const route = await beginRoute();
   const endpoint = "/api/auth/logout";
 
-  const supabase = createUserScopedSupabaseServerClient();
-
   if (applyRateLimit) {
     try {
+      const supabase = createUserScopedSupabaseServerClient();
       await enforceAuthRateLimit(supabase, request, {
         includeIp: true,
         includeEmail: false,

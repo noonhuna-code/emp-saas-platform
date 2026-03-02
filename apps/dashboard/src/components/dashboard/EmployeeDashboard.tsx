@@ -33,6 +33,13 @@ const formatCurrency = (value?: number | null) => {
   }).format(value);
 };
 
+const formatDateTime = (value?: string | null) => {
+  if (!value) return "-";
+  const parsed = new Date(value);
+  if (!Number.isFinite(parsed.getTime())) return value;
+  return parsed.toLocaleString();
+};
+
 export const EmployeeDashboard = () => {
   const [data, setData] = useState<EmployeeDashboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -96,23 +103,69 @@ export const EmployeeDashboard = () => {
   const attendance = data.attendanceToday;
   const riskScore = data.securityStatus.lastRiskScore ?? 0;
   const tone = attendance?.status === "late" ? "warning" : attendance?.status === "clocked_out" ? "success" : "info";
+  const workspace = data.workspace;
 
   return (
     <div className="dashboard-shell fade-in">
       <DashboardHero
         eyebrow="Employee Workspace"
         title="Daily work summary"
-        subtitle="Track attendance, leave balances, recent payroll snapshots, and account security signals in one read-only view."
+        subtitle="Track attendance, shifts, loans, SOP resources, personal notes/files, and secure team communication in one portal."
         emphasis="default"
         actions={(
           <>
             <Link href="/app/attendance" className="secondary-btn">Attendance</Link>
             <Link href="/app/leave" className="secondary-btn">Leave</Link>
             <Link href="/app/payslips" className="secondary-btn">Payslips</Link>
-            <Link href="/app/employees/me" className="primary-btn">My Profile</Link>
+            <Link href="/app/loans" className="secondary-btn">Loans</Link>
+            <Link href="/app/chat" className="secondary-btn">Chat</Link>
+            <Link href="/app/notifications" className="secondary-btn">Notifications</Link>
+            <Link href="/app/resources" className="secondary-btn">SOPs</Link>
+            <Link href="/app/notes" className="secondary-btn">Notes</Link>
+            <Link href="/app/profile" className="primary-btn">My Profile</Link>
           </>
         )}
       />
+
+      <div className="grid-2">
+        <DashboardPanel title="Employee workspace snapshot" subtitle="Profile, hierarchy, and company context" tone="spotlight">
+          <div className="row" style={{ marginBottom: 8 }}>
+            {workspace.employee.avatar_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={workspace.employee.avatar_url}
+                alt="Employee avatar"
+                width={44}
+                height={44}
+                style={{ borderRadius: "50%", border: "1px solid var(--line)", objectFit: "cover" }}
+              />
+            ) : (
+              <span className="tag" style={{ minWidth: 44, justifyContent: "center" }}>
+                {(workspace.employee.full_name?.[0] ?? "E").toUpperCase()}
+              </span>
+            )}
+            <span className="muted" style={{ fontSize: 12 }}>
+              Personal profile image from your employee record.
+            </span>
+          </div>
+          <SignalRow label="Employee" value={workspace.employee.full_name ?? "Employee"} />
+          <SignalRow label="Employee code" value={workspace.employee.employee_code ?? "-"} />
+          <SignalRow label="Designation" value={workspace.employee.designation ?? "-"} />
+          <SignalRow label="Department / Team" value={`${workspace.employee.department_name ?? "-"} / ${workspace.employee.team_name ?? "-"}`} />
+          <SignalRow label="Team lead" value={workspace.teamLead?.full_name ?? "Not assigned"} />
+          <SignalRow label="Company" value={workspace.company ? `${workspace.company.name} (${workspace.company.slug})` : "-"} />
+        </DashboardPanel>
+
+        <DashboardPanel title="Workspace inventory" subtitle="Your personal workspace counters">
+          <SignalRow label="Notes" value={workspace.counts.notes} />
+          <SignalRow label="Files" value={workspace.counts.files} />
+          <SignalRow label="SOP/resources" value={`${workspace.counts.sops}/${workspace.counts.resources}`} />
+          <SignalRow label="Unread notifications" value={workspace.counts.unreadNotifications} />
+          <SignalRow label="Open loan requests" value={workspace.counts.openLoanRequests} />
+          <SignalRow label="Active loan obligations" value={workspace.counts.activeLoans} />
+          <SignalRow label="Chat messages" value={workspace.counts.chatMessages} />
+        </DashboardPanel>
+      </div>
 
       <div className="dashboard-kpi-grid">
         <DashboardKpiTile
@@ -158,7 +211,12 @@ export const EmployeeDashboard = () => {
               { label: "Clock In / Out", href: "/app/attendance", caption: "Attendance actions" },
               { label: "Request Leave", href: "/app/leave", caption: "Apply and track" },
               { label: "View Payslips", href: "/app/payslips", caption: "Payroll snapshots" },
-              { label: "Update Profile", href: "/app/employees/me", caption: "Personal records" }
+              { label: "Loans / Advances", href: "/app/loans", caption: "Request & track" },
+              { label: "Team Chat", href: "/app/chat", caption: "Direct messages" },
+              { label: "Notifications", href: "/app/notifications", caption: "Inbox and alerts" },
+              { label: "SOP Resources", href: "/app/resources", caption: "Knowledge base" },
+              { label: "My Notes", href: "/app/notes", caption: "Private workspace notes" },
+              { label: "Update Profile", href: "/app/profile", caption: "Personal records" }
             ]}
           />
           <SignalRow label="Unread notifications" value={data.notifications.filter((n) => !n.is_read).length} />
@@ -181,6 +239,95 @@ export const EmployeeDashboard = () => {
           ) : (
             <p className="muted">No recent notifications.</p>
           )}
+        </DashboardPanel>
+      </div>
+
+      <div className="grid-2">
+        <DashboardPanel title="SOP & resources" subtitle="Company knowledge and process references">
+          {workspace.resources.length === 0 ? <p className="muted">No resources published yet.</p> : null}
+          {workspace.resources.map((resource) => (
+            <div key={resource.id} className="signal-row">
+              <span className="signal-row__label">
+                <strong>{resource.title}</strong>
+                <br />
+                <span className="muted">{resource.resource_type.toUpperCase()}</span>
+              </span>
+              <span className="signal-row__value">
+                {resource.link_url ? (
+                  <a href={resource.link_url} target="_blank" rel="noreferrer" className="secondary-btn" style={{ padding: "6px 10px" }}>
+                    Open
+                  </a>
+                ) : resource.file_url ? (
+                  <a href={resource.file_url} target="_blank" rel="noreferrer" className="secondary-btn" style={{ padding: "6px 10px" }}>
+                    Download
+                  </a>
+                ) : (
+                  "-"
+                )}
+              </span>
+            </div>
+          ))}
+          <div className="row" style={{ justifyContent: "flex-end" }}>
+            <Link href="/app/resources" className="secondary-btn">Open resources</Link>
+          </div>
+        </DashboardPanel>
+
+        <DashboardPanel title="My notes & files" subtitle="Private employee notes saved in workspace">
+          {workspace.notes.length === 0 ? <p className="muted">No notes yet. Use My Notes to save your work.</p> : null}
+          {workspace.notes.map((note) => (
+            <div key={note.id} className="stack" style={{ gap: 6, border: "1px solid var(--line)", borderRadius: 12, padding: 10 }}>
+              <div className="row" style={{ justifyContent: "space-between" }}>
+                <strong>{note.title}</strong>
+                {note.is_pinned ? <span className="tag">Pinned</span> : null}
+              </div>
+              <p className="muted" style={{ fontSize: 13 }}>{note.body}</p>
+              <div className="row" style={{ justifyContent: "space-between" }}>
+                <span className="muted" style={{ fontSize: 12 }}>{formatDateTime(note.updated_at)}</span>
+                {note.file_url ? <a href={note.file_url} target="_blank" rel="noreferrer" className="secondary-btn" style={{ padding: "6px 10px" }}>File</a> : null}
+              </div>
+            </div>
+          ))}
+          <div className="row" style={{ justifyContent: "flex-end" }}>
+            <Link href="/app/notes" className="secondary-btn">Open notes</Link>
+          </div>
+        </DashboardPanel>
+      </div>
+
+      <div className="grid-2">
+        <DashboardPanel title="Loans & advances" subtitle="Your obligation requests and statuses">
+          {workspace.loanRequests.length === 0 ? <p className="muted">No loan/advance requests submitted yet.</p> : null}
+          {workspace.loanRequests.map((item) => (
+            <div key={item.id} className="signal-row">
+              <span className="signal-row__label">
+                {item.obligation_type.toUpperCase()} - {formatDateTime(item.created_at)}
+              </span>
+              <span className="signal-row__value">
+                {formatCurrency(item.requested_amount)} {item.currency_code} - {item.status}
+              </span>
+            </div>
+          ))}
+          <div className="row" style={{ justifyContent: "flex-end" }}>
+            <Link href="/app/loans" className="secondary-btn">Open loans</Link>
+          </div>
+        </DashboardPanel>
+
+        <DashboardPanel title="Team chat" subtitle="Recent direct messages in your company scope">
+          {workspace.chat.length === 0 ? <p className="muted">No messages yet.</p> : null}
+          {workspace.chat.map((msg) => (
+            <div key={msg.id} className="stack" style={{ gap: 4, border: "1px solid var(--line)", borderRadius: 12, padding: 10 }}>
+              <div className="row" style={{ justifyContent: "space-between" }}>
+                <span className="tag">{msg.direction === "out" ? "Sent" : "Received"}</span>
+                <span className="muted" style={{ fontSize: 12 }}>{formatDateTime(msg.created_at)}</span>
+              </div>
+              <strong style={{ fontSize: 13 }}>
+                {msg.direction === "out" ? `To ${msg.recipient_name ?? "Employee"}` : `From ${msg.sender_name ?? "Employee"}`}
+              </strong>
+              <p className="muted" style={{ fontSize: 13 }}>{msg.message_text}</p>
+            </div>
+          ))}
+          <div className="row" style={{ justifyContent: "flex-end" }}>
+            <Link href="/app/chat" className="secondary-btn">Open chat</Link>
+          </div>
         </DashboardPanel>
       </div>
 

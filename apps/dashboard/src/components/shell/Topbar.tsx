@@ -12,7 +12,9 @@ export const Topbar = ({
   shiftStartTime,
   shiftEndTime,
   shiftHours,
-  billingContext
+  billingContext,
+  onToggleSidebar,
+  onToggleMobileSidebar
 }: {
   role: string | null;
   companyId: string | null;
@@ -24,6 +26,8 @@ export const Topbar = ({
   shiftEndTime?: string | null;
   shiftHours?: number | null;
   billingContext: BillingNavigationContext | null;
+  onToggleSidebar?: () => void;
+  onToggleMobileSidebar?: () => void;
 }) => {
   const subscription = billingContext?.subscription ?? null;
   const seatSummary = billingContext?.seatSummary ?? null;
@@ -71,7 +75,15 @@ export const Topbar = ({
   return (
     <header className="topbar">
       <div className="stack" style={{ gap: 4 }}>
-        <strong>Employee Management</strong>
+        <div className="row">
+          <button type="button" className="ghost-btn sidebar-toggle-desktop" onClick={onToggleSidebar} aria-label="Toggle sidebar">
+            &#8942;
+          </button>
+          <button type="button" className="ghost-btn sidebar-toggle-mobile" onClick={onToggleMobileSidebar} aria-label="Open menu">
+            &#9776;
+          </button>
+          <strong>Employee Management</strong>
+        </div>
         <span className="muted" style={{ fontSize: 13 }}>{identityLabel}</span>
         {lastLoginText ? <span className="muted" style={{ fontSize: 12 }}>Last login: {lastLoginText}</span> : null}
       </div>

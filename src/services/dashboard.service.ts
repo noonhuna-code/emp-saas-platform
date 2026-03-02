@@ -3,6 +3,73 @@ import { requirePermission } from "../lib/auth-wrapper";
 import { requireAnyPlanFeature } from "../lib/entitlements";
 
 export type EmployeeDashboardData = {
+  workspace: {
+    employee: {
+      id: string;
+      employee_code: string | null;
+      full_name: string | null;
+      avatar_url: string | null;
+      designation: string | null;
+      department_name: string | null;
+      team_name: string | null;
+    };
+    teamLead: {
+      employee_id: string;
+      full_name: string | null;
+      email: string | null;
+    } | null;
+    company: {
+      id: string;
+      name: string;
+      slug: string;
+    } | null;
+    counts: {
+      notes: number;
+      files: number;
+      resources: number;
+      sops: number;
+      unreadNotifications: number;
+      activeLoans: number;
+      openLoanRequests: number;
+      chatMessages: number;
+    };
+    resources: Array<{
+      id: string;
+      title: string;
+      resource_type: string;
+      summary: string | null;
+      link_url: string | null;
+      file_url: string | null;
+      created_at: string;
+    }>;
+    notes: Array<{
+      id: string;
+      title: string;
+      body: string;
+      file_url: string | null;
+      file_name: string | null;
+      is_pinned: boolean;
+      updated_at: string;
+    }>;
+    chat: Array<{
+      id: string;
+      sender_employee_id: string;
+      recipient_employee_id: string;
+      sender_name: string | null;
+      recipient_name: string | null;
+      message_text: string;
+      created_at: string;
+      direction: "in" | "out";
+    }>;
+    loanRequests: Array<{
+      id: string;
+      obligation_type: string;
+      status: string;
+      requested_amount: number;
+      currency_code: string;
+      created_at: string;
+    }>;
+  };
   attendanceToday: {
     status: string;
     checkIn?: string | null;
@@ -140,6 +207,175 @@ export const getEmployeeDashboard = async (ctx: ServiceContext): Promise<Service
       .eq("employee_id", employeeId)
       .order("year", { ascending: false });
 
+    const employeeRecord = await ctx.supabase
+      .from("employees")
+      .select("id, employee_code, designation, manager_id, department_id, team_id, user_profile_id")
+      .eq("company_id", ctx.companyId)
+      .eq("id", employeeId)
+      .is("is_deleted", false)
+      .maybeSingle();
+
+    const companyInfo = await ctx.supabase
+      .from("companies")
+      .select("id, name, slug")
+      .eq("id", ctx.companyId)
+      .is("is_deleted", false)
+      .maybeSingle();
+
+    const employeeProfile = employeeRecord.data?.user_profile_id
+      ? await ctx.supabase
+          .from("user_profiles")
+          .select("id, full_name, avatar_url")
+          .eq("company_id", ctx.companyId)
+          .eq("id", employeeRecord.data.user_profile_id as string)
+          .is("is_deleted", false)
+          .maybeSingle()
+      : { data: null };
+
+    const department = employeeRecord.data?.department_id
+      ? await ctx.supabase
+          .from("departments")
+          .select("id, name")
+          .eq("company_id", ctx.companyId)
+          .eq("id", employeeRecord.data.department_id as string)
+          .is("is_deleted", false)
+          .maybeSingle()
+      : { data: null };
+
+    const team = employeeRecord.data?.team_id
+      ? await ctx.supabase
+          .from("teams")
+          .select("id, name")
+          .eq("company_id", ctx.companyId)
+          .eq("id", employeeRecord.data.team_id as string)
+          .is("is_deleted", false)
+          .maybeSingle()
+      : { data: null };
+
+    const teamLeadEmployee = employeeRecord.data?.manager_id
+      ? await ctx.supabase
+          .from("employees")
+          .select("id, user_profile_id")
+          .eq("company_id", ctx.companyId)
+          .eq("id", employeeRecord.data.manager_id as string)
+          .is("is_deleted", false)
+          .maybeSingle()
+      : { data: null };
+
+    const teamLeadProfile = teamLeadEmployee.data?.user_profile_id
+      ? await ctx.supabase
+          .from("user_profiles")
+          .select("id, full_name")
+          .eq("company_id", ctx.companyId)
+          .eq("id", teamLeadEmployee.data.user_profile_id as string)
+          .is("is_deleted", false)
+          .maybeSingle()
+      : { data: null };
+
+    const myNotes = await ctx.supabase
+      .from("employee_workspace_notes")
+      .select("id, title, body, file_url, file_name, is_pinned, updated_at")
+      .eq("company_id", ctx.companyId)
+      .eq("employee_id", employeeId)
+      .is("is_deleted", false)
+      .order("is_pinned", { ascending: false })
+      .order("updated_at", { ascending: false })
+      .limit(5);
+
+    const noteCountResult = await ctx.supabase
+      .from("employee_workspace_notes")
+      .select("id", { head: true, count: "exact" })
+      .eq("company_id", ctx.companyId)
+      .eq("employee_id", employeeId)
+      .is("is_deleted", false);
+
+    const noteFilesCountResult = await ctx.supabase
+      .from("employee_workspace_notes")
+      .select("id", { head: true, count: "exact" })
+      .eq("company_id", ctx.companyId)
+      .eq("employee_id", employeeId)
+      .not("file_url", "is", null)
+      .is("is_deleted", false);
+
+    const employeeDocumentCountResult = await ctx.supabase
+      .from("employee_documents")
+      .select("id", { head: true, count: "exact" })
+      .eq("company_id", ctx.companyId)
+      .eq("employee_id", employeeId)
+      .is("is_deleted", false);
+
+    const resources = await ctx.supabase
+      .from("company_resources")
+      .select("id, title, resource_type, summary, link_url, file_url, created_at")
+      .eq("company_id", ctx.companyId)
+      .eq("is_active", true)
+      .is("is_deleted", false)
+      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: false })
+      .limit(6);
+
+    const resourcesCountResult = await ctx.supabase
+      .from("company_resources")
+      .select("id", { head: true, count: "exact" })
+      .eq("company_id", ctx.companyId)
+      .eq("is_active", true)
+      .is("is_deleted", false);
+
+    const sopCountResult = await ctx.supabase
+      .from("company_resources")
+      .select("id", { head: true, count: "exact" })
+      .eq("company_id", ctx.companyId)
+      .eq("is_active", true)
+      .eq("resource_type", "sop")
+      .is("is_deleted", false);
+
+    const unreadNotificationsResult = await ctx.supabase
+      .from("notifications")
+      .select("id", { head: true, count: "exact" })
+      .eq("company_id", ctx.companyId)
+      .eq("recipient_profile_id", ctx.userProfileId)
+      .eq("is_read", false)
+      .is("is_deleted", false);
+
+    const openLoanRequestsResult = await ctx.supabase
+      .from("financial_obligation_requests")
+      .select("id", { head: true, count: "exact" })
+      .eq("company_id", ctx.companyId)
+      .eq("employee_id", employeeId)
+      .in("status", ["submitted", "under_review", "approved"])
+      .order("created_at", { ascending: false });
+
+    const activeLoansResult = await ctx.supabase
+      .from("financial_obligations")
+      .select("id", { head: true, count: "exact" })
+      .eq("company_id", ctx.companyId)
+      .eq("employee_id", employeeId)
+      .in("obligation_status", ["approved_pending_disbursement", "disbursed_active", "repayment_in_progress"]);
+
+    const myLoanRequests = await ctx.supabase
+      .from("financial_obligation_requests")
+      .select("id, obligation_type, status, requested_amount, currency_code, created_at")
+      .eq("company_id", ctx.companyId)
+      .eq("employee_id", employeeId)
+      .order("created_at", { ascending: false })
+      .limit(5);
+
+    const recentChat = await ctx.supabase
+      .from("employee_chat_messages")
+      .select("id, sender_employee_id, recipient_employee_id, message_text, created_at")
+      .eq("company_id", ctx.companyId)
+      .or(`sender_employee_id.eq.${employeeId},recipient_employee_id.eq.${employeeId}`)
+      .is("is_deleted", false)
+      .order("created_at", { ascending: false })
+      .limit(8);
+
+    const chatMessageCountResult = await ctx.supabase
+      .from("employee_chat_messages")
+      .select("id", { head: true, count: "exact" })
+      .eq("company_id", ctx.companyId)
+      .or(`sender_employee_id.eq.${employeeId},recipient_employee_id.eq.${employeeId}`)
+      .is("is_deleted", false);
+
     const assignments = await ctx.supabase
       .from("employee_shift_assignments")
       .select("shift_template_id, effective_from, effective_to")
@@ -210,12 +446,102 @@ export const getEmployeeDashboard = async (ctx: ServiceContext): Promise<Service
       p_employee_id: employeeId
     });
 
+    const participantIds = Array.from(
+      new Set(
+        (recentChat.data ?? []).flatMap((row) => [row.sender_employee_id, row.recipient_employee_id]).filter(Boolean)
+      )
+    ) as string[];
+
+    const chatParticipants = participantIds.length
+      ? await ctx.supabase
+          .from("employees")
+          .select("id, user_profile_id, user_profiles(full_name)")
+          .eq("company_id", ctx.companyId)
+          .in("id", participantIds)
+          .is("is_deleted", false)
+      : { data: [] };
+
+    const participantNameByEmployeeId = new Map<string, string | null>(
+      (chatParticipants.data ?? []).map((row: any) => [row.id as string, (row.user_profiles?.full_name as string | null) ?? null])
+    );
+
     const isOnBreak = Boolean(breakRecord.data?.id);
     const record = attendanceRecord.data;
 
     return {
       ok: true,
       data: {
+        workspace: {
+          employee: {
+            id: employeeId,
+            employee_code: (employeeRecord.data?.employee_code as string | null) ?? null,
+            full_name: (employeeProfile.data?.full_name as string | null) ?? null,
+            avatar_url: (employeeProfile.data?.avatar_url as string | null) ?? null,
+            designation: (employeeRecord.data?.designation as string | null) ?? null,
+            department_name: (department.data?.name as string | null) ?? null,
+            team_name: (team.data?.name as string | null) ?? null
+          },
+          teamLead: teamLeadEmployee.data?.id
+            ? {
+                employee_id: teamLeadEmployee.data.id as string,
+                full_name: (teamLeadProfile.data?.full_name as string | null) ?? null,
+                email: null
+              }
+            : null,
+          company: companyInfo.data
+            ? {
+                id: companyInfo.data.id as string,
+                name: companyInfo.data.name as string,
+                slug: companyInfo.data.slug as string
+              }
+            : null,
+          counts: {
+            notes: noteCountResult.count ?? 0,
+            files: (noteFilesCountResult.count ?? 0) + (employeeDocumentCountResult.count ?? 0),
+            resources: resourcesCountResult.count ?? 0,
+            sops: sopCountResult.count ?? 0,
+            unreadNotifications: unreadNotificationsResult.count ?? 0,
+            activeLoans: activeLoansResult.count ?? 0,
+            openLoanRequests: openLoanRequestsResult.count ?? 0,
+            chatMessages: chatMessageCountResult.count ?? 0
+          },
+          resources: (resources.data ?? []).map((row) => ({
+            id: row.id as string,
+            title: row.title as string,
+            resource_type: row.resource_type as string,
+            summary: (row.summary as string | null) ?? null,
+            link_url: (row.link_url as string | null) ?? null,
+            file_url: (row.file_url as string | null) ?? null,
+            created_at: row.created_at as string
+          })),
+          notes: (myNotes.data ?? []).map((row) => ({
+            id: row.id as string,
+            title: row.title as string,
+            body: row.body as string,
+            file_url: (row.file_url as string | null) ?? null,
+            file_name: (row.file_name as string | null) ?? null,
+            is_pinned: Boolean(row.is_pinned),
+            updated_at: row.updated_at as string
+          })),
+          chat: (recentChat.data ?? []).map((row) => ({
+            id: row.id as string,
+            sender_employee_id: row.sender_employee_id as string,
+            recipient_employee_id: row.recipient_employee_id as string,
+            sender_name: participantNameByEmployeeId.get(row.sender_employee_id as string) ?? null,
+            recipient_name: participantNameByEmployeeId.get(row.recipient_employee_id as string) ?? null,
+            message_text: row.message_text as string,
+            created_at: row.created_at as string,
+            direction: (row.sender_employee_id as string) === employeeId ? ("out" as const) : ("in" as const)
+          })),
+          loanRequests: (myLoanRequests.data ?? []).map((row) => ({
+            id: row.id as string,
+            obligation_type: row.obligation_type as string,
+            status: row.status as string,
+            requested_amount: Number(row.requested_amount ?? 0),
+            currency_code: row.currency_code as string,
+            created_at: row.created_at as string
+          }))
+        },
         attendanceToday: record
           ? {
               status: computeAttendanceStatus(record, isOnBreak),

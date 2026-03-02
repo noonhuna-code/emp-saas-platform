@@ -1,3 +1,5 @@
+"use client";
+
 import { RoleAwareNav, type NavItem } from "./RoleAwareNav";
 
 const NAV_ITEMS: NavItem[] = [
@@ -13,8 +15,20 @@ const NAV_ITEMS: NavItem[] = [
   },
   { href: "/app/attendance/review", label: "Attendance Review", permission: "manage_attendance", featureKey: "feature.core_attendance" },
   { href: "/app/attendance/team", label: "Team Attendance", permission: "manage_attendance", featureKey: "feature.core_attendance" },
+  { href: "/app/attendance/shifts", label: "Shift Assignment", permissionsAny: ["manage_attendance", "manage_employees"], featureKey: "feature.core_attendance" },
   { href: "/app/leave", label: "Leave", requiresEmployeeContext: true, featureKey: "feature.core_leave_management" },
   { href: "/app/payslips", label: "Payslips", featureKey: "feature.payslip_history_detail" },
+  {
+    href: "/app/loans",
+    label: "Loans & Advances",
+    requiresEmployeeContext: true,
+    permissionsAny: ["request_loan", "request_salary_advance", "review_loan_requests", "review_salary_advance", "manage_obligation_creation"],
+    featureKey: "feature.financial_obligations_loans_advances"
+  },
+  { href: "/app/resources", label: "SOP Resources", requiresEmployeeContext: true, featureKey: "feature.core_employee_management" },
+  { href: "/app/notes", label: "My Notes", requiresEmployeeContext: true, featureKey: "feature.core_employee_management" },
+  { href: "/app/notifications", label: "Notifications", requiresEmployeeContext: true, featureKey: "feature.core_notifications" },
+  { href: "/app/chat", label: "Team Chat", requiresEmployeeContext: true, featureKey: "feature.core_notifications" },
   { href: "/app/leave/review", label: "Leave Review", permission: "manage_employees", featureKey: "feature.core_leave_management" },
   { href: "/app/approvals", label: "Approvals", permissionsAny: ["manage_employees", "manage_attendance"], featureKey: "feature.unified_approvals_workspace" },
   { href: "/app/overtime", label: "Overtime", requiresEmployeeContext: true, featureKey: "feature.core_attendance" },
@@ -31,23 +45,38 @@ const NAV_ITEMS: NavItem[] = [
 export const Sidebar = ({
   permissions,
   hasEmployeeContext,
-  entitlements
+  entitlements,
+  collapsed,
+  mobileOpen,
+  onToggleCollapsed,
+  onCloseMobile
 }: {
   permissions: string[];
   hasEmployeeContext: boolean;
   entitlements: Record<string, unknown> | null;
+  collapsed: boolean;
+  mobileOpen: boolean;
+  onToggleCollapsed: () => void;
+  onCloseMobile: () => void;
 }) => {
   return (
-    <aside className="sidebar">
-      <div>
-        <h2 style={{ margin: 0 }}>EMP OS</h2>
-        <p style={{ margin: "4px 0 0", color: "#9eb0ea" }}>Enterprise Suite</p>
+    <aside className={`sidebar ${collapsed ? "sidebar--collapsed" : ""} ${mobileOpen ? "sidebar--open" : ""}`}>
+      <div className="sidebar__head">
+        <div>
+          <h2 style={{ margin: 0 }}>{collapsed ? "EMP" : "EMP OS"}</h2>
+          {!collapsed ? <p style={{ margin: "4px 0 0", color: "#9eb0ea" }}>Enterprise Suite</p> : null}
+        </div>
+        <button type="button" className="ghost-btn sidebar__toggle" onClick={onToggleCollapsed} aria-label="Toggle sidebar">
+          &#8942;
+        </button>
       </div>
       <RoleAwareNav
         items={NAV_ITEMS}
         permissions={permissions}
         hasEmployeeContext={hasEmployeeContext}
         entitlements={entitlements}
+        collapsed={collapsed}
+        onNavigate={onCloseMobile}
       />
     </aside>
   );

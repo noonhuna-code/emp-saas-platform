@@ -73,6 +73,24 @@ import type {
   BillingWebhookProcessResult
 } from "@/lib/types/billing";
 import type { PlatformOverviewResponse } from "@/lib/types/platform";
+import type {
+  AssignShiftResponse,
+  ShiftAssignableEmployeesResponse,
+  ShiftAssignmentsResponse,
+  ShiftTemplatesResponse,
+  WorkspaceChatResponse,
+  WorkspaceContactsResponse,
+  WorkspaceCreateNoteResponse,
+  WorkspaceMarkNotificationsReadResponse,
+  WorkspaceNotesResponse,
+  WorkspaceNotificationsResponse,
+  WorkspaceResourceListResponse,
+  WorkspaceSendChatResponse
+} from "@/lib/types/workspace";
+import type {
+  MyFinancialObligationRequestsResponse,
+  SubmitFinancialObligationRequestResponse
+} from "@/lib/types/finance";
 
 const parseJson = async <T>(response: Response): Promise<DashboardApiResult<T>> => {
   const payload = (await response.json()) as DashboardApiResult<T>;
@@ -891,4 +909,159 @@ export const requestBillingSubscriptionCancellation = async (
 export const fetchPlatformOverview = async (): Promise<DashboardApiResult<PlatformOverviewResponse>> => {
   const response = await fetch("/api/platform/overview", { cache: "no-store" });
   return parseJson<PlatformOverviewResponse>(response);
+};
+
+export const fetchWorkspaceResources = async (
+  limit = 50
+): Promise<DashboardApiResult<WorkspaceResourceListResponse>> => {
+  const query = new URLSearchParams();
+  query.set("limit", String(limit));
+  const response = await fetch(`/api/workspace/resources?${query.toString()}`, { cache: "no-store" });
+  return parseJson<WorkspaceResourceListResponse>(response);
+};
+
+export const fetchWorkspaceNotes = async (
+  limit = 50
+): Promise<DashboardApiResult<WorkspaceNotesResponse>> => {
+  const query = new URLSearchParams();
+  query.set("limit", String(limit));
+  const response = await fetch(`/api/workspace/notes?${query.toString()}`, { cache: "no-store" });
+  return parseJson<WorkspaceNotesResponse>(response);
+};
+
+export const createWorkspaceNote = async (payload: {
+  title: string;
+  body: string;
+  fileUrl?: string | null;
+  fileName?: string | null;
+  isPinned?: boolean;
+}): Promise<DashboardApiResult<WorkspaceCreateNoteResponse>> => {
+  return postJson<WorkspaceCreateNoteResponse>(
+    "/api/workspace/notes",
+    payload as Record<string, unknown>,
+    { "Idempotency-Key": crypto.randomUUID() }
+  );
+};
+
+export const fetchWorkspaceChat = async (params: {
+  peerEmployeeId?: string;
+  limit?: number;
+} = {}): Promise<DashboardApiResult<WorkspaceChatResponse>> => {
+  const query = new URLSearchParams();
+  if (params.peerEmployeeId) query.set("peerEmployeeId", params.peerEmployeeId);
+  if (typeof params.limit === "number") query.set("limit", String(params.limit));
+  const suffix = query.toString() ? `?${query.toString()}` : "";
+  const response = await fetch(`/api/workspace/chat${suffix}`, { cache: "no-store" });
+  return parseJson<WorkspaceChatResponse>(response);
+};
+
+export const sendWorkspaceChat = async (payload: {
+  recipientEmployeeId: string;
+  message: string;
+}): Promise<DashboardApiResult<WorkspaceSendChatResponse>> => {
+  return postJson<WorkspaceSendChatResponse>(
+    "/api/workspace/chat",
+    payload as Record<string, unknown>,
+    { "Idempotency-Key": crypto.randomUUID() }
+  );
+};
+
+export const fetchWorkspaceContacts = async (
+  limit = 200
+): Promise<DashboardApiResult<WorkspaceContactsResponse>> => {
+  const query = new URLSearchParams();
+  query.set("limit", String(limit));
+  const response = await fetch(`/api/workspace/contacts?${query.toString()}`, { cache: "no-store" });
+  return parseJson<WorkspaceContactsResponse>(response);
+};
+
+export const fetchWorkspaceNotifications = async (params: {
+  limit?: number;
+  unreadOnly?: boolean;
+} = {}): Promise<DashboardApiResult<WorkspaceNotificationsResponse>> => {
+  const query = new URLSearchParams();
+  if (typeof params.limit === "number") query.set("limit", String(params.limit));
+  if (params.unreadOnly) query.set("unreadOnly", "1");
+  const suffix = query.toString() ? `?${query.toString()}` : "";
+  const response = await fetch(`/api/workspace/notifications${suffix}`, { cache: "no-store" });
+  return parseJson<WorkspaceNotificationsResponse>(response);
+};
+
+export const markWorkspaceNotificationsRead = async (payload: {
+  ids?: string[];
+} = {}): Promise<DashboardApiResult<WorkspaceMarkNotificationsReadResponse>> => {
+  return postJson<WorkspaceMarkNotificationsReadResponse>(
+    "/api/workspace/notifications",
+    payload as Record<string, unknown>,
+    { "Idempotency-Key": crypto.randomUUID() }
+  );
+};
+
+export const fetchMyFinancialObligationRequests = async (): Promise<DashboardApiResult<MyFinancialObligationRequestsResponse>> => {
+  const response = await fetch("/api/finance/obligations/requests/mine", { cache: "no-store" });
+  return parseJson<MyFinancialObligationRequestsResponse>(response);
+};
+
+export const submitLoanRequest = async (payload: {
+  amount: number;
+  termMonths: number;
+  currencyCode: string;
+  reason?: string;
+}): Promise<DashboardApiResult<SubmitFinancialObligationRequestResponse>> => {
+  return postJson<SubmitFinancialObligationRequestResponse>(
+    "/api/finance/loans/request",
+    payload as Record<string, unknown>,
+    { "Idempotency-Key": crypto.randomUUID() }
+  );
+};
+
+export const submitAdvanceRequest = async (payload: {
+  amount: number;
+  currencyCode: string;
+  reason?: string;
+}): Promise<DashboardApiResult<SubmitFinancialObligationRequestResponse>> => {
+  return postJson<SubmitFinancialObligationRequestResponse>(
+    "/api/finance/advances/request",
+    payload as Record<string, unknown>,
+    { "Idempotency-Key": crypto.randomUUID() }
+  );
+};
+
+export const fetchShiftTemplates = async (): Promise<DashboardApiResult<ShiftTemplatesResponse>> => {
+  const response = await fetch("/api/attendance/shifts/templates", { cache: "no-store" });
+  return parseJson<ShiftTemplatesResponse>(response);
+};
+
+export const fetchShiftAssignableEmployees = async (
+  limit = 200
+): Promise<DashboardApiResult<ShiftAssignableEmployeesResponse>> => {
+  const query = new URLSearchParams();
+  query.set("limit", String(limit));
+  const response = await fetch(`/api/attendance/shifts/assignable?${query.toString()}`, { cache: "no-store" });
+  return parseJson<ShiftAssignableEmployeesResponse>(response);
+};
+
+export const fetchShiftAssignments = async (params: {
+  employeeId?: string;
+  limit?: number;
+} = {}): Promise<DashboardApiResult<ShiftAssignmentsResponse>> => {
+  const query = new URLSearchParams();
+  if (params.employeeId) query.set("employeeId", params.employeeId);
+  if (typeof params.limit === "number") query.set("limit", String(params.limit));
+  const suffix = query.toString() ? `?${query.toString()}` : "";
+  const response = await fetch(`/api/attendance/shifts/assignments${suffix}`, { cache: "no-store" });
+  return parseJson<ShiftAssignmentsResponse>(response);
+};
+
+export const assignShift = async (payload: {
+  employeeId: string;
+  shiftTemplateId: string;
+  effectiveFrom: string;
+  effectiveTo?: string | null;
+}): Promise<DashboardApiResult<AssignShiftResponse>> => {
+  return postJson<AssignShiftResponse>(
+    "/api/attendance/shifts/assign",
+    payload as Record<string, unknown>,
+    { "Idempotency-Key": crypto.randomUUID() }
+  );
 };

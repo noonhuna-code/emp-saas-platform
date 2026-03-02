@@ -1,4 +1,71 @@
 export type EmployeeDashboardResponse = {
+  workspace: {
+    employee: {
+      id: string;
+      employee_code: string | null;
+      full_name: string | null;
+      avatar_url: string | null;
+      designation: string | null;
+      department_name: string | null;
+      team_name: string | null;
+    };
+    teamLead: {
+      employee_id: string;
+      full_name: string | null;
+      email: string | null;
+    } | null;
+    company: {
+      id: string;
+      name: string;
+      slug: string;
+    } | null;
+    counts: {
+      notes: number;
+      files: number;
+      resources: number;
+      sops: number;
+      unreadNotifications: number;
+      activeLoans: number;
+      openLoanRequests: number;
+      chatMessages: number;
+    };
+    resources: Array<{
+      id: string;
+      title: string;
+      resource_type: string;
+      summary: string | null;
+      link_url: string | null;
+      file_url: string | null;
+      created_at: string;
+    }>;
+    notes: Array<{
+      id: string;
+      title: string;
+      body: string;
+      file_url: string | null;
+      file_name: string | null;
+      is_pinned: boolean;
+      updated_at: string;
+    }>;
+    chat: Array<{
+      id: string;
+      sender_employee_id: string;
+      recipient_employee_id: string;
+      sender_name: string | null;
+      recipient_name: string | null;
+      message_text: string;
+      created_at: string;
+      direction: "in" | "out";
+    }>;
+    loanRequests: Array<{
+      id: string;
+      obligation_type: string;
+      status: string;
+      requested_amount: number;
+      currency_code: string;
+      created_at: string;
+    }>;
+  };
   attendanceToday: {
     status: string;
     checkIn?: string | null;

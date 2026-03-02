@@ -24,6 +24,11 @@ const FEATURE_RULES: Array<{ prefix: string; rule: FeatureRule }> = [
   { prefix: "/app/approvals", rule: { featureKey: "feature.unified_approvals_workspace" } },
   { prefix: "/app/payroll", rule: { featureKey: "feature.payroll_runs" } },
   { prefix: "/app/payslips", rule: { featureKey: "feature.payslip_history_detail" } },
+  { prefix: "/app/loans", rule: { featureKey: "feature.financial_obligations_loans_advances" } },
+  { prefix: "/app/resources", rule: { featureKey: "feature.core_employee_management" } },
+  { prefix: "/app/notes", rule: { featureKey: "feature.core_employee_management" } },
+  { prefix: "/app/notifications", rule: { featureKey: "feature.core_notifications" } },
+  { prefix: "/app/chat", rule: { featureKey: "feature.core_notifications" } },
   {
     prefix: "/app/intelligence",
     rule: { featureAnyKeys: ["feature.analytics_standard", "feature.analytics_advanced"] }
@@ -86,4 +91,3 @@ export const PlanRouteGuard = ({ entitlements, children }: PlanRouteGuardProps) 
     </section>
   );
 };
-

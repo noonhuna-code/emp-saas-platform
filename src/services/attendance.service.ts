@@ -132,6 +132,34 @@ export type TeamAttendanceFilters = {
   departmentId?: string;
 };
 
+export type ShiftTemplateRow = {
+  id: string;
+  name: string;
+  start_time: string;
+  end_time: string;
+  timezone: string | null;
+  is_night_shift: boolean;
+};
+
+export type ShiftAssignmentRow = {
+  id: string;
+  employee_id: string;
+  shift_template_id: string;
+  effective_from: string;
+  effective_to: string | null;
+  created_at: string;
+};
+
+export type ShiftAssignableEmployeeRow = {
+  id: string;
+  full_name: string | null;
+  employee_code: string | null;
+  designation: string | null;
+  department_name: string | null;
+  team_name: string | null;
+  is_direct_report: boolean;
+};
+
 type AttendanceRecordForCorrection = {
   id: string;
   employee_id: string;
@@ -329,6 +357,78 @@ const ensureSelfOrManageAttendance = async (
   if (!currentEmployeeId || currentEmployeeId !== employeeId) {
     throw new Error("Permission denied");
   }
+};
+
+const requireShiftManagementAccess = (ctx: ServiceContext): void => {
+  if (ctx.permissions.includes("manage_attendance") || ctx.permissions.includes("manage_employees")) {
+    return;
+  }
+  throw new Error("Permission denied");
+};
+
+const loadEmployeeScopeRow = async (
+  client: SupabaseClient,
+  companyId: string,
+  employeeId: string
+): Promise<{
+  id: string;
+  manager_id: string | null;
+  department_id: string | null;
+  team_id: string | null;
+} | null> => {
+  const { data, error } = await client
+    .from("employees")
+    .select("id, manager_id, department_id, team_id")
+    .eq("company_id", companyId)
+    .eq("id", employeeId)
+    .is("is_deleted", false)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  if (!data?.id) return null;
+  return {
+    id: data.id as string,
+    manager_id: (data.manager_id as string | null) ?? null,
+    department_id: (data.department_id as string | null) ?? null,
+    team_id: (data.team_id as string | null) ?? null
+  };
+};
+
+const ensureHierarchyAssignable = async (ctx: ServiceContext, targetEmployeeId: string): Promise<void> => {
+  if (ctx.permissions.includes("manage_employees")) {
+    return;
+  }
+
+  requirePermission("manage_attendance", ctx);
+  const actorEmployeeId = await resolveCurrentEmployeeId(ctx.supabase, ctx);
+  if (!actorEmployeeId) {
+    throw new Error("Permission denied");
+  }
+  if (actorEmployeeId === targetEmployeeId) {
+    return;
+  }
+
+  const [actor, target] = await Promise.all([
+    loadEmployeeScopeRow(ctx.supabase, ctx.companyId, actorEmployeeId),
+    loadEmployeeScopeRow(ctx.supabase, ctx.companyId, targetEmployeeId)
+  ]);
+
+  if (!actor || !target) {
+    throw new Error("Employee record not found");
+  }
+
+  if (target.manager_id === actor.id) {
+    return;
+  }
+
+  if (actor.team_id && target.team_id && actor.team_id === target.team_id) {
+    return;
+  }
+
+  throw new Error("Permission denied");
 };
 
 const loadCorrectionForReview = async (
@@ -668,6 +768,214 @@ export const listTeamAttendanceToday = async (
     return { ok: true, data: { date: today, rows: mappedRows } };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "Team attendance lookup error" };
+  }
+};
+
+export const listShiftTemplates = async (
+  ctx: ServiceContext
+): Promise<ServiceResult<{ rows: ShiftTemplateRow[] }>> => {
+  try {
+    await requireAttendanceEntitlement(ctx);
+    requireShiftManagementAccess(ctx);
+
+    const { data, error } = await ctx.supabase
+      .from("shift_templates")
+      .select("id, name, start_time, end_time, timezone, is_night_shift")
+      .eq("company_id", ctx.companyId)
+      .is("is_deleted", false)
+      .order("name", { ascending: true });
+
+    if (error) {
+      return { ok: false, error: sanitizeError(error.message, "Unable to load shift templates") };
+    }
+
+    return {
+      ok: true,
+      data: {
+        rows: (data ?? []).map((row) => ({
+          id: row.id as string,
+          name: row.name as string,
+          start_time: row.start_time as string,
+          end_time: row.end_time as string,
+          timezone: (row.timezone as string | null) ?? null,
+          is_night_shift: Boolean(row.is_night_shift)
+        }))
+      }
+    };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Shift templates lookup failed" };
+  }
+};
+
+export const listShiftAssignableEmployees = async (
+  ctx: ServiceContext,
+  limit = 200
+): Promise<ServiceResult<{ rows: ShiftAssignableEmployeeRow[] }>> => {
+  try {
+    await requireAttendanceEntitlement(ctx);
+    requireShiftManagementAccess(ctx);
+
+    const safeLimit = Math.max(1, Math.min(limit, 500));
+    const actorEmployeeId = await resolveCurrentEmployeeId(ctx.supabase, ctx);
+
+    const { data, error } = await ctx.supabase
+      .from("employees")
+      .select("id, employee_code, designation, manager_id, department_id, team_id, user_profiles(full_name), departments(name), teams(name)")
+      .eq("company_id", ctx.companyId)
+      .is("is_deleted", false)
+      .order("created_at", { ascending: true })
+      .limit(safeLimit);
+
+    if (error) {
+      return { ok: false, error: sanitizeError(error.message, "Unable to load assignable employees") };
+    }
+
+    const rows = (data ?? []).map((row: any) => ({
+      id: row.id as string,
+      full_name: (row.user_profiles?.full_name as string | null) ?? null,
+      employee_code: (row.employee_code as string | null) ?? null,
+      designation: (row.designation as string | null) ?? null,
+      department_name: (row.departments?.name as string | null) ?? null,
+      team_name: (row.teams?.name as string | null) ?? null,
+      is_direct_report: actorEmployeeId ? (row.manager_id as string | null) === actorEmployeeId : false
+    }));
+
+    const filtered = ctx.permissions.includes("manage_employees")
+      ? rows
+      : rows.filter((row) => row.id === actorEmployeeId || row.is_direct_report);
+
+    return { ok: true, data: { rows: filtered } };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Assignable employees lookup failed" };
+  }
+};
+
+export const listShiftAssignments = async (
+  ctx: ServiceContext,
+  options: { employeeId?: string; limit?: number } = {}
+): Promise<ServiceResult<{ employeeId: string; rows: ShiftAssignmentRow[] }>> => {
+  try {
+    await requireAttendanceEntitlement(ctx);
+
+    const targetEmployeeId = options.employeeId?.trim() || (await resolveCurrentEmployeeId(ctx.supabase, ctx));
+    if (!targetEmployeeId) return { ok: false, error: "Employee record not found" };
+
+    if (ctx.permissions.includes("manage_employees")) {
+      assertEmployeeScope(targetEmployeeId, ctx);
+    } else if (ctx.permissions.includes("manage_attendance")) {
+      await ensureHierarchyAssignable(ctx, targetEmployeeId);
+      assertEmployeeScope(targetEmployeeId, ctx);
+    } else {
+      await ensureSelfOrManageAttendance(ctx, targetEmployeeId);
+      assertEmployeeScope(targetEmployeeId, ctx);
+    }
+
+    const limit = Math.max(1, Math.min(options.limit ?? 20, 100));
+    const { data, error } = await ctx.supabase
+      .from("employee_shift_assignments")
+      .select("id, employee_id, shift_template_id, effective_from, effective_to, created_at")
+      .eq("company_id", ctx.companyId)
+      .eq("employee_id", targetEmployeeId)
+      .is("is_deleted", false)
+      .order("effective_from", { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      return { ok: false, error: sanitizeError(error.message, "Unable to load shift assignments") };
+    }
+
+    return {
+      ok: true,
+      data: {
+        employeeId: targetEmployeeId,
+        rows: (data ?? []).map((row) => ({
+          id: row.id as string,
+          employee_id: row.employee_id as string,
+          shift_template_id: row.shift_template_id as string,
+          effective_from: row.effective_from as string,
+          effective_to: (row.effective_to as string | null) ?? null,
+          created_at: row.created_at as string
+        }))
+      }
+    };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Shift assignments lookup failed" };
+  }
+};
+
+export const assignEmployeeShift = async (
+  ctx: ServiceContext,
+  payload: {
+    employeeId: string;
+    shiftTemplateId: string;
+    effectiveFrom: string;
+    effectiveTo?: string | null;
+  }
+): Promise<ServiceResult<{ assignmentId: string }>> => {
+  try {
+    await requireAttendanceEntitlement(ctx);
+    requireShiftManagementAccess(ctx);
+
+    const employeeId = payload.employeeId?.trim();
+    const shiftTemplateId = payload.shiftTemplateId?.trim();
+    const effectiveFrom = payload.effectiveFrom?.trim();
+    const effectiveTo = payload.effectiveTo?.trim() || null;
+
+    if (!employeeId || !shiftTemplateId || !effectiveFrom) {
+      return { ok: false, error: "Employee, shift template, and effective date are required" };
+    }
+
+    await ensureHierarchyAssignable(ctx, employeeId);
+    assertEmployeeScope(employeeId, ctx);
+    const actorProfileId = await getActorProfileId(ctx.supabase, ctx);
+    if (!actorProfileId) {
+      return { ok: false, error: "Actor profile not found" };
+    }
+
+    const { data, error } = await ctx.supabase
+      .from("employee_shift_assignments")
+      .insert({
+        company_id: ctx.companyId,
+        employee_id: employeeId,
+        shift_template_id: shiftTemplateId,
+        effective_from: effectiveFrom,
+        effective_to: effectiveTo,
+        assigned_by: actorProfileId,
+        created_by: actorProfileId,
+        updated_by: actorProfileId
+      })
+      .select("id")
+      .single();
+
+    if (error || !data) {
+      return { ok: false, error: sanitizeError(error?.message, "Unable to assign shift") };
+    }
+
+    const { data: employeeRow } = await ctx.supabase
+      .from("employees")
+      .select("user_profile_id")
+      .eq("company_id", ctx.companyId)
+      .eq("id", employeeId)
+      .is("is_deleted", false)
+      .maybeSingle();
+
+    if (employeeRow?.user_profile_id) {
+      await ctx.supabase.from("notifications").insert({
+        company_id: ctx.companyId,
+        recipient_profile_id: employeeRow.user_profile_id,
+        type: "shift_assignment",
+        title: "Shift assignment updated",
+        message: `A new shift assignment is effective from ${effectiveFrom}.`,
+        reference_type: "employee_shift_assignment",
+        reference_id: data.id as string,
+        created_by: actorProfileId,
+        updated_by: actorProfileId
+      });
+    }
+
+    return { ok: true, data: { assignmentId: data.id as string } };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Shift assignment failed" };
   }
 };
 

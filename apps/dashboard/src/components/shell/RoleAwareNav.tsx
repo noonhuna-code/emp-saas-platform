@@ -17,12 +17,16 @@ export const RoleAwareNav = ({
   items,
   permissions,
   hasEmployeeContext,
-  entitlements
+  entitlements,
+  collapsed = false,
+  onNavigate
 }: {
   items: NavItem[];
   permissions: string[];
   hasEmployeeContext?: boolean;
   entitlements?: Record<string, unknown> | null;
+  collapsed?: boolean;
+  onNavigate?: () => void;
 }) => {
   const pathname = usePathname();
 
@@ -58,8 +62,15 @@ export const RoleAwareNav = ({
       {visibleItems.map((item) => {
         const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
         return (
-          <Link key={item.href} href={item.href} className={isActive ? "active" : ""} aria-current={isActive ? "page" : undefined}>
-            {item.label}
+          <Link
+            key={item.href}
+            href={item.href}
+            className={isActive ? "active" : ""}
+            aria-current={isActive ? "page" : undefined}
+            title={collapsed ? item.label : undefined}
+            onClick={onNavigate}
+          >
+            {collapsed ? item.label.slice(0, 1) : item.label}
           </Link>
         );
       })}

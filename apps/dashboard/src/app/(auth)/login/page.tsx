@@ -1,5 +1,5 @@
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { getServerSession } from "@/lib/server/auth";
 
 type LoginPageProps = {
   searchParams?: Promise<{ next?: string; error?: string }>;
@@ -15,11 +15,10 @@ const LOGIN_ERROR_MESSAGES: Record<string, string> = {
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const params = (await searchParams) ?? {};
-  const cookieStore = await cookies();
-  const hasToken = Boolean(cookieStore.get("lf_access_token")?.value);
+  const session = await getServerSession();
   const errorMessage = params.error ? (LOGIN_ERROR_MESSAGES[params.error] ?? params.error) : null;
 
-  if (hasToken) {
+  if (session.accessToken) {
     redirect(params.next && params.next.startsWith("/") ? params.next : "/app/dashboard");
   }
 
