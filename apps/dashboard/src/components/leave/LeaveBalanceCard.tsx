@@ -8,13 +8,13 @@ export const LeaveBalanceCard = ({ balances }: { balances: LeaveBalance[] }) => 
   return (
     <div className="card stack">
       <h3>Leave Balances</h3>
-      <div className="grid-two">
+      <div className="grid-2">
         {balances.map((balance) => (
-          <div key={balance.id} className="tile">
+          <div key={balance.id} className="card card--nested stack" style={{ gap: 6 }}>
             <div className="muted">{balance.leave_type_name ?? "Leave"}</div>
-            <div className="metric">{balance.remaining_days}</div>
-            <div className="meta">
-              {balance.used_days} used � {balance.entitled_days} entitled
+            <div style={{ fontSize: 22, fontWeight: 700 }}>{balance.remaining_days}</div>
+            <div className="muted" style={{ fontSize: 13 }}>
+              {balance.used_days} used - {balance.entitled_days} entitled
             </div>
           </div>
         ))}

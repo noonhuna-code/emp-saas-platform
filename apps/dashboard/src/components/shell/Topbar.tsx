@@ -74,8 +74,8 @@ export const Topbar = ({
 
   return (
     <header className="topbar">
-      <div className="stack" style={{ gap: 4 }}>
-        <div className="row">
+      <div className="stack topbar__identity" style={{ gap: 4 }}>
+        <div className="row topbar__title-row">
           <button type="button" className="ghost-btn sidebar-toggle-desktop" onClick={onToggleSidebar} aria-label="Toggle sidebar">
             &#8942;
           </button>
@@ -87,10 +87,10 @@ export const Topbar = ({
         <span className="muted" style={{ fontSize: 13 }}>{identityLabel}</span>
         {lastLoginText ? <span className="muted" style={{ fontSize: 12 }}>Last login: {lastLoginText}</span> : null}
       </div>
-      <div className="row">
+      <div className="row topbar__actions">
         {subscription ? (
           <div
-            className={`badge ${
+            className={`badge topbar__chip ${
               subscription.status === "past_due"
                 ? "badge--warning"
                 : subscription.status === "active"
@@ -104,25 +104,25 @@ export const Topbar = ({
           </div>
         ) : null}
         {billingHint ? (
-          <div className={`badge ${subscription?.status === "past_due" ? "badge--danger" : "badge--info"}`}>
+          <div className={`badge topbar__chip ${subscription?.status === "past_due" ? "badge--danger" : "badge--info"}`}>
             <span>{billingHint}</span>
           </div>
         ) : null}
         {seatSummary ? (
-          <div className="badge" title="Billable seats in current subscription">
+          <div className="badge topbar__chip" title="Billable seats in current subscription">
             <span>Seats</span>
             <span style={{ margin: "0 6px" }}>|</span>
             <span>{seatLimitText}</span>
           </div>
         ) : null}
         {shiftText ? (
-          <div className="badge" title="Today's shift window">
+          <div className="badge topbar__chip" title="Today's shift window">
             <span>Shift</span>
             <span style={{ margin: "0 6px" }}>|</span>
             <span>{shiftText}</span>
           </div>
         ) : null}
-        <div className="badge" title={identityLabel}>
+        <div className="badge topbar__chip topbar__profile-chip" title={identityLabel}>
           {avatarUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -135,7 +135,7 @@ export const Topbar = ({
           ) : (
             <span style={{ marginRight: 8 }}>{(identityLabel[0] ?? "U").toUpperCase()}</span>
           )}
-          <span>{fullName ?? email ?? "User"}</span>
+          <span className="topbar__profile-name">{fullName ?? email ?? "User"}</span>
         </div>
         <CompanyContextBadge companyId={companyId} role={role} />
         <ThemeToggle />

@@ -5,6 +5,9 @@ import type {
   AttendanceCorrectionRequestResponse,
   AttendanceCorrectionReviewMutationResponse,
   AttendanceHistoryResponse,
+  ShiftSwapCreateResponse,
+  ShiftSwapRequestsResponse,
+  ShiftSwapReviewResponse,
   AttendanceReviewListResponse,
   AttendanceTodayResponse,
   TeamAttendanceResponse
@@ -81,6 +84,7 @@ import type {
   WorkspaceChatResponse,
   WorkspaceContactsResponse,
   WorkspaceCreateNoteResponse,
+  WorkspaceCalendarResponse,
   WorkspaceMarkNotificationsReadResponse,
   WorkspaceNotesResponse,
   WorkspaceNotificationsResponse,
@@ -920,6 +924,16 @@ export const fetchWorkspaceResources = async (
   return parseJson<WorkspaceResourceListResponse>(response);
 };
 
+export const fetchWorkspaceCalendar = async (
+  month?: string
+): Promise<DashboardApiResult<WorkspaceCalendarResponse>> => {
+  const query = new URLSearchParams();
+  if (month) query.set("month", month);
+  const suffix = query.toString() ? `?${query.toString()}` : "";
+  const response = await fetch(`/api/workspace/calendar${suffix}`, { cache: "no-store" });
+  return parseJson<WorkspaceCalendarResponse>(response);
+};
+
 export const fetchWorkspaceNotes = async (
   limit = 50
 ): Promise<DashboardApiResult<WorkspaceNotesResponse>> => {
@@ -1061,6 +1075,44 @@ export const assignShift = async (payload: {
 }): Promise<DashboardApiResult<AssignShiftResponse>> => {
   return postJson<AssignShiftResponse>(
     "/api/attendance/shifts/assign",
+    payload as Record<string, unknown>,
+    { "Idempotency-Key": crypto.randomUUID() }
+  );
+};
+
+export const fetchShiftSwapRequests = async (params: {
+  scope?: "mine" | "review";
+  status?: "pending" | "approved" | "rejected";
+  limit?: number;
+} = {}): Promise<DashboardApiResult<ShiftSwapRequestsResponse>> => {
+  const query = new URLSearchParams();
+  if (params.scope) query.set("scope", params.scope);
+  if (params.status) query.set("status", params.status);
+  if (typeof params.limit === "number") query.set("limit", String(params.limit));
+  const suffix = query.toString() ? `?${query.toString()}` : "";
+  const response = await fetch(`/api/attendance/shift-swaps${suffix}`, { cache: "no-store" });
+  return parseJson<ShiftSwapRequestsResponse>(response);
+};
+
+export const requestShiftSwap = async (payload: {
+  attendanceDate: string;
+  requestedShiftTemplateId: string;
+  reason: string;
+}): Promise<DashboardApiResult<ShiftSwapCreateResponse>> => {
+  return postJson<ShiftSwapCreateResponse>(
+    "/api/attendance/shift-swaps",
+    payload as Record<string, unknown>,
+    { "Idempotency-Key": crypto.randomUUID() }
+  );
+};
+
+export const reviewShiftSwap = async (payload: {
+  requestId: string;
+  decision: "approved" | "rejected";
+  note?: string;
+}): Promise<DashboardApiResult<ShiftSwapReviewResponse>> => {
+  return postJson<ShiftSwapReviewResponse>(
+    "/api/attendance/shift-swaps/review",
     payload as Record<string, unknown>,
     { "Idempotency-Key": crypto.randomUUID() }
   );

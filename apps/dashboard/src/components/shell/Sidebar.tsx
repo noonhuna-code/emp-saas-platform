@@ -13,9 +13,23 @@ const NAV_ITEMS: NavItem[] = [
     requiresEmployeeContext: true,
     featureKey: "feature.core_attendance"
   },
+  {
+    href: "/app/calendar",
+    label: "Work Calendar",
+    permissionsAny: ["view_attendance", "manage_attendance"],
+    requiresEmployeeContext: true,
+    featureAnyKeys: ["feature.core_attendance", "feature.core_leave_management"]
+  },
   { href: "/app/attendance/review", label: "Attendance Review", permission: "manage_attendance", featureKey: "feature.core_attendance" },
   { href: "/app/attendance/team", label: "Team Attendance", permission: "manage_attendance", featureKey: "feature.core_attendance" },
   { href: "/app/attendance/shifts", label: "Shift Assignment", permissionsAny: ["manage_attendance", "manage_employees"], featureKey: "feature.core_attendance" },
+  {
+    href: "/app/attendance/shift-swaps",
+    label: "Shift Swaps",
+    permissionsAny: ["view_attendance", "manage_attendance", "manage_employees"],
+    requiresEmployeeContext: true,
+    featureKey: "feature.core_attendance"
+  },
   { href: "/app/leave", label: "Leave", requiresEmployeeContext: true, featureKey: "feature.core_leave_management" },
   { href: "/app/payslips", label: "Payslips", featureKey: "feature.payslip_history_detail" },
   {

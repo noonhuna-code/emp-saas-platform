@@ -1,14 +1,14 @@
 import type { AttendanceTodayResponse } from "@/lib/types/attendance";
 
 const formatDateTime = (value: string | null | undefined): string => {
-  if (!value) return "—";
+  if (!value) return "-";
   const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return "—";
+  if (Number.isNaN(parsed.getTime())) return "-";
   return parsed.toLocaleString();
 };
 
 const formatMinutes = (value: number | null | undefined): string => {
-  if (typeof value !== "number") return "—";
+  if (typeof value !== "number") return "-";
   const hours = Math.floor(value / 60);
   const minutes = value % 60;
   return `${hours}h ${minutes}m`;
@@ -38,7 +38,7 @@ export const TodayAttendanceCard = ({ data }: { data: AttendanceTodayResponse })
           <h2 style={{ margin: 0 }}>Today Attendance</h2>
           <p className="muted" style={{ margin: "6px 0 0" }}>
             {prettyCurrentStatus(data.currentStatus)}
-            {data.isOnBreak ? " • break running" : ""}
+            {data.isOnBreak ? " - break running" : ""}
           </p>
         </div>
         <div className="row" style={{ gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
@@ -72,8 +72,20 @@ export const TodayAttendanceCard = ({ data }: { data: AttendanceTodayResponse })
           <div className="muted">Overtime</div>
           <div>{formatMinutes(record?.overtime_minutes)}</div>
         </div>
+        <div className="card" style={{ padding: 12 }}>
+          <div className="muted">Geo Verification</div>
+          <div style={{ display: "grid", gap: 4 }}>
+            <span>
+              {data.latestGeoEvent
+                ? `${data.latestGeoEvent.latitude.toFixed(4)}, ${data.latestGeoEvent.longitude.toFixed(4)}`
+                : "No location captured"}
+            </span>
+            <span className="muted" style={{ fontSize: 12 }}>
+              {data.latestGeoEvent ? formatDateTime(data.latestGeoEvent.captured_at) : "Capture location before clocking in/out"}
+            </span>
+          </div>
+        </div>
       </div>
     </section>
   );
 };
-

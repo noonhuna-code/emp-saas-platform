@@ -115,9 +115,11 @@ export const EmployeeDashboard = () => {
         actions={(
           <>
             <Link href="/app/attendance" className="secondary-btn">Attendance</Link>
+            <Link href="/app/calendar" className="secondary-btn">Calendar</Link>
             <Link href="/app/leave" className="secondary-btn">Leave</Link>
             <Link href="/app/payslips" className="secondary-btn">Payslips</Link>
             <Link href="/app/loans" className="secondary-btn">Loans</Link>
+            <Link href="/app/attendance/shift-swaps" className="secondary-btn">Shift Swaps</Link>
             <Link href="/app/chat" className="secondary-btn">Chat</Link>
             <Link href="/app/notifications" className="secondary-btn">Notifications</Link>
             <Link href="/app/resources" className="secondary-btn">SOPs</Link>
@@ -209,7 +211,9 @@ export const EmployeeDashboard = () => {
           <QuickActionGrid
             actions={[
               { label: "Clock In / Out", href: "/app/attendance", caption: "Attendance actions" },
+              { label: "Work Calendar", href: "/app/calendar", caption: "Holidays, leaves, shifts" },
               { label: "Request Leave", href: "/app/leave", caption: "Apply and track" },
+              { label: "Shift Swap", href: "/app/attendance/shift-swaps", caption: "Request and monitor" },
               { label: "View Payslips", href: "/app/payslips", caption: "Payroll snapshots" },
               { label: "Loans / Advances", href: "/app/loans", caption: "Request & track" },
               { label: "Team Chat", href: "/app/chat", caption: "Direct messages" },

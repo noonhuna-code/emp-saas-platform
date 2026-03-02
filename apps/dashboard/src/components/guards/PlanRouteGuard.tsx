@@ -16,6 +16,7 @@ type FeatureRule = {
 
 const FEATURE_RULES: Array<{ prefix: string; rule: FeatureRule }> = [
   { prefix: "/app/attendance", rule: { featureKey: "feature.core_attendance" } },
+  { prefix: "/app/calendar", rule: { featureAnyKeys: ["feature.core_attendance", "feature.core_leave_management"] } },
   { prefix: "/app/leave", rule: { featureKey: "feature.core_leave_management" } },
   { prefix: "/app/overtime", rule: { featureKey: "feature.core_attendance" } },
   { prefix: "/app/employees", rule: { featureKey: "feature.core_employee_management" } },

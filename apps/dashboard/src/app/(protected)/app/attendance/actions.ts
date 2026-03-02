@@ -36,6 +36,14 @@ const buildActionResult = (
   completedAt: Date.now()
 });
 
+const parseNumberOrUndefined = (value: FormDataEntryValue | null): number | undefined => {
+  const raw = typeof value === "string" ? value.trim() : "";
+  if (!raw) return undefined;
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed)) return undefined;
+  return parsed;
+};
+
 export async function clockInAction(
   _prevState: AttendanceClockActionState,
   formData: FormData
@@ -43,12 +51,15 @@ export async function clockInAction(
   try {
     const employeeId = String(formData.get("employeeId") ?? "").trim();
     const source = String(formData.get("source") ?? "web").trim() || "web";
+    const geoLatitude = parseNumberOrUndefined(formData.get("geoLatitude"));
+    const geoLongitude = parseNumberOrUndefined(formData.get("geoLongitude"));
+    const geoAccuracy = parseNumberOrUndefined(formData.get("geoAccuracy"));
     if (!employeeId) {
       return buildActionResult(false, { error: "Employee id is required" });
     }
 
     const ctx = await buildServiceContext();
-    const result = await clockIn(ctx, employeeId, { source });
+    const result = await clockIn(ctx, employeeId, { source, geoLatitude, geoLongitude, geoAccuracy });
     if (!result.ok) {
       return buildActionResult(false, { error: sanitizeClockError(result.error) });
     }
@@ -71,12 +82,16 @@ export async function clockOutAction(
 ): Promise<AttendanceClockActionState> {
   try {
     const employeeId = String(formData.get("employeeId") ?? "").trim();
+    const source = String(formData.get("source") ?? "web").trim() || "web";
+    const geoLatitude = parseNumberOrUndefined(formData.get("geoLatitude"));
+    const geoLongitude = parseNumberOrUndefined(formData.get("geoLongitude"));
+    const geoAccuracy = parseNumberOrUndefined(formData.get("geoAccuracy"));
     if (!employeeId) {
       return buildActionResult(false, { error: "Employee id is required" });
     }
 
     const ctx = await buildServiceContext();
-    const result = await clockOut(ctx, employeeId);
+    const result = await clockOut(ctx, employeeId, { source, geoLatitude, geoLongitude, geoAccuracy });
     if (!result.ok) {
       return buildActionResult(false, { error: sanitizeClockError(result.error) });
     }
@@ -92,4 +107,3 @@ export async function clockOutAction(
     return buildActionResult(false, { error: message });
   }
 }
-

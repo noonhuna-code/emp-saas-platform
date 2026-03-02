@@ -89,6 +89,49 @@ export type WorkspaceMarkNotificationsReadResponse = {
   updated: number;
 };
 
+export type WorkspaceCalendarEvent = {
+  id: string;
+  type: "holiday" | "leave" | "shift" | "attendance";
+  title: string;
+  status: string | null;
+  source: "company" | "pakistan_estimated" | "leave" | "shift" | "attendance";
+};
+
+export type WorkspaceCalendarDay = {
+  date: string;
+  is_today: boolean;
+  events: WorkspaceCalendarEvent[];
+};
+
+export type WorkspaceOfficialHoliday = {
+  date: string;
+  name: string;
+  source: "company" | "pakistan_estimated";
+};
+
+export type WorkspaceCalendarSummary = {
+  entitled_leaves: number;
+  used_leaves: number;
+  remaining_leaves: number;
+  approved_leave_days: number;
+  pending_leave_days: number;
+  assigned_shift_days: number;
+  holidays: number;
+};
+
+export type WorkspaceCalendarResponse = {
+  month: string;
+  range_start: string;
+  range_end: string;
+  timezone: string;
+  company_name: string | null;
+  team_lead_name: string | null;
+  summary: WorkspaceCalendarSummary;
+  official_holidays: WorkspaceOfficialHoliday[];
+  company_updates: WorkspaceResource[];
+  days: WorkspaceCalendarDay[];
+};
+
 export type ShiftTemplate = {
   id: string;
   name: string;

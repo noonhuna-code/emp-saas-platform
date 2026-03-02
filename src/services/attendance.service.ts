@@ -6,6 +6,16 @@ import { requirePlanFeature } from "../lib/entitlements";
 export type ClockInPayload = {
   deviceId?: string;
   source?: string;
+  geoLatitude?: number;
+  geoLongitude?: number;
+  geoAccuracy?: number | null;
+};
+
+export type ClockOutPayload = {
+  source?: string;
+  geoLatitude?: number;
+  geoLongitude?: number;
+  geoAccuracy?: number | null;
 };
 
 export type AttendanceCorrectionRequestPayload = {
@@ -72,6 +82,14 @@ export type AttendanceTodayResponse = {
   todayDate: string;
   currentStatus: "not_clocked_in" | "clocked_in" | "on_break" | "clocked_out";
   isOnBreak: boolean;
+  latestGeoEvent: {
+    event_type: string;
+    latitude: number;
+    longitude: number;
+    accuracy_meters: number | null;
+    source: string | null;
+    captured_at: string;
+  } | null;
   record: AttendanceTodayRecord | null;
 };
 
@@ -158,6 +176,22 @@ export type ShiftAssignableEmployeeRow = {
   department_name: string | null;
   team_name: string | null;
   is_direct_report: boolean;
+};
+
+export type ShiftSwapRequestRow = {
+  id: string;
+  employee_id: string;
+  employee_name: string | null;
+  attendance_date: string;
+  old_shift_template_id: string;
+  old_shift_name: string | null;
+  requested_shift_template_id: string;
+  requested_shift_name: string | null;
+  reason: string;
+  status: "pending" | "approved" | "rejected";
+  created_at: string;
+  reviewed_at: string | null;
+  reviewed_by: string | null;
 };
 
 type AttendanceRecordForCorrection = {
@@ -366,6 +400,63 @@ const requireShiftManagementAccess = (ctx: ServiceContext): void => {
   throw new Error("Permission denied");
 };
 
+const requireShiftSwapReviewAccess = (ctx: ServiceContext): void => {
+  if (
+    ctx.permissions.includes("manage_attendance")
+    || ctx.permissions.includes("manage_employees")
+    || ctx.permissions.includes("assign_shifts")
+  ) {
+    return;
+  }
+  throw new Error("Permission denied");
+};
+
+const parseIsoDate = (value: string): Date | null => {
+  if (!value) return null;
+  const parsed = new Date(`${value}T00:00:00.000Z`);
+  if (!Number.isFinite(parsed.getTime())) return null;
+  return parsed;
+};
+
+const parseGeoNumber = (value: unknown): number | null => {
+  if (typeof value !== "number") return null;
+  if (!Number.isFinite(value)) return null;
+  return value;
+};
+
+const recordAttendanceGeoEvent = async (
+  ctx: ServiceContext,
+  payload: {
+    attendanceId: string;
+    employeeId: string;
+    eventType: "clock_in" | "clock_out";
+    source?: string;
+    geoLatitude?: number;
+    geoLongitude?: number;
+    geoAccuracy?: number | null;
+  }
+): Promise<void> => {
+  const latitude = parseGeoNumber(payload.geoLatitude);
+  const longitude = parseGeoNumber(payload.geoLongitude);
+  if (latitude === null || longitude === null) return;
+
+  const actorProfileId = await getActorProfileId(ctx.supabase, ctx);
+  if (!actorProfileId) return;
+
+  await ctx.supabase.from("attendance_geo_events").insert({
+    company_id: ctx.companyId,
+    employee_id: payload.employeeId,
+    attendance_id: payload.attendanceId,
+    event_type: payload.eventType,
+    latitude,
+    longitude,
+    accuracy_meters: parseGeoNumber(payload.geoAccuracy),
+    source: payload.source?.trim() || "web",
+    captured_at: new Date().toISOString(),
+    created_by: actorProfileId
+  });
+};
+
 const loadEmployeeScopeRow = async (
   client: SupabaseClient,
   companyId: string,
@@ -509,6 +600,17 @@ export const getAttendanceToday = async (
       return { ok: false, error: "Unable to load attendance status" };
     }
 
+    const { data: latestGeoEvent } = await ctx.supabase
+      .from("attendance_geo_events")
+      .select("event_type, latitude, longitude, accuracy_meters, source, captured_at")
+      .eq("company_id", ctx.companyId)
+      .eq("employee_id", employeeId)
+      .gte("captured_at", `${today}T00:00:00.000Z`)
+      .lt("captured_at", `${today}T23:59:59.999Z`)
+      .order("captured_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
     if (!record?.id) {
       return {
         ok: true,
@@ -517,6 +619,16 @@ export const getAttendanceToday = async (
           todayDate: today,
           currentStatus: "not_clocked_in",
           isOnBreak: false,
+          latestGeoEvent: latestGeoEvent
+            ? {
+                event_type: latestGeoEvent.event_type as string,
+                latitude: Number(latestGeoEvent.latitude ?? 0),
+                longitude: Number(latestGeoEvent.longitude ?? 0),
+                accuracy_meters: (latestGeoEvent.accuracy_meters as number | null) ?? null,
+                source: (latestGeoEvent.source as string | null) ?? null,
+                captured_at: latestGeoEvent.captured_at as string
+              }
+            : null,
           record: null
         }
       };
@@ -560,6 +672,16 @@ export const getAttendanceToday = async (
       todayDate: today,
       currentStatus,
       isOnBreak,
+      latestGeoEvent: latestGeoEvent
+        ? {
+            event_type: latestGeoEvent.event_type as string,
+            latitude: Number(latestGeoEvent.latitude ?? 0),
+            longitude: Number(latestGeoEvent.longitude ?? 0),
+            accuracy_meters: (latestGeoEvent.accuracy_meters as number | null) ?? null,
+            source: (latestGeoEvent.source as string | null) ?? null,
+            captured_at: latestGeoEvent.captured_at as string
+          }
+        : null,
       record: {
         id: record.id,
         attendance_date: record.attendance_date,
@@ -979,6 +1101,299 @@ export const assignEmployeeShift = async (
   }
 };
 
+export const listShiftSwapRequests = async (
+  ctx: ServiceContext,
+  options: { scope?: "mine" | "review"; status?: "pending" | "approved" | "rejected"; limit?: number } = {}
+): Promise<ServiceResult<{ scope: "mine" | "review"; rows: ShiftSwapRequestRow[] }>> => {
+  try {
+    await requireAttendanceEntitlement(ctx);
+    const scope = options.scope === "review" ? "review" : "mine";
+    const limit = Math.max(1, Math.min(options.limit ?? 100, 250));
+
+    let actorEmployeeId: string | null = null;
+    if (scope === "mine") {
+      actorEmployeeId = await resolveCurrentEmployeeId(ctx.supabase, ctx);
+      if (!actorEmployeeId) {
+        return { ok: false, error: "Employee record not found" };
+      }
+    } else {
+      requireShiftSwapReviewAccess(ctx);
+    }
+
+    let query = ctx.supabase
+      .from("shift_change_requests")
+      .select(
+        "id, employee_id, attendance_date, old_shift_template_id, requested_shift_template_id, reason, status, created_at, reviewed_at, reviewed_by, employees!shift_change_requests_employee_id_fkey(user_profiles(full_name)), old_shift:shift_templates!shift_change_requests_old_shift_template_id_fkey(name), requested_shift:shift_templates!shift_change_requests_requested_shift_template_id_fkey(name)"
+      )
+      .eq("company_id", ctx.companyId)
+      .is("is_deleted", false)
+      .order("created_at", { ascending: false })
+      .limit(limit);
+
+    if (scope === "mine" && actorEmployeeId) {
+      query = query.eq("employee_id", actorEmployeeId);
+    }
+
+    if (options.status) {
+      query = query.eq("status", options.status);
+    }
+
+    const { data, error } = await query;
+    if (error) {
+      return { ok: false, error: sanitizeError(error.message, "Unable to load shift swap requests") };
+    }
+
+    const rows = (data ?? []).map((row: any) => ({
+      id: row.id as string,
+      employee_id: row.employee_id as string,
+      employee_name: (row.employees?.user_profiles?.full_name as string | null) ?? null,
+      attendance_date: row.attendance_date as string,
+      old_shift_template_id: row.old_shift_template_id as string,
+      old_shift_name: (row.old_shift?.name as string | null) ?? null,
+      requested_shift_template_id: row.requested_shift_template_id as string,
+      requested_shift_name: (row.requested_shift?.name as string | null) ?? null,
+      reason: row.reason as string,
+      status: (row.status as "pending" | "approved" | "rejected") ?? "pending",
+      created_at: row.created_at as string,
+      reviewed_at: (row.reviewed_at as string | null) ?? null,
+      reviewed_by: (row.reviewed_by as string | null) ?? null
+    }));
+
+    return { ok: true, data: { scope, rows } };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Shift swap lookup failed" };
+  }
+};
+
+export const createShiftSwapRequest = async (
+  ctx: ServiceContext,
+  payload: {
+    attendanceDate: string;
+    requestedShiftTemplateId: string;
+    reason: string;
+  }
+): Promise<ServiceResult<{ requestId: string }>> => {
+  try {
+    await requireAttendanceEntitlement(ctx);
+    const employeeId = await resolveCurrentEmployeeId(ctx.supabase, ctx);
+    if (!employeeId) return { ok: false, error: "Employee record not found" };
+
+    const attendanceDate = payload.attendanceDate?.trim();
+    const requestedShiftTemplateId = payload.requestedShiftTemplateId?.trim();
+    const reason = payload.reason?.trim();
+
+    if (!attendanceDate || !requestedShiftTemplateId || !reason) {
+      return { ok: false, error: "Attendance date, requested shift, and reason are required" };
+    }
+
+    if (!parseIsoDate(attendanceDate)) {
+      return { ok: false, error: "Invalid attendance date" };
+    }
+
+    const actorProfileId = await getActorProfileId(ctx.supabase, ctx);
+    if (!actorProfileId) {
+      return { ok: false, error: "Actor profile not found" };
+    }
+
+    const { data: currentAssignment, error: assignmentError } = await ctx.supabase
+      .from("employee_shift_assignments")
+      .select("id, shift_template_id")
+      .eq("company_id", ctx.companyId)
+      .eq("employee_id", employeeId)
+      .lte("effective_from", attendanceDate)
+      .or(`effective_to.is.null,effective_to.gte.${attendanceDate}`)
+      .is("is_deleted", false)
+      .order("effective_from", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (assignmentError) {
+      return { ok: false, error: sanitizeError(assignmentError.message, "Unable to validate current shift") };
+    }
+    if (!currentAssignment?.shift_template_id) {
+      return { ok: false, error: "No active shift assignment for selected date" };
+    }
+
+    if ((currentAssignment.shift_template_id as string) === requestedShiftTemplateId) {
+      return { ok: false, error: "Requested shift is same as current shift" };
+    }
+
+    const { data: requestedShift, error: requestedShiftError } = await ctx.supabase
+      .from("shift_templates")
+      .select("id")
+      .eq("company_id", ctx.companyId)
+      .eq("id", requestedShiftTemplateId)
+      .eq("is_active", true)
+      .is("is_deleted", false)
+      .maybeSingle();
+
+    if (requestedShiftError || !requestedShift?.id) {
+      return { ok: false, error: "Requested shift template not found" };
+    }
+
+    const { data: pendingExisting } = await ctx.supabase
+      .from("shift_change_requests")
+      .select("id")
+      .eq("company_id", ctx.companyId)
+      .eq("employee_id", employeeId)
+      .eq("attendance_date", attendanceDate)
+      .eq("status", "pending")
+      .is("is_deleted", false)
+      .limit(1)
+      .maybeSingle();
+
+    if (pendingExisting?.id) {
+      return { ok: false, error: "A pending shift swap request already exists for this date" };
+    }
+
+    const { data, error } = await ctx.supabase
+      .from("shift_change_requests")
+      .insert({
+        company_id: ctx.companyId,
+        employee_id: employeeId,
+        attendance_date: attendanceDate,
+        old_shift_template_id: currentAssignment.shift_template_id as string,
+        requested_shift_template_id: requestedShiftTemplateId,
+        reason,
+        status: "pending",
+        requested_by: actorProfileId,
+        created_by: actorProfileId,
+        updated_by: actorProfileId
+      })
+      .select("id")
+      .single();
+
+    if (error || !data) {
+      return { ok: false, error: sanitizeError(error?.message, "Unable to create shift swap request") };
+    }
+
+    const { data: actorEmployee } = await ctx.supabase
+      .from("employees")
+      .select("manager_id, user_profiles(full_name)")
+      .eq("company_id", ctx.companyId)
+      .eq("id", employeeId)
+      .is("is_deleted", false)
+      .maybeSingle();
+
+    if (actorEmployee?.manager_id) {
+      const { data: manager } = await ctx.supabase
+        .from("employees")
+        .select("user_profile_id")
+        .eq("company_id", ctx.companyId)
+        .eq("id", actorEmployee.manager_id as string)
+        .is("is_deleted", false)
+        .maybeSingle();
+
+      if (manager?.user_profile_id) {
+        await ctx.supabase.from("notifications").insert({
+          company_id: ctx.companyId,
+          recipient_profile_id: manager.user_profile_id as string,
+          type: "shift_swap_request",
+          title: "Shift swap request submitted",
+          message: `${(actorEmployee.user_profiles as { full_name?: string | null } | null)?.full_name ?? "Employee"} requested a shift swap for ${attendanceDate}.`,
+          reference_type: "shift_change_request",
+          reference_id: data.id as string,
+          created_by: actorProfileId,
+          updated_by: actorProfileId
+        });
+      }
+    }
+
+    return { ok: true, data: { requestId: data.id as string } };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Shift swap request failed" };
+  }
+};
+
+export const reviewShiftSwapRequest = async (
+  ctx: ServiceContext,
+  payload: {
+    requestId: string;
+    decision: "approved" | "rejected";
+    note?: string;
+  }
+): Promise<ServiceResult<{ requestId: string; status: "approved" | "rejected" }>> => {
+  try {
+    await requireAttendanceEntitlement(ctx);
+    requireShiftSwapReviewAccess(ctx);
+
+    const requestId = payload.requestId?.trim();
+    const decision = payload.decision;
+    const note = payload.note?.trim();
+    if (!requestId || (decision !== "approved" && decision !== "rejected")) {
+      return { ok: false, error: "Invalid shift swap review payload" };
+    }
+
+    const actorProfileId = await getActorProfileId(ctx.supabase, ctx);
+    if (!actorProfileId) return { ok: false, error: "Actor profile not found" };
+
+    const { data: requestRow, error: requestError } = await ctx.supabase
+      .from("shift_change_requests")
+      .select("id, employee_id, status, reason")
+      .eq("company_id", ctx.companyId)
+      .eq("id", requestId)
+      .is("is_deleted", false)
+      .maybeSingle();
+
+    if (requestError) {
+      return { ok: false, error: sanitizeError(requestError.message, "Unable to load shift swap request") };
+    }
+    if (!requestRow?.id) {
+      return { ok: false, error: "Shift swap request not found" };
+    }
+    if ((requestRow.status as string) !== "pending") {
+      return { ok: false, error: "Shift swap request already processed" };
+    }
+
+    const updatedReason = note ? `${requestRow.reason as string}\n\nReview note: ${note}` : (requestRow.reason as string);
+    const { error: updateError } = await ctx.supabase
+      .from("shift_change_requests")
+      .update({
+        status: decision,
+        reason: updatedReason,
+        reviewed_by: actorProfileId,
+        reviewed_at: new Date().toISOString(),
+        updated_by: actorProfileId
+      })
+      .eq("company_id", ctx.companyId)
+      .eq("id", requestId)
+      .eq("status", "pending")
+      .is("is_deleted", false);
+
+    if (updateError) {
+      return { ok: false, error: sanitizeError(updateError.message, "Unable to update shift swap request") };
+    }
+
+    const { data: employeeRow } = await ctx.supabase
+      .from("employees")
+      .select("user_profile_id")
+      .eq("company_id", ctx.companyId)
+      .eq("id", requestRow.employee_id as string)
+      .is("is_deleted", false)
+      .maybeSingle();
+
+    if (employeeRow?.user_profile_id) {
+      await ctx.supabase.from("notifications").insert({
+        company_id: ctx.companyId,
+        recipient_profile_id: employeeRow.user_profile_id as string,
+        type: "shift_swap_review",
+        title: `Shift swap ${decision}`,
+        message: decision === "approved"
+          ? "Your shift swap request has been approved. HR/Team lead will apply the schedule update."
+          : "Your shift swap request was rejected.",
+        reference_type: "shift_change_request",
+        reference_id: requestId,
+        created_by: actorProfileId,
+        updated_by: actorProfileId
+      });
+    }
+
+    return { ok: true, data: { requestId, status: decision } };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Shift swap review failed" };
+  }
+};
+
 export const clockIn = async (
   ctx: ServiceContext,
   employeeId: string,
@@ -1060,6 +1475,16 @@ export const clockIn = async (
       return { ok: false, error: error?.message ?? "Clock-in failed" };
     }
 
+    await recordAttendanceGeoEvent(ctx, {
+      attendanceId: data.id as string,
+      employeeId,
+      eventType: "clock_in",
+      source: payload.source,
+      geoLatitude: payload.geoLatitude,
+      geoLongitude: payload.geoLongitude,
+      geoAccuracy: payload.geoAccuracy
+    });
+
     return { ok: true, data: { attendanceId: data.id } };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "Clock-in error" };
@@ -1068,7 +1493,8 @@ export const clockIn = async (
 
 export const clockOut = async (
   ctx: ServiceContext,
-  employeeId: string
+  employeeId: string,
+  payload: ClockOutPayload = {}
 ): Promise<ServiceResult<{ attendanceId: string }>> => {
   try {
     await requireAttendanceEntitlement(ctx);
@@ -1106,6 +1532,16 @@ export const clockOut = async (
     }
 
     await applyAttendanceStatusRecalculation(ctx.supabase, ctx, record.id);
+
+    await recordAttendanceGeoEvent(ctx, {
+      attendanceId: record.id as string,
+      employeeId,
+      eventType: "clock_out",
+      source: payload.source,
+      geoLatitude: payload.geoLatitude,
+      geoLongitude: payload.geoLongitude,
+      geoAccuracy: payload.geoAccuracy
+    });
 
     return { ok: true, data: { attendanceId: record.id } };
   } catch (err) {

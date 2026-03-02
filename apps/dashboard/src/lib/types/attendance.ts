@@ -20,6 +20,14 @@ export type AttendanceTodayResponse = {
   todayDate: string;
   currentStatus: "not_clocked_in" | "clocked_in" | "on_break" | "clocked_out";
   isOnBreak: boolean;
+  latestGeoEvent: {
+    event_type: string;
+    latitude: number;
+    longitude: number;
+    accuracy_meters: number | null;
+    source: string | null;
+    captured_at: string;
+  } | null;
   record: AttendanceTodayRecord | null;
 };
 
@@ -125,4 +133,34 @@ export type TeamAttendanceRow = {
 export type TeamAttendanceResponse = {
   date: string;
   rows: TeamAttendanceRow[];
+};
+
+export type ShiftSwapRequest = {
+  id: string;
+  employee_id: string;
+  employee_name: string | null;
+  attendance_date: string;
+  old_shift_template_id: string;
+  old_shift_name: string | null;
+  requested_shift_template_id: string;
+  requested_shift_name: string | null;
+  reason: string;
+  status: "pending" | "approved" | "rejected";
+  created_at: string;
+  reviewed_at: string | null;
+  reviewed_by: string | null;
+};
+
+export type ShiftSwapRequestsResponse = {
+  scope: "mine" | "review";
+  rows: ShiftSwapRequest[];
+};
+
+export type ShiftSwapCreateResponse = {
+  requestId: string;
+};
+
+export type ShiftSwapReviewResponse = {
+  requestId: string;
+  status: "approved" | "rejected";
 };
