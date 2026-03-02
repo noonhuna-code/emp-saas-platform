@@ -22,11 +22,8 @@ type LoginErrorCode =
   | "INTERNAL_ERROR"
   | "RATE_LIMITED";
 
-const redirectToLoginWithErrorCode = (request: Request, code: LoginErrorCode, status?: number): NextResponse => {
-  return NextResponse.redirect(
-    new URL(`/login?error=${encodeURIComponent(code)}`, request.url),
-    status ? { status } : undefined
-  );
+const redirectToLoginWithErrorCode = (request: Request, code: LoginErrorCode): NextResponse => {
+  return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(code)}`, request.url));
 };
 
 const parseLoginInput = async (request: Request): Promise<{ email: string; password: string; next: string }> => {
@@ -114,7 +111,7 @@ export async function POST(request: Request) {
       });
     } catch {
       logAuthStage(route.requestId, "rate_limit_blocked", { emailHash });
-      const response = redirectToLoginWithErrorCode(request, "RATE_LIMITED", 429);
+      const response = redirectToLoginWithErrorCode(request, "RATE_LIMITED");
       return finalizeRoute(route, endpoint, response);
     }
 
@@ -239,7 +236,7 @@ export async function POST(request: Request) {
       } catch {
         // Ignore sign-out failures; we still clear cookies.
       }
-      const response = redirectToLoginWithErrorCode(request, "RATE_LIMITED", 429);
+      const response = redirectToLoginWithErrorCode(request, "RATE_LIMITED");
       for (const name of ["lf_access_token", "lf_refresh_token", "lf_session", "lf_session_id", "lf_role", "lf_permissions"]) {
         response.cookies.set(name, "", { httpOnly: true, sameSite: "lax", path: "/", expires: new Date(0) });
       }
