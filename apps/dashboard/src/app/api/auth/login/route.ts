@@ -13,10 +13,18 @@ import {
   upsertDeviceFingerprint
 } from "@emp/services/security.service";
 import { buildAuthContextFromAccessToken, createAuthSession, revokeAllActiveSessions } from "@/lib/server/auth";
+import { auditAuthByUserId } from "@/lib/server/auth-audit";
 
-const redirectToLoginWithError = (request: Request, message: string, status?: number): NextResponse => {
+type LoginErrorCode =
+  | "INVALID_CREDENTIALS"
+  | "PROVISIONING_INCOMPLETE"
+  | "ROLE_MISSING"
+  | "INTERNAL_ERROR"
+  | "RATE_LIMITED";
+
+const redirectToLoginWithErrorCode = (request: Request, code: LoginErrorCode, status?: number): NextResponse => {
   return NextResponse.redirect(
-    new URL(`/login?error=${encodeURIComponent(message)}`, request.url),
+    new URL(`/login?error=${encodeURIComponent(code)}`, request.url),
     status ? { status } : undefined
   );
 };
@@ -40,6 +48,34 @@ const parseLoginInput = async (request: Request): Promise<{ email: string; passw
   };
 };
 
+const logAuthStage = (requestId: string, stage: string, meta: Record<string, unknown> = {}): void => {
+  console.info("[auth.login]", JSON.stringify({ requestId, stage, ...meta }));
+};
+
+const mapLoginErrorCode = (error: unknown): LoginErrorCode => {
+  if (!(error instanceof Error)) {
+    return "INTERNAL_ERROR";
+  }
+
+  if (error.message.includes("Authenticated company-scoped session required")) {
+    return "PROVISIONING_INCOMPLETE";
+  }
+
+  if (error.message === "ROLE_MISSING") {
+    return "ROLE_MISSING";
+  }
+
+  if (error.message === "AUTH_SESSION_CREATE_FAILED") {
+    return "PROVISIONING_INCOMPLETE";
+  }
+
+  if (error.message.includes("Invalid login credentials")) {
+    return "INVALID_CREDENTIALS";
+  }
+
+  return "INTERNAL_ERROR";
+};
+
 export async function GET(request: Request) {
   const route = await beginRoute();
   const response = NextResponse.redirect(new URL("/login", request.url));
@@ -52,11 +88,12 @@ export async function POST(request: Request) {
   const MFA_THRESHOLD = 60;
   const HARD_FLAG_THRESHOLD = 80;
   const LOCK_THRESHOLD = 90;
+
   try {
     const { email, password, next } = await parseLoginInput(request);
 
     if (!email || !password) {
-      const response = redirectToLoginWithError(request, "Email and password are required");
+      const response = redirectToLoginWithErrorCode(request, "INTERNAL_ERROR");
       return finalizeRoute(route, endpoint, response);
     }
 
@@ -76,11 +113,19 @@ export async function POST(request: Request) {
         lockMinutes: 5
       });
     } catch {
-      const response = redirectToLoginWithError(request, "Too many login attempts. Please try again later.", 429);
+      logAuthStage(route.requestId, "rate_limit_blocked", { emailHash });
+      const response = redirectToLoginWithErrorCode(request, "RATE_LIMITED", 429);
       return finalizeRoute(route, endpoint, response);
     }
 
+    logAuthStage(route.requestId, "before_sign_in", { emailHash });
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    logAuthStage(route.requestId, "after_sign_in", {
+      emailHash,
+      signInError: Boolean(error),
+      hasSession: Boolean(data?.session),
+      hasUser: Boolean(data?.user?.id)
+    });
 
     if (error || !data.session) {
       if (emailHash && ipHash) {
@@ -93,7 +138,42 @@ export async function POST(request: Request) {
           riskScore: 0
         });
       }
-      const response = redirectToLoginWithError(request, "Invalid credentials");
+      const response = redirectToLoginWithErrorCode(request, "INVALID_CREDENTIALS");
+      return finalizeRoute(route, endpoint, response);
+    }
+
+    try {
+      if (data.user?.id) {
+        const audit = await auditAuthByUserId(data.user.id, { autoHeal: true });
+        logAuthStage(route.requestId, "post_sign_in_audit", {
+          authUser: audit.authUser,
+          profile: audit.profile,
+          membership: audit.membership,
+          platformRole: audit.platformRole,
+          profileCreated: audit.healed.profileCreated,
+          membershipCreated: audit.healed.membershipCreated,
+          platformRoleAssigned: audit.healed.platformRoleAssigned
+        });
+
+        if (audit.profile !== "exists") {
+          await supabase.auth.signOut();
+          const response = redirectToLoginWithErrorCode(request, "PROVISIONING_INCOMPLETE");
+          return finalizeRoute(route, endpoint, response);
+        }
+
+        if (audit.membership !== "exists") {
+          await supabase.auth.signOut();
+          const response = redirectToLoginWithErrorCode(request, "ROLE_MISSING");
+          return finalizeRoute(route, endpoint, response);
+        }
+      }
+    } catch (errorAudit) {
+      logAuthStage(route.requestId, "post_sign_in_audit_failed", {
+        error: errorAudit instanceof Error ? errorAudit.message : "Unknown error"
+      });
+      const code = mapLoginErrorCode(errorAudit);
+      await supabase.auth.signOut();
+      const response = redirectToLoginWithErrorCode(request, code);
       return finalizeRoute(route, endpoint, response);
     }
 
@@ -101,9 +181,11 @@ export async function POST(request: Request) {
     let cachedAuthContext: Awaited<ReturnType<typeof buildAuthContextFromAccessToken>> | null = null;
 
     try {
+      logAuthStage(route.requestId, "before_build_auth_context", { emailHash });
       const authContext = await buildAuthContextFromAccessToken(data.session.access_token);
       const ctx = { ...authContext, requestId: route.requestId };
       cachedAuthContext = authContext;
+
       if (emailHash && ipHash) {
         const riskResult = await evaluateLoginRisk(ctx, { ipHash, deviceHash, geoCountry });
         const riskScore = riskResult.ok ? riskResult.data?.score ?? 0 : 0;
@@ -145,7 +227,7 @@ export async function POST(request: Request) {
         }
       }
     } catch {
-      // Swallow security telemetry failures to avoid breaking login.
+      // Security telemetry should not block login.
     }
 
     if (shouldLock) {
@@ -157,7 +239,7 @@ export async function POST(request: Request) {
       } catch {
         // Ignore sign-out failures; we still clear cookies.
       }
-      const response = redirectToLoginWithError(request, "Too many login attempts. Please try again later.", 429);
+      const response = redirectToLoginWithErrorCode(request, "RATE_LIMITED", 429);
       for (const name of ["lf_access_token", "lf_refresh_token", "lf_session", "lf_session_id", "lf_role", "lf_permissions"]) {
         response.cookies.set(name, "", { httpOnly: true, sameSite: "lax", path: "/", expires: new Date(0) });
       }
@@ -165,6 +247,7 @@ export async function POST(request: Request) {
     }
 
     try {
+      logAuthStage(route.requestId, "before_create_auth_session", { emailHash });
       const authContext = cachedAuthContext ?? (await buildAuthContextFromAccessToken(data.session.access_token));
       const sessionId = await createAuthSession(authContext, route.requestId);
       const response = NextResponse.redirect(new URL(next.startsWith("/") ? next : "/app/dashboard", request.url));
@@ -173,25 +256,20 @@ export async function POST(request: Request) {
       response.cookies.set("lf_session", "1", { httpOnly: true, sameSite: "lax", path: "/" });
       response.cookies.set("lf_session_id", sessionId, { httpOnly: true, sameSite: "lax", path: "/" });
 
-      // TODO: Populate lf_role and lf_permissions cookies from a trusted server-side auth context resolver.
-
       return finalizeRoute(route, endpoint, response);
-    } catch (err) {
+    } catch (errorFinal) {
+      logAuthStage(route.requestId, "create_auth_session_failed", {
+        error: errorFinal instanceof Error ? errorFinal.message : "Unknown error"
+      });
       await supabase.auth.signOut();
-      const isProvisioningError =
-        err instanceof Error &&
-        (err.message === "AUTH_SESSION_CREATE_FAILED" || err.message.includes("Authenticated company-scoped session required"));
-
-      const response = redirectToLoginWithError(
-        request,
-        isProvisioningError
-          ? "Account setup is incomplete. Contact your administrator."
-          : "Unable to sign in right now. Please try again."
-      );
+      const response = redirectToLoginWithErrorCode(request, mapLoginErrorCode(errorFinal));
       return finalizeRoute(route, endpoint, response);
     }
-  } catch {
-    const response = redirectToLoginWithError(request, "Unable to sign in right now. Please try again.");
+  } catch (errorTop) {
+    logAuthStage(route.requestId, "login_route_failed", {
+      error: errorTop instanceof Error ? errorTop.message : "Unknown error"
+    });
+    const response = redirectToLoginWithErrorCode(request, mapLoginErrorCode(errorTop));
     return finalizeRoute(route, endpoint, response);
   }
 }

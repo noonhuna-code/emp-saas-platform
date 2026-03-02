@@ -5,10 +5,19 @@ type LoginPageProps = {
   searchParams?: Promise<{ next?: string; error?: string }>;
 };
 
+const LOGIN_ERROR_MESSAGES: Record<string, string> = {
+  INVALID_CREDENTIALS: "Invalid email or password.",
+  PROVISIONING_INCOMPLETE: "Account setup is incomplete. Contact your administrator.",
+  ROLE_MISSING: "No role assignment found for this account. Contact your administrator.",
+  INTERNAL_ERROR: "Unable to sign in right now. Please try again.",
+  RATE_LIMITED: "Too many login attempts. Please try again later."
+};
+
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const params = (await searchParams) ?? {};
   const cookieStore = await cookies();
   const hasToken = Boolean(cookieStore.get("lf_access_token")?.value);
+  const errorMessage = params.error ? (LOGIN_ERROR_MESSAGES[params.error] ?? params.error) : null;
 
   if (hasToken) {
     redirect(params.next && params.next.startsWith("/") ? params.next : "/app/dashboard");
@@ -31,7 +40,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             Password
             <input type="password" name="password" required autoComplete="current-password" />
           </label>
-          {params.error ? <p className="error">{params.error}</p> : null}
+          {errorMessage ? <p className="error">{errorMessage}</p> : null}
           <button type="submit" className="primary-btn">Sign in</button>
         </form>
         <p className="muted">
