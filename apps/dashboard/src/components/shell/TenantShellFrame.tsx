@@ -7,6 +7,7 @@ import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
 import { PlanRouteGuard } from "@/components/guards/PlanRouteGuard";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { resolveDashboardPersona } from "@/lib/dashboard/capabilities";
 
 export const TenantShellFrame = ({
   session,
@@ -19,6 +20,10 @@ export const TenantShellFrame = ({
 }) => {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const persona = resolveDashboardPersona({
+    role: session.role,
+    permissions: session.permissions
+  });
 
   useEffect(() => {
     try {
@@ -43,7 +48,7 @@ export const TenantShellFrame = ({
 
   return (
     <DashboardLayout
-      shellClassName={`layout-shell ${collapsed ? "layout-shell--collapsed" : ""} ${mobileOpen ? "layout-shell--mobile-open" : ""}`}
+      shellClassName={`app-shell ${collapsed ? "app-shell--collapsed" : ""} ${mobileOpen ? "app-shell--mobile-open" : ""}`}
       sidebar={(
         <Sidebar
           permissions={session.permissions}
@@ -51,16 +56,17 @@ export const TenantShellFrame = ({
           entitlements={billingContext?.entitlements ?? null}
           collapsed={collapsed}
           mobileOpen={mobileOpen}
-          onToggleCollapsed={toggleCollapsed}
           onCloseMobile={() => setMobileOpen(false)}
         />
       )}
       header={(
         <Topbar
+          persona={persona}
           role={session.role}
           companyId={session.companyId}
           email={session.email}
           fullName={session.fullName}
+          employeeId={session.employeeId}
           avatarUrl={session.avatarUrl}
           lastLoginAt={session.lastLoginAt}
           shiftStartTime={session.shiftStartTime}

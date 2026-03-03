@@ -96,7 +96,11 @@ export const NavSection = ({
             title={collapsed ? item.label : undefined}
             onClick={onNavigate}
           >
-            <Icon size={16} className={cn("shrink-0", isActive ? "text-white" : "text-indigo-100/80 group-hover:text-white")} />
+            <Icon
+              size={18}
+              strokeWidth={1.9}
+              className={cn("shrink-0", isActive ? "text-white" : "text-indigo-100/80 group-hover:text-white")}
+            />
             {!collapsed ? <span className="truncate">{item.label}</span> : null}
           </Link>
         );

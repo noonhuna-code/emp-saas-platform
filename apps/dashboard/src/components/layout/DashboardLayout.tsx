@@ -16,11 +16,11 @@ export const DashboardLayout = ({
   onCloseMobile?: () => void;
 }) => {
   return (
-    <div className={["dashboard-layout", shellClassName ?? ""].join(" ").trim()}>
+    <div className={["dashboard-layout", "app-shell", shellClassName ?? ""].join(" ").trim()}>
       {sidebar}
-      <div className="dashboard-layout__content">
-        {header}
-        <main className="dashboard-layout__main" onClick={() => (mobileOpen && onCloseMobile ? onCloseMobile() : undefined)}>
+      <div className="dashboard-layout__content main-column">
+        <div className="topbar-row">{header}</div>
+        <main className="dashboard-layout__main content-area" onClick={() => (mobileOpen && onCloseMobile ? onCloseMobile() : undefined)}>
           {children}
         </main>
       </div>

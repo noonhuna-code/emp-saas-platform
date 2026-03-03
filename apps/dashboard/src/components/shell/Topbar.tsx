@@ -3,11 +3,14 @@ import { CompanyContextBadge } from "./CompanyContextBadge";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import { StatusChip } from "@/components/ui/StatusChip";
 import type { BillingNavigationContext } from "@/lib/types/billing";
+import type { DashboardPersona } from "@/lib/dashboard/capabilities";
 
 export const Topbar = ({
+  persona,
   role,
   companyId,
   email,
+  employeeId,
   fullName,
   avatarUrl,
   lastLoginAt,
@@ -18,9 +21,11 @@ export const Topbar = ({
   onToggleSidebar,
   onToggleMobileSidebar
 }: {
+  persona: DashboardPersona;
   role: string | null;
   companyId: string | null;
   email: string | null | undefined;
+  employeeId?: string | null;
   fullName?: string | null;
   avatarUrl?: string | null;
   lastLoginAt?: string | null;
@@ -31,6 +36,7 @@ export const Topbar = ({
   onToggleSidebar?: () => void;
   onToggleMobileSidebar?: () => void;
 }) => {
+  const isEmployeePersona = persona === "employee";
   const subscription = billingContext?.subscription ?? null;
   const seatSummary = billingContext?.seatSummary ?? null;
   const identityLabel = fullName ?? email ?? "Authenticated user";
@@ -59,6 +65,8 @@ export const Topbar = ({
     return `${shiftStartTime} - ${shiftEndTime}${hoursLabel}`;
   })();
 
+  const employeeBadge = employeeId ? `Employee ${employeeId.slice(0, 8)}` : "Employee";
+
   return (
     <HeaderBar
       title="Employee Management"
@@ -67,10 +75,11 @@ export const Topbar = ({
       onToggleMobileSidebar={onToggleMobileSidebar}
       actions={(
         <>
-          {subscription ? <StatusChip label={`${subscription.planName} - ${subscription.status}`} /> : null}
-          {renewalLabel ? <StatusChip label={renewalLabel} tone="info" compact /> : null}
-          {seatSummary ? <StatusChip label={`Seats ${seatLimitText}`} compact /> : null}
+          {!isEmployeePersona && subscription ? <StatusChip label={`${subscription.planName} - ${subscription.status}`} /> : null}
+          {!isEmployeePersona && renewalLabel ? <StatusChip label={renewalLabel} tone="info" compact /> : null}
+          {!isEmployeePersona && seatSummary ? <StatusChip label={`Seats ${seatLimitText}`} compact /> : null}
           {shiftText ? <StatusChip label={`Shift ${shiftText}`} compact /> : null}
+          {isEmployeePersona ? <StatusChip label={employeeBadge} compact /> : null}
           <div className="topbar-profile" title={identityLabel}>
             {avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -80,7 +89,7 @@ export const Topbar = ({
             )}
             <span className="topbar-profile__name">{fullName ?? email ?? "User"}</span>
           </div>
-          <CompanyContextBadge companyId={companyId} role={role} />
+          {!isEmployeePersona ? <CompanyContextBadge companyId={companyId} role={role} /> : null}
           <ThemeToggle />
           <form action="/api/auth/logout" method="post">
             <button type="submit" className="secondary-btn">

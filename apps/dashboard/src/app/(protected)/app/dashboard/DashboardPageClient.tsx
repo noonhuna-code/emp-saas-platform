@@ -2,7 +2,16 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { Building2, CreditCard, LayoutGrid, ShieldCheck } from "lucide-react";
+import {
+  ArrowRightLeft,
+  Bell,
+  Building2,
+  CalendarDays,
+  Clock3,
+  CreditCard,
+  LayoutGrid,
+  ShieldCheck
+} from "lucide-react";
 import {
   TENANT_NAVIGATION_ITEMS,
   resolveVisibleNavigationItems,
@@ -110,6 +119,123 @@ export const DashboardPageClient = ({
     );
   }
 
+  if (persona === "employee") {
+    return (
+      <div className="stack fade-in">
+        <Card className="dashboard-panel dashboard-panel--soft">
+          <CardHeader>
+            <CardTitle>My Daily Work Workspace</CardTitle>
+            <CardDescription>Focus on today&apos;s shift, attendance, leave, and team updates.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="quick-action-grid">
+              <Link href="/app/attendance" className="action-card">
+                <span className="action-card__icon">
+                  <Clock3 size={14} />
+                </span>
+                <span className="action-card__content">
+                  <strong>Clock In / Out</strong>
+                  <span className="muted" style={{ fontSize: 12 }}>
+                    Track today&apos;s attendance
+                  </span>
+                </span>
+              </Link>
+              <Link href="/app/leave" className="action-card">
+                <span className="action-card__icon">
+                  <CalendarDays size={14} />
+                </span>
+                <span className="action-card__content">
+                  <strong>Apply Leave</strong>
+                  <span className="muted" style={{ fontSize: 12 }}>
+                    Submit and track requests
+                  </span>
+                </span>
+              </Link>
+              <Link href="/app/shift-swaps" className="action-card">
+                <span className="action-card__icon">
+                  <ArrowRightLeft size={14} />
+                </span>
+                <span className="action-card__content">
+                  <strong>Request Shift Swap</strong>
+                  <span className="muted" style={{ fontSize: 12 }}>
+                    Propose shift exchange
+                  </span>
+                </span>
+              </Link>
+              <Link href="/app/chat" className="action-card">
+                <span className="action-card__icon">
+                  <Bell size={14} />
+                </span>
+                <span className="action-card__content">
+                  <strong>Open Team Chat</strong>
+                  <span className="muted" style={{ fontSize: 12 }}>
+                    Collaborate with your team
+                  </span>
+                </span>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="grid-4">
+          <Card className="metric-card metric-card--info">
+            <CardHeader>
+              <CardDescription>Today&apos;s shift</CardDescription>
+              <CardTitle>09:00 - 18:00</CardTitle>
+            </CardHeader>
+            <CardContent className="muted">Attendance status: Not clocked in</CardContent>
+          </Card>
+          <Card className="metric-card metric-card--success">
+            <CardHeader>
+              <CardDescription>Hours this week</CardDescription>
+              <CardTitle>0h</CardTitle>
+            </CardHeader>
+            <CardContent className="muted">On-time: 0 | Late: 0</CardContent>
+          </Card>
+          <Card className="metric-card metric-card--warning">
+            <CardHeader>
+              <CardDescription>Leave balance</CardDescription>
+              <CardTitle>CL 0 | SL 0 | AL 0</CardTitle>
+            </CardHeader>
+            <CardContent className="muted">Upcoming leave: None</CardContent>
+          </Card>
+          <Card className="metric-card metric-card--danger">
+            <CardHeader>
+              <CardDescription>Notifications</CardDescription>
+              <CardTitle>0</CardTitle>
+            </CardHeader>
+            <CardContent className="muted">Unread updates</CardContent>
+          </Card>
+        </div>
+
+        <Card className="dashboard-panel dashboard-panel--spotlight">
+          <CardHeader>
+            <CardTitle>Upcoming Events</CardTitle>
+            <CardDescription>Holidays, approved leaves, and company announcements.</CardDescription>
+          </CardHeader>
+          <CardContent className="dashboard-timeline">
+            <div className="dashboard-timeline__item">
+              <span className="dashboard-timeline__dot" />
+              <div className="dashboard-timeline__content">
+                <strong>No upcoming holidays configured</strong>
+                <span className="muted">Your company calendar events will appear here.</span>
+              </div>
+              <span className="dashboard-timeline__meta">--</span>
+            </div>
+            <div className="dashboard-timeline__item">
+              <span className="dashboard-timeline__dot" />
+              <div className="dashboard-timeline__content">
+                <strong>No approved leaves pending</strong>
+                <span className="muted">Approved leave requests show with dates and status.</span>
+              </div>
+              <span className="dashboard-timeline__meta">--</span>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="stack fade-in">
       <Card className="dashboard-hero dashboard-hero--executive">
@@ -205,4 +331,3 @@ const resolveModuleIcon = (href: string) => {
   if (href.includes("employees")) return <Building2 size={14} />;
   return <LayoutGrid size={14} />;
 };
-

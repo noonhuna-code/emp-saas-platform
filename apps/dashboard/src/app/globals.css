@@ -129,24 +129,37 @@ p { margin: 0; }
 }
 .table-wrap .table { min-width: 640px; }
 
-.layout-shell {
-  --shell-sidebar-width: 280px;
+.layout-shell,
+.app-shell {
+  --shell-sidebar-width: 260px;
 }
-.layout-shell--collapsed { --shell-sidebar-width: 96px; }
+.layout-shell--collapsed,
+.app-shell--collapsed {
+  --shell-sidebar-width: 92px;
+}
 
-.dashboard-layout {
+.dashboard-layout,
+.app-shell {
   min-height: 100vh;
   height: 100vh;
-  display: grid;
-  grid-template-columns: var(--shell-sidebar-width, 280px) minmax(0, 1fr);
-}
-.dashboard-layout__content {
-  min-width: 0;
-  display: grid;
-  grid-template-rows: auto 1fr;
+  display: grid !important;
+  grid-template-columns: var(--shell-sidebar-width, 260px) minmax(0, 1fr);
   overflow: hidden;
 }
-.dashboard-layout__main {
+.dashboard-layout__content,
+.main-column {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+.topbar-row {
+  flex-shrink: 0;
+}
+.dashboard-layout__main,
+.content-area {
+  flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
   min-height: 0;
@@ -156,10 +169,12 @@ p { margin: 0; }
   background: #0d1325;
   color: #e2e8f0;
   border-right: 1px solid rgba(255, 255, 255, 0.08);
-  overflow: hidden;
+  height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 .sidebar-layout {
-  height: 100vh;
+  height: 100%;
   display: grid;
   grid-template-rows: auto 1fr;
 }
@@ -1146,9 +1161,17 @@ p { margin: 0; }
 }
 
 @media (max-width: 900px) {
-  .layout-shell { grid-template-columns: 1fr; }
-  .layout-shell--collapsed { grid-template-columns: 1fr; }
-  .dashboard-layout { grid-template-columns: 1fr; }
+  .layout-shell,
+  .app-shell {
+    grid-template-columns: 1fr !important;
+  }
+  .layout-shell--collapsed,
+  .app-shell--collapsed {
+    grid-template-columns: 1fr !important;
+  }
+  .dashboard-layout {
+    grid-template-columns: 1fr !important;
+  }
   .platform-shell { grid-template-columns: 1fr; }
   .platform-shell--collapsed { grid-template-columns: 1fr; }
   .platform-sidebar {
@@ -1191,7 +1214,8 @@ p { margin: 0; }
     overflow-y: auto;
     padding: 16px 14px;
   }
-  .layout-shell--mobile-open .sidebar {
+  .layout-shell--mobile-open .sidebar,
+  .app-shell--mobile-open .sidebar {
     transform: translateX(0);
   }
   .sidebar--collapsed {
@@ -1262,6 +1286,7 @@ p { margin: 0; }
   }
 
   .layout-shell,
+  .app-shell,
   .platform-shell,
   .content-area,
   .platform-main {
