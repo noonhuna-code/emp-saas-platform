@@ -17,10 +17,10 @@ export const HeaderBar = ({
     <header className="header-bar">
       <div className="header-bar__left">
         <button type="button" className="ghost-btn header-bar__toggle-desktop" onClick={onToggleSidebar} aria-label="Toggle sidebar">
-          ‹›
+          ...
         </button>
         <button type="button" className="ghost-btn header-bar__toggle-mobile" onClick={onToggleMobileSidebar} aria-label="Open menu">
-          ☰
+          Menu
         </button>
         <div className="header-bar__title-wrap">
           <h1>{title}</h1>

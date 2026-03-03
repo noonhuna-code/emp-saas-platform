@@ -34,7 +34,7 @@ export const SidebarLayout = ({
           onClick={onToggleCollapsed}
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
-          {collapsed ? "›" : "‹"}
+          {collapsed ? ">" : "<"}
         </button>
       </header>
       <div className="sidebar-layout__body">{children}</div>

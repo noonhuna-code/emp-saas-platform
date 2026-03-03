@@ -67,7 +67,7 @@ export const Topbar = ({
       onToggleMobileSidebar={onToggleMobileSidebar}
       actions={(
         <>
-          {subscription ? <StatusChip label={`${subscription.planName} · ${subscription.status}`} /> : null}
+          {subscription ? <StatusChip label={`${subscription.planName} - ${subscription.status}`} /> : null}
           {renewalLabel ? <StatusChip label={renewalLabel} tone="info" compact /> : null}
           {seatSummary ? <StatusChip label={`Seats ${seatLimitText}`} compact /> : null}
           {shiftText ? <StatusChip label={`Shift ${shiftText}`} compact /> : null}
