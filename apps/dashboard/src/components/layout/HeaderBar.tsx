@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import { Menu, PanelLeftClose } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export const HeaderBar = ({
   title,
@@ -16,12 +18,26 @@ export const HeaderBar = ({
   return (
     <header className="header-bar">
       <div className="header-bar__left">
-        <button type="button" className="ghost-btn header-bar__toggle-desktop" onClick={onToggleSidebar} aria-label="Toggle sidebar">
-          ...
-        </button>
-        <button type="button" className="ghost-btn header-bar__toggle-mobile" onClick={onToggleMobileSidebar} aria-label="Open menu">
-          Menu
-        </button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="header-bar__toggle-desktop"
+          onClick={onToggleSidebar}
+          aria-label="Toggle sidebar"
+        >
+          <PanelLeftClose size={16} />
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="header-bar__toggle-mobile"
+          onClick={onToggleMobileSidebar}
+          aria-label="Open menu"
+        >
+          <Menu size={16} />
+        </Button>
         <div className="header-bar__title-wrap">
           <h1>{title}</h1>
           {subtitle ? <p>{subtitle}</p> : null}

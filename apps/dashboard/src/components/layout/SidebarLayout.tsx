@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import { ChevronsLeft, ChevronsRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export const SidebarLayout = ({
   title,
@@ -28,14 +30,16 @@ export const SidebarLayout = ({
           <h2>{collapsed ? title.slice(0, 3) : title}</h2>
           {!collapsed && subtitle ? <p>{subtitle}</p> : null}
         </div>
-        <button
+        <Button
           type="button"
-          className="ghost-btn sidebar-layout__toggle"
+          variant="ghost"
+          size="icon"
+          className="sidebar-layout__toggle"
           onClick={onToggleCollapsed}
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
-          {collapsed ? ">" : "<"}
-        </button>
+          {collapsed ? <ChevronsRight size={14} /> : <ChevronsLeft size={14} />}
+        </Button>
       </header>
       <div className="sidebar-layout__body">{children}</div>
     </div>
