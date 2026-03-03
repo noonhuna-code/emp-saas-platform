@@ -6,7 +6,11 @@ export default async function DashboardPage() {
 
   return (
     <div className="page-wrap stack">
-      <DashboardPageClient role={session.role} permissions={session.permissions} />
+      <DashboardPageClient
+        role={session.role}
+        permissions={session.permissions}
+        hasEmployeeContext={Boolean(session.employeeId)}
+      />
     </div>
   );
 }
