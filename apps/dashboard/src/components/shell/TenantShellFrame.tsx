@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
 import { PlanRouteGuard } from "@/components/guards/PlanRouteGuard";
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
 
 export const TenantShellFrame = ({
   session,
@@ -41,17 +42,20 @@ export const TenantShellFrame = ({
   };
 
   return (
-    <div className={`layout-shell ${collapsed ? "layout-shell--collapsed" : ""} ${mobileOpen ? "layout-shell--mobile-open" : ""}`}>
-      <Sidebar
-        permissions={session.permissions}
-        hasEmployeeContext={Boolean(session.employeeId)}
-        entitlements={billingContext?.entitlements ?? null}
-        collapsed={collapsed}
-        mobileOpen={mobileOpen}
-        onToggleCollapsed={toggleCollapsed}
-        onCloseMobile={() => setMobileOpen(false)}
-      />
-      <div className="content-area">
+    <DashboardLayout
+      shellClassName={`layout-shell ${collapsed ? "layout-shell--collapsed" : ""} ${mobileOpen ? "layout-shell--mobile-open" : ""}`}
+      sidebar={(
+        <Sidebar
+          permissions={session.permissions}
+          hasEmployeeContext={Boolean(session.employeeId)}
+          entitlements={billingContext?.entitlements ?? null}
+          collapsed={collapsed}
+          mobileOpen={mobileOpen}
+          onToggleCollapsed={toggleCollapsed}
+          onCloseMobile={() => setMobileOpen(false)}
+        />
+      )}
+      header={(
         <Topbar
           role={session.role}
           companyId={session.companyId}
@@ -66,12 +70,13 @@ export const TenantShellFrame = ({
           onToggleSidebar={toggleCollapsed}
           onToggleMobileSidebar={() => setMobileOpen((prev) => !prev)}
         />
-        <main onClick={() => { if (mobileOpen) setMobileOpen(false); }}>
-          <PlanRouteGuard entitlements={billingContext?.entitlements ?? null}>
-            {children}
-          </PlanRouteGuard>
-        </main>
-      </div>
-    </div>
+      )}
+      mobileOpen={mobileOpen}
+      onCloseMobile={() => setMobileOpen(false)}
+    >
+      <PlanRouteGuard entitlements={billingContext?.entitlements ?? null}>
+        {children}
+      </PlanRouteGuard>
+    </DashboardLayout>
   );
 };

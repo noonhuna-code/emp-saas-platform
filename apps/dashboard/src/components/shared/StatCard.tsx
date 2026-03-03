@@ -1,3 +1,5 @@
+import { MetricCard } from "@/components/ui/MetricCard";
+
 export const StatCard = ({
   label,
   value,
@@ -7,11 +9,5 @@ export const StatCard = ({
   value: string | number;
   hint?: string;
 }) => {
-  return (
-    <div className="stat-card">
-      <span className="stat-label">{label}</span>
-      <strong className="stat-value">{value}</strong>
-      {hint ? <span className="stat-hint">{hint}</span> : null}
-    </div>
-  );
+  return <MetricCard label={label} value={value} hint={hint} />;
 };

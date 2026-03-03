@@ -16,6 +16,7 @@ import {
   getVisibleDashboardWidgets,
   resolveDashboardWidgetCapabilities
 } from "@/lib/dashboard/dashboard-widget-capabilities";
+import { SectionContainer } from "@/components/ui/SectionContainer";
 
 export const DashboardPageClient = ({
   role,
@@ -28,10 +29,9 @@ export const DashboardPageClient = ({
   const userCapabilities = resolveDashboardWidgetCapabilities({ role, permissions });
   const visibleWidgets = getVisibleDashboardWidgets(userCapabilities);
   const emptyDashboard = (
-    <section className="card stack fade-in">
-      <h1>Dashboard</h1>
-      <p className="muted">No dashboard widgets available.</p>
-    </section>
+    <SectionContainer title="Dashboard" subtitle="No widgets available for your scope." tone="soft">
+      <p className="muted">Contact your administrator to enable additional modules.</p>
+    </SectionContainer>
   );
 
   if (persona !== "platform_owner" && visibleWidgets.length === 0) {
@@ -74,15 +74,15 @@ export const DashboardPageClient = ({
             );
           case "platform_owner":
             return (
-              <section className="card stack fade-in">
-                <h1>Platform Owner Workspace</h1>
-                <p className="muted">
-                  Platform Owner users must use the isolated <code>/platform</code> shell. Tenant dashboard access is intentionally disabled.
-                </p>
+              <SectionContainer
+                title="Platform Owner Workspace"
+                subtitle="Use the isolated platform shell for global operations."
+                tone="soft"
+              >
                 <Link href="/platform" className="secondary-btn" style={{ width: "fit-content" }}>
                   Open Platform Shell
                 </Link>
-              </section>
+              </SectionContainer>
             );
           case "employee":
           default:

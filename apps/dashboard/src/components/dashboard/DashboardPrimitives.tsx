@@ -1,7 +1,9 @@
 "use client";
 
 import type { ReactNode } from "react";
-import Link from "next/link";
+import { MetricCard } from "@/components/ui/MetricCard";
+import { SectionContainer } from "@/components/ui/SectionContainer";
+import { ActionCard } from "@/components/ui/ActionCard";
 
 export const DashboardHero = ({
   eyebrow,
@@ -43,17 +45,7 @@ export const DashboardKpiTile = ({
   accent?: "default" | "success" | "warning" | "danger" | "info";
   footer?: ReactNode;
 }) => {
-  return (
-    <div className={`dashboard-kpi dashboard-kpi--${accent}`}>
-      <div className="dashboard-kpi__header">
-        <span className="dashboard-kpi__label">{label}</span>
-        {trend ? <span className="dashboard-kpi__trend">{trend}</span> : null}
-      </div>
-      <strong className="dashboard-kpi__value">{value}</strong>
-      {hint ? <span className="dashboard-kpi__hint">{hint}</span> : null}
-      {footer ? <div className="dashboard-kpi__footer">{footer}</div> : null}
-    </div>
-  );
+  return <MetricCard label={label} value={value} hint={hint} trend={trend} accent={accent} footer={footer} />;
 };
 
 export const DashboardPanel = ({
@@ -70,16 +62,9 @@ export const DashboardPanel = ({
   tone?: "default" | "soft" | "spotlight";
 }) => {
   return (
-    <section className={`card dashboard-panel dashboard-panel--${tone}`}>
-      <div className="dashboard-panel__header">
-        <div>
-          <h3>{title}</h3>
-          {subtitle ? <p className="muted">{subtitle}</p> : null}
-        </div>
-        {actions ? <div className="dashboard-panel__actions">{actions}</div> : null}
-      </div>
-      <div className="dashboard-panel__body">{children}</div>
-    </section>
+    <SectionContainer title={title} subtitle={subtitle} actions={actions} tone={tone}>
+      {children}
+    </SectionContainer>
   );
 };
 
@@ -91,10 +76,7 @@ export const QuickActionGrid = ({
   return (
     <div className="quick-action-grid">
       {actions.map((action) => (
-        <Link key={`${action.href}-${action.label}`} href={action.href} className="quick-action-tile">
-          <span className="quick-action-tile__label">{action.label}</span>
-          {action.caption ? <span className="quick-action-tile__caption">{action.caption}</span> : null}
-        </Link>
+        <ActionCard key={`${action.href}-${action.label}`} href={action.href} title={action.label} subtitle={action.caption} />
       ))}
     </div>
   );
