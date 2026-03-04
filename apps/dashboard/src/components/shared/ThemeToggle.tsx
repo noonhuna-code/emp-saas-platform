@@ -30,8 +30,18 @@ export const ThemeToggle = () => {
   };
 
   return (
-    <button className="ghost-btn" type="button" onClick={toggle} aria-label="Toggle theme">
-      {theme === "dark" ? "Light mode" : "Dark mode"}
+    <button
+      className={`theme-toggle ${theme === "dark" ? "theme-toggle--on" : ""}`}
+      type="button"
+      role="switch"
+      aria-checked={theme === "dark"}
+      aria-label="Toggle dark mode"
+      onClick={toggle}
+    >
+      <span className="theme-toggle__text">Dark mode</span>
+      <span className="theme-toggle__track" aria-hidden="true">
+        <span className="theme-toggle__thumb" />
+      </span>
     </button>
   );
 };

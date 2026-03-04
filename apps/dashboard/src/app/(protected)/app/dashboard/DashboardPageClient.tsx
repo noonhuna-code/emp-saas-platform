@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   ArrowRightLeft,
   Bell,
@@ -40,6 +40,13 @@ type DashboardPageClientProps = {
   hasEmployeeContext: boolean;
 };
 
+type QuickAction = {
+  href: string;
+  label: string;
+  description: string;
+  icon: ReactNode;
+};
+
 const fetchEntitlements = async (): Promise<EntitlementsPayload | null> => {
   const response = await fetch("/api/billing/entitlements", { cache: "no-store" });
   const payload = (await response.json()) as { ok?: boolean; data?: EntitlementsPayload };
@@ -53,6 +60,51 @@ const countEnabledFeatures = (entitlements: Record<string, unknown> | null): num
   if (!entitlements) return 0;
   return Object.entries(entitlements).filter(([key, value]) => key.startsWith("feature.") && value === true).length;
 };
+
+const EMPLOYEE_QUICK_ACTIONS: QuickAction[] = [
+  {
+    href: "/app/attendance",
+    label: "Clock In / Out",
+    description: "Track today's attendance",
+    icon: <Clock3 size={18} />
+  },
+  {
+    href: "/app/leave",
+    label: "Apply Leave",
+    description: "Submit and track requests",
+    icon: <CalendarDays size={18} />
+  },
+  {
+    href: "/app/shift-swaps",
+    label: "Request Shift Swap",
+    description: "Propose shift exchange",
+    icon: <ArrowRightLeft size={18} />
+  },
+  {
+    href: "/app/chat",
+    label: "Open Team Chat",
+    description: "Collaborate with your team",
+    icon: <MessageSquare size={18} />
+  },
+  {
+    href: "/app/calendar",
+    label: "Open Work Calendar",
+    description: "Holidays, shifts, and leave calendar",
+    icon: <Compass size={18} />
+  },
+  {
+    href: "/app/notes",
+    label: "My Notes",
+    description: "Save personal work notes and links",
+    icon: <NotebookPen size={18} />
+  },
+  {
+    href: "/app/notifications",
+    label: "Notifications",
+    description: "Review updates and reminders",
+    icon: <Bell size={18} />
+  }
+];
 
 export const DashboardPageClient = ({
   role,
@@ -108,12 +160,16 @@ export const DashboardPageClient = ({
 
   if (persona === "platform_owner") {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Platform Owner Workspace</CardTitle>
-          <CardDescription>Use the isolated platform shell for global operations.</CardDescription>
+      <Card className="ui-refined-card rounded-2xl border border-[var(--line)] shadow-sm">
+        <CardHeader className="space-y-4">
+          <div>
+            <CardTitle className="mb-2">Platform Owner Workspace</CardTitle>
+            <CardDescription className="text-sm text-[var(--muted)]">
+              Use the isolated platform shell for global operations.
+            </CardDescription>
+          </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           <Link href="/platform" className="secondary-btn">
             Open Platform Shell
           </Link>
@@ -124,104 +180,44 @@ export const DashboardPageClient = ({
 
   if (persona === "employee") {
     return (
-      <div className="stack fade-in">
-        <Card className="dashboard-panel dashboard-panel--soft">
-          <CardHeader>
-            <CardTitle>My Daily Work Workspace</CardTitle>
-            <CardDescription>
-              Focus on today&apos;s shift, attendance, leave, and team updates.
-            </CardDescription>
+      <div className="space-y-8 fade-in">
+        <Card className="ui-refined-card rounded-2xl border border-[var(--line)] shadow-sm">
+          <CardHeader className="space-y-4">
+            <div>
+              <CardTitle className="mb-2">My Daily Work Workspace</CardTitle>
+              <CardDescription className="text-sm text-[var(--muted)]">
+                Focus on today&apos;s shift, attendance, leave, and team updates.
+              </CardDescription>
+            </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <div className="quick-action-grid">
-              <Link href="/app/attendance" className="action-card">
-                <span className="action-card__icon">
-                  <Clock3 size={14} />
-                </span>
-                <span className="action-card__content">
-                  <strong>Clock In / Out</strong>
-                  <span className="muted" style={{ fontSize: 12 }}>
-                    Track today&apos;s attendance
-                  </span>
-                </span>
-              </Link>
-              <Link href="/app/leave" className="action-card">
-                <span className="action-card__icon">
-                  <CalendarDays size={14} />
-                </span>
-                <span className="action-card__content">
-                  <strong>Apply Leave</strong>
-                  <span className="muted" style={{ fontSize: 12 }}>
-                    Submit and track requests
-                  </span>
-                </span>
-              </Link>
-              <Link href="/app/shift-swaps" className="action-card">
-                <span className="action-card__icon">
-                  <ArrowRightLeft size={14} />
-                </span>
-                <span className="action-card__content">
-                  <strong>Request Shift Swap</strong>
-                  <span className="muted" style={{ fontSize: 12 }}>
-                    Propose shift exchange
-                  </span>
-                </span>
-              </Link>
-              <Link href="/app/chat" className="action-card">
-                <span className="action-card__icon">
-                  <MessageSquare size={14} />
-                </span>
-                <span className="action-card__content">
-                  <strong>Open Team Chat</strong>
-                  <span className="muted" style={{ fontSize: 12 }}>
-                    Collaborate with your team
-                  </span>
-                </span>
-              </Link>
-              <Link href="/app/calendar" className="action-card">
-                <span className="action-card__icon">
-                  <Compass size={14} />
-                </span>
-                <span className="action-card__content">
-                  <strong>Open Work Calendar</strong>
-                  <span className="muted" style={{ fontSize: 12 }}>
-                    Holidays, shifts, and leave calendar
-                  </span>
-                </span>
-              </Link>
-              <Link href="/app/notes" className="action-card">
-                <span className="action-card__icon">
-                  <NotebookPen size={14} />
-                </span>
-                <span className="action-card__content">
-                  <strong>My Notes</strong>
-                  <span className="muted" style={{ fontSize: 12 }}>
-                    Save personal work notes and links
-                  </span>
-                </span>
-              </Link>
-              <Link href="/app/notifications" className="action-card">
-                <span className="action-card__icon">
-                  <Bell size={14} />
-                </span>
-                <span className="action-card__content">
-                  <strong>Notifications</strong>
-                  <span className="muted" style={{ fontSize: 12 }}>
-                    Review updates and reminders
-                  </span>
-                </span>
-              </Link>
+              {EMPLOYEE_QUICK_ACTIONS.map((action) => (
+                <Link key={action.href} href={action.href} className="group block">
+                  <Card className="ui-refined-card rounded-xl border border-[var(--line)] shadow-sm">
+                    <CardContent className="p-5">
+                      <div className="flex items-start gap-3">
+                        <span className="action-card__icon action-card__icon--muted">{action.icon}</span>
+                        <div className="min-w-0">
+                          <p className="mb-1 font-semibold leading-none">{action.label}</p>
+                          <p className="text-sm text-[var(--muted)]">{action.description}</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
             </div>
           </CardContent>
         </Card>
 
-        <div className="grid-4">
-          <Card className="metric-card metric-card--info">
-            <CardHeader>
-              <CardDescription>Today&apos;s shift</CardDescription>
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <Card className="ui-refined-card metric-card metric-card--info rounded-xl border border-[var(--line)] shadow-sm">
+            <CardHeader className="space-y-2">
+              <CardDescription className="text-sm text-[var(--muted)]">Today&apos;s shift</CardDescription>
               <CardTitle>09:00 - 18:00</CardTitle>
             </CardHeader>
-            <CardContent className="stack" style={{ gap: 6 }}>
+            <CardContent className="space-y-4">
               <div className="row" style={{ justifyContent: "space-between" }}>
                 <span className="muted">Attendance status</span>
                 <span className="badge badge--info">Not clocked in</span>
@@ -237,12 +233,13 @@ export const DashboardPageClient = ({
               </div>
             </CardContent>
           </Card>
-          <Card className="metric-card metric-card--success">
-            <CardHeader>
-              <CardDescription>Hours this week</CardDescription>
+
+          <Card className="ui-refined-card metric-card metric-card--success rounded-xl border border-[var(--line)] shadow-sm">
+            <CardHeader className="space-y-2">
+              <CardDescription className="text-sm text-[var(--muted)]">Hours this week</CardDescription>
               <CardTitle>0h</CardTitle>
             </CardHeader>
-            <CardContent className="stack" style={{ gap: 6 }}>
+            <CardContent className="space-y-4">
               <span className="muted">On-time: 0 | Late: 0</span>
               <div className="signal-row signal-row--success">
                 <span className="signal-row__label">Trend vs last week</span>
@@ -250,9 +247,10 @@ export const DashboardPageClient = ({
               </div>
             </CardContent>
           </Card>
-          <Card className="metric-card metric-card--warning">
-            <CardHeader>
-              <CardDescription>Leave balance</CardDescription>
+
+          <Card className="ui-refined-card metric-card metric-card--warning rounded-xl border border-[var(--line)] shadow-sm">
+            <CardHeader className="space-y-2">
+              <CardDescription className="text-sm text-[var(--muted)]">Leave balance</CardDescription>
               <CardTitle>CL 0 | SL 0 | AL 0</CardTitle>
             </CardHeader>
             <CardContent className="split-donut">
@@ -267,12 +265,13 @@ export const DashboardPageClient = ({
               </div>
             </CardContent>
           </Card>
-          <Card className="metric-card metric-card--danger">
-            <CardHeader>
-              <CardDescription>Notifications</CardDescription>
+
+          <Card className="ui-refined-card metric-card metric-card--danger rounded-xl border border-[var(--line)] shadow-sm">
+            <CardHeader className="space-y-2">
+              <CardDescription className="text-sm text-[var(--muted)]">Notifications</CardDescription>
               <CardTitle>0</CardTitle>
             </CardHeader>
-            <CardContent className="stack" style={{ gap: 6 }}>
+            <CardContent className="space-y-4">
               <span className="muted">Unread updates</span>
               <div className="signal-row">
                 <span className="signal-row__label">Priority alerts</span>
@@ -282,27 +281,33 @@ export const DashboardPageClient = ({
           </Card>
         </div>
 
-        <Card className="dashboard-panel dashboard-panel--spotlight">
-          <CardHeader>
-            <CardTitle>Upcoming Events</CardTitle>
-            <CardDescription>Holidays, approved leaves, and company announcements.</CardDescription>
-          </CardHeader>
-          <CardContent className="dashboard-timeline">
-            <div className="dashboard-timeline__item">
-              <span className="dashboard-timeline__dot" />
-              <div className="dashboard-timeline__content">
-                <strong>No upcoming holidays configured</strong>
-                <span className="muted">Your company calendar events will appear here.</span>
-              </div>
-              <span className="dashboard-timeline__meta">--</span>
+        <Card className="ui-refined-card dashboard-panel dashboard-panel--spotlight rounded-2xl border border-[var(--line)] shadow-sm">
+          <CardHeader className="space-y-4">
+            <div>
+              <CardTitle className="mb-2">Upcoming Events</CardTitle>
+              <CardDescription className="text-sm text-[var(--muted)]">
+                Holidays, approved leaves, and company announcements.
+              </CardDescription>
             </div>
-            <div className="dashboard-timeline__item">
-              <span className="dashboard-timeline__dot" />
-              <div className="dashboard-timeline__content">
-                <strong>No approved leaves pending</strong>
-                <span className="muted">Approved leave requests show with dates and status.</span>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="dashboard-timeline">
+              <div className="dashboard-timeline__item">
+                <span className="dashboard-timeline__dot" />
+                <div className="dashboard-timeline__content">
+                  <strong>No upcoming holidays configured</strong>
+                  <span className="muted">Your company calendar events will appear here.</span>
+                </div>
+                <span className="dashboard-timeline__meta">--</span>
               </div>
-              <span className="dashboard-timeline__meta">--</span>
+              <div className="dashboard-timeline__item">
+                <span className="dashboard-timeline__dot" />
+                <div className="dashboard-timeline__content">
+                  <strong>No approved leaves pending</strong>
+                  <span className="muted">Approved leave requests show with dates and status.</span>
+                </div>
+                <span className="dashboard-timeline__meta">--</span>
+              </div>
             </div>
           </CardContent>
         </Card>

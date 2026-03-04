@@ -27,6 +27,48 @@ const eventTone = (event: WorkspaceCalendarEvent): string => {
   return "badge";
 };
 
+const buildFallbackCalendar = (month: string): WorkspaceCalendarResponse => {
+  const [yearText, monthText] = month.split("-");
+  const year = Number(yearText);
+  const monthIndex = Number(monthText) - 1;
+  const start = new Date(Date.UTC(year, monthIndex, 1));
+  const end = new Date(Date.UTC(year, monthIndex + 1, 0));
+  const days: WorkspaceCalendarDay[] = [];
+  const today = new Date().toISOString().slice(0, 10);
+  const cursor = new Date(start);
+
+  while (cursor <= end) {
+    const dateText = cursor.toISOString().slice(0, 10);
+    days.push({
+      date: dateText,
+      is_today: dateText === today,
+      events: []
+    });
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+
+  return {
+    month,
+    range_start: start.toISOString().slice(0, 10),
+    range_end: end.toISOString().slice(0, 10),
+    timezone: "Asia/Karachi",
+    company_name: null,
+    team_lead_name: null,
+    summary: {
+      entitled_leaves: 0,
+      used_leaves: 0,
+      remaining_leaves: 0,
+      approved_leave_days: 0,
+      pending_leave_days: 0,
+      assigned_shift_days: 0,
+      holidays: 0
+    },
+    official_holidays: [],
+    company_updates: [],
+    days
+  };
+};
+
 const WorkCalendarPageClient = () => {
   const [month, setMonth] = useState(todayMonth());
   const [data, setData] = useState<WorkspaceCalendarResponse | null>(null);
@@ -44,8 +86,8 @@ const WorkCalendarPageClient = () => {
     setError(null);
     const result = await fetchWorkspaceCalendar(targetMonth);
     if (!result.ok || !result.data) {
-      setData(null);
-      setError(result.error ?? "Unable to load workspace calendar");
+      setData(buildFallbackCalendar(targetMonth));
+      setError(result.error ?? "Calendar data is temporarily unavailable. Showing a basic month view.");
       setLoading(false);
       return;
     }
@@ -94,7 +136,7 @@ const WorkCalendarPageClient = () => {
       {loading ? <LoadingState label="Loading work calendar..." /> : null}
       {!loading && error ? <ErrorState message={error} /> : null}
 
-      {!loading && !error && data ? (
+      {!loading && data ? (
         <>
           <section className="grid-4">
             <article className="stat-card">
