@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { fetchWorkspaceNotifications, markWorkspaceNotificationsRead } from "@/lib/client/api";
@@ -6,6 +6,7 @@ import type { WorkspaceNotification } from "@/lib/types/workspace";
 import { LoadingState } from "@/components/states/LoadingState";
 import { ErrorState } from "@/components/states/ErrorState";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { StatusChip } from "@/components/ui/StatusChip";
 
 const NotificationsPageClient = () => {
@@ -74,7 +75,7 @@ const NotificationsPageClient = () => {
       {!loading && !error ? (
         <Card>
           <CardContent className="space-y-3 p-5">
-            {rows.length === 0 ? <p className="text-sm text-muted-foreground">No notifications yet.</p> : null}
+            {rows.length === 0 ? <EmptyState title="No notifications yet" subtitle="Your workspace is up to date." compact /> : null}
             {rows.map((row) => (
               <Card key={row.id} className="rounded-xl border-border shadow-sm">
                 <CardContent className="space-y-2 p-4">
@@ -95,3 +96,5 @@ const NotificationsPageClient = () => {
 };
 
 export default NotificationsPageClient;
+
+

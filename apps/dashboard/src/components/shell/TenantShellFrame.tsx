@@ -4,6 +4,7 @@ import type { DashboardSession } from "@/lib/types/auth";
 import type { BillingNavigationContext } from "@/lib/types/billing";
 import { useEffect, useState } from "react";
 import { Sidebar } from "./Sidebar";
+import { CommandPalette } from "./CommandPalette";
 import { Topbar } from "./Topbar";
 import { PlanRouteGuard } from "@/components/guards/PlanRouteGuard";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -85,8 +86,15 @@ export const TenantShellFrame = ({
       <PlanRouteGuard entitlements={billingContext?.entitlements ?? null}>
         {children}
       </PlanRouteGuard>
+      <CommandPalette persona={persona} />
     </DashboardLayout>
   );
 };
+
+
+
+
+
+
 
 

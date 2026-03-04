@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -25,6 +25,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { DashboardPanel, SignalRow } from "@/components/dashboard/DashboardPrimitives";
 import { FlowStepper, LazyVisual } from "@/components/dashboard/DashboardVisuals";
 import { Donut, LineChart, MiniBarChart, StackedBarChart } from "@/components/shared/Charts";
+import { ActivityFeed, type ActivityItem } from "@/components/dashboard/ActivityFeed";
 
 type LeaveBreakdown = {
   cl: { used: number; remaining: number };
@@ -175,6 +176,27 @@ export const EmployeeDashboard = () => {
     workspace.counts.notes,
     workspace.counts.files
   ];
+  const hoursTrendDelta =
+    trends.workHoursTrend.length >= 2
+      ? Math.round((trends.workHoursTrend.at(-1)! - trends.workHoursTrend.at(-2)!) * 10) / 10
+      : 0;
+  const leaveTomorrow = data.notifications.find((row) =>
+    /leave.*tomorrow|tomorrow.*leave/i.test(`${row.title} ${row.message ?? ""}`)
+  );
+  const activityItems: ActivityItem[] = [
+    ...data.notifications.slice(0, 3).map((row) => ({
+      id: row.id,
+      title: row.title,
+      description: row.message ?? "Workspace update",
+      timestamp: new Date(row.created_at).toLocaleString()
+    })),
+    ...workspace.resources.slice(0, 2).map((resource) => ({
+      id: resource.id,
+      title: "New company announcement",
+      description: resource.title,
+      timestamp: new Date(resource.created_at).toLocaleDateString()
+    }))
+  ].slice(0, 5);
 
   return (
     <div className="page-wrap space-y-8 fade-in">
@@ -286,6 +308,35 @@ export const EmployeeDashboard = () => {
       </section>
 
       <section className="space-y-4">
+        <h2 className="text-xl font-semibold">Smart Insights</h2>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <Card className="rounded-xl border-border shadow-sm">
+            <CardContent className="space-y-2 p-5">
+              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">Weekly hours delta</p>
+              <p className="text-2xl font-semibold">
+                {hoursTrendDelta === 0 ? "No change" : `${hoursTrendDelta > 0 ? "+" : ""}${hoursTrendDelta}h`}
+              </p>
+              <p className="text-sm text-muted-foreground">Compared to last recorded day</p>
+            </CardContent>
+          </Card>
+          <Card className="rounded-xl border-border shadow-sm">
+            <CardContent className="space-y-2 p-5">
+              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">Upcoming leave</p>
+              <p className="text-2xl font-semibold">{leaveTomorrow ? "Leave tomorrow" : "No leave tomorrow"}</p>
+              <p className="text-sm text-muted-foreground">Plan ahead for your schedule</p>
+            </CardContent>
+          </Card>
+          <Card className="rounded-xl border-border shadow-sm">
+            <CardContent className="space-y-2 p-5">
+              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">Unread notifications</p>
+              <p className="text-2xl font-semibold">{workspace.counts.unreadNotifications}</p>
+              <p className="text-sm text-muted-foreground">Check your notifications center</p>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
+
+      <section className="space-y-4">
         <h2 className="text-xl font-semibold">Visual Insights</h2>
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
           <DashboardPanel
@@ -385,6 +436,11 @@ export const EmployeeDashboard = () => {
       </section>
 
       <section className="space-y-4">
+        <h2 className="text-xl font-semibold">Activity Feed</h2>
+        <ActivityFeed items={activityItems} />
+      </section>
+
+      <section className="space-y-4">
         <h2 className="text-xl font-semibold">Upcoming</h2>
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
           <DashboardPanel title="Upcoming events" subtitle="Holidays, approved leaves, and company announcements" tone="soft">
@@ -461,6 +517,8 @@ export const EmployeeDashboard = () => {
     </div>
   );
 };
+
+
 
 
 

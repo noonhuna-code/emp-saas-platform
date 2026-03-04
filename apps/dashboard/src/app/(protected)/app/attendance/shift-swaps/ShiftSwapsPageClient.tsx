@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -11,6 +11,7 @@ import type { ShiftSwapRequest } from "@/lib/types/attendance";
 import type { ShiftTemplate } from "@/lib/types/workspace";
 import { LoadingState } from "@/components/states/LoadingState";
 import { ErrorState } from "@/components/states/ErrorState";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 const tomorrowDate = () => {
   const date = new Date();
@@ -185,7 +186,7 @@ const ShiftSwapsPageClient = () => {
 
           <section className="card stack">
             <h3 style={{ margin: 0 }}>My requests</h3>
-            {mine.length === 0 ? <p className="muted">No shift swap requests yet.</p> : null}
+            {mine.length === 0 ? <EmptyState title="No shift swap requests" subtitle="Submit a request to swap your shift." compact /> : null}
             {mine.length > 0 ? (
               <div className="table-wrap">
                 <table className="table">
@@ -220,7 +221,7 @@ const ShiftSwapsPageClient = () => {
                 <h3 style={{ margin: 0 }}>Review queue</h3>
                 <span className="badge">Pending {reviewQueue.length}</span>
               </div>
-              {reviewQueue.length === 0 ? <p className="muted">No pending shift swap requests.</p> : null}
+              {reviewQueue.length === 0 ? <EmptyState title="No pending requests" subtitle="The review queue is clear." compact /> : null}
               {reviewQueue.length > 0 ? (
                 <div className="table-wrap">
                   <table className="table">
@@ -267,3 +268,6 @@ const ShiftSwapsPageClient = () => {
 };
 
 export default ShiftSwapsPageClient;
+
+
+
