@@ -83,7 +83,7 @@ export const Topbar = ({
           <div className="topbar-profile" title={identityLabel}>
             {avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={avatarUrl} alt="Profile" width={20} height={20} className="topbar-profile__avatar" />
+              <img src={avatarUrl} alt="Profile" width={28} height={28} className="topbar-profile__avatar" />
             ) : (
               <span className="topbar-profile__avatar-fallback">{(identityLabel[0] ?? "U").toUpperCase()}</span>
             )}

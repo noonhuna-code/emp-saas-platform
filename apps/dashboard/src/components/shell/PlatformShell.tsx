@@ -30,6 +30,7 @@ export const PlatformShell = ({
             subtitle="Owner Console"
             collapsed={collapsed}
             mobileOpen={mobileOpen}
+            onToggleCollapsed={() => setCollapsed((prev) => !prev)}
           >
             <NavSection items={PLATFORM_NAVIGATION_ITEMS} collapsed={collapsed} onNavigate={() => setMobileOpen(false)} />
             {!collapsed ? (

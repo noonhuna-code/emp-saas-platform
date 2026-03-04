@@ -584,10 +584,37 @@ export const getWorkspaceCalendar = async (
 ): Promise<ServiceResult<WorkspaceCalendarRow>> => {
   try {
     await requirePlanFeature(ctx, "feature.core_attendance");
-    await requirePlanFeature(ctx, "feature.core_leave_management");
+    let leaveFeatureEnabled = true;
+    try {
+      await requirePlanFeature(ctx, "feature.core_leave_management");
+    } catch {
+      leaveFeatureEnabled = false;
+    }
     const employeeId = await requireWorkspaceAccess(ctx);
     const { month, rangeStart, rangeEnd, year } = parseMonthWindow(monthParam);
     const today = toDateText(new Date());
+
+    const leavePromise = leaveFeatureEnabled
+      ? ctx.supabase
+          .from("leave_requests")
+          .select("id, start_date, end_date, status")
+          .eq("company_id", ctx.companyId)
+          .eq("employee_id", employeeId)
+          .in("status", ["pending", "approved"])
+          .lte("start_date", rangeEnd)
+          .gte("end_date", rangeStart)
+          .is("is_deleted", false)
+      : Promise.resolve({ data: [] as any[], error: null });
+
+    const leaveBalancePromise = leaveFeatureEnabled
+      ? ctx.supabase
+          .from("leave_balances")
+          .select("entitled_days, used_days")
+          .eq("company_id", ctx.companyId)
+          .eq("employee_id", employeeId)
+          .eq("year", year)
+          .is("is_deleted", false)
+      : Promise.resolve({ data: [] as any[], error: null });
 
     const [
       employeeResult,
@@ -628,22 +655,8 @@ export const getWorkspaceCalendar = async (
         .lte("holiday_date", rangeEnd)
         .is("is_deleted", false)
         .order("holiday_date", { ascending: true }),
-      ctx.supabase
-        .from("leave_requests")
-        .select("id, start_date, end_date, status")
-        .eq("company_id", ctx.companyId)
-        .eq("employee_id", employeeId)
-        .in("status", ["pending", "approved"])
-        .lte("start_date", rangeEnd)
-        .gte("end_date", rangeStart)
-        .is("is_deleted", false),
-      ctx.supabase
-        .from("leave_balances")
-        .select("entitled_days, used_days")
-        .eq("company_id", ctx.companyId)
-        .eq("employee_id", employeeId)
-        .eq("year", year)
-        .is("is_deleted", false),
+      leavePromise,
+      leaveBalancePromise,
       ctx.supabase
         .from("employee_shift_assignments")
         .select("id, shift_template_id, effective_from, effective_to, shift_templates(name, start_time, end_time)")
@@ -676,9 +689,12 @@ export const getWorkspaceCalendar = async (
       return { ok: false, error: sanitizeError(employeeResult.error?.message, "Employee record not found") };
     }
 
-    if (holidayResult.error || leaveResult.error || shiftResult.error || attendanceResult.error || leaveBalanceResult.error || updatesResult.error) {
-      return { ok: false, error: "Unable to load workspace calendar" };
-    }
+    const holidayRows = holidayResult.error ? [] : holidayResult.data ?? [];
+    const leaveRows = leaveResult.error ? [] : leaveResult.data ?? [];
+    const leaveBalanceRows = leaveBalanceResult.error ? [] : leaveBalanceResult.data ?? [];
+    const shiftRows = shiftResult.error ? [] : shiftResult.data ?? [];
+    const attendanceRows = attendanceResult.error ? [] : attendanceResult.data ?? [];
+    const updateRows = updatesResult.error ? [] : updatesResult.data ?? [];
 
     const managerId = (employeeResult.data.manager_id as string | null) ?? null;
     let teamLeadName: string | null = null;
@@ -711,7 +727,7 @@ export const getWorkspaceCalendar = async (
     }
 
     const officialHolidayMap = new Map<string, WorkspaceOfficialHolidayRow>();
-    (holidayResult.data ?? []).forEach((row) => {
+    holidayRows.forEach((row) => {
       const date = row.holiday_date as string;
       officialHolidayMap.set(date, {
         date,
@@ -752,7 +768,7 @@ export const getWorkspaceCalendar = async (
 
     let approvedLeaveDays = 0;
     let pendingLeaveDays = 0;
-    (leaveResult.data ?? []).forEach((row) => {
+    leaveRows.forEach((row) => {
       const status = row.status as string;
       const clamped = clampDateRange(row.start_date as string, row.end_date as string, rangeStart, rangeEnd);
       if (!clamped) return;
@@ -774,7 +790,7 @@ export const getWorkspaceCalendar = async (
     });
 
     const assignedShiftDates = new Set<string>();
-    (shiftResult.data ?? []).forEach((row: any) => {
+    shiftRows.forEach((row: any) => {
       const shiftStart = row.effective_from as string;
       const shiftEnd = (row.effective_to as string | null) ?? rangeEnd;
       const clamped = clampDateRange(shiftStart, shiftEnd, rangeStart, rangeEnd);
@@ -795,7 +811,7 @@ export const getWorkspaceCalendar = async (
       }
     });
 
-    (attendanceResult.data ?? []).forEach((row) => {
+    attendanceRows.forEach((row) => {
       const date = row.attendance_date as string;
       const dayEvents = dayMap.get(date);
       if (!dayEvents) return;
@@ -816,8 +832,8 @@ export const getWorkspaceCalendar = async (
         events: events.sort((left, right) => left.type.localeCompare(right.type))
       }));
 
-    const entitledLeaves = (leaveBalanceResult.data ?? []).reduce((sum, row) => sum + Number(row.entitled_days ?? 0), 0);
-    const usedLeaves = (leaveBalanceResult.data ?? []).reduce((sum, row) => sum + Number(row.used_days ?? 0), 0);
+    const entitledLeaves = leaveBalanceRows.reduce((sum, row) => sum + Number(row.entitled_days ?? 0), 0);
+    const usedLeaves = leaveBalanceRows.reduce((sum, row) => sum + Number(row.used_days ?? 0), 0);
 
     return {
       ok: true,
@@ -832,13 +848,13 @@ export const getWorkspaceCalendar = async (
           entitled_leaves: entitledLeaves,
           used_leaves: usedLeaves,
           remaining_leaves: Math.max(0, entitledLeaves - usedLeaves),
-          approved_leave_days: approvedLeaveDays,
-          pending_leave_days: pendingLeaveDays,
+          approved_leave_days: leaveFeatureEnabled ? approvedLeaveDays : 0,
+          pending_leave_days: leaveFeatureEnabled ? pendingLeaveDays : 0,
           assigned_shift_days: assignedShiftDates.size,
           holidays: officialHolidayMap.size
         },
         official_holidays: Array.from(officialHolidayMap.values()).sort((a, b) => a.date.localeCompare(b.date)),
-        company_updates: (updatesResult.data ?? []).map((row) => ({
+        company_updates: updateRows.map((row) => ({
           id: row.id as string,
           title: row.title as string,
           resource_type: row.resource_type as string,

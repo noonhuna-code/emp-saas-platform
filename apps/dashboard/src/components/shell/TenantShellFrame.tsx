@@ -56,6 +56,7 @@ export const TenantShellFrame = ({
           entitlements={billingContext?.entitlements ?? null}
           collapsed={collapsed}
           mobileOpen={mobileOpen}
+          onToggleCollapsed={toggleCollapsed}
           onCloseMobile={() => setMobileOpen(false)}
         />
       )}

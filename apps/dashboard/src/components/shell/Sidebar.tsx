@@ -13,6 +13,7 @@ export const Sidebar = ({
   entitlements,
   collapsed,
   mobileOpen,
+  onToggleCollapsed,
   onCloseMobile
 }: {
   permissions: string[];
@@ -20,6 +21,7 @@ export const Sidebar = ({
   entitlements: Record<string, unknown> | null;
   collapsed: boolean;
   mobileOpen: boolean;
+  onToggleCollapsed: () => void;
   onCloseMobile: () => void;
 }) => {
   const visibleItems = resolveVisibleNavigationItems(TENANT_NAVIGATION_ITEMS, {
@@ -35,6 +37,7 @@ export const Sidebar = ({
         subtitle="Enterprise Suite"
         collapsed={collapsed}
         mobileOpen={mobileOpen}
+        onToggleCollapsed={onToggleCollapsed}
       >
         <NavSection items={visibleItems} collapsed={collapsed} onNavigate={onCloseMobile} />
       </SidebarLayout>

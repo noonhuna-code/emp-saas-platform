@@ -8,8 +8,11 @@ import {
   Building2,
   CalendarDays,
   Clock3,
+  Compass,
   CreditCard,
   LayoutGrid,
+  MessageSquare,
+  NotebookPen,
   ShieldCheck
 } from "lucide-react";
 import {
@@ -100,8 +103,8 @@ export const DashboardPageClient = ({
   const enabledFeatureCount = useMemo(() => countEnabledFeatures(entitlements), [entitlements]);
   const moduleCount = visibleItems.length;
 
-  if (loading) return <LoadingState label="Loading dashboard..." />;
-  if (loadError) return <ErrorState message={loadError} />;
+  if (loading && persona !== "employee") return <LoadingState label="Loading dashboard..." />;
+  if (loadError && persona !== "employee") return <ErrorState message={loadError} />;
 
   if (persona === "platform_owner") {
     return (
@@ -125,7 +128,9 @@ export const DashboardPageClient = ({
         <Card className="dashboard-panel dashboard-panel--soft">
           <CardHeader>
             <CardTitle>My Daily Work Workspace</CardTitle>
-            <CardDescription>Focus on today&apos;s shift, attendance, leave, and team updates.</CardDescription>
+            <CardDescription>
+              Focus on today&apos;s shift, attendance, leave, and team updates.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="quick-action-grid">
@@ -164,12 +169,45 @@ export const DashboardPageClient = ({
               </Link>
               <Link href="/app/chat" className="action-card">
                 <span className="action-card__icon">
-                  <Bell size={14} />
+                  <MessageSquare size={14} />
                 </span>
                 <span className="action-card__content">
                   <strong>Open Team Chat</strong>
                   <span className="muted" style={{ fontSize: 12 }}>
                     Collaborate with your team
+                  </span>
+                </span>
+              </Link>
+              <Link href="/app/calendar" className="action-card">
+                <span className="action-card__icon">
+                  <Compass size={14} />
+                </span>
+                <span className="action-card__content">
+                  <strong>Open Work Calendar</strong>
+                  <span className="muted" style={{ fontSize: 12 }}>
+                    Holidays, shifts, and leave calendar
+                  </span>
+                </span>
+              </Link>
+              <Link href="/app/notes" className="action-card">
+                <span className="action-card__icon">
+                  <NotebookPen size={14} />
+                </span>
+                <span className="action-card__content">
+                  <strong>My Notes</strong>
+                  <span className="muted" style={{ fontSize: 12 }}>
+                    Save personal work notes and links
+                  </span>
+                </span>
+              </Link>
+              <Link href="/app/notifications" className="action-card">
+                <span className="action-card__icon">
+                  <Bell size={14} />
+                </span>
+                <span className="action-card__content">
+                  <strong>Notifications</strong>
+                  <span className="muted" style={{ fontSize: 12 }}>
+                    Review updates and reminders
                   </span>
                 </span>
               </Link>
@@ -183,28 +221,64 @@ export const DashboardPageClient = ({
               <CardDescription>Today&apos;s shift</CardDescription>
               <CardTitle>09:00 - 18:00</CardTitle>
             </CardHeader>
-            <CardContent className="muted">Attendance status: Not clocked in</CardContent>
+            <CardContent className="stack" style={{ gap: 6 }}>
+              <div className="row" style={{ justifyContent: "space-between" }}>
+                <span className="muted">Attendance status</span>
+                <span className="badge badge--info">Not clocked in</span>
+              </div>
+              <div className="mini-chart">
+                <span style={{ height: "34%" }} />
+                <span style={{ height: "56%" }} />
+                <span style={{ height: "48%" }} />
+                <span style={{ height: "62%" }} />
+                <span style={{ height: "52%" }} />
+                <span style={{ height: "20%" }} />
+                <span style={{ height: "18%" }} />
+              </div>
+            </CardContent>
           </Card>
           <Card className="metric-card metric-card--success">
             <CardHeader>
               <CardDescription>Hours this week</CardDescription>
               <CardTitle>0h</CardTitle>
             </CardHeader>
-            <CardContent className="muted">On-time: 0 | Late: 0</CardContent>
+            <CardContent className="stack" style={{ gap: 6 }}>
+              <span className="muted">On-time: 0 | Late: 0</span>
+              <div className="signal-row signal-row--success">
+                <span className="signal-row__label">Trend vs last week</span>
+                <span className="signal-row__value">No change</span>
+              </div>
+            </CardContent>
           </Card>
           <Card className="metric-card metric-card--warning">
             <CardHeader>
               <CardDescription>Leave balance</CardDescription>
               <CardTitle>CL 0 | SL 0 | AL 0</CardTitle>
             </CardHeader>
-            <CardContent className="muted">Upcoming leave: None</CardContent>
+            <CardContent className="split-donut">
+              <svg className="donut" viewBox="0 0 42 42" aria-hidden="true">
+                <circle className="donut__bg" cx="21" cy="21" r="15.9155" strokeWidth="4" />
+                <circle className="split-donut__a" cx="21" cy="21" r="15.9155" strokeWidth="4" strokeDasharray="75 25" strokeDashoffset="25" />
+                <circle className="split-donut__b" cx="21" cy="21" r="15.9155" strokeWidth="4" strokeDasharray="25 75" strokeDashoffset="0" />
+              </svg>
+              <div className="split-donut__legend">
+                <span><i className="split-donut__dot split-donut__dot--a" /> Used</span>
+                <span><i className="split-donut__dot split-donut__dot--b" /> Remaining</span>
+              </div>
+            </CardContent>
           </Card>
           <Card className="metric-card metric-card--danger">
             <CardHeader>
               <CardDescription>Notifications</CardDescription>
               <CardTitle>0</CardTitle>
             </CardHeader>
-            <CardContent className="muted">Unread updates</CardContent>
+            <CardContent className="stack" style={{ gap: 6 }}>
+              <span className="muted">Unread updates</span>
+              <div className="signal-row">
+                <span className="signal-row__label">Priority alerts</span>
+                <span className="signal-row__value">0</span>
+              </div>
+            </CardContent>
           </Card>
         </div>
 
