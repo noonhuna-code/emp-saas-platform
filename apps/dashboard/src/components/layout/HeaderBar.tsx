@@ -5,11 +5,13 @@ import { Button } from "@/components/ui/button";
 export const HeaderBar = ({
   title,
   subtitle,
+  leading,
   onToggleMobileSidebar,
   actions
 }: {
   title: string;
   subtitle?: string;
+  leading?: ReactNode;
   onToggleSidebar?: () => void;
   onToggleMobileSidebar?: () => void;
   actions?: ReactNode;
@@ -27,6 +29,7 @@ export const HeaderBar = ({
         >
           <Menu size={16} />
         </Button>
+        {leading ? <div className="header-bar__leading">{leading}</div> : null}
         <div className="header-bar__title-wrap">
           <h1>{title}</h1>
           {subtitle ? <p>{subtitle}</p> : null}
