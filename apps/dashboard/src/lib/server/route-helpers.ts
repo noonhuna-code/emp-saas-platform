@@ -27,11 +27,15 @@ export const finalizeRoute = async (
 ): Promise<Response> => {
   const withHeader = attachRequestId(response, route.requestId);
   if (route.ctx) {
-    await logRequestTrace(route.ctx, {
-      endpoint,
-      statusCode: (response as Response).status,
-      durationMs: Date.now() - route.startedAt
-    });
+    try {
+      await logRequestTrace(route.ctx, {
+        endpoint,
+        statusCode: (response as Response).status,
+        durationMs: Date.now() - route.startedAt
+      });
+    } catch {
+      // Never fail the response on trace logging.
+    }
   }
   return withHeader;
 };

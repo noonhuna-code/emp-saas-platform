@@ -147,6 +147,10 @@ export const fetchEmployeeDetail = async (
   return parseJson<EmployeeDetailResponse>(response);
 };
 
+export const fetchEmployeeMe = async (): Promise<DashboardApiResult<{ employeeId: string }>> => {
+  const response = await fetch("/api/employees/me", { cache: "no-store" });
+  return parseJson<{ employeeId: string }>(response);
+};
 export const fetchCurrentEmployeeId = async (): Promise<DashboardApiResult<{ employeeId: string }>> => {
   const response = await fetch("/api/employees/me", { cache: "no-store" });
   return parseJson<{ employeeId: string }>(response);
@@ -1117,3 +1121,4 @@ export const reviewShiftSwap = async (payload: {
     { "Idempotency-Key": crypto.randomUUID() }
   );
 };
+

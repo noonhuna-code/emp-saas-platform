@@ -393,13 +393,6 @@ const ensureSelfOrManageAttendance = async (
   }
 };
 
-const requireShiftManagementAccess = (ctx: ServiceContext): void => {
-  if (ctx.permissions.includes("manage_attendance") || ctx.permissions.includes("manage_employees")) {
-    return;
-  }
-  throw new Error("Permission denied");
-};
-
 const requireShiftSwapReviewAccess = (ctx: ServiceContext): void => {
   if (
     ctx.permissions.includes("manage_attendance")
@@ -898,7 +891,12 @@ export const listShiftTemplates = async (
 ): Promise<ServiceResult<{ rows: ShiftTemplateRow[] }>> => {
   try {
     await requireAttendanceEntitlement(ctx);
-    requireShiftManagementAccess(ctx);
+    if (!ctx.permissions.includes("manage_attendance") && !ctx.permissions.includes("view_attendance")) {
+      const employeeId = await resolveCurrentEmployeeId(ctx.supabase, ctx);
+      if (!employeeId) {
+        return { ok: false, error: "Permission denied" };
+      }
+    }
 
     const { data, error } = await ctx.supabase
       .from("shift_templates")
@@ -935,7 +933,12 @@ export const listShiftAssignableEmployees = async (
 ): Promise<ServiceResult<{ rows: ShiftAssignableEmployeeRow[] }>> => {
   try {
     await requireAttendanceEntitlement(ctx);
-    requireShiftManagementAccess(ctx);
+    if (!ctx.permissions.includes("manage_attendance") && !ctx.permissions.includes("view_attendance")) {
+      const employeeId = await resolveCurrentEmployeeId(ctx.supabase, ctx);
+      if (!employeeId) {
+        return { ok: false, error: "Permission denied" };
+      }
+    }
 
     const safeLimit = Math.max(1, Math.min(limit, 500));
     const actorEmployeeId = await resolveCurrentEmployeeId(ctx.supabase, ctx);
@@ -1036,7 +1039,12 @@ export const assignEmployeeShift = async (
 ): Promise<ServiceResult<{ assignmentId: string }>> => {
   try {
     await requireAttendanceEntitlement(ctx);
-    requireShiftManagementAccess(ctx);
+    if (!ctx.permissions.includes("manage_attendance") && !ctx.permissions.includes("view_attendance")) {
+      const employeeId = await resolveCurrentEmployeeId(ctx.supabase, ctx);
+      if (!employeeId) {
+        return { ok: false, error: "Permission denied" };
+      }
+    }
 
     const employeeId = payload.employeeId?.trim();
     const shiftTemplateId = payload.shiftTemplateId?.trim();
@@ -1940,3 +1948,7 @@ export const rejectAttendanceCorrection = async (
     return { ok: false, error: err instanceof Error ? err.message : "Attendance correction rejection error" };
   }
 };
+
+
+
+

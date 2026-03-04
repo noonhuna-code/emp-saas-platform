@@ -8,6 +8,7 @@ import { KudosHistoryTable } from "@/components/intelligence/KudosHistoryTable";
 import { KudosLeaderboardTable } from "@/components/intelligence/KudosLeaderboardTable";
 import { ErrorState } from "@/components/states/ErrorState";
 import { LoadingState } from "@/components/states/LoadingState";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export const KudosPageClient = () => {
   const [history, setHistory] = useState<KudosItem[]>([]);
@@ -67,13 +68,15 @@ export const KudosPageClient = () => {
   }, [load]);
 
   return (
-    <div className="page-wrap stack">
-      <section className="card stack">
-        <h1 style={{ margin: 0 }}>Kudos</h1>
-        <p className="muted" style={{ margin: "6px 0 0" }}>
-          Peer recognition with monthly limits enforced at the database layer.
-        </p>
-      </section>
+    <div className="page-wrap space-y-8">
+      <Card>
+        <CardHeader className="space-y-2">
+          <CardTitle>Kudos</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Peer recognition with monthly limits enforced at the database layer.
+          </p>
+        </CardHeader>
+      </Card>
 
       {loading ? <LoadingState label="Loading kudos..." /> : null}
       {!loading && error ? <ErrorState message={error} /> : null}
@@ -81,8 +84,24 @@ export const KudosPageClient = () => {
       {!loading ? (
         <>
           <KudosSendForm onSubmit={handleSubmit} loading={submitting} />
-          <KudosHistoryTable items={history} />
-          {leaderboard ? <KudosLeaderboardTable leaderboard={leaderboard} /> : null}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Kudos History</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <KudosHistoryTable items={history} />
+            </CardContent>
+          </Card>
+          {leaderboard ? (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Leaderboards</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <KudosLeaderboardTable leaderboard={leaderboard} />
+              </CardContent>
+            </Card>
+          ) : null}
         </>
       ) : null}
     </div>

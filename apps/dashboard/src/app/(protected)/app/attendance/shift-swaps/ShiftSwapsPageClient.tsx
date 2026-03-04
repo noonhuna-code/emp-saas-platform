@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -12,6 +12,7 @@ import type { ShiftTemplate } from "@/lib/types/workspace";
 import { LoadingState } from "@/components/states/LoadingState";
 import { ErrorState } from "@/components/states/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const tomorrowDate = () => {
   const date = new Date();
@@ -123,143 +124,155 @@ const ShiftSwapsPageClient = () => {
   };
 
   return (
-    <div className="page-wrap stack">
-      <section className="card stack">
-        <h1 style={{ margin: 0 }}>Shift Swap Requests</h1>
-        <p className="muted">
-          Employees can request shift swaps. Team leads and HR can review queue items in this module.
-        </p>
-      </section>
+    <div className="page-wrap space-y-8">
+      <Card>
+        <CardHeader className="space-y-2">
+          <CardTitle>Shift Swap Requests</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Employees can request shift swaps. Team leads and HR can review queue items in this module.
+          </p>
+        </CardHeader>
+      </Card>
 
       {loading ? <LoadingState label="Loading shift swap workspace..." /> : null}
       {!loading && error ? <ErrorState message={error} /> : null}
 
       {!loading && !error ? (
         <>
-          <section className="card stack">
-            <h3 style={{ margin: 0 }}>Request shift swap</h3>
-            <form className="form-grid form-grid--three" onSubmit={onCreate}>
-              <label>
-                Requested date
-                <input
-                  type="date"
-                  value={form.attendanceDate}
-                  onChange={(event) => setForm((prev) => ({ ...prev, attendanceDate: event.target.value }))}
-                  required
-                />
-              </label>
-              <label>
-                Target shift
-                <select
-                  value={form.requestedShiftTemplateId}
-                  onChange={(event) => setForm((prev) => ({ ...prev, requestedShiftTemplateId: event.target.value }))}
-                  required
-                >
-                  {templates.map((template) => (
-                    <option key={template.id} value={template.id}>
-                      {template.name} ({template.start_time}-{template.end_time})
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                Reason
-                <input
-                  type="text"
-                  value={form.reason}
-                  onChange={(event) => setForm((prev) => ({ ...prev, reason: event.target.value }))}
-                  placeholder="Reason for swap request"
-                  required
-                />
-              </label>
-              <div className="row" style={{ alignItems: "end" }}>
-                <button type="submit" className="primary-btn" disabled={submitting}>
-                  {submitting ? "Submitting..." : "Submit request"}
-                </button>
-                <span className="muted" style={{ fontSize: 12 }}>
-                  {selectedTemplateName}
-                </span>
-              </div>
-            </form>
-            {message ? <p>{message}</p> : null}
-          </section>
-
-          <section className="card stack">
-            <h3 style={{ margin: 0 }}>My requests</h3>
-            {mine.length === 0 ? <EmptyState title="No shift swap requests" subtitle="Submit a request to swap your shift." compact /> : null}
-            {mine.length > 0 ? (
-              <div className="table-wrap">
-                <table className="table">
-                  <thead>
-                    <tr>
-                      <th>Date</th>
-                      <th>Current Shift</th>
-                      <th>Requested Shift</th>
-                      <th>Status</th>
-                      <th>Created</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {mine.map((row) => (
-                      <tr key={row.id}>
-                        <td>{row.attendance_date}</td>
-                        <td>{row.old_shift_name ?? row.old_shift_template_id}</td>
-                        <td>{row.requested_shift_name ?? row.requested_shift_template_id}</td>
-                        <td><span className="badge">{row.status}</span></td>
-                        <td>{new Date(row.created_at).toLocaleString()}</td>
-                      </tr>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Request shift swap</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form className="grid gap-4 md:grid-cols-3" onSubmit={onCreate}>
+                <label className="grid gap-1.5 text-sm">
+                  Requested date
+                  <input
+                    type="date"
+                    value={form.attendanceDate}
+                    onChange={(event) => setForm((prev) => ({ ...prev, attendanceDate: event.target.value }))}
+                    required
+                  />
+                </label>
+                <label className="grid gap-1.5 text-sm">
+                  Target shift
+                  <select
+                    value={form.requestedShiftTemplateId}
+                    onChange={(event) => setForm((prev) => ({ ...prev, requestedShiftTemplateId: event.target.value }))}
+                    required
+                  >
+                    {templates.map((template) => (
+                      <option key={template.id} value={template.id}>
+                        {template.name} ({template.start_time}-{template.end_time})
+                      </option>
                     ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : null}
-          </section>
+                  </select>
+                </label>
+                <label className="grid gap-1.5 text-sm">
+                  Reason
+                  <input
+                    type="text"
+                    value={form.reason}
+                    onChange={(event) => setForm((prev) => ({ ...prev, reason: event.target.value }))}
+                    placeholder="Reason for swap request"
+                    required
+                  />
+                </label>
+                <div className="flex flex-col justify-end gap-2 md:col-span-3">
+                  <button type="submit" className="primary-btn" disabled={submitting}>
+                    {submitting ? "Submitting..." : "Submit request"}
+                  </button>
+                  <span className="text-xs text-muted-foreground">{selectedTemplateName}</span>
+                </div>
+              </form>
+              {message ? <p className="text-sm mt-3">{message}</p> : null}
+            </CardContent>
+          </Card>
 
-          {canReview ? (
-            <section className="card stack">
-              <div className="row" style={{ justifyContent: "space-between", alignItems: "center" }}>
-                <h3 style={{ margin: 0 }}>Review queue</h3>
-                <span className="badge">Pending {reviewQueue.length}</span>
-              </div>
-              {reviewQueue.length === 0 ? <EmptyState title="No pending requests" subtitle="The review queue is clear." compact /> : null}
-              {reviewQueue.length > 0 ? (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">My requests</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {mine.length === 0 ? <EmptyState title="No shift swap requests" subtitle="Submit a request to swap your shift." compact /> : null}
+              {mine.length > 0 ? (
                 <div className="table-wrap">
                   <table className="table">
                     <thead>
                       <tr>
-                        <th>Employee</th>
                         <th>Date</th>
                         <th>Current Shift</th>
                         <th>Requested Shift</th>
-                        <th>Reason</th>
-                        <th>Actions</th>
+                        <th>Status</th>
+                        <th>Created</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {reviewQueue.map((row) => (
+                      {mine.map((row) => (
                         <tr key={row.id}>
-                          <td>{row.employee_name ?? row.employee_id}</td>
                           <td>{row.attendance_date}</td>
                           <td>{row.old_shift_name ?? row.old_shift_template_id}</td>
                           <td>{row.requested_shift_name ?? row.requested_shift_template_id}</td>
-                          <td>{row.reason}</td>
-                          <td>
-                            <div className="row">
-                              <button type="button" className="primary-btn" onClick={() => void onReview(row.id, "approved")} disabled={submitting}>
-                                Approve
-                              </button>
-                              <button type="button" className="secondary-btn" onClick={() => void onReview(row.id, "rejected")} disabled={submitting}>
-                                Reject
-                              </button>
-                            </div>
-                          </td>
+                          <td><span className="badge">{row.status}</span></td>
+                          <td>{new Date(row.created_at).toLocaleString()}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
               ) : null}
-            </section>
+            </CardContent>
+          </Card>
+
+          {canReview ? (
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between gap-2">
+                  <CardTitle className="text-lg">Review queue</CardTitle>
+                  <span className="badge">Pending {reviewQueue.length}</span>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {reviewQueue.length === 0 ? <EmptyState title="No pending requests" subtitle="The review queue is clear." compact /> : null}
+                {reviewQueue.length > 0 ? (
+                  <div className="table-wrap">
+                    <table className="table">
+                      <thead>
+                        <tr>
+                          <th>Employee</th>
+                          <th>Date</th>
+                          <th>Current Shift</th>
+                          <th>Requested Shift</th>
+                          <th>Reason</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {reviewQueue.map((row) => (
+                          <tr key={row.id}>
+                            <td>{row.employee_name ?? row.employee_id}</td>
+                            <td>{row.attendance_date}</td>
+                            <td>{row.old_shift_name ?? row.old_shift_template_id}</td>
+                            <td>{row.requested_shift_name ?? row.requested_shift_template_id}</td>
+                            <td>{row.reason}</td>
+                            <td>
+                              <div className="row">
+                                <button type="button" className="primary-btn" onClick={() => void onReview(row.id, "approved")} disabled={submitting}>
+                                  Approve
+                                </button>
+                                <button type="button" className="secondary-btn" onClick={() => void onReview(row.id, "rejected")} disabled={submitting}>
+                                  Reject
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : null}
+              </CardContent>
+            </Card>
           ) : null}
         </>
       ) : null}
@@ -268,6 +281,3 @@ const ShiftSwapsPageClient = () => {
 };
 
 export default ShiftSwapsPageClient;
-
-
-

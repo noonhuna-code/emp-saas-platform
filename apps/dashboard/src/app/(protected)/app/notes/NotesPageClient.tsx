@@ -1,7 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createWorkspaceNote, fetchWorkspaceNotes } from "@/lib/client/api";
+import {
+  addEmployeeDocument,
+  createWorkspaceNote,
+  fetchEmployeeMe,
+  fetchWorkspaceNotes,
+  uploadEmployeeDocumentVersion
+} from "@/lib/client/api";
 import type { WorkspaceNote } from "@/lib/types/workspace";
 import { LoadingState } from "@/components/states/LoadingState";
 import { ErrorState } from "@/components/states/ErrorState";
@@ -13,6 +19,8 @@ const NotesPageClient = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [employeeId, setEmployeeId] = useState<string | null>(null);
+  const [file, setFile] = useState<File | null>(null);
   const [form, setForm] = useState({ title: "", body: "", fileUrl: "", fileName: "", isPinned: false });
 
   const load = async () => {
@@ -30,6 +38,12 @@ const NotesPageClient = () => {
 
   useEffect(() => {
     void load();
+    void (async () => {
+      const me = await fetchEmployeeMe();
+      if (me.ok && me.data?.employeeId) {
+        setEmployeeId(me.data.employeeId);
+      }
+    })();
   }, []);
 
   const onSubmit = async (event: React.FormEvent) => {
@@ -37,11 +51,43 @@ const NotesPageClient = () => {
     setMessage(null);
     setError(null);
 
+    let fileUrl = form.fileUrl || null;
+    let fileName = form.fileName || null;
+
+    if (file && employeeId) {
+      const docResult = await addEmployeeDocument(employeeId, {
+        document_type: "note_attachment",
+        document_name: file.name,
+        status: "active"
+      });
+
+      if (!docResult.ok || !docResult.data?.profile?.documents) {
+        setError(docResult.error ?? "Unable to attach file");
+        return;
+      }
+
+      const docs = docResult.data.profile.documents;
+      const doc = docs.find((d) => d.document_name === file.name && d.document_type === "note_attachment") ?? docs[docs.length - 1];
+      if (!doc?.id) {
+        setError("Unable to attach file");
+        return;
+      }
+
+      const uploadResult = await uploadEmployeeDocumentVersion(employeeId, doc.id, file);
+      if (!uploadResult.ok) {
+        setError(uploadResult.error ?? "Unable to upload file");
+        return;
+      }
+
+      fileUrl = `/api/employees/${employeeId}/documents/${doc.id}/download`;
+      fileName = file.name;
+    }
+
     const result = await createWorkspaceNote({
       title: form.title,
       body: form.body,
-      fileUrl: form.fileUrl || null,
-      fileName: form.fileName || null,
+      fileUrl,
+      fileName,
       isPinned: form.isPinned
     });
 
@@ -52,6 +98,7 @@ const NotesPageClient = () => {
 
     setMessage("Note saved successfully.");
     setForm({ title: "", body: "", fileUrl: "", fileName: "", isPinned: false });
+    setFile(null);
     await load();
   };
 
@@ -90,19 +137,19 @@ const NotesPageClient = () => {
             </label>
             <div className="grid gap-4 md:grid-cols-2">
               <label className="grid gap-1.5 text-sm">
+                Attach file (optional)
+                <input
+                  type="file"
+                  accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.png,.jpg"
+                  onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+                />
+              </label>
+              <label className="grid gap-1.5 text-sm">
                 File URL (optional)
                 <input
                   type="url"
                   value={form.fileUrl}
                   onChange={(event) => setForm((prev) => ({ ...prev, fileUrl: event.target.value }))}
-                />
-              </label>
-              <label className="grid gap-1.5 text-sm">
-                File Name (optional)
-                <input
-                  type="text"
-                  value={form.fileName}
-                  onChange={(event) => setForm((prev) => ({ ...prev, fileName: event.target.value }))}
                 />
               </label>
             </div>

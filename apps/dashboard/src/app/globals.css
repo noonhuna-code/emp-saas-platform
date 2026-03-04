@@ -1559,3 +1559,11 @@ p { margin: 0; }
 
 
 
+
+.header-bar[data-compact="true"] .header-bar__title-wrap h1 {
+  font-size: 1.35rem;
+}
+.header-bar[data-compact="true"] .header-bar__title-wrap p {
+  display: none;
+}
+

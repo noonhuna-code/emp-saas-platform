@@ -1,24 +1,38 @@
-import type { LeaveBalance } from "@/lib/types/leave";
+﻿import type { LeaveBalance } from "@/lib/types/leave";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export const LeaveBalanceCard = ({ balances }: { balances: LeaveBalance[] }) => {
   if (!balances.length) {
-    return <div className="card">No leave balances available.</div>;
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Leave Balances</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">No leave balances available.</p>
+        </CardContent>
+      </Card>
+    );
   }
 
   return (
-    <div className="card stack">
-      <h3>Leave Balances</h3>
-      <div className="grid-2">
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-lg">Leave Balances</CardTitle>
+      </CardHeader>
+      <CardContent className="grid gap-4 md:grid-cols-2">
         {balances.map((balance) => (
-          <div key={balance.id} className="card card--nested stack" style={{ gap: 6 }}>
-            <div className="muted">{balance.leave_type_name ?? "Leave"}</div>
-            <div style={{ fontSize: 22, fontWeight: 700 }}>{balance.remaining_days}</div>
-            <div className="muted" style={{ fontSize: 13 }}>
-              {balance.used_days} used - {balance.entitled_days} entitled
-            </div>
-          </div>
+          <Card key={balance.id} className="rounded-xl border-border shadow-sm">
+            <CardContent className="space-y-2 p-4">
+              <div className="text-sm text-muted-foreground">{balance.leave_type_name ?? "Leave"}</div>
+              <div className="text-2xl font-semibold">{balance.remaining_days}</div>
+              <div className="text-xs text-muted-foreground">
+                Used {balance.used_days} • Annual {balance.entitled_days}
+              </div>
+            </CardContent>
+          </Card>
         ))}
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 };

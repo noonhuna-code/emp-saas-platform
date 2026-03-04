@@ -6,18 +6,20 @@ export const HeaderBar = ({
   title,
   subtitle,
   leading,
+  compact = false,
   onToggleMobileSidebar,
   actions
 }: {
   title: string;
   subtitle?: string;
   leading?: ReactNode;
+  compact?: boolean;
   onToggleSidebar?: () => void;
   onToggleMobileSidebar?: () => void;
   actions?: ReactNode;
 }) => {
   return (
-    <header className="header-bar">
+    <header className="header-bar" data-compact={compact ? "true" : "false"}>
       <div className="header-bar__left">
         <Button
           type="button"
