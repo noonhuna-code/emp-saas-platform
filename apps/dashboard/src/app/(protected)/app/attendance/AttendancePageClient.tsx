@@ -10,6 +10,8 @@ import { AttendanceHistoryTable } from "@/components/attendance/AttendanceHistor
 import { CorrectionRequestDialog } from "@/components/attendance/CorrectionRequestDialog";
 import { ErrorState } from "@/components/states/ErrorState";
 import { LoadingState } from "@/components/states/LoadingState";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 type ClockActionFn = (
   prevState: AttendanceClockActionState,
@@ -96,18 +98,18 @@ export const AttendancePageClient = ({
   }, []);
 
   return (
-    <div className="page-wrap stack">
-      <section className="card stack">
-        <div className="row" style={{ justifyContent: "space-between", alignItems: "flex-start" }}>
-          <div>
-            <h1 style={{ margin: 0 }}>Attendance</h1>
-            <p className="muted" style={{ margin: "6px 0 0" }}>
-              Track daily attendance, time status, and correction requests.
-            </p>
+    <div className="page-wrap space-y-8">
+      <Card>
+        <CardHeader className="space-y-2">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <CardTitle>Attendance</CardTitle>
+              <p className="text-sm text-muted-foreground">Track daily attendance, time status, and correction requests.</p>
+            </div>
+            {todayData ? <Badge variant="default">Today: {todayData.todayDate}</Badge> : null}
           </div>
-          {todayData ? <span className="badge">Today: {todayData.todayDate}</span> : null}
-        </div>
-      </section>
+        </CardHeader>
+      </Card>
 
       {loadingToday ? <LoadingState label="Loading today attendance..." /> : null}
       {!loadingToday && todayError ? <ErrorState message={todayError} /> : null}

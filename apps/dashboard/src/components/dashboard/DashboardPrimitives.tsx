@@ -1,16 +1,17 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { MetricCard } from "@/components/ui/MetricCard";
 import { SectionContainer } from "@/components/ui/SectionContainer";
 import { ActionCard } from "@/components/ui/ActionCard";
+import { cn } from "@/lib/utils";
 
 export const DashboardHero = ({
   eyebrow,
   title,
   subtitle,
-  actions,
-  emphasis
+  actions
 }: {
   eyebrow?: string;
   title: string;
@@ -19,14 +20,14 @@ export const DashboardHero = ({
   emphasis?: "default" | "executive" | "operations";
 }) => {
   return (
-    <section className={`dashboard-hero dashboard-hero--${emphasis ?? "default"}`}>
-      <div className="dashboard-hero__content">
-        {eyebrow ? <span className="dashboard-hero__eyebrow">{eyebrow}</span> : null}
-        <h1 className="dashboard-hero__title">{title}</h1>
-        <p className="dashboard-hero__subtitle">{subtitle}</p>
-      </div>
-      {actions ? <div className="dashboard-hero__actions">{actions}</div> : null}
-    </section>
+    <Card className="rounded-xl border-border shadow-sm">
+      <CardHeader className="p-5 pb-3">
+        {eyebrow ? <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--accent)]">{eyebrow}</p> : null}
+        <CardTitle className="text-3xl leading-tight">{title}</CardTitle>
+        <CardDescription className="text-sm">{subtitle}</CardDescription>
+      </CardHeader>
+      {actions ? <CardContent className="flex flex-wrap items-center gap-2 p-5 pt-0">{actions}</CardContent> : null}
+    </Card>
   );
 };
 
@@ -74,9 +75,9 @@ export const QuickActionGrid = ({
   actions: Array<{ label: string; href: string; caption?: string }>;
 }) => {
   return (
-    <div className="quick-action-grid">
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
       {actions.map((action) => (
-        <ActionCard key={`${action.href}-${action.label}`} href={action.href} title={action.label} subtitle={action.caption} />
+        <ActionCard key={`${action.href}-${action.label}`} href={action.href} title={action.label} description={action.caption} />
       ))}
     </div>
   );
@@ -92,9 +93,17 @@ export const SignalRow = ({
   tone?: "default" | "success" | "warning" | "danger" | "info";
 }) => {
   return (
-    <div className={`signal-row signal-row--${tone}`}>
-      <span className="signal-row__label">{label}</span>
-      <span className="signal-row__value">{value}</span>
+    <div
+      className={cn(
+        "flex items-center justify-between gap-3 rounded-xl border border-border px-3 py-2.5",
+        tone === "success" && "border-[color:rgba(22,163,74,0.35)]",
+        tone === "warning" && "border-[color:rgba(245,158,11,0.35)]",
+        tone === "danger" && "border-[color:rgba(220,38,38,0.35)]",
+        tone === "info" && "border-[color:rgba(30,98,255,0.35)]"
+      )}
+    >
+      <span className="text-sm text-muted-foreground">{label}</span>
+      <span className="text-sm font-medium">{value}</span>
     </div>
   );
 };
@@ -105,16 +114,21 @@ export const TimelineList = ({
   items: Array<{ title: string; subtitle?: string; meta?: string }>;
 }) => {
   return (
-    <div className="dashboard-timeline">
+    <div className="space-y-3">
       {items.map((item, index) => (
-        <div className="dashboard-timeline__item" key={`${item.title}-${item.meta ?? ""}-${index}`}>
-          <div className="dashboard-timeline__dot" aria-hidden="true" />
-          <div className="dashboard-timeline__content">
-            <strong>{item.title}</strong>
-            {item.subtitle ? <span className="muted">{item.subtitle}</span> : null}
-          </div>
-          {item.meta ? <span className="dashboard-timeline__meta">{item.meta}</span> : null}
-        </div>
+        <Card key={`${item.title}-${item.meta ?? ""}-${index}`} className="rounded-xl border-border shadow-sm">
+          <CardContent className="grid grid-cols-[auto_1fr_auto] items-start gap-3 p-4">
+            <span
+              className="mt-1 h-2.5 w-2.5 rounded-full bg-[var(--accent)] shadow-[0_0_0_4px_rgba(30,98,255,0.12)]"
+              aria-hidden="true"
+            />
+            <div className="min-w-0 space-y-1">
+              <p className="text-sm font-semibold">{item.title}</p>
+              {item.subtitle ? <p className="text-sm text-muted-foreground">{item.subtitle}</p> : null}
+            </div>
+            {item.meta ? <p className="text-xs text-muted-foreground">{item.meta}</p> : null}
+          </CardContent>
+        </Card>
       ))}
     </div>
   );

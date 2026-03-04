@@ -5,6 +5,8 @@ import { fetchWorkspaceNotifications, markWorkspaceNotificationsRead } from "@/l
 import type { WorkspaceNotification } from "@/lib/types/workspace";
 import { LoadingState } from "@/components/states/LoadingState";
 import { ErrorState } from "@/components/states/ErrorState";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { StatusChip } from "@/components/ui/StatusChip";
 
 const NotificationsPageClient = () => {
   const [rows, setRows] = useState<WorkspaceNotification[]>([]);
@@ -47,49 +49,49 @@ const NotificationsPageClient = () => {
   };
 
   return (
-    <div className="page-wrap page-grid">
-      <section className="card stack">
-        <div className="row" style={{ justifyContent: "space-between", alignItems: "center" }}>
-          <div className="stack" style={{ gap: 6 }}>
-            <h1>Notifications</h1>
-            <p className="muted">Tenant-scoped activity and hierarchy notifications for your workspace.</p>
+    <div className="page-wrap space-y-8">
+      <Card>
+        <CardHeader className="space-y-2">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <CardTitle>Notifications</CardTitle>
+              <p className="text-sm text-muted-foreground">Tenant-scoped activity and hierarchy notifications for your workspace.</p>
+            </div>
+            <button type="button" className="secondary-btn" onClick={() => void markAllRead()} disabled={markingRead || unreadCount === 0}>
+              Mark all read
+            </button>
           </div>
-          <button type="button" className="secondary-btn" onClick={() => void markAllRead()} disabled={markingRead || unreadCount === 0}>
-            Mark all read
-          </button>
-        </div>
-        <div className="row">
-          <span className="tag">Unread {unreadCount}</span>
-          <span className="tag">Total {rows.length}</span>
-        </div>
-      </section>
+        </CardHeader>
+        <CardContent className="flex flex-wrap gap-2 pt-0">
+          <StatusChip label={`Unread ${unreadCount}`} tone={unreadCount > 0 ? "warning" : "success"} />
+          <StatusChip label={`Total ${rows.length}`} />
+        </CardContent>
+      </Card>
 
       {loading ? <LoadingState label="Loading notifications..." /> : null}
       {!loading && error ? <ErrorState message={error} /> : null}
 
       {!loading && !error ? (
-        <section className="card stack">
-          {rows.length === 0 ? <p className="muted">No notifications yet.</p> : null}
-          {rows.map((row) => (
-            <article key={row.id} className="card card--nested stack">
-              <div className="row" style={{ justifyContent: "space-between" }}>
-                <strong>{row.title}</strong>
-                <span className={`tag ${row.is_read ? "" : "tag--success"}`}>
-                  {row.is_read ? "Read" : "Unread"}
-                </span>
-              </div>
-              <div className="row">
-                <span className="muted" style={{ fontSize: 12 }}>{row.type}</span>
-                <span className="muted" style={{ fontSize: 12 }}>{new Date(row.created_at).toLocaleString()}</span>
-              </div>
-              {row.message ? <p className="muted">{row.message}</p> : null}
-            </article>
-          ))}
-        </section>
+        <Card>
+          <CardContent className="space-y-3 p-5">
+            {rows.length === 0 ? <p className="text-sm text-muted-foreground">No notifications yet.</p> : null}
+            {rows.map((row) => (
+              <Card key={row.id} className="rounded-xl border-border shadow-sm">
+                <CardContent className="space-y-2 p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-sm font-semibold">{row.title}</p>
+                    <StatusChip label={row.is_read ? "Read" : "Unread"} tone={row.is_read ? "default" : "info"} compact />
+                  </div>
+                  <p className="text-xs text-muted-foreground">{row.type} | {new Date(row.created_at).toLocaleString()}</p>
+                  {row.message ? <p className="text-sm text-muted-foreground">{row.message}</p> : null}
+                </CardContent>
+              </Card>
+            ))}
+          </CardContent>
+        </Card>
       ) : null}
     </div>
   );
 };
 
 export default NotificationsPageClient;
-

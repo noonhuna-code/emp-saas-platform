@@ -86,7 +86,7 @@ export const NavSection = ({
             key={item.href}
             href={item.href}
             className={cn(
-              "group nav-link-item flex items-center gap-3 rounded-xl border px-3 py-2.5 text-sm font-medium leading-none transition-colors",
+              "group flex items-center gap-3 rounded-xl border px-3 py-2.5 text-[1.05rem] font-medium leading-none transition-colors",
               collapsed && "justify-center px-2",
               isActive
                 ? "border-white/25 bg-white/12 text-white"
@@ -96,15 +96,14 @@ export const NavSection = ({
             title={collapsed ? item.label : undefined}
             onClick={onNavigate}
           >
-            <span className="nav-link-item__icon-wrap" aria-hidden="true">
-              <Icon
-                className={cn(
-                  "h-4 w-4 shrink-0",
-                  isActive ? "text-white" : "text-indigo-100/80 group-hover:text-white"
-                )}
-              />
-            </span>
-            {!collapsed ? <span className="truncate">{item.label}</span> : null}
+            <Icon
+              className={cn(
+                "h-4 w-4 shrink-0",
+                isActive ? "text-white" : "text-indigo-100/80 group-hover:text-white"
+              )}
+              aria-hidden="true"
+            />
+            {!collapsed ? <span className="truncate leading-none">{item.label}</span> : null}
           </Link>
         );
       })}

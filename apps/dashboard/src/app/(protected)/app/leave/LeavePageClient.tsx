@@ -14,6 +14,7 @@ import { LeaveHistoryTable } from "@/components/leave/LeaveHistoryTable";
 import { LeaveStatusTimeline } from "@/components/leave/LeaveStatusTimeline";
 import { ErrorState } from "@/components/states/ErrorState";
 import { LoadingState } from "@/components/states/LoadingState";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 
 export const LeavePageClient = () => {
   const [balances, setBalances] = useState<LeaveBalance[]>([]);
@@ -98,13 +99,15 @@ export const LeavePageClient = () => {
   }, [load]);
 
   return (
-    <div className="page-wrap stack">
-      <section className="card stack">
-        <h1 style={{ margin: 0 }}>Leave</h1>
-        <p className="muted" style={{ margin: "6px 0 0" }}>
-          Apply for leave and track balances. All requests are validated server-side.
-        </p>
-      </section>
+    <div className="page-wrap space-y-8">
+      <Card>
+        <CardHeader className="space-y-2">
+          <CardTitle>Leave</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Apply for leave and track balances. All requests are validated server-side.
+          </p>
+        </CardHeader>
+      </Card>
 
       {loading ? <LoadingState label="Loading leave data..." /> : null}
       {!loading && error ? <ErrorState message={error} /> : null}

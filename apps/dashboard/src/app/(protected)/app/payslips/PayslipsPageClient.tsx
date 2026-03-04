@@ -7,6 +7,7 @@ import { ErrorState } from "@/components/states/ErrorState";
 import { EmptyState } from "@/components/states/EmptyState";
 import { LoadingState } from "@/components/states/LoadingState";
 import { PayslipHistoryTable } from "@/components/payroll/PayslipHistoryTable";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export const PayslipsPageClient = () => {
   const [data, setData] = useState<PayslipHistoryResponse | null>(null);
@@ -39,33 +40,35 @@ export const PayslipsPageClient = () => {
   }, [page]);
 
   return (
-    <div className="page-wrap stack">
-      <div className="page-header">
-        <div>
-          <h1>Payslips</h1>
-          <p className="muted">View your payroll history and open detailed payslip snapshots.</p>
-        </div>
-      </div>
+    <div className="page-wrap space-y-8">
+      <Card>
+        <CardHeader className="space-y-2">
+          <CardTitle>Payslips</CardTitle>
+          <p className="text-sm text-muted-foreground">View your payroll history and open detailed payslip snapshots.</p>
+        </CardHeader>
+      </Card>
 
-      <section className="card row" style={{ justifyContent: "space-between", flexWrap: "wrap" }}>
-        <div className="row" style={{ gap: 8 }}>
-          <button className="secondary-btn" type="button" onClick={() => setPage((prev) => Math.max(1, prev - 1))} disabled={loading || page <= 1}>
-            Previous
-          </button>
-          <button
-            className="secondary-btn"
-            type="button"
-            onClick={() => setPage((prev) => prev + 1)}
-            disabled={loading || !(data?.hasMore ?? false)}
-          >
-            Next
-          </button>
-        </div>
-        <div className="row" style={{ gap: 8 }}>
-          <span className="muted">Page {data?.page ?? page}</span>
-          <button className="secondary-btn" type="button" onClick={load} disabled={loading}>Refresh</button>
-        </div>
-      </section>
+      <Card>
+        <CardContent className="flex flex-wrap items-center justify-between gap-3 p-5">
+          <div className="flex items-center gap-2">
+            <button className="secondary-btn" type="button" onClick={() => setPage((prev) => Math.max(1, prev - 1))} disabled={loading || page <= 1}>
+              Previous
+            </button>
+            <button
+              className="secondary-btn"
+              type="button"
+              onClick={() => setPage((prev) => prev + 1)}
+              disabled={loading || !(data?.hasMore ?? false)}
+            >
+              Next
+            </button>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Page {data?.page ?? page}</span>
+            <button className="secondary-btn" type="button" onClick={load} disabled={loading}>Refresh</button>
+          </div>
+        </CardContent>
+      </Card>
 
       {loading ? <LoadingState label="Loading payslips..." /> : null}
       {!loading && error ? <ErrorState message={error} /> : null}

@@ -23,7 +23,9 @@ export const SidebarLayout = ({
         "sidebar-layout",
         collapsed ? "sidebar-layout--collapsed" : "",
         mobileOpen ? "sidebar-layout--mobile-open" : ""
-      ].join(" ").trim()}
+      ]
+        .join(" ")
+        .trim()}
     >
       <header className="sidebar-layout__head">
         <div className="sidebar-layout__brand">
@@ -38,7 +40,7 @@ export const SidebarLayout = ({
           onClick={onToggleCollapsed}
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
-          {collapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+          {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
         </Button>
       </header>
       <div className="sidebar-layout__body">{children}</div>

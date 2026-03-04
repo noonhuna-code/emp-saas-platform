@@ -5,6 +5,8 @@ import { fetchWorkspaceResources } from "@/lib/client/api";
 import type { WorkspaceResource } from "@/lib/types/workspace";
 import { LoadingState } from "@/components/states/LoadingState";
 import { ErrorState } from "@/components/states/ErrorState";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { StatusChip } from "@/components/ui/StatusChip";
 
 const ResourcesPageClient = () => {
   const [rows, setRows] = useState<WorkspaceResource[]>([]);
@@ -36,35 +38,41 @@ const ResourcesPageClient = () => {
   }, []);
 
   return (
-    <div className="page-wrap page-grid">
-      <section className="card stack">
-        <h1>SOPs & Resources</h1>
-        <p className="muted">Company knowledge base, policy documents, and operational guides.</p>
-      </section>
+    <div className="page-wrap space-y-8">
+      <Card>
+        <CardHeader className="space-y-2">
+          <CardTitle>SOPs & Resources</CardTitle>
+          <p className="text-sm text-muted-foreground">Company knowledge base, policy documents, and operational guides.</p>
+        </CardHeader>
+      </Card>
 
       {loading ? <LoadingState label="Loading resources..." /> : null}
       {!loading && error ? <ErrorState message={error} /> : null}
 
       {!loading && !error ? (
-        <section className="card stack">
-          {rows.length === 0 ? <p className="muted">No resources published yet.</p> : null}
-          {rows.map((row) => (
-            <article key={row.id} className="card card--nested stack">
-              <div className="row" style={{ justifyContent: "space-between" }}>
-                <strong>{row.title}</strong>
-                <span className="tag">{row.resource_type.toUpperCase()}</span>
-              </div>
-              {row.summary ? <p className="muted">{row.summary}</p> : null}
-              <div className="row" style={{ justifyContent: "space-between" }}>
-                <span className="muted" style={{ fontSize: 12 }}>{new Date(row.created_at).toLocaleString()}</span>
-                <div className="row">
-                  {row.link_url ? <a className="secondary-btn" href={row.link_url} target="_blank" rel="noreferrer">Open link</a> : null}
-                  {row.file_url ? <a className="secondary-btn" href={row.file_url} target="_blank" rel="noreferrer">Download file</a> : null}
-                </div>
-              </div>
-            </article>
-          ))}
-        </section>
+        <Card>
+          <CardContent className="space-y-3 p-5">
+            {rows.length === 0 ? <p className="text-sm text-muted-foreground">No resources published yet.</p> : null}
+            {rows.map((row) => (
+              <Card key={row.id} className="rounded-xl border-border shadow-sm">
+                <CardContent className="space-y-2 p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-sm font-semibold">{row.title}</p>
+                    <StatusChip label={row.resource_type.toUpperCase()} compact />
+                  </div>
+                  {row.summary ? <p className="text-sm text-muted-foreground">{row.summary}</p> : null}
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="text-xs text-muted-foreground">{new Date(row.created_at).toLocaleString()}</span>
+                    <div className="flex items-center gap-2">
+                      {row.link_url ? <a className="secondary-btn" href={row.link_url} target="_blank" rel="noreferrer">Open link</a> : null}
+                      {row.file_url ? <a className="secondary-btn" href={row.file_url} target="_blank" rel="noreferrer">Download file</a> : null}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </CardContent>
+        </Card>
       ) : null}
     </div>
   );

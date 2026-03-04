@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
 export const MetricCard = ({
   label,
@@ -16,14 +18,24 @@ export const MetricCard = ({
   footer?: ReactNode;
 }) => {
   return (
-    <article className={`metric-card metric-card--${accent}`}>
-      <header className="metric-card__head">
-        <span className="metric-card__label">{label}</span>
-        {trend ? <span className="metric-card__trend">{trend}</span> : null}
-      </header>
-      <strong className="metric-card__value">{value}</strong>
-      {hint ? <p className="metric-card__hint">{hint}</p> : null}
-      {footer ? <div className="metric-card__footer">{footer}</div> : null}
-    </article>
+    <Card
+      className={cn(
+        "rounded-xl border-border shadow-sm",
+        accent === "info" && "border-l-2 border-l-[var(--accent)]",
+        accent === "success" && "border-l-2 border-l-[var(--success)]",
+        accent === "warning" && "border-l-2 border-l-[var(--warning)]",
+        accent === "danger" && "border-l-2 border-l-[var(--danger)]"
+      )}
+    >
+      <CardContent className="space-y-3 p-5">
+        <div className="flex items-start justify-between gap-3">
+          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{label}</p>
+          {trend ? <span className="text-xs text-[var(--accent)]">{trend}</span> : null}
+        </div>
+        <p className="text-3xl font-semibold leading-none tracking-tight">{value}</p>
+        {hint ? <p className="text-sm text-muted-foreground">{hint}</p> : null}
+        {footer ? <div className="pt-1">{footer}</div> : null}
+      </CardContent>
+    </Card>
   );
 };

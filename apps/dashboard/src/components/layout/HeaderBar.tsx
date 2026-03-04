@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 export const HeaderBar = ({
   title,
   subtitle,
-  onToggleSidebar,
   onToggleMobileSidebar,
   actions
 }: {
@@ -22,7 +21,7 @@ export const HeaderBar = ({
           type="button"
           variant="ghost"
           size="icon"
-          className="header-bar__toggle-mobile"
+          className="header-bar__toggle-mobile md:hidden"
           onClick={onToggleMobileSidebar}
           aria-label="Open menu"
         >

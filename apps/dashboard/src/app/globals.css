@@ -1,4 +1,5 @@
 @import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap");
+@import "./theme-tokens.css";
 
 @tailwind base;
 @tailwind components;
@@ -163,6 +164,18 @@ p { margin: 0; }
   overflow-y: auto;
   overflow-x: hidden;
   min-height: 0;
+}
+.dashboard-layout > .sidebar,
+.app-shell > .sidebar {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.dashboard-layout > .dashboard-layout__content,
+.app-shell > .dashboard-layout__content,
+.app-shell > .main-column {
+  grid-column: 2;
+  grid-row: 1;
 }
 
 .sidebar {

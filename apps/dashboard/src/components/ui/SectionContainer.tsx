@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
 export const SectionContainer = ({
   title,
@@ -14,15 +16,23 @@ export const SectionContainer = ({
   tone?: "default" | "soft" | "spotlight";
 }) => {
   return (
-    <section className={`section-container section-container--${tone}`}>
-      <header className="section-container__head">
-        <div>
-          <h2 className="section-container__title">{title}</h2>
-          {subtitle ? <p className="section-container__subtitle">{subtitle}</p> : null}
+    <Card
+      className={cn(
+        "rounded-xl border-border shadow-sm",
+        tone === "soft" && "bg-[var(--surface-1)]",
+        tone === "spotlight" && "bg-[var(--surface-2)]"
+      )}
+    >
+      <CardHeader className="space-y-2 p-5 pb-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <CardTitle className="text-xl">{title}</CardTitle>
+            {subtitle ? <CardDescription>{subtitle}</CardDescription> : null}
+          </div>
+          {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
         </div>
-        {actions ? <div className="section-container__actions">{actions}</div> : null}
-      </header>
-      <div className="section-container__body">{children}</div>
-    </section>
+      </CardHeader>
+      <CardContent className="space-y-4 p-5 pt-0">{children}</CardContent>
+    </Card>
   );
 };
