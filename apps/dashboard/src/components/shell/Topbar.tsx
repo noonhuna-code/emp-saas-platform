@@ -11,6 +11,7 @@ export const Topbar = ({
   companyId,
   email,
   employeeId,
+  employeeCode,
   fullName,
   avatarUrl,
   lastLoginAt,
@@ -26,6 +27,7 @@ export const Topbar = ({
   companyId: string | null;
   email: string | null | undefined;
   employeeId?: string | null;
+  employeeCode?: string | null;
   fullName?: string | null;
   avatarUrl?: string | null;
   lastLoginAt?: string | null;
@@ -65,7 +67,7 @@ export const Topbar = ({
     return `${shiftStartTime} - ${shiftEndTime}${hoursLabel}`;
   })();
 
-  const employeeBadge = employeeId ? `Employee ${employeeId.slice(0, 8)}` : "Employee";
+  const employeeIdentity = employeeCode ?? (employeeId ? employeeId.slice(0, 8) : null);
 
   return (
     <HeaderBar
@@ -79,7 +81,7 @@ export const Topbar = ({
           {!isEmployeePersona && renewalLabel ? <StatusChip label={renewalLabel} tone="info" compact /> : null}
           {!isEmployeePersona && seatSummary ? <StatusChip label={`Seats ${seatLimitText}`} compact /> : null}
           {shiftText ? <StatusChip label={`Shift ${shiftText}`} compact /> : null}
-          {isEmployeePersona ? <StatusChip label={employeeBadge} compact /> : null}
+          {isEmployeePersona && employeeIdentity ? <StatusChip label={`Employee ID ${employeeIdentity}`} compact /> : null}
           <div className="topbar-profile" title={identityLabel}>
             {avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element

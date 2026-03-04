@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap");
+﻿@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap");
 @import "tailwindcss";
 @config "../../tailwind.config.ts";
 @import "./theme-tokens.css";
@@ -165,24 +165,13 @@ p { margin: 0; }
 }
 .dashboard-layout > .sidebar,
 .app-shell > .sidebar {
-  grid-column: 1;
-  grid-row: 1;
-}
-
-.dashboard-layout > .dashboard-layout__content,
-.app-shell > .dashboard-layout__content,
-.app-shell > .main-column {
-  grid-column: 2;
-  grid-row: 1;
-}
-
-.sidebar {
-  background: #0d1325;
+  background: linear-gradient(180deg, #071129 0%, #0a1634 36%, #0a1b43 100%);
   color: #e2e8f0;
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  border-right: 1px solid rgba(148, 163, 184, 0.22);
   height: 100vh;
   overflow-y: auto;
   overflow-x: hidden;
+  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.04);
 }
 .sidebar-layout {
   height: 100%;
@@ -194,16 +183,23 @@ p { margin: 0; }
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 20px 18px 14px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 18px 16px 12px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  backdrop-filter: blur(8px);
+  background: linear-gradient(180deg, rgba(8, 18, 44, 0.95), rgba(8, 18, 44, 0.84));
 }
 .sidebar-layout__brand h2 {
   margin: 0;
-  font-size: 1.75rem;
+  font-size: 2rem;
+  line-height: 1;
+  letter-spacing: -0.03em;
 }
 .sidebar-layout__brand p {
-  margin: 4px 0 0;
-  color: #9eb0ea;
+  margin: 5px 0 0;
+  color: #8ea7ea;
   font-size: 0.92rem;
 }
 .sidebar-layout__toggle {
@@ -233,33 +229,53 @@ p { margin: 0; }
   display: flex;
   align-items: center;
   gap: 12px;
+  min-height: 44px;
   border: 1px solid transparent;
   border-radius: 12px;
-  color: #c7d2fe;
+  color: #cfd8ff;
   padding: 10px 12px;
-  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
 }
-.nav-link-item__icon-wrap {
-  width: 16px;
-  min-width: 16px;
+.nav-section__item:hover {
+  transform: translateX(1px);
+}
+.nav-section__item--idle {
+  color: #cfd8ff;
+}
+.nav-section__item--idle:hover {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+}
+.nav-section__item--active {
+  background: linear-gradient(180deg, rgba(66, 133, 244, 0.2), rgba(66, 133, 244, 0.1));
+  border-color: rgba(120, 170, 255, 0.45);
+  color: #ffffff;
+  box-shadow: inset 0 0 0 1px rgba(120, 170, 255, 0.25);
+}
+.nav-section__icon-wrap {
+  width: 18px;
+  min-width: 18px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
 }
-.nav-section__item:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.12);
-  color: #ffffff;
-}
-.nav-section__item--active {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.22);
-  color: #ffffff;
-}
 .nav-section__icon {
-  width: 20px;
-  text-align: center;
-  font-size: 13px;
+  width: 18px;
+  height: 18px;
+  stroke-width: 2;
+}
+.nav-section__icon--idle {
+  color: rgba(226, 232, 240, 0.9);
+}
+.nav-section__item:hover .nav-section__icon--idle,
+.nav-section__icon--active {
+  color: #ffffff;
+}
+.nav-section__label {
+  font-size: 1.02rem;
+  line-height: 1;
+  white-space: nowrap;
 }
 .sidebar--collapsed .nav-section__item {
   justify-content: center;
@@ -408,6 +424,11 @@ p { margin: 0; }
   color: var(--ink);
   padding: 10px 16px;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
 }
 .ghost-btn {
   border: 1px solid transparent;
@@ -825,6 +846,17 @@ p { margin: 0; }
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 10px;
+}
+.calendar-grid--weekdays {
+  gap: 8px;
+  overflow-x: auto;
+}
+.calendar-grid--weekdays > div {
+  min-height: auto;
+  padding: 8px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--surface-1) 82%, transparent);
 }
 .calendar-day {
   border: 1px solid var(--line);
@@ -1415,3 +1447,11 @@ p { margin: 0; }
     border-color: #d1d5db !important;
   }
 }
+
+
+
+
+
+
+
+

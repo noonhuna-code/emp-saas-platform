@@ -68,6 +68,7 @@ export const TenantShellFrame = ({
           email={session.email}
           fullName={session.fullName}
           employeeId={session.employeeId}
+          employeeCode={session.employeeCode}
           avatarUrl={session.avatarUrl}
           lastLoginAt={session.lastLoginAt}
           shiftStartTime={session.shiftStartTime}
@@ -87,3 +88,5 @@ export const TenantShellFrame = ({
     </DashboardLayout>
   );
 };
+
+

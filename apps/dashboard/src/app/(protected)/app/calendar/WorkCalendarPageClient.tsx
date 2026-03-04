@@ -1,11 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { ChevronLeft, ChevronRight, Filter, Landmark, Sparkles } from "lucide-react";
 import { fetchWorkspaceCalendar } from "@/lib/client/api";
 import type { WorkspaceCalendarDay, WorkspaceCalendarResponse, WorkspaceCalendarEvent } from "@/lib/types/workspace";
 import { LoadingState } from "@/components/states/LoadingState";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusChip } from "@/components/ui/StatusChip";
+import { MiniBarChart } from "@/components/shared/Charts";
 
 const todayMonth = () => new Date().toISOString().slice(0, 7);
 
@@ -21,11 +23,18 @@ const weekdayLabel = (dateText: string): string => {
   return date.toLocaleDateString(undefined, { weekday: "short" });
 };
 
-const eventTone = (event: WorkspaceCalendarEvent): string => {
-  if (event.type === "holiday") return "badge badge--warning";
-  if (event.type === "leave") return event.status === "approved" ? "badge badge--success" : "badge badge--info";
-  if (event.type === "attendance") return event.status === "absent" ? "badge badge--danger" : "badge";
-  return "badge";
+const monthLabel = (month: string) => {
+  const [yearText, monthText] = month.split("-");
+  const parsed = new Date(Date.UTC(Number(yearText), Number(monthText) - 1, 1));
+  return parsed.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+};
+
+const eventTone = (event: WorkspaceCalendarEvent): "info" | "success" | "warning" | "danger" | "default" => {
+  if (event.type === "holiday") return "warning";
+  if (event.type === "leave") return event.status === "approved" ? "success" : "info";
+  if (event.type === "attendance") return event.status === "absent" ? "danger" : "default";
+  if (event.type === "shift") return "info";
+  return "default";
 };
 
 const buildFallbackCalendar = (month: string): WorkspaceCalendarResponse => {
@@ -70,6 +79,8 @@ const buildFallbackCalendar = (month: string): WorkspaceCalendarResponse => {
   };
 };
 
+const weekdayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
 const WorkCalendarPageClient = () => {
   const [month, setMonth] = useState(todayMonth());
   const [data, setData] = useState<WorkspaceCalendarResponse | null>(null);
@@ -112,19 +123,29 @@ const WorkCalendarPageClient = () => {
     setFilters((prev) => ({ ...prev, [type]: !prev[type] }));
   };
 
+  const eventLoadSeries = useMemo(() => {
+    if (!data) return [] as number[];
+    return data.days.map((day) => Math.max(1, day.events.length));
+  }, [data]);
+
   return (
     <div className="page-wrap space-y-8">
-      <Card>
-        <CardHeader className="space-y-2">
+      <Card className="dashboard-hero dashboard-hero--executive rounded-xl border-border shadow-sm">
+        <CardHeader className="space-y-2 p-5 pb-3">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <CardTitle>Work Calendar</CardTitle>
-              <p className="text-sm text-muted-foreground">Unified month view for shifts, leave, attendance, and Pakistan/company holidays.</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--accent)]">Work calendar</p>
+              <CardTitle className="text-3xl">{monthLabel(month)}</CardTitle>
+              <CardDescription className="text-base">Unified shift, leave, attendance, and Pakistan/company holiday timeline.</CardDescription>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <button type="button" className="secondary-btn" onClick={() => setMonth((prev) => shiftMonth(prev, -1))}>Previous</button>
+              <button type="button" className="secondary-btn" onClick={() => setMonth((prev) => shiftMonth(prev, -1))}>
+                <ChevronLeft className="h-4 w-4" /> Prev
+              </button>
               <input type="month" value={month} onChange={(event) => setMonth(event.target.value)} />
-              <button type="button" className="secondary-btn" onClick={() => setMonth((prev) => shiftMonth(prev, 1))}>Next</button>
+              <button type="button" className="secondary-btn" onClick={() => setMonth((prev) => shiftMonth(prev, 1))}>
+                Next <ChevronRight className="h-4 w-4" />
+              </button>
             </div>
           </div>
         </CardHeader>
@@ -132,7 +153,7 @@ const WorkCalendarPageClient = () => {
 
       {loading ? <LoadingState label="Loading work calendar..." /> : null}
       {!loading && error ? (
-        <Card>
+        <Card className="rounded-xl border-[color:rgba(245,158,11,0.45)] bg-[rgba(245,158,11,0.08)]">
           <CardContent className="p-5">
             <p className="text-sm text-[var(--warning)]">{error}</p>
           </CardContent>
@@ -142,16 +163,37 @@ const WorkCalendarPageClient = () => {
       {!loading && data ? (
         <>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <Card><CardContent className="space-y-1 p-5"><p className="text-xs uppercase tracking-[0.08em] text-muted-foreground">Entitled Leaves</p><p className="text-3xl font-semibold">{data.summary.entitled_leaves}</p></CardContent></Card>
-            <Card><CardContent className="space-y-1 p-5"><p className="text-xs uppercase tracking-[0.08em] text-muted-foreground">Remaining Leaves</p><p className="text-3xl font-semibold">{data.summary.remaining_leaves}</p><p className="text-xs text-muted-foreground">Used {data.summary.used_leaves}</p></CardContent></Card>
-            <Card><CardContent className="space-y-1 p-5"><p className="text-xs uppercase tracking-[0.08em] text-muted-foreground">Shift Days</p><p className="text-3xl font-semibold">{data.summary.assigned_shift_days}</p></CardContent></Card>
-            <Card><CardContent className="space-y-1 p-5"><p className="text-xs uppercase tracking-[0.08em] text-muted-foreground">Holidays</p><p className="text-3xl font-semibold">{data.summary.holidays}</p></CardContent></Card>
+            <Card className="rounded-xl border-border shadow-sm">
+              <CardContent className="space-y-1 p-5">
+                <p className="text-xs uppercase tracking-[0.08em] text-muted-foreground">Entitled leaves</p>
+                <p className="text-3xl font-semibold">{data.summary.entitled_leaves}</p>
+              </CardContent>
+            </Card>
+            <Card className="rounded-xl border-border shadow-sm">
+              <CardContent className="space-y-1 p-5">
+                <p className="text-xs uppercase tracking-[0.08em] text-muted-foreground">Remaining leaves</p>
+                <p className="text-3xl font-semibold">{data.summary.remaining_leaves}</p>
+                <p className="text-xs text-muted-foreground">Used {data.summary.used_leaves}</p>
+              </CardContent>
+            </Card>
+            <Card className="rounded-xl border-border shadow-sm">
+              <CardContent className="space-y-1 p-5">
+                <p className="text-xs uppercase tracking-[0.08em] text-muted-foreground">Shift days</p>
+                <p className="text-3xl font-semibold">{data.summary.assigned_shift_days}</p>
+              </CardContent>
+            </Card>
+            <Card className="rounded-xl border-border shadow-sm">
+              <CardContent className="space-y-1 p-5">
+                <p className="text-xs uppercase tracking-[0.08em] text-muted-foreground">Holidays</p>
+                <p className="text-3xl font-semibold">{data.summary.holidays}</p>
+              </CardContent>
+            </Card>
           </div>
 
-          <Card>
+          <Card className="rounded-xl border-border shadow-sm">
             <CardContent className="space-y-4 p-5">
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <p className="text-sm font-semibold">Filters</p>
+                <p className="flex items-center gap-2 text-sm font-semibold"><Filter className="h-4 w-4" /> Calendar filters</p>
                 <div className="flex flex-wrap gap-2">
                   {(["holiday", "leave", "shift", "attendance"] as Array<WorkspaceCalendarEvent["type"]>).map((type) => (
                     <button key={type} type="button" className={`tab ${filters[type] ? "tab--active" : ""}`} onClick={() => toggleFilter(type)}>
@@ -165,29 +207,44 @@ const WorkCalendarPageClient = () => {
                 <StatusChip label={`Timezone: ${data.timezone}`} compact />
                 <StatusChip label={`Team Lead: ${data.team_lead_name ?? "Not assigned"}`} compact />
               </div>
+              {eventLoadSeries.length > 0 ? <MiniBarChart values={eventLoadSeries} height={40} /> : null}
             </CardContent>
           </Card>
 
-          <section className="calendar-grid">
-            {visibleDays.map((day: WorkspaceCalendarDay) => (
-              <article key={day.date} className={`calendar-day ${day.is_today ? "calendar-day--today" : ""}`}>
-                <header className="flex items-baseline justify-between gap-2">
-                  <strong>{new Date(`${day.date}T00:00:00.000Z`).getUTCDate()}</strong>
-                  <span className="text-xs text-muted-foreground">{weekdayLabel(day.date)}</span>
-                </header>
-                <div className="calendar-day__events">
-                  {day.events.length === 0 ? <span className="text-xs text-muted-foreground">No events</span> : null}
-                  {day.events.slice(0, 5).map((event) => (
-                    <span key={event.id} className={eventTone(event)} title={event.title}>{event.title}</span>
-                  ))}
-                </div>
-              </article>
-            ))}
-          </section>
+          <Card className="rounded-xl border-border shadow-sm">
+            <CardContent className="space-y-4 p-5">
+              <div className="calendar-grid calendar-grid--weekdays text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+                {weekdayNames.map((name) => (
+                  <div key={name} className="rounded-md border border-border bg-[var(--surface-1)] px-2 py-2 text-center">{name}</div>
+                ))}
+              </div>
+
+              <section className="calendar-grid">
+                {visibleDays.map((day: WorkspaceCalendarDay) => (
+                  <article key={day.date} className={`calendar-day ${day.is_today ? "calendar-day--today" : ""}`}>
+                    <header className="flex items-baseline justify-between gap-2">
+                      <strong>{new Date(`${day.date}T00:00:00.000Z`).getUTCDate()}</strong>
+                      <span className="text-xs text-muted-foreground">{weekdayLabel(day.date)}</span>
+                    </header>
+                    <div className="calendar-day__events">
+                      {day.events.length === 0 ? <span className="text-xs text-muted-foreground">No events</span> : null}
+                      {day.events.slice(0, 4).map((event) => (
+                        <span key={event.id} className={`calendar-event-chip calendar-event-chip--${eventTone(event)}`} title={event.title}>
+                          {event.title}
+                        </span>
+                      ))}
+                    </div>
+                  </article>
+                ))}
+              </section>
+            </CardContent>
+          </Card>
 
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-            <Card>
-              <CardHeader><CardTitle className="text-lg">Official Holidays</CardTitle></CardHeader>
+            <Card className="rounded-xl border-border shadow-sm">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg"><Landmark className="h-4 w-4" /> Official Holidays</CardTitle>
+              </CardHeader>
               <CardContent className="space-y-3">
                 {data.official_holidays.length === 0 ? <p className="text-sm text-muted-foreground">No holidays configured for this month.</p> : null}
                 {data.official_holidays.map((holiday) => (
@@ -199,8 +256,10 @@ const WorkCalendarPageClient = () => {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader><CardTitle className="text-lg">Company Updates & Files</CardTitle></CardHeader>
+            <Card className="rounded-xl border-border shadow-sm">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg"><Sparkles className="h-4 w-4" /> Company Updates & Files</CardTitle>
+              </CardHeader>
               <CardContent className="space-y-3">
                 {data.company_updates.length === 0 ? <p className="text-sm text-muted-foreground">No company updates published yet.</p> : null}
                 {data.company_updates.map((item) => (
@@ -224,3 +283,5 @@ const WorkCalendarPageClient = () => {
 };
 
 export default WorkCalendarPageClient;
+
+

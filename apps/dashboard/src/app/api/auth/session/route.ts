@@ -17,6 +17,7 @@ export async function GET() {
           userId: session.userId,
           companyId: session.companyId,
           employeeId: session.employeeId,
+          employeeCode: session.employeeCode,
           role: session.role,
           permissions: session.permissions,
           email: session.email,
@@ -40,3 +41,5 @@ export async function GET() {
     );
   }
 }
+
+

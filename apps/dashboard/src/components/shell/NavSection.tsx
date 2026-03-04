@@ -77,33 +77,34 @@ export const NavSection = ({
   }
 
   return (
-    <nav className="grid gap-1.5" aria-label="Primary navigation">
+    <nav className="nav-section" aria-label="Primary navigation">
       {items.map((item) => {
         const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
         const Icon = ICONS[item.icon] ?? Home;
+
         return (
           <Link
             key={item.href}
             href={item.href}
             className={cn(
-              "group flex items-center gap-3 rounded-xl border px-3 py-2.5 text-[1.05rem] font-medium leading-none transition-colors",
-              collapsed && "justify-center px-2",
-              isActive
-                ? "border-white/25 bg-white/12 text-white"
-                : "border-transparent text-indigo-100/90 hover:border-white/15 hover:bg-white/8 hover:text-white"
+              "nav-section__item",
+              collapsed && "nav-section__item--collapsed",
+              isActive ? "nav-section__item--active" : "nav-section__item--idle"
             )}
             aria-current={isActive ? "page" : undefined}
             title={collapsed ? item.label : undefined}
             onClick={onNavigate}
           >
-            <Icon
-              className={cn(
-                "h-4 w-4 shrink-0",
-                isActive ? "text-white" : "text-indigo-100/80 group-hover:text-white"
-              )}
-              aria-hidden="true"
-            />
-            {!collapsed ? <span className="truncate leading-none">{item.label}</span> : null}
+            <span className="nav-section__icon-wrap">
+              <Icon
+                className={cn(
+                  "nav-section__icon",
+                  isActive ? "nav-section__icon--active" : "nav-section__icon--idle"
+                )}
+                aria-hidden="true"
+              />
+            </span>
+            {!collapsed ? <span className="nav-section__label">{item.label}</span> : null}
           </Link>
         );
       })}

@@ -17,6 +17,7 @@ export type DashboardServerSession = {
   companyId: string | null;
   userProfileId: string | null;
   employeeId: string | null;
+  employeeCode?: string | null;
   role: string | null;
   permissions: string[];
 };
@@ -327,12 +328,12 @@ const resolveTodayShiftSummary = async (
   accessToken: string,
   companyId: string,
   userProfileId: string
-): Promise<{ employeeId: string | null; shiftStartTime: string | null; shiftEndTime: string | null; shiftHours: number | null }> => {
+): Promise<{ employeeId: string | null; employeeCode: string | null; shiftStartTime: string | null; shiftEndTime: string | null; shiftHours: number | null }> => {
   const supabase = createUserScopedSupabaseServerClient(accessToken);
 
   const { data: employee, error: employeeError } = await supabase
     .from("employees")
-    .select("id")
+    .select("id, employee_code")
     .eq("company_id", companyId)
     .eq("user_profile_id", userProfileId)
     .is("is_deleted", false)
@@ -341,6 +342,7 @@ const resolveTodayShiftSummary = async (
   if (employeeError || !employee?.id) {
     return {
       employeeId: null,
+      employeeCode: null,
       shiftStartTime: null,
       shiftEndTime: null,
       shiftHours: null
@@ -365,6 +367,7 @@ const resolveTodayShiftSummary = async (
     const shiftEndTime = (attendance.shift_end_time as string | null) ?? null;
     return {
       employeeId: employee.id as string,
+      employeeCode: (employee.employee_code as string | null) ?? null,
       shiftStartTime,
       shiftEndTime,
       shiftHours: computeShiftHours(shiftStartTime, shiftEndTime)
@@ -386,6 +389,7 @@ const resolveTodayShiftSummary = async (
   if (assignmentError || !assignment?.shift_template_id) {
     return {
       employeeId: employee.id as string,
+      employeeCode: (employee.employee_code as string | null) ?? null,
       shiftStartTime: null,
       shiftEndTime: null,
       shiftHours: null
@@ -403,6 +407,7 @@ const resolveTodayShiftSummary = async (
   if (templateError || !template) {
     return {
       employeeId: employee.id as string,
+      employeeCode: (employee.employee_code as string | null) ?? null,
       shiftStartTime: null,
       shiftEndTime: null,
       shiftHours: null
@@ -413,6 +418,7 @@ const resolveTodayShiftSummary = async (
   const shiftEndTime = (template.end_time as string | null) ?? null;
   return {
     employeeId: employee.id as string,
+    employeeCode: (employee.employee_code as string | null) ?? null,
     shiftStartTime,
     shiftEndTime,
     shiftHours: computeShiftHours(shiftStartTime, shiftEndTime)
@@ -517,6 +523,7 @@ export const getServerSession = async (): Promise<DashboardServerSession> => {
     companyId: identity.companyId,
     userProfileId: identity.userProfileId,
     employeeId: shiftSummary.employeeId,
+    employeeCode: shiftSummary.employeeCode,
     role,
     permissions
   };
@@ -599,3 +606,4 @@ export const revokeAllActiveSessions = async (auth: AuthContext, reason: string)
     .eq("user_id", auth.userId)
     .is("revoked_at", null);
 };
+

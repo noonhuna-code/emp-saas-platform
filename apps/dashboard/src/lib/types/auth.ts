@@ -2,6 +2,7 @@ export type DashboardSession = {
   userId: string | null;
   companyId: string | null;
   employeeId?: string | null;
+  employeeCode?: string | null;
   role: string | null;
   permissions: string[];
   email?: string | null;
@@ -12,3 +13,4 @@ export type DashboardSession = {
   shiftEndTime?: string | null;
   shiftHours?: number | null;
 };
+
