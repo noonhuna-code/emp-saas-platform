@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getCached, setCached } from "@/lib/server/dashboard-cache";
 import { beginRoute, finalizeRoute } from "@/lib/server/route-helpers";
 import { handleRouteError, jsonError } from "@/lib/server/api-errors";
 import { resolveCurrentEmployeeId } from "@/lib/server/employee-context";

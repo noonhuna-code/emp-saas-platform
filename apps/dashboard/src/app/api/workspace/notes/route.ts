@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getCached, setCached } from "@/lib/server/dashboard-cache";
 import { beginRoute, finalizeRoute } from "@/lib/server/route-helpers";
 import { handleRouteError, jsonError, mapServiceErrorStatus, sanitizeServiceError } from "@/lib/server/api-errors";
 import { runGuardedMutation } from "@/lib/server/mutation-guard";
@@ -32,7 +33,9 @@ export async function GET(request: Request) {
       );
     }
 
-    return finalizeRoute(route, endpoint, NextResponse.json({ ok: true, data: result.data, requestId: route.requestId }, { status: 200 }));
+    setCached(cacheKey, result.data);
+
+    return finalizeRoute(route, endpoint, NextResponse.json({ ok: true, data: result.data, requestId: route.requestId }, { status: 200, headers: { "cache-control": "private, max-age=0, s-maxage=15, stale-while-revalidate=30" } }));
   } catch (error) {
     return finalizeRoute(route, endpoint, handleRouteError(error, "Unable to load workspace notes", route.requestId));
   }

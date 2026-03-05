@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getCached, setCached } from "@/lib/server/dashboard-cache";
 import { beginRoute, finalizeRoute } from "@/lib/server/route-helpers";
 import { handleRouteError, jsonError, mapServiceErrorStatus, sanitizeServiceError } from "@/lib/server/api-errors";
 import { runGuardedMutation } from "@/lib/server/mutation-guard";
@@ -18,6 +19,13 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const limitRaw = Number(url.searchParams.get("limit") ?? 50);
     const limit = Number.isFinite(limitRaw) ? limitRaw : 50;
+
+    const cacheKey = `${route.ctx.companyId}:${route.ctx.userId}:${endpoint}:${limit}`;
+    const cached = getCached<any>(cacheKey, 15000);
+    if (cached) {
+      return finalizeRoute(route, endpoint, NextResponse.json({ ok: true, data: cached, requestId: route.requestId }, { status: 200, headers: { "cache-control": "private, max-age=0, s-maxage=15, stale-while-revalidate=30" } }));
+    }
+
     const unreadOnly = url.searchParams.get("unreadOnly") === "1";
 
     const result = await listWorkspaceNotifications(route.ctx, { limit, unreadOnly });
@@ -29,7 +37,9 @@ export async function GET(request: Request) {
       );
     }
 
-    return finalizeRoute(route, endpoint, NextResponse.json({ ok: true, data: result.data, requestId: route.requestId }, { status: 200 }));
+    setCached(cacheKey, result.data);
+
+    return finalizeRoute(route, endpoint, NextResponse.json({ ok: true, data: result.data, requestId: route.requestId }, { status: 200, headers: { "cache-control": "private, max-age=0, s-maxage=15, stale-while-revalidate=30" } }));
   } catch (error) {
     return finalizeRoute(route, endpoint, handleRouteError(error, "Unable to load notifications", route.requestId));
   }

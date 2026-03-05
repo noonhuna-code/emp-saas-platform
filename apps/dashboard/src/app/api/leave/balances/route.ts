@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getCached, setCached } from "@/lib/server/dashboard-cache";
 import { listLeaveBalances } from "@emp/services/leave.service";
 import { handleRouteError, jsonError } from "@/lib/server/api-errors";
 import { beginRoute, finalizeRoute } from "@/lib/server/route-helpers";
@@ -31,7 +32,9 @@ export async function GET(request: Request) {
       return finalizeRoute(route, endpoint, jsonServiceError(result.error, "Leave balances lookup failed", route.requestId));
     }
 
-    return finalizeRoute(route, endpoint, NextResponse.json({ ok: true, data: result.data }, { status: 200 }));
+    setCached(cacheKey, result.data);
+
+    return finalizeRoute(route, endpoint, NextResponse.json({ ok: true, data: result.data }, { status: 200, headers: { "cache-control": "private, max-age=0, s-maxage=15, stale-while-revalidate=30" } }));
   } catch (error) {
     return finalizeRoute(route, endpoint, handleRouteError(error, "Unable to load leave balances", route.requestId));
   }
