@@ -1,4 +1,4 @@
-"use server";
+﻿"use server";
 
 import { revalidatePath } from "next/cache";
 import { clockIn, clockOut } from "@emp/services/attendance.service";
@@ -18,7 +18,8 @@ const sanitizeClockError = (error?: string): string => {
     "Already clocked in for today",
     "No open attendance record",
     "No active shift assignment",
-    "Shift template not found"
+    "Shift template not found",
+    "Employee record not found"
   ];
 
   if (knownSafe.includes(error)) return error;
