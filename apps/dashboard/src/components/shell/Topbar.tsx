@@ -71,16 +71,16 @@ export const Topbar = ({
   const leadingAvatar = isEmployeePersona ? (
     avatarUrl ? (
       // eslint-disable-next-line @next/next/no-img-element
-      <img src={avatarUrl} alt="Profile" width={28} height={28} className="topbar-profile__avatar" />
+      <img src={avatarUrl} alt="Profile" width={36} height={36} className="topbar-profile__avatar topbar-profile__avatar--lg" />
     ) : (
-      <span className="topbar-profile__avatar-fallback">{(identityLabel[0] ?? "U").toUpperCase()}</span>
+      <span className="topbar-profile__avatar-fallback topbar-profile__avatar--lg">{(identityLabel[0] ?? "U").toUpperCase()}</span>
     )
   ) : null;
 
   return (
     <HeaderBar
       title="Employee Management"
-      subtitle={isEmployeePersona ? lastLoginText ?? undefined : (lastLoginText ?? identityLabel)}
+      subtitle={isEmployeePersona ? (lastLoginText ?? "Last login unavailable") : (lastLoginText ?? identityLabel)}
       leading={leadingAvatar}
       compact={isEmployeePersona}
       onToggleSidebar={onToggleSidebar}
@@ -91,16 +91,18 @@ export const Topbar = ({
           {!isEmployeePersona && renewalLabel ? <StatusChip label={renewalLabel} tone="info" compact /> : null}
           {!isEmployeePersona && seatSummary ? <StatusChip label={`Seats ${seatLimitText}`} compact /> : null}
           {shiftText ? <StatusChip label={`Shift ${shiftText}`} compact /> : null}
-          {isEmployeePersona && employeeIdentity ? <StatusChip label={`${employeeIdentity}`} compact tone="info" /> : null}
-                    <div className="topbar-profile" title={identityLabel}>
-            {avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={avatarUrl} alt="Profile" width={28} height={28} className="topbar-profile__avatar" />
-            ) : (
-              <span className="topbar-profile__avatar-fallback">{(identityLabel[0] ?? "U").toUpperCase()}</span>
-            )}
-            <span className="topbar-profile__name">{fullName ?? email ?? "User"}</span>
-          </div>
+          {isEmployeePersona && employeeIdentity ? <StatusChip label={`ID ${employeeIdentity}`} compact tone="info" /> : null}
+          {!isEmployeePersona ? (
+            <div className="topbar-profile" title={identityLabel}>
+              {avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={avatarUrl} alt="Profile" width={28} height={28} className="topbar-profile__avatar" />
+              ) : (
+                <span className="topbar-profile__avatar-fallback">{(identityLabel[0] ?? "U").toUpperCase()}</span>
+              )}
+              <span className="topbar-profile__name">{fullName ?? email ?? "User"}</span>
+            </div>
+          ) : null}
           {!isEmployeePersona ? <CompanyContextBadge companyId={companyId} role={role} /> : null}
           <ThemeToggle />
           <form action="/api/auth/logout" method="post">

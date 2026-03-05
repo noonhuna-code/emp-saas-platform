@@ -369,6 +369,18 @@ p { margin: 0; }
   white-space: nowrap;
 }
 
+.topbar-profile__avatar--lg {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+}
+
+.topbar-profile__avatar-fallback.topbar-profile__avatar--lg {
+  width: 36px;
+  height: 36px;
+  font-size: 14px;
+}
+
 .status-chip {
   display: inline-flex;
   align-items: center;
@@ -1581,8 +1593,9 @@ p { margin: 0; }
   font-size: 1.35rem;
 }
 .header-bar[data-compact="true"] .header-bar__title-wrap p {
-    white-space: nowrap;
-  display: none;
+  white-space: nowrap;
+  display: block;
+  font-size: 0.82rem;
 }
 
 

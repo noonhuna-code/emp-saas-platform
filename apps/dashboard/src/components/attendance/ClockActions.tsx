@@ -53,6 +53,23 @@ export const ClockActions = ({
 
   const disabledAll = locked || clockInPending || clockOutPending || !employeeId;
   const latestError = clockOutState.error || clockInState.error || null;
+
+  const guidance = useMemo(() => {
+    if (!latestError) return null;
+    const lower = latestError.toLowerCase();
+    if (lower.includes('shift assignment')) return 'Ask HR or your team lead to assign a shift template.';
+    if (lower.includes('employee record')) return 'HR needs to link your profile to an employee record.';
+    if (lower.includes('permission')) return 'Your role needs attendance access to clock in/out.';
+    return null;
+  }, [latestError]);
+
+  const geoCoordsLabel = useMemo(() => {
+    if (!geoPoint) return null;
+    const lat = geoPoint.latitude.toFixed(5);
+    const lng = geoPoint.longitude.toFixed(5);
+    const acc = geoPoint.accuracy ? ` ?${Math.round(geoPoint.accuracy)}m` : "";
+    return `Coordinates: ${lat}, ${lng}${acc}`;
+  }, [geoPoint]);
   const geoLabel = useMemo(() => {
     if (geoStatus === "capturing") return "Capturing location...";
     if (geoStatus === "ready" && geoPoint) {
@@ -131,7 +148,9 @@ export const ClockActions = ({
       </div>
 
       <p className={geoStatus === "error" ? "error" : "muted"} style={{ margin: 0 }}>{geoLabel}</p>
+  {geoCoordsLabel ? <p className="muted" style={{ margin: 0 }}>{geoCoordsLabel}</p> : null}
       {latestError ? <p className="error" style={{ margin: 0 }}>{latestError}</p> : null}
+      {guidance ? <p className="muted" style={{ margin: 0 }}>{guidance}</p> : null}
       {!latestError && clockInState.ok ? <p className="muted" style={{ margin: 0 }}>Clock-in completed.</p> : null}
       {!latestError && clockOutState.ok ? <p className="muted" style={{ margin: 0 }}>Clock-out completed.</p> : null}
     </section>

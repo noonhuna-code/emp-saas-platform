@@ -383,14 +383,12 @@ const ensureSelfOrManageAttendance = async (
     return;
   }
 
-  if (!ctx.permissions.includes("view_attendance")) {
-    requirePermission("manage_attendance", ctx);
+  const currentEmployeeId = await resolveCurrentEmployeeId(ctx.supabase, ctx);
+  if (currentEmployeeId && currentEmployeeId === employeeId) {
+    return;
   }
 
-  const currentEmployeeId = await resolveCurrentEmployeeId(ctx.supabase, ctx);
-  if (!currentEmployeeId || currentEmployeeId !== employeeId) {
-    throw new Error("Permission denied");
-  }
+  requirePermission("manage_attendance", ctx);
 };
 
 const requireShiftSwapReviewAccess = (ctx: ServiceContext): void => {
@@ -891,12 +889,6 @@ export const listShiftTemplates = async (
 ): Promise<ServiceResult<{ rows: ShiftTemplateRow[] }>> => {
   try {
     await requireAttendanceEntitlement(ctx);
-    if (!ctx.permissions.includes("manage_attendance") && !ctx.permissions.includes("view_attendance")) {
-      const employeeId = await resolveCurrentEmployeeId(ctx.supabase, ctx);
-      if (!employeeId) {
-        return { ok: false, error: "Permission denied" };
-      }
-    }
 
     const { data, error } = await ctx.supabase
       .from("shift_templates")
