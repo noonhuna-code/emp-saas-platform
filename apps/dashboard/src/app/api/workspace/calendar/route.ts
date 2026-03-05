@@ -15,7 +15,7 @@ export async function GET(request: Request) {
     const month = (url.searchParams.get("month") ?? "").trim() || undefined;
 
     const cacheKey = `${route.ctx.companyId}:${route.ctx.userId}:${endpoint}:${month ?? ""}`;
-    const cached = getCached<any>(cacheKey, 15000);
+    const cached = getCached<any>(cacheKey, 45000);
     if (cached) {
       return finalizeRoute(
         route,
@@ -54,3 +54,4 @@ export async function GET(request: Request) {
     return finalizeRoute(route, endpoint, handleRouteError(error, "Unable to load workspace calendar", route.requestId));
   }
 }
+

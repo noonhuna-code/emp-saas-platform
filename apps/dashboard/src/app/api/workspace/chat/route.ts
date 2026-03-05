@@ -23,7 +23,7 @@ export async function GET(request: Request) {
     const peerEmployeeId = (url.searchParams.get("peerEmployeeId") ?? "").trim() || undefined;
 
     const cacheKey = `${route.ctx.companyId}:${route.ctx.userId}:${endpoint}:${limit}:${peerEmployeeId ?? ""}`;
-    const cached = getCached<any>(cacheKey, 15000);
+    const cached = getCached<any>(cacheKey, 45000);
     if (cached) {
       return finalizeRoute(
         route,
@@ -96,3 +96,4 @@ export async function POST(request: Request) {
     return finalizeRoute(route, endpoint, handleRouteError(error, "Unable to send chat message", route.requestId));
   }
 }
+

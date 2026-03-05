@@ -16,7 +16,7 @@ export async function GET(request: Request) {
     const limit = Number.isFinite(limitRaw) ? limitRaw : 50;
 
     const cacheKey = `${route.ctx.companyId}:${route.ctx.userId}:${endpoint}:${limit}`;
-    const cached = getCached<any>(cacheKey, 15000);
+    const cached = getCached<any>(cacheKey, 45000);
     if (cached) {
       return finalizeRoute(route, endpoint, NextResponse.json({ ok: true, data: cached, requestId: route.requestId }, { status: 200, headers: { "cache-control": "private, max-age=0, s-maxage=15, stale-while-revalidate=30" } }));
     }
@@ -38,3 +38,4 @@ export async function GET(request: Request) {
     return finalizeRoute(route, endpoint, handleRouteError(error, "Unable to load resources", route.requestId));
   }
 }
+

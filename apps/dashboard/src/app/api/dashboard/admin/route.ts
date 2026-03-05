@@ -15,7 +15,7 @@ export async function GET() {
 
 
     const cacheKey = `${route.ctx.companyId}:${route.ctx.userId}:${endpoint}`;
-    const cached = getCached<any>(cacheKey, 15000);
+    const cached = getCached<any>(cacheKey, 45000);
     if (cached) {
       return finalizeRoute(
         route,
@@ -53,3 +53,4 @@ export async function GET() {
     return finalizeRoute(route, endpoint, handleRouteError(error, "Unable to load admin dashboard", route.requestId));
   }
 }
+

@@ -169,6 +169,13 @@ const requireDashboardEntitlement = async (ctx: ServiceContext): Promise<void> =
   await requireAnyPlanFeature(ctx, ["feature.analytics_standard", "feature.analytics_advanced"]);
 };
 
+const EMPLOYEE_DASHBOARD_CACHE_TTL_MS = 45000;
+type EmployeeDashboardCacheEntry = {
+  ts: number;
+  data: EmployeeDashboardData;
+};
+const EMPLOYEE_DASHBOARD_CACHE = new Map<string, EmployeeDashboardCacheEntry>();
+
 export const getEmployeeDashboard = async (ctx: ServiceContext, options?: { includeCollections?: boolean }): Promise<ServiceResult<EmployeeDashboardData>> => {
   try {
     await requireDashboardEntitlement(ctx);
@@ -178,6 +185,12 @@ export const getEmployeeDashboard = async (ctx: ServiceContext, options?: { incl
     }
 
     const includeCollections = options?.includeCollections ?? true;
+
+    const cacheKey = `${ctx.companyId}:${ctx.userProfileId}:${employeeId}:${includeCollections ? "full" : "trim"}`;
+    const cachedEntry = EMPLOYEE_DASHBOARD_CACHE.get(cacheKey);
+    if (cachedEntry && Date.now() - cachedEntry.ts < EMPLOYEE_DASHBOARD_CACHE_TTL_MS) {
+      return { ok: true, data: cachedEntry.data };
+    }
 
     const today = new Date().toISOString().slice(0, 10);
     const [attendanceRecord, leaveBalances, employeeRecord, companyInfo] = await Promise.all([
@@ -524,9 +537,7 @@ export const getEmployeeDashboard = async (ctx: ServiceContext, options?: { incl
     const isOnBreak = Boolean(breakRecord.data?.id);
     const record = attendanceRecord.data;
 
-    return {
-      ok: true,
-      data: {
+    const dataPayload: EmployeeDashboardData = {
         workspace: {
           employee: {
             id: employeeId,
@@ -623,7 +634,13 @@ export const getEmployeeDashboard = async (ctx: ServiceContext, options?: { incl
         },
         profileCompletenessScore:
           typeof profileCompleteness.data === "number" ? Math.round(profileCompleteness.data) : null
-      }
+      };
+
+    EMPLOYEE_DASHBOARD_CACHE.set(cacheKey, { ts: Date.now(), data: dataPayload });
+
+    return {
+      ok: true,
+      data: dataPayload
     };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "Employee dashboard failed" };

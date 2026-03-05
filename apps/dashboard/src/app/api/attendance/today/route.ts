@@ -22,7 +22,7 @@ export async function GET() {
     const { ctx } = await buildAttendanceRouteContext(route.ctx, ["manage_attendance", "view_attendance"]);
 
     const cacheKey = `${ctx.companyId}:${ctx.userId}:${endpoint}`;
-    const cached = getCached<any>(cacheKey, 15000);
+    const cached = getCached<any>(cacheKey, 45000);
     if (cached) {
       return finalizeRoute(
         route,
@@ -64,3 +64,4 @@ export async function GET() {
     return finalizeRoute(route, endpoint, jsonError("Unable to load attendance status", 500, route.requestId));
   }
 }
+

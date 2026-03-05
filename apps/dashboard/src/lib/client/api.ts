@@ -104,17 +104,51 @@ const parseJson = async <T>(response: Response): Promise<DashboardApiResult<T>> 
 
 type CacheEntry<T> = { ts: number; value?: DashboardApiResult<T>; promise?: Promise<DashboardApiResult<T>> };
 const GET_CACHE = new Map<string, CacheEntry<unknown>>();
-const DEFAULT_TTL = 15000;
+const DEFAULT_TTL = 45000;
+const STORAGE_PREFIX = "emp:get:";
+
+const readSessionCache = <T>(url: string): CacheEntry<T> | null => {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.sessionStorage.getItem(`${STORAGE_PREFIX}${url}`);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { ts: number; value: DashboardApiResult<T> };
+    if (!parsed || typeof parsed.ts !== "number" || !parsed.value) return null;
+    return { ts: parsed.ts, value: parsed.value };
+  } catch {
+    return null;
+  }
+};
+
+const writeSessionCache = <T>(url: string, ts: number, value: DashboardApiResult<T>): void => {
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.setItem(`${STORAGE_PREFIX}${url}`, JSON.stringify({ ts, value }));
+  } catch {
+    // ignore browser storage failures
+  }
+};
 
 const fetchWithCache = async <T>(url: string, ttlMs: number = DEFAULT_TTL): Promise<DashboardApiResult<T>> => {
   const now = Date.now();
-  const existing = GET_CACHE.get(url) as CacheEntry<T> | undefined;
+  let existing = GET_CACHE.get(url) as CacheEntry<T> | undefined;
+
+  if (!existing?.value && !existing?.promise) {
+    const persisted = readSessionCache<T>(url);
+    if (persisted?.value) {
+      GET_CACHE.set(url, persisted as CacheEntry<unknown>);
+      existing = persisted;
+    }
+  }
+
   if (existing?.value) {
     if (!existing.promise && now - existing.ts >= ttlMs) {
       const refreshPromise = fetch(url, { cache: "no-store" })
         .then(parseJson<T>)
         .then((result) => {
-          GET_CACHE.set(url, { ts: Date.now(), value: result });
+          const ts = Date.now();
+          GET_CACHE.set(url, { ts, value: result });
+          writeSessionCache(url, ts, result);
           return result;
         })
         .finally(() => {
@@ -125,6 +159,7 @@ const fetchWithCache = async <T>(url: string, ttlMs: number = DEFAULT_TTL): Prom
     }
     return existing.value;
   }
+
   if (existing?.promise) {
     return existing.promise;
   }
@@ -132,7 +167,9 @@ const fetchWithCache = async <T>(url: string, ttlMs: number = DEFAULT_TTL): Prom
   const promise = fetch(url, { cache: "no-store" })
     .then(parseJson<T>)
     .then((result) => {
-      GET_CACHE.set(url, { ts: Date.now(), value: result });
+      const ts = Date.now();
+      GET_CACHE.set(url, { ts, value: result });
+      writeSessionCache(url, ts, result);
       return result;
     })
     .finally(() => {
@@ -143,7 +180,6 @@ const fetchWithCache = async <T>(url: string, ttlMs: number = DEFAULT_TTL): Prom
   GET_CACHE.set(url, { ts: now, promise });
   return promise;
 };
-
 const postJson = async <T>(
   url: string,
   body: Record<string, unknown>,
@@ -364,8 +400,8 @@ export const fetchOvertimeRequests = async (params: {
   if (params.employeeId) query.set("employeeId", params.employeeId);
   if (params.status) query.set("status", params.status);
   const suffix = query.toString() ? `?${query.toString()}` : "";
-  const response = await fetch(`/api/overtime/list${suffix}`, { cache: "no-store" });
-  return parseJson<OvertimeListResponse>(response);
+  const response = await fetchWithCache<OvertimeListResponse>(`/api/overtime/list${suffix}`);
+  return response;
 };
 
 export const requestOvertime = async (
@@ -584,18 +620,18 @@ export const fetchLeaveCalendar = async (params: {
 };
 
 export const fetchUnifiedApprovals = async (): Promise<DashboardApiResult<ApprovalsResponse>> => {
-  const response = await fetch("/api/approvals/pending", { cache: "no-store" });
-  return parseJson<ApprovalsResponse>(response);
+  const response = await fetchWithCache<ApprovalsResponse>("/api/approvals/pending");
+  return response;
 };
 
 export const fetchReliabilityOverview = async (): Promise<DashboardApiResult<ReliabilityOverview>> => {
-  const response = await fetch("/api/intelligence/reliability/overview", { cache: "no-store" });
-  return parseJson<ReliabilityOverview>(response);
+  const response = await fetchWithCache<ReliabilityOverview>("/api/intelligence/reliability/overview");
+  return response;
 };
 
 export const fetchEmployeeReliabilityCard = async (): Promise<DashboardApiResult<EmployeeReliabilityResponse>> => {
-  const response = await fetch("/api/intelligence/reliability/employee", { cache: "no-store" });
-  return parseJson<EmployeeReliabilityResponse>(response);
+  const response = await fetchWithCache<EmployeeReliabilityResponse>("/api/intelligence/reliability/employee");
+  return response;
 };
 
 export const fetchSupervisorFeedback = async (
@@ -604,8 +640,8 @@ export const fetchSupervisorFeedback = async (
   const query = new URLSearchParams();
   if (employeeId) query.set("employeeId", employeeId);
   const suffix = query.toString() ? `?${query.toString()}` : "";
-  const response = await fetch(`/api/intelligence/feedback${suffix}`, { cache: "no-store" });
-  return parseJson<SupervisorFeedbackResponse>(response);
+  const response = await fetchWithCache<SupervisorFeedbackResponse>(`/api/intelligence/feedback${suffix}`);
+  return response;
 };
 
 export const submitSupervisorFeedback = async (
@@ -620,8 +656,8 @@ export const fetchKudosHistory = async (
   const query = new URLSearchParams();
   if (employeeId) query.set("employeeId", employeeId);
   const suffix = query.toString() ? `?${query.toString()}` : "";
-  const response = await fetch(`/api/intelligence/kudos${suffix}`, { cache: "no-store" });
-  return parseJson<KudosHistoryResponse>(response);
+  const response = await fetchWithCache<KudosHistoryResponse>(`/api/intelligence/kudos${suffix}`);
+  return response;
 };
 
 export const sendKudos = async (
@@ -631,13 +667,13 @@ export const sendKudos = async (
 };
 
 export const fetchKudosLeaderboards = async (): Promise<DashboardApiResult<KudosLeaderboardResponse>> => {
-  const response = await fetch("/api/intelligence/kudos/leaderboard", { cache: "no-store" });
-  return parseJson<KudosLeaderboardResponse>(response);
+  const response = await fetchWithCache<KudosLeaderboardResponse>("/api/intelligence/kudos/leaderboard");
+  return response;
 };
 
 export const fetchMonitoringOverview = async (): Promise<DashboardApiResult<MonitoringOverview>> => {
-  const response = await fetch("/api/monitoring/overview", { cache: "no-store" });
-  return parseJson<MonitoringOverview>(response);
+  const response = await fetchWithCache<MonitoringOverview>("/api/monitoring/overview");
+  return response;
 };
 
 export const cleanupIdempotencyExpired = async (
@@ -685,22 +721,22 @@ export const fetchPayslipHistory = async (params: {
   if (typeof params.page === "number") query.set("page", String(params.page));
   if (typeof params.pageSize === "number") query.set("pageSize", String(params.pageSize));
   const suffix = query.toString() ? `?${query.toString()}` : "";
-  const response = await fetch(`/api/payslips${suffix}`, { cache: "no-store" });
-  return parseJson<PayslipHistoryResponse>(response);
+  const response = await fetchWithCache<PayslipHistoryResponse>(`/api/payslips${suffix}`);
+  return response;
 };
 
 export const fetchPayslipDetail = async (
   entryId: string
 ): Promise<DashboardApiResult<PayslipDetailResponse>> => {
-  const response = await fetch(`/api/payslips/${encodeURIComponent(entryId)}`, { cache: "no-store" });
-  return parseJson<PayslipDetailResponse>(response);
+  const response = await fetchWithCache<PayslipDetailResponse>(`/api/payslips/${encodeURIComponent(entryId)}`);
+  return response;
 };
 
 export const fetchPayrollRunTimeline = async (
   runId: string
 ): Promise<DashboardApiResult<PayrollRunTimelineResponse>> => {
-  const response = await fetch(`/api/payroll/runs/${encodeURIComponent(runId)}/timeline`, { cache: "no-store" });
-  return parseJson<PayrollRunTimelineResponse>(response);
+  const response = await fetchWithCache<PayrollRunTimelineResponse>(`/api/payroll/runs/${encodeURIComponent(runId)}/timeline`);
+  return response;
 };
 
 export const fetchPayrollRunDeliveryStatus = async (
@@ -711,8 +747,8 @@ export const fetchPayrollRunDeliveryStatus = async (
   if (typeof params.page === "number") query.set("page", String(params.page));
   if (typeof params.pageSize === "number") query.set("pageSize", String(params.pageSize));
   const suffix = query.toString() ? `?${query.toString()}` : "";
-  const response = await fetch(`/api/payroll/runs/${encodeURIComponent(runId)}/delivery-status${suffix}`, { cache: "no-store" });
-  return parseJson<PayrollRunDeliveryStatusResponse>(response);
+  const response = await fetchWithCache<PayrollRunDeliveryStatusResponse>(`/api/payroll/runs/${encodeURIComponent(runId)}/delivery-status${suffix}`);
+  return response;
 };
 
 export const markPayrollRunPaid = async (
@@ -1059,8 +1095,8 @@ export const markWorkspaceNotificationsRead = async (payload: {
 };
 
 export const fetchMyFinancialObligationRequests = async (): Promise<DashboardApiResult<MyFinancialObligationRequestsResponse>> => {
-  const response = await fetch("/api/finance/obligations/requests/mine", { cache: "no-store" });
-  return parseJson<MyFinancialObligationRequestsResponse>(response);
+  const response = await fetchWithCache<MyFinancialObligationRequestsResponse>("/api/finance/obligations/requests/mine");
+  return response;
 };
 
 export const submitLoanRequest = async (payload: {
@@ -1098,8 +1134,8 @@ export const fetchShiftAssignableEmployees = async (
 ): Promise<DashboardApiResult<ShiftAssignableEmployeesResponse>> => {
   const query = new URLSearchParams();
   query.set("limit", String(limit));
-  const response = await fetch(`/api/attendance/shifts/assignable?${query.toString()}`, { cache: "no-store" });
-  return parseJson<ShiftAssignableEmployeesResponse>(response);
+  const response = await fetchWithCache<ShiftAssignableEmployeesResponse>(`/api/attendance/shifts/assignable?${query.toString()}`);
+  return response;
 };
 
 export const fetchShiftAssignments = async (params: {
@@ -1110,8 +1146,8 @@ export const fetchShiftAssignments = async (params: {
   if (params.employeeId) query.set("employeeId", params.employeeId);
   if (typeof params.limit === "number") query.set("limit", String(params.limit));
   const suffix = query.toString() ? `?${query.toString()}` : "";
-  const response = await fetch(`/api/attendance/shifts/assignments${suffix}`, { cache: "no-store" });
-  return parseJson<ShiftAssignmentsResponse>(response);
+  const response = await fetchWithCache<ShiftAssignmentsResponse>(`/api/attendance/shifts/assignments${suffix}`);
+  return response;
 };
 
 export const assignShift = async (payload: {
@@ -1170,43 +1206,167 @@ export const reviewShiftSwap = async (payload: {
 
 type DashboardPrewarmPersona = "employee" | "team_lead" | "manager" | "hr" | "admin" | "founder" | "platform_owner";
 
-export const prewarmDashboardData = (persona: DashboardPrewarmPersona): void => {
-  const month = new Date().toISOString().slice(0, 7);
-  const tasks: Array<Promise<unknown>> = [];
-
-  if (persona === "employee" || persona === "team_lead" || persona === "manager" || persona === "hr") {
-    tasks.push(fetchEmployeeDashboard());
-    tasks.push(fetchAttendanceToday());
-    tasks.push(fetchWorkspaceNotifications({ limit: 30 }));
-    tasks.push(fetchWorkspaceResources(20));
-    tasks.push(fetchWorkspaceNotes(20));
-    tasks.push(fetchWorkspaceCalendar(month));
-    tasks.push(fetchEmployeeMe());
-  }
-
-  if (persona === "employee") {
-    tasks.push(fetchEmployeeLookups());
-  }
-
-  if (persona === "manager" || persona === "team_lead") {
-    tasks.push(fetchManagerDashboard());
-    tasks.push(fetchShiftSwapRequests({ scope: "mine", limit: 30 }));
-  }
-
-  if (persona === "admin" || persona === "founder" || persona === "hr") {
-    tasks.push(fetchAdminDashboard());
-  }
-
-  if (persona === "platform_owner") {
-    tasks.push(fetchPlatformOverview());
-  }
-
-  if (tasks.length === 0) {
-    return;
-  }
-
+const settlePrewarm = (tasks: Array<Promise<unknown>>): void => {
+  if (tasks.length === 0) return;
   void Promise.allSettled(tasks);
 };
 
+const resolveMonthRange = (month: string): { dateFrom: string; dateTo: string } => {
+  const [yearText, monthText] = month.split("-");
+  const year = Number(yearText);
+  const monthPart = Number(monthText);
 
+  if (!Number.isFinite(year) || !Number.isFinite(monthPart)) {
+    return {
+      dateFrom: `${month}-01`,
+      dateTo: `${month}-31`
+    };
+  }
 
+  const daysInMonth = new Date(Date.UTC(year, monthPart, 0)).getUTCDate();
+  return {
+    dateFrom: `${month}-01`,
+    dateTo: `${month}-${String(daysInMonth).padStart(2, "0")}`
+  };
+};
+
+export const prewarmRouteData = (href: string): void => {
+  const month = new Date().toISOString().slice(0, 7);
+  const monthRange = resolveMonthRange(month);
+  const path = href.split("?")[0] ?? href;
+  const tasks: Array<Promise<unknown>> = [];
+
+  if (path === "/app/dashboard") {
+    tasks.push(fetchEmployeeDashboard());
+  }
+
+  if (path === "/app/profile") {
+    tasks.push(
+      fetchEmployeeMe().then((me) => {
+        if (!me.ok || !me.data?.employeeId) return null;
+        return fetchEmployeeProfile(me.data.employeeId);
+      })
+    );
+    tasks.push(fetchEmployeeLookups());
+  }
+
+  if (path === "/app/attendance") {
+    tasks.push(fetchAttendanceToday());
+    tasks.push(fetchAttendanceHistory({ page: 1, pageSize: 10 }));
+  }
+
+  if (path === "/app/attendance/shift-swaps") {
+    tasks.push(fetchShiftSwapRequests({ scope: "mine", limit: 30 }));
+    tasks.push(fetchShiftTemplates());
+  }
+
+  if (path === "/app/leave") {
+    tasks.push(fetchLeaveBalances());
+    tasks.push(fetchLeaveHistory({ page: 1, pageSize: 10 }));
+    tasks.push(fetchLeaveCalendar(monthRange));
+  }
+
+  if (path === "/app/calendar") {
+    tasks.push(fetchWorkspaceCalendar(month));
+    tasks.push(fetchLeaveCalendar(monthRange));
+  }
+
+  if (path === "/app/resources") {
+    tasks.push(fetchWorkspaceResources(25));
+  }
+
+  if (path === "/app/notes") {
+    tasks.push(fetchWorkspaceNotes(20));
+  }
+
+  if (path === "/app/chat") {
+    tasks.push(fetchWorkspaceContacts(200));
+    tasks.push(fetchWorkspaceChat({ limit: 30 }));
+  }
+
+  if (path === "/app/notifications") {
+    tasks.push(fetchWorkspaceNotifications({ limit: 40 }));
+  }
+
+  if (path === "/app/payslips") {
+    tasks.push(fetchPayslipHistory({ page: 1, pageSize: 10 }));
+  }
+
+  if (path === "/app/overtime") {
+    tasks.push(fetchOvertimeRequests({}));
+  }
+
+  if (path === "/app/intelligence/kudos") {
+    tasks.push(fetchKudosHistory());
+    tasks.push(fetchKudosLeaderboards());
+  }
+
+  settlePrewarm(tasks);
+};
+
+export const prewarmDashboardData = (persona: DashboardPrewarmPersona): void => {
+  const month = new Date().toISOString().slice(0, 7);
+  const monthRange = resolveMonthRange(month);
+  const phaseOne: Array<Promise<unknown>> = [];
+
+  if (persona === "employee" || persona === "team_lead" || persona === "manager" || persona === "hr") {
+    phaseOne.push(fetchEmployeeMe());
+    phaseOne.push(fetchAttendanceToday());
+    phaseOne.push(fetchWorkspaceNotifications({ limit: 30 }));
+  }
+
+  if (persona === "manager" || persona === "team_lead") {
+    phaseOne.push(fetchManagerDashboard());
+  }
+
+  if (persona === "admin" || persona === "founder" || persona === "hr") {
+    phaseOne.push(fetchAdminDashboard());
+  }
+
+  if (persona === "platform_owner") {
+    phaseOne.push(fetchPlatformOverview());
+  }
+
+  settlePrewarm(phaseOne);
+
+  const runPhaseTwo = () => {
+    const phaseTwo: Array<Promise<unknown>> = [];
+
+    if (persona === "employee" || persona === "team_lead" || persona === "manager" || persona === "hr") {
+      phaseTwo.push(fetchEmployeeDashboard());
+      phaseTwo.push(fetchWorkspaceResources(20));
+      phaseTwo.push(fetchWorkspaceNotes(20));
+      phaseTwo.push(fetchWorkspaceCalendar(month));
+      phaseTwo.push(fetchLeaveBalances());
+      phaseTwo.push(fetchLeaveHistory({ page: 1, pageSize: 10 }));
+      phaseTwo.push(fetchLeaveCalendar(monthRange));
+      phaseTwo.push(fetchShiftSwapRequests({ scope: "mine", limit: 30 }));
+      phaseTwo.push(fetchWorkspaceChat({ limit: 20 }));
+      phaseTwo.push(fetchWorkspaceContacts(200));
+    }
+
+    if (persona === "employee") {
+      phaseTwo.push(fetchEmployeeLookups());
+      phaseTwo.push(fetchKudosHistory());
+      phaseTwo.push(fetchKudosLeaderboards());
+      phaseTwo.push(fetchPayslipHistory({ page: 1, pageSize: 10 }));
+    }
+
+    settlePrewarm(phaseTwo);
+  };
+
+  if (typeof window === "undefined") {
+    runPhaseTwo();
+    return;
+  }
+
+  const requestIdleCallbackFn = (window as Window & {
+    requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number;
+  }).requestIdleCallback;
+
+  if (typeof requestIdleCallbackFn === "function") {
+    requestIdleCallbackFn(runPhaseTwo, { timeout: 1500 });
+  } else {
+    window.setTimeout(runPhaseTwo, 850);
+  }
+};

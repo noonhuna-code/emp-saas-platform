@@ -2,14 +2,15 @@
 
 import type { DashboardSession } from "@/lib/types/auth";
 import type { BillingNavigationContext } from "@/lib/types/billing";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import { Sidebar } from "./Sidebar";
 import { CommandPalette } from "./CommandPalette";
 import { Topbar } from "./Topbar";
 import { PlanRouteGuard } from "@/components/guards/PlanRouteGuard";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { resolveDashboardPersona } from "@/lib/dashboard/capabilities";
-import { prewarmDashboardData } from "@/lib/client/api";
+import { prewarmDashboardData, prewarmRouteData } from "@/lib/client/api";
 
 export const TenantShellFrame = ({
   session,
@@ -26,6 +27,8 @@ export const TenantShellFrame = ({
     role: session.role,
     permissions: session.permissions
   });
+  const pathname = usePathname();
+  const prewarmScheduledRef = useRef(false);
 
   useEffect(() => {
     try {
@@ -37,7 +40,42 @@ export const TenantShellFrame = ({
   }, []);
 
   useEffect(() => {
-    prewarmDashboardData(persona);
+    if (!pathname) return;
+    prewarmRouteData(pathname);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (prewarmScheduledRef.current) return;
+    prewarmScheduledRef.current = true;
+
+    let timeoutId: number | null = null;
+    let idleId: number | null = null;
+    const run = () => prewarmDashboardData(persona);
+
+    timeoutId = window.setTimeout(() => {
+      const requestIdleCallbackFn = (window as Window & {
+        requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number;
+      }).requestIdleCallback;
+
+      if (typeof requestIdleCallbackFn === "function") {
+        idleId = requestIdleCallbackFn(run, { timeout: 1200 });
+      } else {
+        run();
+      }
+    }, 700);
+
+    return () => {
+      if (timeoutId !== null) window.clearTimeout(timeoutId);
+      if (idleId !== null) {
+        const cancelIdleCallbackFn = (window as Window & {
+          cancelIdleCallback?: (id: number) => void;
+        }).cancelIdleCallback;
+        if (typeof cancelIdleCallbackFn === "function") {
+          cancelIdleCallbackFn(idleId);
+        }
+      }
+      prewarmScheduledRef.current = false;
+    };
   }, [persona]);
 
   const toggleCollapsed = () => {
@@ -95,13 +133,3 @@ export const TenantShellFrame = ({
     </DashboardLayout>
   );
 };
-
-
-
-
-
-
-
-
-
-

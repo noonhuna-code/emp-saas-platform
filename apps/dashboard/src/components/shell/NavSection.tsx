@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import type { NavigationItem } from "@/navigation/navigation.config";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { prewarmRouteData } from "@/lib/client/api";
 import { cn } from "@/lib/utils";
 
 const ICONS: Record<string, LucideIcon> = {
@@ -74,14 +75,13 @@ export const NavSection = ({
   const pathname = usePathname();
   const router = useRouter();
 
-  const prefetchTargets = items.slice(0, 8);
+  const prefetchTargets = React.useMemo(() => items.slice(0, 8), [items]);
 
   React.useEffect(() => {
     for (const item of prefetchTargets) {
       router.prefetch(item.href);
     }
   }, [router, prefetchTargets]);
-
 
   if (items.length === 0) {
     return <EmptyState title="No modules enabled" subtitle="Your current plan does not expose tenant modules." compact />;
@@ -105,7 +105,11 @@ export const NavSection = ({
             aria-current={isActive ? "page" : undefined}
             prefetch
             title={collapsed ? item.label : undefined}
-            onMouseEnter={() => router.prefetch(item.href)}
+            onMouseEnter={() => {
+              router.prefetch(item.href);
+              prewarmRouteData(item.href);
+            }}
+            onFocus={() => prewarmRouteData(item.href)}
             onClick={onNavigate}
           >
             <span className="nav-section__icon-wrap">

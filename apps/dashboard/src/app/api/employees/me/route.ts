@@ -14,7 +14,7 @@ export async function GET() {
     }
 
     const cacheKey = `${route.ctx.companyId}:${route.ctx.userId}:${endpoint}`;
-    const cached = getCached<{ employeeId: string }>(cacheKey, 15000);
+    const cached = getCached<{ employeeId: string }>(cacheKey, 45000);
     if (cached) {
       return finalizeRoute(
         route,
@@ -50,3 +50,4 @@ export async function GET() {
     return finalizeRoute(route, endpoint, handleRouteError(error, "Unable to resolve employee", route.requestId));
   }
 }
+

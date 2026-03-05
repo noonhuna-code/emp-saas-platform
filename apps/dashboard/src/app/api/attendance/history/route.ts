@@ -29,7 +29,7 @@ export async function GET(request: Request) {
     const statusFilter = (url.searchParams.get("status") ?? "").trim().toLowerCase();
 
     const cacheKey = `${ctx.companyId}:${ctx.userId}:${endpoint}:${page}:${pageSize}:${dateFrom}:${dateTo}:${statusFilter}`;
-    const cached = getCached<any>(cacheKey, 15000);
+    const cached = getCached<any>(cacheKey, 45000);
     if (cached) {
       return finalizeRoute(
         route,
@@ -75,3 +75,4 @@ const result = await getAttendanceHistory(ctx, {
     return finalizeRoute(route, endpoint, jsonError("Unable to load attendance history", 500, route.requestId));
   }
 }
+
