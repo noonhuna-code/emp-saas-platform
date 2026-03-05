@@ -27,6 +27,21 @@ export async function GET(request: Request) {
     const year = yearParam ? Number(yearParam) : undefined;
     const resolvedYear = Number.isFinite(year) ? year : undefined;
 
+    const cacheKey = `${ctx.companyId}:${ctx.userId}:${endpoint}:${employeeId}:${resolvedYear ?? ""}`;
+    const cached = getCached<any>(cacheKey, 15000);
+    if (cached) {
+      return finalizeRoute(
+        route,
+        endpoint,
+        NextResponse.json({ ok: true, data: cached }, {
+          status: 200,
+          headers: {
+            "cache-control": "private, max-age=0, s-maxage=15, stale-while-revalidate=30"
+          }
+        })
+      );
+    }
+
     const result = await listLeaveBalances(ctx, employeeId, resolvedYear);
     if (!result.ok) {
       return finalizeRoute(route, endpoint, jsonServiceError(result.error, "Leave balances lookup failed", route.requestId));
@@ -34,7 +49,16 @@ export async function GET(request: Request) {
 
     setCached(cacheKey, result.data);
 
-    return finalizeRoute(route, endpoint, NextResponse.json({ ok: true, data: result.data }, { status: 200, headers: { "cache-control": "private, max-age=0, s-maxage=15, stale-while-revalidate=30" } }));
+    return finalizeRoute(
+      route,
+      endpoint,
+      NextResponse.json({ ok: true, data: result.data }, {
+        status: 200,
+        headers: {
+          "cache-control": "private, max-age=0, s-maxage=15, stale-while-revalidate=30"
+        }
+      })
+    );
   } catch (error) {
     return finalizeRoute(route, endpoint, handleRouteError(error, "Unable to load leave balances", route.requestId));
   }

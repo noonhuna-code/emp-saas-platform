@@ -13,12 +13,39 @@ export async function GET() {
       return finalizeRoute(route, endpoint, jsonError("Authentication required", 401, route.requestId));
     }
 
+    const cacheKey = `${route.ctx.companyId}:${route.ctx.userId}:${endpoint}`;
+    const cached = getCached<{ employeeId: string }>(cacheKey, 15000);
+    if (cached) {
+      return finalizeRoute(
+        route,
+        endpoint,
+        NextResponse.json({ ok: true, data: cached }, {
+          status: 200,
+          headers: {
+            "cache-control": "private, max-age=0, s-maxage=15, stale-while-revalidate=30"
+          }
+        })
+      );
+    }
+
     const employeeId = await resolveCurrentEmployeeId(route.ctx);
     if (!employeeId) {
       return finalizeRoute(route, endpoint, jsonError("Employee record not found", 404, route.requestId));
     }
 
-    return finalizeRoute(route, endpoint, NextResponse.json({ ok: true, data: { employeeId } }, { status: 200 }));
+    const payload = { employeeId };
+    setCached(cacheKey, payload);
+
+    return finalizeRoute(
+      route,
+      endpoint,
+      NextResponse.json({ ok: true, data: payload }, {
+        status: 200,
+        headers: {
+          "cache-control": "private, max-age=0, s-maxage=15, stale-while-revalidate=30"
+        }
+      })
+    );
   } catch (error) {
     return finalizeRoute(route, endpoint, handleRouteError(error, "Unable to resolve employee", route.requestId));
   }

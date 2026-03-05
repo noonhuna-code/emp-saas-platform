@@ -19,14 +19,20 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const limitRaw = Number(url.searchParams.get("limit") ?? 50);
     const limit = Number.isFinite(limitRaw) ? limitRaw : 50;
+    const unreadOnly = url.searchParams.get("unreadOnly") === "1";
 
-    const cacheKey = `${route.ctx.companyId}:${route.ctx.userId}:${endpoint}:${limit}`;
+    const cacheKey = `${route.ctx.companyId}:${route.ctx.userId}:${endpoint}:${limit}:${unreadOnly ? "1" : "0"}`;
     const cached = getCached<any>(cacheKey, 15000);
     if (cached) {
-      return finalizeRoute(route, endpoint, NextResponse.json({ ok: true, data: cached, requestId: route.requestId }, { status: 200, headers: { "cache-control": "private, max-age=0, s-maxage=15, stale-while-revalidate=30" } }));
+      return finalizeRoute(
+        route,
+        endpoint,
+        NextResponse.json(
+          { ok: true, data: cached, requestId: route.requestId },
+          { status: 200, headers: { "cache-control": "private, max-age=0, s-maxage=15, stale-while-revalidate=30" } }
+        )
+      );
     }
-
-    const unreadOnly = url.searchParams.get("unreadOnly") === "1";
 
     const result = await listWorkspaceNotifications(route.ctx, { limit, unreadOnly });
     if (!result.ok) {
@@ -39,7 +45,14 @@ export async function GET(request: Request) {
 
     setCached(cacheKey, result.data);
 
-    return finalizeRoute(route, endpoint, NextResponse.json({ ok: true, data: result.data, requestId: route.requestId }, { status: 200, headers: { "cache-control": "private, max-age=0, s-maxage=15, stale-while-revalidate=30" } }));
+    return finalizeRoute(
+      route,
+      endpoint,
+      NextResponse.json(
+        { ok: true, data: result.data, requestId: route.requestId },
+        { status: 200, headers: { "cache-control": "private, max-age=0, s-maxage=15, stale-while-revalidate=30" } }
+      )
+    );
   } catch (error) {
     return finalizeRoute(route, endpoint, handleRouteError(error, "Unable to load notifications", route.requestId));
   }
@@ -77,4 +90,3 @@ export async function POST(request: Request) {
     return finalizeRoute(route, endpoint, handleRouteError(error, "Unable to update notifications", route.requestId));
   }
 }
-

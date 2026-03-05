@@ -191,24 +191,24 @@ export const fetchEmployeeDetail = async (
 };
 
 export const fetchEmployeeMe = async (): Promise<DashboardApiResult<{ employeeId: string }>> => {
-  const response = await fetch("/api/employees/me", { cache: "no-store" });
-  return parseJson<{ employeeId: string }>(response);
+  const response = await fetchWithCache<{ employeeId: string }>("/api/employees/me");
+  return response;
 };
 export const fetchCurrentEmployeeId = async (): Promise<DashboardApiResult<{ employeeId: string }>> => {
-  const response = await fetch("/api/employees/me", { cache: "no-store" });
-  return parseJson<{ employeeId: string }>(response);
+  const response = await fetchWithCache<{ employeeId: string }>("/api/employees/me");
+  return response;
 };
 
 export const fetchEmployeeProfile = async (
   employeeId: string
 ): Promise<DashboardApiResult<EmployeeProfileResponse>> => {
-  const response = await fetch(`/api/employees/${employeeId}/profile`, { cache: "no-store" });
-  return parseJson<EmployeeProfileResponse>(response);
+  const response = await fetchWithCache<EmployeeProfileResponse>(`/api/employees/${employeeId}/profile`);
+  return response;
 };
 
 export const fetchEmployeeLookups = async (): Promise<DashboardApiResult<EmployeeLookupResponse>> => {
-  const response = await fetch("/api/employees/lookups", { cache: "no-store" });
-  return parseJson<EmployeeLookupResponse>(response);
+  const response = await fetchWithCache<EmployeeLookupResponse>("/api/employees/lookups");
+  return response;
 };
 
 export const updatePersonalDetails = async (
@@ -347,13 +347,13 @@ export const fetchEmployeeDashboard = async (): Promise<DashboardApiResult<Emplo
 };
 
 export const fetchManagerDashboard = async (): Promise<DashboardApiResult<ManagerDashboardResponse>> => {
-  const response = await fetch("/api/dashboard/manager", { cache: "no-store" });
-  return parseJson<ManagerDashboardResponse>(response);
+  const response = await fetchWithCache<ManagerDashboardResponse>("/api/dashboard/manager");
+  return response;
 };
 
 export const fetchAdminDashboard = async (): Promise<DashboardApiResult<AdminDashboardResponse>> => {
-  const response = await fetch("/api/dashboard/admin", { cache: "no-store" });
-  return parseJson<AdminDashboardResponse>(response);
+  const response = await fetchWithCache<AdminDashboardResponse>("/api/dashboard/admin");
+  return response;
 };
 
 export const fetchOvertimeRequests = async (params: {
@@ -986,8 +986,8 @@ export const fetchWorkspaceNotes = async (
 ): Promise<DashboardApiResult<WorkspaceNotesResponse>> => {
   const query = new URLSearchParams();
   query.set("limit", String(limit));
-  const response = await fetch(`/api/workspace/notes?${query.toString()}`, { cache: "no-store" });
-  return parseJson<WorkspaceNotesResponse>(response);
+  const response = await fetchWithCache<WorkspaceNotesResponse>(`/api/workspace/notes?${query.toString()}`);
+  return response;
 };
 
 export const createWorkspaceNote = async (payload: {
@@ -1032,7 +1032,7 @@ export const fetchWorkspaceContacts = async (
 ): Promise<DashboardApiResult<WorkspaceContactsResponse>> => {
   const query = new URLSearchParams();
   query.set("limit", String(limit));
-  const response = await fetch(`/api/workspace/contacts?${query.toString()}`, { cache: "no-store" });
+  const response = await fetchWithCache<WorkspaceContactsResponse>(`/api/workspace/contacts?${query.toString()}`);
   return response;
 };
 
@@ -1164,5 +1164,49 @@ export const reviewShiftSwap = async (payload: {
     { "Idempotency-Key": crypto.randomUUID() }
   );
 };
+
+
+
+
+type DashboardPrewarmPersona = "employee" | "team_lead" | "manager" | "hr" | "admin" | "founder" | "platform_owner";
+
+export const prewarmDashboardData = (persona: DashboardPrewarmPersona): void => {
+  const month = new Date().toISOString().slice(0, 7);
+  const tasks: Array<Promise<unknown>> = [];
+
+  if (persona === "employee" || persona === "team_lead" || persona === "manager" || persona === "hr") {
+    tasks.push(fetchEmployeeDashboard());
+    tasks.push(fetchAttendanceToday());
+    tasks.push(fetchWorkspaceNotifications({ limit: 30 }));
+    tasks.push(fetchWorkspaceResources(20));
+    tasks.push(fetchWorkspaceNotes(20));
+    tasks.push(fetchWorkspaceCalendar(month));
+    tasks.push(fetchEmployeeMe());
+  }
+
+  if (persona === "employee") {
+    tasks.push(fetchEmployeeLookups());
+  }
+
+  if (persona === "manager" || persona === "team_lead") {
+    tasks.push(fetchManagerDashboard());
+    tasks.push(fetchShiftSwapRequests({ scope: "mine", limit: 30 }));
+  }
+
+  if (persona === "admin" || persona === "founder" || persona === "hr") {
+    tasks.push(fetchAdminDashboard());
+  }
+
+  if (persona === "platform_owner") {
+    tasks.push(fetchPlatformOverview());
+  }
+
+  if (tasks.length === 0) {
+    return;
+  }
+
+  void Promise.allSettled(tasks);
+};
+
 
 

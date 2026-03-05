@@ -260,8 +260,8 @@ export const getEmployeeDashboard = async (ctx: ServiceContext, options?: { incl
           .maybeSingle()
       : { data: null };
 
-    const myNotes = includeCollections
-      ? await ctx.supabase
+    const myNotesPromise = includeCollections
+      ? ctx.supabase
           .from("employee_workspace_notes")
           .select("id, title, body, file_url, file_name, is_pinned, updated_at")
           .eq("company_id", ctx.companyId)
@@ -270,31 +270,38 @@ export const getEmployeeDashboard = async (ctx: ServiceContext, options?: { incl
           .order("is_pinned", { ascending: false })
           .order("updated_at", { ascending: false })
           .limit(5)
-      : { data: [] };
+      : Promise.resolve({ data: [] as any[] });
 
-    const noteCountResult = await ctx.supabase
-      .from("employee_workspace_notes")
-      .select("id", { head: true, count: "exact" })
-      .eq("company_id", ctx.companyId)
-      .eq("employee_id", employeeId)
-      .is("is_deleted", false);
+    const noteCountPromise = includeCollections
+      ? ctx.supabase
+          .from("employee_workspace_notes")
+          .select("id", { head: true, count: "exact" })
+          .eq("company_id", ctx.companyId)
+          .eq("employee_id", employeeId)
+          .is("is_deleted", false)
+      : Promise.resolve({ count: 0 } as any);
 
-    const noteFilesCountResult = await ctx.supabase
-      .from("employee_workspace_notes")
-      .select("id", { head: true, count: "exact" })
-      .eq("company_id", ctx.companyId)
-      .eq("employee_id", employeeId)
-      .not("file_url", "is", null)
-      .is("is_deleted", false);
+    const noteFilesCountPromise = includeCollections
+      ? ctx.supabase
+          .from("employee_workspace_notes")
+          .select("id", { head: true, count: "exact" })
+          .eq("company_id", ctx.companyId)
+          .eq("employee_id", employeeId)
+          .not("file_url", "is", null)
+          .is("is_deleted", false)
+      : Promise.resolve({ count: 0 } as any);
 
-    const employeeDocumentCountResult = await ctx.supabase
-      .from("employee_documents")
-      .select("id", { head: true, count: "exact" })
-      .eq("company_id", ctx.companyId)
-      .eq("employee_id", employeeId)
-      .is("is_deleted", false);
-    const resources = includeCollections
-      ? await ctx.supabase
+    const employeeDocumentCountPromise = includeCollections
+      ? ctx.supabase
+          .from("employee_documents")
+          .select("id", { head: true, count: "exact" })
+          .eq("company_id", ctx.companyId)
+          .eq("employee_id", employeeId)
+          .is("is_deleted", false)
+      : Promise.resolve({ count: 0 } as any);
+
+    const resourcesPromise = includeCollections
+      ? ctx.supabase
           .from("company_resources")
           .select("id, title, resource_type, summary, link_url, file_url, created_at")
           .eq("company_id", ctx.companyId)
@@ -303,24 +310,28 @@ export const getEmployeeDashboard = async (ctx: ServiceContext, options?: { incl
           .order("sort_order", { ascending: true })
           .order("created_at", { ascending: false })
           .limit(6)
-      : { data: [] };
+      : Promise.resolve({ data: [] as any[] });
 
-    const resourcesCountResult = await ctx.supabase
-      .from("company_resources")
-      .select("id", { head: true, count: "exact" })
-      .eq("company_id", ctx.companyId)
-      .eq("is_active", true)
-      .is("is_deleted", false);
+    const resourcesCountPromise = includeCollections
+      ? ctx.supabase
+          .from("company_resources")
+          .select("id", { head: true, count: "exact" })
+          .eq("company_id", ctx.companyId)
+          .eq("is_active", true)
+          .is("is_deleted", false)
+      : Promise.resolve({ count: 0 } as any);
 
-    const sopCountResult = await ctx.supabase
-      .from("company_resources")
-      .select("id", { head: true, count: "exact" })
-      .eq("company_id", ctx.companyId)
-      .eq("is_active", true)
-      .eq("resource_type", "sop")
-      .is("is_deleted", false);
+    const sopCountPromise = includeCollections
+      ? ctx.supabase
+          .from("company_resources")
+          .select("id", { head: true, count: "exact" })
+          .eq("company_id", ctx.companyId)
+          .eq("is_active", true)
+          .eq("resource_type", "sop")
+          .is("is_deleted", false)
+      : Promise.resolve({ count: 0 } as any);
 
-    const unreadNotificationsResult = await ctx.supabase
+    const unreadNotificationsPromise = ctx.supabase
       .from("notifications")
       .select("id", { head: true, count: "exact" })
       .eq("company_id", ctx.companyId)
@@ -328,33 +339,37 @@ export const getEmployeeDashboard = async (ctx: ServiceContext, options?: { incl
       .eq("is_read", false)
       .is("is_deleted", false);
 
-    const openLoanRequestsResult = await ctx.supabase
-      .from("financial_obligation_requests")
-      .select("id", { head: true, count: "exact" })
-      .eq("company_id", ctx.companyId)
-      .eq("employee_id", employeeId)
-      .in("status", ["submitted", "under_review", "approved"])
-      .order("created_at", { ascending: false });
+    const openLoanRequestsPromise = includeCollections
+      ? ctx.supabase
+          .from("financial_obligation_requests")
+          .select("id", { head: true, count: "exact" })
+          .eq("company_id", ctx.companyId)
+          .eq("employee_id", employeeId)
+          .in("status", ["submitted", "under_review", "approved"])
+          .order("created_at", { ascending: false })
+      : Promise.resolve({ count: 0 } as any);
 
-    const activeLoansResult = await ctx.supabase
-      .from("financial_obligations")
-      .select("id", { head: true, count: "exact" })
-      .eq("company_id", ctx.companyId)
-      .eq("employee_id", employeeId)
-      .in("obligation_status", ["approved_pending_disbursement", "disbursed_active", "repayment_in_progress"]);
+    const activeLoansPromise = includeCollections
+      ? ctx.supabase
+          .from("financial_obligations")
+          .select("id", { head: true, count: "exact" })
+          .eq("company_id", ctx.companyId)
+          .eq("employee_id", employeeId)
+          .in("obligation_status", ["approved_pending_disbursement", "disbursed_active", "repayment_in_progress"])
+      : Promise.resolve({ count: 0 } as any);
 
-    const myLoanRequests = includeCollections
-      ? await ctx.supabase
+    const myLoanRequestsPromise = includeCollections
+      ? ctx.supabase
           .from("financial_obligation_requests")
           .select("id, obligation_type, status, requested_amount, currency_code, created_at")
           .eq("company_id", ctx.companyId)
           .eq("employee_id", employeeId)
           .order("created_at", { ascending: false })
           .limit(5)
-      : { data: [] };
+      : Promise.resolve({ data: [] as any[] });
 
-    const recentChat = includeCollections
-      ? await ctx.supabase
+    const recentChatPromise = includeCollections
+      ? ctx.supabase
           .from("employee_chat_messages")
           .select("id, sender_employee_id, recipient_employee_id, message_text, created_at")
           .eq("company_id", ctx.companyId)
@@ -362,16 +377,18 @@ export const getEmployeeDashboard = async (ctx: ServiceContext, options?: { incl
           .is("is_deleted", false)
           .order("created_at", { ascending: false })
           .limit(8)
-      : { data: [] };
+      : Promise.resolve({ data: [] as any[] });
 
-    const chatMessageCountResult = await ctx.supabase
-      .from("employee_chat_messages")
-      .select("id", { head: true, count: "exact" })
-      .eq("company_id", ctx.companyId)
-      .or(`sender_employee_id.eq.${employeeId},recipient_employee_id.eq.${employeeId}`)
-      .is("is_deleted", false);
+    const chatMessageCountPromise = includeCollections
+      ? ctx.supabase
+          .from("employee_chat_messages")
+          .select("id", { head: true, count: "exact" })
+          .eq("company_id", ctx.companyId)
+          .or(`sender_employee_id.eq.${employeeId},recipient_employee_id.eq.${employeeId}`)
+          .is("is_deleted", false)
+      : Promise.resolve({ count: 0 } as any);
 
-    const assignments = await ctx.supabase
+    const assignmentsPromise = ctx.supabase
       .from("employee_shift_assignments")
       .select("shift_template_id, effective_from, effective_to")
       .eq("company_id", ctx.companyId)
@@ -380,6 +397,38 @@ export const getEmployeeDashboard = async (ctx: ServiceContext, options?: { incl
       .lte("effective_from", today)
       .order("effective_from", { ascending: false })
       .limit(3);
+
+    const [
+      myNotes,
+      noteCountResult,
+      noteFilesCountResult,
+      employeeDocumentCountResult,
+      resources,
+      resourcesCountResult,
+      sopCountResult,
+      unreadNotificationsResult,
+      openLoanRequestsResult,
+      activeLoansResult,
+      myLoanRequests,
+      recentChat,
+      chatMessageCountResult,
+      assignments
+    ] = await Promise.all([
+      myNotesPromise,
+      noteCountPromise,
+      noteFilesCountPromise,
+      employeeDocumentCountPromise,
+      resourcesPromise,
+      resourcesCountPromise,
+      sopCountPromise,
+      unreadNotificationsPromise,
+      openLoanRequestsPromise,
+      activeLoansPromise,
+      myLoanRequestsPromise,
+      recentChatPromise,
+      chatMessageCountPromise,
+      assignmentsPromise
+    ]);
 
     const shiftTemplateIds = Array.from(
       new Set((assignments.data ?? []).map((row) => row.shift_template_id).filter(Boolean))
@@ -459,6 +508,18 @@ export const getEmployeeDashboard = async (ctx: ServiceContext, options?: { incl
     const participantNameByEmployeeId = new Map<string, string | null>(
       (chatParticipants.data ?? []).map((row: any) => [row.id as string, (row.user_profiles?.full_name as string | null) ?? null])
     );
+
+    const breakRecord = attendanceRecord.data?.id
+      ? await ctx.supabase
+          .from("attendance_breaks")
+          .select("id")
+          .eq("company_id", ctx.companyId)
+          .eq("attendance_id", attendanceRecord.data.id as string)
+          .is("break_end", null)
+          .is("is_deleted", false)
+          .limit(1)
+          .maybeSingle()
+      : { data: null };
 
     const isOnBreak = Boolean(breakRecord.data?.id);
     const record = attendanceRecord.data;
@@ -812,6 +873,8 @@ export const getAdminDashboard = async (ctx: ServiceContext): Promise<ServiceRes
     return { ok: false, error: err instanceof Error ? err.message : "Admin dashboard failed" };
   }
 };
+
+
 
 
 

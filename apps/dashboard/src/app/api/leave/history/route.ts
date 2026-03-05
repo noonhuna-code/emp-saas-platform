@@ -29,7 +29,23 @@ export async function GET(request: Request) {
     }
 
     const status = statusParam ? statusParam.split(",").filter(Boolean) : undefined;
+    const statusKey = status?.join(",") ?? "";
     const offset = Number.isFinite(page) && Number.isFinite(pageSize) ? (Math.max(1, page) - 1) * pageSize : 0;
+
+    const cacheKey = `${ctx.companyId}:${ctx.userId}:${endpoint}:${employeeId}:${statusKey}:${dateFrom ?? ""}:${dateTo ?? ""}:${page}:${pageSize}`;
+    const cached = getCached<any>(cacheKey, 15000);
+    if (cached) {
+      return finalizeRoute(
+        route,
+        endpoint,
+        NextResponse.json({ ok: true, data: cached }, {
+          status: 200,
+          headers: {
+            "cache-control": "private, max-age=0, s-maxage=15, stale-while-revalidate=30"
+          }
+        })
+      );
+    }
 
     const result = await listLeaveRequests(ctx, employeeId, {
       status,
@@ -45,7 +61,16 @@ export async function GET(request: Request) {
 
     setCached(cacheKey, result.data);
 
-    return finalizeRoute(route, endpoint, NextResponse.json({ ok: true, data: result.data }, { status: 200, headers: { "cache-control": "private, max-age=0, s-maxage=15, stale-while-revalidate=30" } }));
+    return finalizeRoute(
+      route,
+      endpoint,
+      NextResponse.json({ ok: true, data: result.data }, {
+        status: 200,
+        headers: {
+          "cache-control": "private, max-age=0, s-maxage=15, stale-while-revalidate=30"
+        }
+      })
+    );
   } catch (error) {
     return finalizeRoute(route, endpoint, handleRouteError(error, "Unable to load leave history", route.requestId));
   }

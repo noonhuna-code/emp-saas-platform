@@ -9,6 +9,7 @@ import { Topbar } from "./Topbar";
 import { PlanRouteGuard } from "@/components/guards/PlanRouteGuard";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { resolveDashboardPersona } from "@/lib/dashboard/capabilities";
+import { prewarmDashboardData } from "@/lib/client/api";
 
 export const TenantShellFrame = ({
   session,
@@ -34,6 +35,10 @@ export const TenantShellFrame = ({
       setCollapsed(false);
     }
   }, []);
+
+  useEffect(() => {
+    prewarmDashboardData(persona);
+  }, [persona]);
 
   const toggleCollapsed = () => {
     setCollapsed((prev) => {
@@ -90,6 +95,8 @@ export const TenantShellFrame = ({
     </DashboardLayout>
   );
 };
+
+
 
 
 
