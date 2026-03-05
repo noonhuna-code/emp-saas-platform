@@ -109,7 +109,20 @@ const DEFAULT_TTL = 15000;
 const fetchWithCache = async <T>(url: string, ttlMs: number = DEFAULT_TTL): Promise<DashboardApiResult<T>> => {
   const now = Date.now();
   const existing = GET_CACHE.get(url) as CacheEntry<T> | undefined;
-  if (existing?.value && now - existing.ts < ttlMs) {
+  if (existing?.value) {
+    if (!existing.promise && now - existing.ts >= ttlMs) {
+      const refreshPromise = fetch(url, { cache: "no-store" })
+        .then(parseJson<T>)
+        .then((result) => {
+          GET_CACHE.set(url, { ts: Date.now(), value: result });
+          return result;
+        })
+        .finally(() => {
+          const entry = GET_CACHE.get(url);
+          if (entry) entry.promise = undefined;
+        });
+      GET_CACHE.set(url, { ts: existing.ts, value: existing.value, promise: refreshPromise });
+    }
     return existing.value;
   }
   if (existing?.promise) {
@@ -1151,4 +1164,5 @@ export const reviewShiftSwap = async (payload: {
     { "Idempotency-Key": crypto.randomUUID() }
   );
 };
+
 

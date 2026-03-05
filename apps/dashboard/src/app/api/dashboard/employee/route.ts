@@ -28,7 +28,7 @@ export async function GET() {
         })
       );
     }
-    const result = await getEmployeeDashboard(route.ctx);
+    const result = await getEmployeeDashboard(route.ctx, { includeCollections: false });
     if (!result.ok || !result.data) {
       return finalizeRoute(
         route,

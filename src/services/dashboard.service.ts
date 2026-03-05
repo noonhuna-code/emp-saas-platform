@@ -169,7 +169,7 @@ const requireDashboardEntitlement = async (ctx: ServiceContext): Promise<void> =
   await requireAnyPlanFeature(ctx, ["feature.analytics_standard", "feature.analytics_advanced"]);
 };
 
-export const getEmployeeDashboard = async (ctx: ServiceContext): Promise<ServiceResult<EmployeeDashboardData>> => {
+export const getEmployeeDashboard = async (ctx: ServiceContext, options?: { includeCollections?: boolean }): Promise<ServiceResult<EmployeeDashboardData>> => {
   try {
     await requireDashboardEntitlement(ctx);
     const employeeId = await resolveCurrentEmployeeId(ctx);
@@ -177,50 +177,38 @@ export const getEmployeeDashboard = async (ctx: ServiceContext): Promise<Service
       return { ok: false, error: "Employee record not found" };
     }
 
+    const includeCollections = options?.includeCollections ?? true;
+
     const today = new Date().toISOString().slice(0, 10);
-
-    const attendanceRecord = await ctx.supabase
-      .from("attendance_records")
-      .select("id, check_in, check_out, work_minutes, overtime_minutes, late_minutes")
-      .eq("company_id", ctx.companyId)
-      .eq("employee_id", employeeId)
-      .eq("attendance_date", today)
-      .is("is_deleted", false)
-      .maybeSingle();
-
-    const breakRecord = attendanceRecord.data?.id
-      ? await ctx.supabase
-          .from("attendance_breaks")
-          .select("id")
-          .eq("company_id", ctx.companyId)
-          .eq("attendance_id", attendanceRecord.data.id)
-          .is("break_end", null)
-          .is("is_deleted", false)
-          .limit(1)
-          .maybeSingle()
-      : { data: null };
-
-    const leaveBalances = await ctx.supabase
-      .from("leave_balances")
-      .select("leave_type_id, year, entitled_days, used_days")
-      .eq("company_id", ctx.companyId)
-      .eq("employee_id", employeeId)
-      .order("year", { ascending: false });
-
-    const employeeRecord = await ctx.supabase
-      .from("employees")
-      .select("id, employee_code, designation, manager_id, department_id, team_id, user_profile_id")
-      .eq("company_id", ctx.companyId)
-      .eq("id", employeeId)
-      .is("is_deleted", false)
-      .maybeSingle();
-
-    const companyInfo = await ctx.supabase
-      .from("companies")
-      .select("id, name, slug")
-      .eq("id", ctx.companyId)
-      .is("is_deleted", false)
-      .maybeSingle();
+    const [attendanceRecord, leaveBalances, employeeRecord, companyInfo] = await Promise.all([
+      ctx.supabase
+        .from("attendance_records")
+        .select("id, check_in, check_out, work_minutes, overtime_minutes, late_minutes")
+        .eq("company_id", ctx.companyId)
+        .eq("employee_id", employeeId)
+        .eq("attendance_date", today)
+        .is("is_deleted", false)
+        .maybeSingle(),
+      ctx.supabase
+        .from("leave_balances")
+        .select("leave_type_id, year, entitled_days, used_days")
+        .eq("company_id", ctx.companyId)
+        .eq("employee_id", employeeId)
+        .order("year", { ascending: false }),
+      ctx.supabase
+        .from("employees")
+        .select("id, employee_code, designation, manager_id, department_id, team_id, user_profile_id")
+        .eq("company_id", ctx.companyId)
+        .eq("id", employeeId)
+        .is("is_deleted", false)
+        .maybeSingle(),
+      ctx.supabase
+        .from("companies")
+        .select("id, name, slug")
+        .eq("id", ctx.companyId)
+        .is("is_deleted", false)
+        .maybeSingle()
+    ]);
 
     const employeeProfile = employeeRecord.data?.user_profile_id
       ? await ctx.supabase
@@ -272,15 +260,17 @@ export const getEmployeeDashboard = async (ctx: ServiceContext): Promise<Service
           .maybeSingle()
       : { data: null };
 
-    const myNotes = await ctx.supabase
-      .from("employee_workspace_notes")
-      .select("id, title, body, file_url, file_name, is_pinned, updated_at")
-      .eq("company_id", ctx.companyId)
-      .eq("employee_id", employeeId)
-      .is("is_deleted", false)
-      .order("is_pinned", { ascending: false })
-      .order("updated_at", { ascending: false })
-      .limit(5);
+    const myNotes = includeCollections
+      ? await ctx.supabase
+          .from("employee_workspace_notes")
+          .select("id, title, body, file_url, file_name, is_pinned, updated_at")
+          .eq("company_id", ctx.companyId)
+          .eq("employee_id", employeeId)
+          .is("is_deleted", false)
+          .order("is_pinned", { ascending: false })
+          .order("updated_at", { ascending: false })
+          .limit(5)
+      : { data: [] };
 
     const noteCountResult = await ctx.supabase
       .from("employee_workspace_notes")
@@ -303,16 +293,17 @@ export const getEmployeeDashboard = async (ctx: ServiceContext): Promise<Service
       .eq("company_id", ctx.companyId)
       .eq("employee_id", employeeId)
       .is("is_deleted", false);
-
-    const resources = await ctx.supabase
-      .from("company_resources")
-      .select("id, title, resource_type, summary, link_url, file_url, created_at")
-      .eq("company_id", ctx.companyId)
-      .eq("is_active", true)
-      .is("is_deleted", false)
-      .order("sort_order", { ascending: true })
-      .order("created_at", { ascending: false })
-      .limit(6);
+    const resources = includeCollections
+      ? await ctx.supabase
+          .from("company_resources")
+          .select("id, title, resource_type, summary, link_url, file_url, created_at")
+          .eq("company_id", ctx.companyId)
+          .eq("is_active", true)
+          .is("is_deleted", false)
+          .order("sort_order", { ascending: true })
+          .order("created_at", { ascending: false })
+          .limit(6)
+      : { data: [] };
 
     const resourcesCountResult = await ctx.supabase
       .from("company_resources")
@@ -352,22 +343,26 @@ export const getEmployeeDashboard = async (ctx: ServiceContext): Promise<Service
       .eq("employee_id", employeeId)
       .in("obligation_status", ["approved_pending_disbursement", "disbursed_active", "repayment_in_progress"]);
 
-    const myLoanRequests = await ctx.supabase
-      .from("financial_obligation_requests")
-      .select("id, obligation_type, status, requested_amount, currency_code, created_at")
-      .eq("company_id", ctx.companyId)
-      .eq("employee_id", employeeId)
-      .order("created_at", { ascending: false })
-      .limit(5);
+    const myLoanRequests = includeCollections
+      ? await ctx.supabase
+          .from("financial_obligation_requests")
+          .select("id, obligation_type, status, requested_amount, currency_code, created_at")
+          .eq("company_id", ctx.companyId)
+          .eq("employee_id", employeeId)
+          .order("created_at", { ascending: false })
+          .limit(5)
+      : { data: [] };
 
-    const recentChat = await ctx.supabase
-      .from("employee_chat_messages")
-      .select("id, sender_employee_id, recipient_employee_id, message_text, created_at")
-      .eq("company_id", ctx.companyId)
-      .or(`sender_employee_id.eq.${employeeId},recipient_employee_id.eq.${employeeId}`)
-      .is("is_deleted", false)
-      .order("created_at", { ascending: false })
-      .limit(8);
+    const recentChat = includeCollections
+      ? await ctx.supabase
+          .from("employee_chat_messages")
+          .select("id, sender_employee_id, recipient_employee_id, message_text, created_at")
+          .eq("company_id", ctx.companyId)
+          .or(`sender_employee_id.eq.${employeeId},recipient_employee_id.eq.${employeeId}`)
+          .is("is_deleted", false)
+          .order("created_at", { ascending: false })
+          .limit(8)
+      : { data: [] };
 
     const chatMessageCountResult = await ctx.supabase
       .from("employee_chat_messages")
@@ -414,45 +409,45 @@ export const getEmployeeDashboard = async (ctx: ServiceContext): Promise<Service
         effective_to: assignment.effective_to ?? null
       };
     });
+    const [payslips, notifications, lastLogin, profileCompleteness] = await Promise.all([
+      ctx.supabase
+        .from("payslips")
+        .select("id, generated_at, snapshot_json")
+        .eq("company_id", ctx.companyId)
+        .eq("employee_id", employeeId)
+        .is("is_deleted", false)
+        .order("generated_at", { ascending: false })
+        .limit(3),
+      ctx.supabase
+        .from("notifications")
+        .select("id, title, message, created_at, is_read")
+        .eq("company_id", ctx.companyId)
+        .eq("recipient_profile_id", ctx.userProfileId)
+        .is("is_deleted", false)
+        .order("created_at", { ascending: false })
+        .limit(3),
+      ctx.supabase
+        .from("login_events")
+        .select("risk_score, created_at")
+        .eq("company_id", ctx.companyId)
+        .eq("profile_id", ctx.userProfileId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      ctx.supabase.rpc("calculate_employee_profile_completeness", {
+        p_employee_id: employeeId
+      })
+    ]);
 
-    const payslips = await ctx.supabase
-      .from("payslips")
-      .select("id, generated_at, snapshot_json")
-      .eq("company_id", ctx.companyId)
-      .eq("employee_id", employeeId)
-      .is("is_deleted", false)
-      .order("generated_at", { ascending: false })
-      .limit(3);
+    const participantIds = includeCollections
+      ? Array.from(
+          new Set(
+            (recentChat.data ?? []).flatMap((row) => [row.sender_employee_id, row.recipient_employee_id]).filter(Boolean)
+          )
+        )
+      : [];
 
-    const notifications = await ctx.supabase
-      .from("notifications")
-      .select("id, title, message, created_at, is_read")
-      .eq("company_id", ctx.companyId)
-      .eq("recipient_profile_id", ctx.userProfileId)
-      .is("is_deleted", false)
-      .order("created_at", { ascending: false })
-      .limit(5);
-
-    const lastLogin = await ctx.supabase
-      .from("login_events")
-      .select("risk_score, created_at")
-      .eq("company_id", ctx.companyId)
-      .eq("profile_id", ctx.userProfileId)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    const profileCompleteness = await ctx.supabase.rpc("calculate_employee_profile_completeness", {
-      p_employee_id: employeeId
-    });
-
-    const participantIds = Array.from(
-      new Set(
-        (recentChat.data ?? []).flatMap((row) => [row.sender_employee_id, row.recipient_employee_id]).filter(Boolean)
-      )
-    ) as string[];
-
-    const chatParticipants = participantIds.length
+    const chatParticipants = includeCollections && participantIds.length
       ? await ctx.supabase
           .from("employees")
           .select("id, user_profile_id, user_profiles(full_name)")
@@ -817,3 +812,6 @@ export const getAdminDashboard = async (ctx: ServiceContext): Promise<ServiceRes
     return { ok: false, error: err instanceof Error ? err.message : "Admin dashboard failed" };
   }
 };
+
+
+

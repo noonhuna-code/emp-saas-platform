@@ -116,11 +116,8 @@ export const EmployeeDashboard = () => {
     setLoading(true);
     setError(null);
 
-    void Promise.all([
-      fetchEmployeeDashboard(),
-      fetchAttendanceHistory({ pageSize: 14 })
-    ])
-      .then(([dashboardResult, historyResult]) => {
+    void fetchEmployeeDashboard()
+      .then((dashboardResult) => {
         if (!active) return;
 
         if (!dashboardResult.ok || !dashboardResult.data) {
@@ -129,19 +126,24 @@ export const EmployeeDashboard = () => {
         }
 
         setData(dashboardResult.data);
+        setLoading(false);
 
-        if (historyResult.ok && historyResult.data) {
-          setHistoryRows(historyResult.data.rows ?? []);
-        } else {
-          setHistoryRows([]);
-        }
+        setTimeout(() => {
+          if (!active) return;
+          void fetchAttendanceHistory({ pageSize: 7 }).then((historyResult) => {
+            if (!active) return;
+            if (historyResult.ok && historyResult.data) {
+              setHistoryRows(historyResult.data.rows ?? []);
+            } else {
+              setHistoryRows([]);
+            }
+          });
+        }, 0);
       })
       .catch((err: unknown) => {
         if (!active) return;
         setError(err instanceof Error ? err.message : "Unable to load dashboard");
-      })
-      .finally(() => {
-        if (active) setLoading(false);
+        setLoading(false);
       });
 
     return () => {
