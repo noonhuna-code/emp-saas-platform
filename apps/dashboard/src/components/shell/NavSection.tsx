@@ -1,7 +1,8 @@
 "use client";
 
+import React from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import type { LucideIcon } from "lucide-react";
 import {
   Bell,
@@ -71,6 +72,16 @@ export const NavSection = ({
   onNavigate?: () => void;
 }) => {
   const pathname = usePathname();
+  const router = useRouter();
+
+  const prefetchTargets = items.slice(0, 8);
+
+  React.useEffect(() => {
+    for (const item of prefetchTargets) {
+      router.prefetch(item.href);
+    }
+  }, [router, prefetchTargets]);
+
 
   if (items.length === 0) {
     return <EmptyState title="No modules enabled" subtitle="Your current plan does not expose tenant modules." compact />;
@@ -92,7 +103,9 @@ export const NavSection = ({
               isActive ? "nav-section__item--active" : "nav-section__item--idle"
             )}
             aria-current={isActive ? "page" : undefined}
+            prefetch
             title={collapsed ? item.label : undefined}
+            onMouseEnter={() => router.prefetch(item.href)}
             onClick={onNavigate}
           >
             <span className="nav-section__icon-wrap">
