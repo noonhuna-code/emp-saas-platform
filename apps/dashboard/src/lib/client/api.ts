@@ -101,6 +101,36 @@ const parseJson = async <T>(response: Response): Promise<DashboardApiResult<T>> 
   return payload;
 };
 
+
+type CacheEntry<T> = { ts: number; value?: DashboardApiResult<T>; promise?: Promise<DashboardApiResult<T>> };
+const GET_CACHE = new Map<string, CacheEntry<unknown>>();
+const DEFAULT_TTL = 15000;
+
+const fetchWithCache = async <T>(url: string, ttlMs: number = DEFAULT_TTL): Promise<DashboardApiResult<T>> => {
+  const now = Date.now();
+  const existing = GET_CACHE.get(url) as CacheEntry<T> | undefined;
+  if (existing?.value && now - existing.ts < ttlMs) {
+    return existing.value;
+  }
+  if (existing?.promise) {
+    return existing.promise;
+  }
+
+  const promise = fetch(url, { cache: "no-store" })
+    .then(parseJson<T>)
+    .then((result) => {
+      GET_CACHE.set(url, { ts: Date.now(), value: result });
+      return result;
+    })
+    .finally(() => {
+      const entry = GET_CACHE.get(url);
+      if (entry) entry.promise = undefined;
+    });
+
+  GET_CACHE.set(url, { ts: now, promise });
+  return promise;
+};
+
 const postJson = async <T>(
   url: string,
   body: Record<string, unknown>,
@@ -299,8 +329,8 @@ export const deleteEmployeeSkill = async (
 };
 
 export const fetchEmployeeDashboard = async (): Promise<DashboardApiResult<EmployeeDashboardResponse>> => {
-  const response = await fetch("/api/dashboard/employee", { cache: "no-store" });
-  return parseJson<EmployeeDashboardResponse>(response);
+  const response = await fetchWithCache<EmployeeDashboardResponse>("/api/dashboard/employee");
+  return response;
 };
 
 export const fetchManagerDashboard = async (): Promise<DashboardApiResult<ManagerDashboardResponse>> => {
@@ -362,8 +392,8 @@ export const fetchOrgChart = async (): Promise<DashboardApiResult<OrgChartRespon
 };
 
 export const fetchAttendanceToday = async (): Promise<DashboardApiResult<AttendanceTodayResponse>> => {
-  const response = await fetch("/api/attendance/today", { cache: "no-store" });
-  return parseJson<AttendanceTodayResponse>(response);
+  const response = await fetchWithCache<AttendanceTodayResponse>("/api/attendance/today");
+  return response;
 };
 
 export const fetchAttendanceHistory = async (params: {
@@ -381,8 +411,8 @@ export const fetchAttendanceHistory = async (params: {
   if (params.status) query.set("status", params.status);
 
   const suffix = query.toString() ? `?${query.toString()}` : "";
-  const response = await fetch(`/api/attendance/history${suffix}`, { cache: "no-store" });
-  return parseJson<AttendanceHistoryResponse>(response);
+  const response = await fetchWithCache<AttendanceHistoryResponse>(`/api/attendance/history${suffix}`);
+  return response;
 };
 
 export const fetchTeamAttendance = async (params: {
@@ -441,8 +471,8 @@ export const fetchLeaveBalances = async (params: {
   if (params.employeeId) query.set("employeeId", params.employeeId);
   if (typeof params.year === "number") query.set("year", String(params.year));
   const suffix = query.toString() ? `?${query.toString()}` : "";
-  const response = await fetch(`/api/leave/balances${suffix}`, { cache: "no-store" });
-  return parseJson<LeaveBalancesResponse>(response);
+  const response = await fetchWithCache<LeaveBalancesResponse>(`/api/leave/balances${suffix}`);
+  return response;
 };
 
 export const fetchLeaveHistory = async (params: {
@@ -461,8 +491,8 @@ export const fetchLeaveHistory = async (params: {
   if (typeof params.page === "number") query.set("page", String(params.page));
   if (typeof params.pageSize === "number") query.set("pageSize", String(params.pageSize));
   const suffix = query.toString() ? `?${query.toString()}` : "";
-  const response = await fetch(`/api/leave/history${suffix}`, { cache: "no-store" });
-  return parseJson<LeaveHistoryResponse>(response);
+  const response = await fetchWithCache<LeaveHistoryResponse>(`/api/leave/history${suffix}`);
+  return response;
 };
 
 export const applyLeaveRequest = async (
@@ -536,8 +566,8 @@ export const fetchLeaveCalendar = async (params: {
   dateTo: string;
 }): Promise<DashboardApiResult<LeaveCalendarResponse>> => {
   const query = new URLSearchParams({ dateFrom: params.dateFrom, dateTo: params.dateTo });
-  const response = await fetch(`/api/leave/calendar?${query.toString()}`, { cache: "no-store" });
-  return parseJson<LeaveCalendarResponse>(response);
+  const response = await fetchWithCache<LeaveCalendarResponse>(`/api/leave/calendar?${query.toString()}`);
+  return response;
 };
 
 export const fetchUnifiedApprovals = async (): Promise<DashboardApiResult<ApprovalsResponse>> => {
@@ -924,8 +954,8 @@ export const fetchWorkspaceResources = async (
 ): Promise<DashboardApiResult<WorkspaceResourceListResponse>> => {
   const query = new URLSearchParams();
   query.set("limit", String(limit));
-  const response = await fetch(`/api/workspace/resources?${query.toString()}`, { cache: "no-store" });
-  return parseJson<WorkspaceResourceListResponse>(response);
+  const response = await fetchWithCache<WorkspaceResourceListResponse>(`/api/workspace/resources?${query.toString()}`);
+  return response;
 };
 
 export const fetchWorkspaceCalendar = async (
@@ -934,8 +964,8 @@ export const fetchWorkspaceCalendar = async (
   const query = new URLSearchParams();
   if (month) query.set("month", month);
   const suffix = query.toString() ? `?${query.toString()}` : "";
-  const response = await fetch(`/api/workspace/calendar${suffix}`, { cache: "no-store" });
-  return parseJson<WorkspaceCalendarResponse>(response);
+  const response = await fetchWithCache<WorkspaceCalendarResponse>(`/api/workspace/calendar${suffix}`);
+  return response;
 };
 
 export const fetchWorkspaceNotes = async (
@@ -969,8 +999,8 @@ export const fetchWorkspaceChat = async (params: {
   if (params.peerEmployeeId) query.set("peerEmployeeId", params.peerEmployeeId);
   if (typeof params.limit === "number") query.set("limit", String(params.limit));
   const suffix = query.toString() ? `?${query.toString()}` : "";
-  const response = await fetch(`/api/workspace/chat${suffix}`, { cache: "no-store" });
-  return parseJson<WorkspaceChatResponse>(response);
+  const response = await fetchWithCache<WorkspaceChatResponse>(`/api/workspace/chat${suffix}`);
+  return response;
 };
 
 export const sendWorkspaceChat = async (payload: {
@@ -990,7 +1020,7 @@ export const fetchWorkspaceContacts = async (
   const query = new URLSearchParams();
   query.set("limit", String(limit));
   const response = await fetch(`/api/workspace/contacts?${query.toString()}`, { cache: "no-store" });
-  return parseJson<WorkspaceContactsResponse>(response);
+  return response;
 };
 
 export const fetchWorkspaceNotifications = async (params: {
@@ -1001,8 +1031,8 @@ export const fetchWorkspaceNotifications = async (params: {
   if (typeof params.limit === "number") query.set("limit", String(params.limit));
   if (params.unreadOnly) query.set("unreadOnly", "1");
   const suffix = query.toString() ? `?${query.toString()}` : "";
-  const response = await fetch(`/api/workspace/notifications${suffix}`, { cache: "no-store" });
-  return parseJson<WorkspaceNotificationsResponse>(response);
+  const response = await fetchWithCache<WorkspaceNotificationsResponse>(`/api/workspace/notifications${suffix}`);
+  return response;
 };
 
 export const markWorkspaceNotificationsRead = async (payload: {
@@ -1046,8 +1076,8 @@ export const submitAdvanceRequest = async (payload: {
 };
 
 export const fetchShiftTemplates = async (): Promise<DashboardApiResult<ShiftTemplatesResponse>> => {
-  const response = await fetch("/api/attendance/shifts/templates", { cache: "no-store" });
-  return parseJson<ShiftTemplatesResponse>(response);
+  const response = await fetchWithCache<ShiftTemplatesResponse>("/api/attendance/shifts/templates");
+  return response;
 };
 
 export const fetchShiftAssignableEmployees = async (
@@ -1094,8 +1124,8 @@ export const fetchShiftSwapRequests = async (params: {
   if (params.status) query.set("status", params.status);
   if (typeof params.limit === "number") query.set("limit", String(params.limit));
   const suffix = query.toString() ? `?${query.toString()}` : "";
-  const response = await fetch(`/api/attendance/shift-swaps${suffix}`, { cache: "no-store" });
-  return parseJson<ShiftSwapRequestsResponse>(response);
+  const response = await fetchWithCache<ShiftSwapRequestsResponse>(`/api/attendance/shift-swaps${suffix}`);
+  return response;
 };
 
 export const requestShiftSwap = async (payload: {
