@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap");
+﻿@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap");
 @import "tailwindcss";
 @config "../../tailwind.config.ts";
 @import "./theme-tokens.css";
@@ -308,16 +308,19 @@ p { margin: 0; }
   min-width: 0;
 }
 .header-bar__title-wrap h1 {
-    line-height: 1.1;
+  white-space: nowrap;
+  line-height: 1.1;
   margin: 0;
   font-size: clamp(1.25rem, 2.2vw, 1.75rem);
 }
 .header-bar__title-wrap p {
+    white-space: nowrap;
   margin: 0;
   color: var(--muted);
   font-size: 0.86rem;
 }
 .header-bar__actions {
+    white-space: nowrap;
     display: flex;
     flex-wrap: nowrap;
     align-items: center;
@@ -1475,6 +1478,7 @@ p { margin: 0; }
     width: 100%;
   }
   .header-bar__actions {
+    white-space: nowrap;
     display: flex;
     flex-wrap: nowrap;
     align-items: center;
@@ -1572,12 +1576,18 @@ p { margin: 0; }
 
 
 .header-bar[data-compact="true"] .header-bar__title-wrap h1 {
-    line-height: 1.1;
+  white-space: nowrap;
+  line-height: 1.1;
   font-size: 1.35rem;
 }
 .header-bar[data-compact="true"] .header-bar__title-wrap p {
+    white-space: nowrap;
   display: none;
 }
+
+
+
+
 
 
 

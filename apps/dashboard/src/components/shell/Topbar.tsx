@@ -80,7 +80,7 @@ export const Topbar = ({
   return (
     <HeaderBar
       title="Employee Management"
-      subtitle={isEmployeePersona ? undefined : (lastLoginText ?? identityLabel)}
+      subtitle={isEmployeePersona ? lastLoginText ?? undefined : (lastLoginText ?? identityLabel)}
       leading={leadingAvatar}
       compact={isEmployeePersona}
       onToggleSidebar={onToggleSidebar}
@@ -92,8 +92,7 @@ export const Topbar = ({
           {!isEmployeePersona && seatSummary ? <StatusChip label={`Seats ${seatLimitText}`} compact /> : null}
           {shiftText ? <StatusChip label={`Shift ${shiftText}`} compact /> : null}
           {isEmployeePersona && employeeIdentity ? <StatusChip label={`${employeeIdentity}`} compact tone="info" /> : null}
-          {isEmployeePersona && lastLoginText ? <StatusChip label={lastLoginText} compact /> : null}
-          <div className="topbar-profile" title={identityLabel}>
+                    <div className="topbar-profile" title={identityLabel}>
             {avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={avatarUrl} alt="Profile" width={28} height={28} className="topbar-profile__avatar" />
@@ -114,3 +113,4 @@ export const Topbar = ({
     />
   );
 };
+

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -135,7 +135,7 @@ const ShiftSwapsPageClient = () => {
       </Card>
 
       {loading ? <LoadingState label="Loading shift swap workspace..." /> : null}
-      {!loading && error ? <ErrorState message={error} /> : null}
+      {!loading && error ? <ErrorState message={`${error}${error?.toLowerCase().includes("permission") ? " — Contact HR to confirm your attendance access and shift assignment." : ""}`} /> : null}
 
       {!loading && !error ? (
         <>
@@ -281,3 +281,5 @@ const ShiftSwapsPageClient = () => {
 };
 
 export default ShiftSwapsPageClient;
+
+
