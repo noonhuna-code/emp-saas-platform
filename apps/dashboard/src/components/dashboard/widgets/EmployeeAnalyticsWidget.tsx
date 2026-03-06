@@ -1,0 +1,117 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { Sparkles, TrendingUp } from "lucide-react";
+import { fetchAttendanceHistory, fetchLeaveBalances } from "@/lib/client/api";
+import type { AttendanceHistoryRow } from "@/lib/types/attendance";
+import type { LeaveBalance } from "@/lib/types/leave";
+import { DashboardPanel, SignalRow } from "@/components/dashboard/DashboardPrimitives";
+import { LineChart, MiniBarChart, StackedBarChart } from "@/components/shared/Charts";
+import { SkeletonChart } from "@/components/ui/SkeletonBlocks";
+
+const toTrendSeries = (rows: AttendanceHistoryRow[]) => {
+  if (rows.length === 0) {
+    return {
+      workHoursTrend: [] as number[],
+      lateMinutesTrend: [] as number[]
+    };
+  }
+
+  const ordered = [...rows]
+    .sort((a, b) => a.attendance_date.localeCompare(b.attendance_date))
+    .slice(-10);
+
+  return {
+    workHoursTrend: ordered.map((row) => Math.round(((row.work_minutes ?? 0) / 60) * 10) / 10),
+    lateMinutesTrend: ordered.map((row) => row.late_minutes ?? 0)
+  };
+};
+
+const breakdownRows = (rows: LeaveBalance[]) => {
+  const totals = new Map<string, { used: number; remaining: number }>();
+  for (const row of rows) {
+    const key = row.leave_type_id.toUpperCase();
+    const existing = totals.get(key) ?? { used: 0, remaining: 0 };
+    existing.used += Math.max(0, row.used_days);
+    existing.remaining += Math.max(0, row.entitled_days - row.used_days);
+    totals.set(key, existing);
+  }
+
+  return Array.from(totals.entries()).slice(0, 4).map(([label, value]) => ({
+    label,
+    a: value.used,
+    b: value.remaining
+  }));
+};
+
+export default function EmployeeAnalyticsWidget() {
+  const [historyRows, setHistoryRows] = useState<AttendanceHistoryRow[]>([]);
+  const [leaveRows, setLeaveRows] = useState<LeaveBalance[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+
+    void Promise.all([
+      fetchAttendanceHistory({ page: 1, pageSize: 14 }),
+      fetchLeaveBalances({ year: new Date().getFullYear() })
+    ])
+      .then(([historyResult, leaveResult]) => {
+        if (!active) return;
+        setHistoryRows(historyResult.ok && historyResult.data ? historyResult.data.rows ?? [] : []);
+        setLeaveRows(leaveResult.ok && leaveResult.data ? leaveResult.data.balances ?? [] : []);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const trends = useMemo(() => toTrendSeries(historyRows), [historyRows]);
+  const stacked = useMemo(() => breakdownRows(leaveRows), [leaveRows]);
+
+  if (loading) {
+    return (
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+        <SkeletonChart />
+        <SkeletonChart />
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+      <DashboardPanel
+        title="Attendance momentum"
+        subtitle="Recent worked hours and late-minute patterns"
+        tone="spotlight"
+        actions={<span className="tag"><TrendingUp className="h-3.5 w-3.5" /> Trend</span>}
+      >
+        {trends.workHoursTrend.length > 0 ? (
+          <div className="space-y-3">
+            <LineChart values={trends.workHoursTrend} height={92} />
+            <MiniBarChart values={trends.lateMinutesTrend.map((value) => Math.max(1, value))} height={56} />
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">No recent attendance history available.</p>
+        )}
+      </DashboardPanel>
+
+      <DashboardPanel
+        title="Leave utilization mix"
+        subtitle="Current year leave usage vs remaining"
+        tone="soft"
+        actions={<span className="tag"><Sparkles className="h-3.5 w-3.5" /> Live</span>}
+      >
+        {stacked.length > 0 ? <StackedBarChart rows={stacked} height={96} /> : <p className="text-sm text-muted-foreground">No leave balances available.</p>}
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <SignalRow label="Tracked days" value={historyRows.length} />
+          <SignalRow label="Leave types" value={stacked.length} />
+        </div>
+      </DashboardPanel>
+    </div>
+  );
+}
