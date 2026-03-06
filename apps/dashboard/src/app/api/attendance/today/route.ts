@@ -19,7 +19,7 @@ export async function GET() {
       return finalizeRoute(route, endpoint, jsonError("Authentication required", 401, route.requestId));
     }
 
-    const { ctx } = await buildAttendanceRouteContext(route.ctx, ["manage_attendance", "view_attendance"]);
+    const { ctx } = await buildAttendanceRouteContext(route.ctx, []);
 
     const cacheKey = `${ctx.companyId}:${ctx.userId}:${endpoint}`;
     const cached = getCached<any>(cacheKey, 45000);
@@ -64,4 +64,5 @@ export async function GET() {
     return finalizeRoute(route, endpoint, jsonError("Unable to load attendance status", 500, route.requestId));
   }
 }
+
 

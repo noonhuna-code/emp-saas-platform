@@ -368,11 +368,15 @@ const requireAttendanceEntitlement = async (ctx: ServiceContext): Promise<void> 
   await requirePlanFeature(ctx, "feature.core_attendance");
 };
 
-const requireSelfAttendanceAccess = (ctx: ServiceContext): void => {
+const requireSelfAttendanceAccess = async (ctx: ServiceContext): Promise<void> => {
   if (ctx.permissions.includes("manage_attendance") || ctx.permissions.includes("view_attendance")) {
     return;
   }
-  requirePermission("manage_attendance", ctx);
+
+  const employeeId = await resolveCurrentEmployeeId(ctx.supabase, ctx);
+  if (!employeeId) {
+    throw new Error("Employee record not found");
+  }
 };
 
 const ensureSelfOrManageAttendance = async (
@@ -384,11 +388,15 @@ const ensureSelfOrManageAttendance = async (
   }
 
   const currentEmployeeId = await resolveCurrentEmployeeId(ctx.supabase, ctx);
-  if (currentEmployeeId && currentEmployeeId === employeeId) {
+  if (!currentEmployeeId) {
+    throw new Error("Employee record not found");
+  }
+
+  if (currentEmployeeId === employeeId) {
     return;
   }
 
-  requirePermission("manage_attendance", ctx);
+  throw new Error("Permission denied");
 };
 
 const requireShiftSwapReviewAccess = (ctx: ServiceContext): void => {
@@ -565,7 +573,7 @@ export const getAttendanceToday = async (
 ): Promise<ServiceResult<AttendanceTodayResponse>> => {
   try {
     await requireAttendanceEntitlement(ctx);
-    requireSelfAttendanceAccess(ctx);
+    await requireSelfAttendanceAccess(ctx);
 
     const employeeId = await resolveCurrentEmployeeId(ctx.supabase, ctx);
     if (!employeeId) {
@@ -703,7 +711,7 @@ export const getAttendanceHistory = async (
 ): Promise<ServiceResult<AttendanceHistoryResponse>> => {
   try {
     await requireAttendanceEntitlement(ctx);
-    requireSelfAttendanceAccess(ctx);
+    await requireSelfAttendanceAccess(ctx);
 
     const employeeId = await resolveCurrentEmployeeId(ctx.supabase, ctx);
     if (!employeeId) {
@@ -1387,7 +1395,7 @@ export const reviewShiftSwapRequest = async (
 
     const { data: requestRow, error: requestError } = await ctx.supabase
       .from("shift_change_requests")
-      .select("id, employee_id, status, reason")
+      .select("id, employee_id, attendance_date, requested_shift_template_id, status, reason")
       .eq("company_id", ctx.companyId)
       .eq("id", requestId)
       .is("is_deleted", false)
@@ -1401,6 +1409,62 @@ export const reviewShiftSwapRequest = async (
     }
     if ((requestRow.status as string) !== "pending") {
       return { ok: false, error: "Shift swap request already processed" };
+    }
+
+    if (decision === "approved") {
+      const employeeId = requestRow.employee_id as string;
+      const effectiveFrom = requestRow.attendance_date as string;
+      const requestedShiftTemplateId = requestRow.requested_shift_template_id as string;
+
+      const { data: existingAssignment, error: existingAssignmentError } = await ctx.supabase
+        .from("employee_shift_assignments")
+        .select("id, shift_template_id")
+        .eq("company_id", ctx.companyId)
+        .eq("employee_id", employeeId)
+        .eq("effective_from", effectiveFrom)
+        .is("is_deleted", false)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (existingAssignmentError) {
+        return { ok: false, error: sanitizeError(existingAssignmentError.message, "Unable to apply approved shift swap") };
+      }
+
+      if (existingAssignment?.id) {
+        if ((existingAssignment.shift_template_id as string) !== requestedShiftTemplateId) {
+          const { error: updateAssignmentError } = await ctx.supabase
+            .from("employee_shift_assignments")
+            .update({
+              shift_template_id: requestedShiftTemplateId,
+              assigned_by: actorProfileId,
+              updated_by: actorProfileId
+            })
+            .eq("company_id", ctx.companyId)
+            .eq("id", existingAssignment.id as string)
+            .is("is_deleted", false);
+
+          if (updateAssignmentError) {
+            return { ok: false, error: sanitizeError(updateAssignmentError.message, "Unable to apply approved shift swap") };
+          }
+        }
+      } else {
+        const { error: createAssignmentError } = await ctx.supabase
+          .from("employee_shift_assignments")
+          .insert({
+            company_id: ctx.companyId,
+            employee_id: employeeId,
+            shift_template_id: requestedShiftTemplateId,
+            effective_from: effectiveFrom,
+            assigned_by: actorProfileId,
+            created_by: actorProfileId,
+            updated_by: actorProfileId
+          });
+
+        if (createAssignmentError) {
+          return { ok: false, error: sanitizeError(createAssignmentError.message, "Unable to apply approved shift swap") };
+        }
+      }
     }
 
     const updatedReason = note ? `${requestRow.reason as string}\n\nReview note: ${note}` : (requestRow.reason as string);
@@ -1437,7 +1501,7 @@ export const reviewShiftSwapRequest = async (
         type: "shift_swap_review",
         title: `Shift swap ${decision}`,
         message: decision === "approved"
-          ? "Your shift swap request has been approved. HR/Team lead will apply the schedule update."
+          ? "Your shift swap request has been approved and your schedule was updated."
           : "Your shift swap request was rejected.",
         reference_type: "shift_change_request",
         reference_id: requestId,
@@ -1624,7 +1688,7 @@ export async function requestAttendanceCorrection(
 ): Promise<ServiceResult<{ requestId: string }>> {
   try {
     await requireAttendanceEntitlement(ctx);
-    requireSelfAttendanceAccess(ctx);
+    await requireSelfAttendanceAccess(ctx);
 
     const payload = normalizeCorrectionRequestInput(reasonOrPayload);
     if (!payload.reason || !payload.reason.trim()) {
@@ -1998,6 +2062,8 @@ export const rejectAttendanceCorrection = async (
     return { ok: false, error: err instanceof Error ? err.message : "Attendance correction rejection error" };
   }
 };
+
+
 
 
 

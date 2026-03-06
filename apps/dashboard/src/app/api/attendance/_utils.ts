@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import type { ServiceContext } from "@emp/lib/types";
 import { requireServerPermission } from "@/lib/server/permissions";
 import { buildServiceContext } from "@/lib/server/service-context";
@@ -12,9 +12,11 @@ export const buildAttendanceRouteContext = async (
   requiredPermissions: string[] = ["manage_attendance"]
 ): Promise<AttendanceRouteContext> => {
   const ctx = ctxOverride ?? (await buildServiceContext());
-  const hasRequiredPermission = requiredPermissions.some((permission) => ctx.permissions.includes(permission));
-  if (!hasRequiredPermission) {
-    requireServerPermission(requiredPermissions[0] ?? "manage_attendance", ctx);
+  if (requiredPermissions.length > 0) {
+    const hasRequiredPermission = requiredPermissions.some((permission) => ctx.permissions.includes(permission));
+    if (!hasRequiredPermission) {
+      requireServerPermission(requiredPermissions[0] ?? "manage_attendance", ctx);
+    }
   }
   return { ctx };
 };
@@ -99,3 +101,4 @@ export const mapAttendanceServiceErrorStatus = (error?: string): number => {
 
 export const jsonError = (error: string, status: number, requestId?: string) =>
   NextResponse.json({ ok: false, error, requestId }, { status, headers: requestId ? { "x-request-id": requestId } : {} });
+

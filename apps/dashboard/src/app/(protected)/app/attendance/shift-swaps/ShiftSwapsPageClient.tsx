@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -28,6 +28,7 @@ const ShiftSwapsPageClient = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [templateWarning, setTemplateWarning] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [form, setForm] = useState({
     attendanceDate: tomorrowDate(),
@@ -43,24 +44,24 @@ const ShiftSwapsPageClient = () => {
   const loadData = useCallback(async () => {
     setLoading(true);
     setError(null);
+    setTemplateWarning(null);
 
     const [templateResult, mineResult] = await Promise.all([
       fetchShiftTemplates(),
       fetchShiftSwapRequests({ scope: "mine", limit: 50 })
     ]);
 
-    if (!templateResult.ok || !templateResult.data) {
-      setLoading(false);
-      setError(templateResult.error ?? "Unable to load shift templates");
-      return;
-    }
     if (!mineResult.ok || !mineResult.data) {
       setLoading(false);
       setError(mineResult.error ?? "Unable to load shift swap requests");
       return;
     }
 
-    const templateRows = templateResult.data.rows;
+    const templateRows = templateResult.ok && templateResult.data ? templateResult.data.rows : [];
+    if (!templateResult.ok || !templateResult.data) {
+      setTemplateWarning(templateResult.error ?? "Unable to load shift templates");
+    }
+
     setTemplates(templateRows);
     setMine(mineResult.data.rows);
     setForm((prev) => ({
@@ -135,10 +136,20 @@ const ShiftSwapsPageClient = () => {
       </Card>
 
       {loading ? <LoadingState label="Loading shift swap workspace..." /> : null}
-      {!loading && error ? <ErrorState message={`${error}${error?.toLowerCase().includes("permission") ? " — Contact HR to confirm your attendance access and shift assignment." : ""}`} /> : null}
+      {!loading && error ? <ErrorState message={`${error}${error?.toLowerCase().includes("permission") ? " � Contact HR to confirm your attendance access and shift assignment." : ""}`} /> : null}
 
       {!loading && !error ? (
         <>
+          {templateWarning ? (
+            <Card>
+              <CardContent className="pt-6">
+                <p className="text-sm text-amber-600 dark:text-amber-400">
+                  {templateWarning}. You can still view your requests; submitting a new request needs available shift templates.
+                </p>
+              </CardContent>
+            </Card>
+          ) : null}
+
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Request shift swap</CardTitle>
@@ -160,7 +171,9 @@ const ShiftSwapsPageClient = () => {
                     value={form.requestedShiftTemplateId}
                     onChange={(event) => setForm((prev) => ({ ...prev, requestedShiftTemplateId: event.target.value }))}
                     required
+                    disabled={templates.length === 0}
                   >
+                    {templates.length === 0 ? <option value="">No shifts available</option> : null}
                     {templates.map((template) => (
                       <option key={template.id} value={template.id}>
                         {template.name} ({template.start_time}-{template.end_time})
@@ -179,7 +192,11 @@ const ShiftSwapsPageClient = () => {
                   />
                 </label>
                 <div className="flex flex-col justify-end gap-2 md:col-span-3">
-                  <button type="submit" className="primary-btn" disabled={submitting}>
+                  <button
+                    type="submit"
+                    className="primary-btn"
+                    disabled={submitting || templates.length === 0 || !form.requestedShiftTemplateId}
+                  >
                     {submitting ? "Submitting..." : "Submit request"}
                   </button>
                   <span className="text-xs text-muted-foreground">{selectedTemplateName}</span>
@@ -281,5 +298,3 @@ const ShiftSwapsPageClient = () => {
 };
 
 export default ShiftSwapsPageClient;
-
-

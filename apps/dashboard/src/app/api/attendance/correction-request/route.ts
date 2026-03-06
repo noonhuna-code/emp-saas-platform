@@ -20,7 +20,7 @@ export async function POST(request: Request) {
       return finalizeRoute(route, endpoint, jsonError("Authentication required", 401, route.requestId));
     }
 
-    const { ctx } = await buildAttendanceRouteContext(route.ctx, ["manage_attendance", "view_attendance"]);
+    const { ctx } = await buildAttendanceRouteContext(route.ctx, []);
     const body = (await request.json()) as Partial<AttendanceCorrectionRequestInput>;
 
     const attendanceId = typeof body.attendanceId === "string" ? body.attendanceId.trim() : "";
@@ -76,3 +76,4 @@ export async function POST(request: Request) {
     return finalizeRoute(route, endpoint, jsonError("Attendance correction request failed", 500, route.requestId));
   }
 }
+
