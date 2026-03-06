@@ -1,14 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { Suspense, lazy, useMemo } from "react";
 import { resolveDashboardPersona } from "@/lib/dashboard/capabilities";
-import { AdminDashboard } from "@/components/dashboard/AdminDashboard";
-import { EmployeeDashboard } from "@/components/dashboard/EmployeeDashboard";
-import { FinanceDashboard } from "@/components/dashboard/FinanceDashboard";
-import { FounderDashboard } from "@/components/dashboard/FounderDashboard";
-import { HRDashboard } from "@/components/dashboard/HRDashboard";
-import { ManagerDashboard } from "@/components/dashboard/ManagerDashboard";
-import { TeamLeadDashboard } from "@/components/dashboard/TeamLeadDashboard";
+import { DashboardRoleFallback } from "@/components/dashboard/DashboardRoleFallback";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 type DashboardPageClientProps = {
@@ -20,12 +15,53 @@ type DashboardPageClientProps = {
 const hasAnyPermission = (permissions: string[], checks: string[]): boolean =>
   checks.some((permission) => permissions.includes(permission));
 
+const LazyAdminDashboard = lazy(() => import("@/components/dashboard/AdminDashboard").then((mod) => ({ default: mod.AdminDashboard })));
+const LazyEmployeeDashboard = lazy(() => import("@/components/dashboard/EmployeeDashboard").then((mod) => ({ default: mod.EmployeeDashboard })));
+const LazyFinanceDashboard = lazy(() => import("@/components/dashboard/FinanceDashboard").then((mod) => ({ default: mod.FinanceDashboard })));
+const LazyFounderDashboard = lazy(() => import("@/components/dashboard/FounderDashboard").then((mod) => ({ default: mod.FounderDashboard })));
+const LazyHRDashboard = lazy(() => import("@/components/dashboard/HRDashboard").then((mod) => ({ default: mod.HRDashboard })));
+const LazyITDashboard = lazy(() => import("@/components/dashboard/ITDashboard").then((mod) => ({ default: mod.ITDashboard })));
+const LazyManagerDashboard = lazy(() => import("@/components/dashboard/ManagerDashboard").then((mod) => ({ default: mod.ManagerDashboard })));
+const LazyTeamLeadDashboard = lazy(() => import("@/components/dashboard/TeamLeadDashboard").then((mod) => ({ default: mod.TeamLeadDashboard })));
+
 export const DashboardPageClient = ({ role, permissions }: DashboardPageClientProps) => {
   const persona = resolveDashboardPersona({ role, permissions });
   const financePersona =
     persona === "employee" &&
     hasAnyPermission(permissions, ["manage_billing", "approve_billing_payments"]) &&
     !hasAnyPermission(permissions, ["view_all_companies", "view_global_audit"]);
+
+  const roleWorkspace = useMemo(() => {
+    if (financePersona) {
+      return <LazyFinanceDashboard />;
+    }
+
+    if (persona === "employee") {
+      return <LazyEmployeeDashboard />;
+    }
+
+    if (persona === "team_lead") {
+      return <LazyTeamLeadDashboard />;
+    }
+
+    if (persona === "manager") {
+      return <LazyManagerDashboard />;
+    }
+
+    if (persona === "hr") {
+      return <LazyHRDashboard />;
+    }
+
+    if (persona === "it") {
+      return <LazyITDashboard />;
+    }
+
+    if (persona === "admin") {
+      return <LazyAdminDashboard />;
+    }
+
+    return <LazyFounderDashboard />;
+  }, [financePersona, persona]);
 
   if (persona === "platform_owner") {
     return (
@@ -45,29 +81,5 @@ export const DashboardPageClient = ({ role, permissions }: DashboardPageClientPr
     );
   }
 
-  if (financePersona) {
-    return <FinanceDashboard />;
-  }
-
-  if (persona === "employee") {
-    return <EmployeeDashboard />;
-  }
-
-  if (persona === "team_lead") {
-    return <TeamLeadDashboard />;
-  }
-
-  if (persona === "manager") {
-    return <ManagerDashboard />;
-  }
-
-  if (persona === "hr") {
-    return <HRDashboard />;
-  }
-
-  if (persona === "admin") {
-    return <AdminDashboard />;
-  }
-
-  return <FounderDashboard />;
+  return <Suspense fallback={<DashboardRoleFallback />}>{roleWorkspace}</Suspense>;
 };

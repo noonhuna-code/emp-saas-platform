@@ -13,7 +13,7 @@ export type CommandItem = {
 };
 
 const COMMANDS: CommandItem[] = [
-  { label: "Open Dashboard", href: "/app/dashboard", section: "Employee", personas: ["employee"] },
+  { label: "Open Dashboard", href: "/app/dashboard", section: "Employee", personas: ["employee", "it", "manager", "team_lead", "hr", "admin", "founder"] },
   { label: "Open Attendance", href: "/app/attendance", section: "Employee", personas: ["employee"] },
   { label: "Apply Leave", href: "/app/leave", section: "Employee", personas: ["employee"] },
   { label: "Request Shift Swap", href: "/app/attendance/shift-swaps", section: "Employee", personas: ["employee"] },
@@ -33,6 +33,10 @@ const COMMANDS: CommandItem[] = [
   { label: "View Payroll", href: "/app/payroll", section: "Finance", personas: ["hr", "admin"] },
   { label: "Generate Payslips", href: "/app/payroll", section: "Finance", personas: ["hr", "admin"] },
   { label: "Export Salary Data", href: "/app/payroll", section: "Finance", personas: ["hr", "admin"] },
+
+  { label: "Open Monitoring", href: "/app/monitoring", section: "IT", personas: ["it", "admin", "founder"] },
+  { label: "View Security Events", href: "/app/monitoring", section: "IT", personas: ["it", "admin", "founder"] },
+  { label: "Open System Notifications", href: "/app/notifications", section: "IT", personas: ["it"] },
 
   { label: "Open Tenants", href: "/platform", section: "Platform Owner", personas: ["platform_owner"] },
   { label: "View System Health", href: "/platform", section: "Platform Owner", personas: ["platform_owner"] },

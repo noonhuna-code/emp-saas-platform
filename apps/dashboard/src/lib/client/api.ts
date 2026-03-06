@@ -20,7 +20,8 @@ import type {
   LeaveCancelResponse,
   LeaveDecisionResponse,
   LeaveHistoryResponse,
-  LeaveReviewResponse
+  LeaveReviewResponse,
+  LeaveTypesResponse
 } from "@/lib/types/leave";
 import type { ApprovalsResponse } from "@/lib/types/approvals";
 import type { IdempotencyCleanupResponse, MonitoringOverview } from "@/lib/types/monitoring";
@@ -521,6 +522,11 @@ export const fetchLeaveBalances = async (params: {
   if (typeof params.year === "number") query.set("year", String(params.year));
   const suffix = query.toString() ? `?${query.toString()}` : "";
   const response = await fetchWithCache<LeaveBalancesResponse>(`/api/leave/balances${suffix}`);
+  return response;
+};
+
+export const fetchLeaveTypes = async (): Promise<DashboardApiResult<LeaveTypesResponse>> => {
+  const response = await fetchWithCache<LeaveTypesResponse>("/api/leave/types");
   return response;
 };
 
@@ -1204,7 +1210,7 @@ export const reviewShiftSwap = async (payload: {
 
 
 
-type DashboardPrewarmPersona = "employee" | "team_lead" | "manager" | "hr" | "admin" | "founder" | "platform_owner";
+type DashboardPrewarmPersona = "employee" | "team_lead" | "manager" | "hr" | "it" | "admin" | "founder" | "platform_owner";
 
 const settlePrewarm = (tasks: Array<Promise<unknown>>): void => {
   if (tasks.length === 0) return;
@@ -1262,6 +1268,7 @@ export const prewarmRouteData = (href: string): void => {
 
   if (path === "/app/leave") {
     tasks.push(fetchLeaveBalances());
+    tasks.push(fetchLeaveTypes());
     tasks.push(fetchLeaveHistory({ page: 1, pageSize: 10 }));
     tasks.push(fetchLeaveCalendar(monthRange));
   }
@@ -1323,6 +1330,11 @@ export const prewarmDashboardData = (persona: DashboardPrewarmPersona): void => 
     phaseOne.push(fetchAdminDashboard());
   }
 
+  if (persona === "it") {
+    phaseOne.push(fetchMonitoringOverview());
+    phaseOne.push(fetchBillingOverview());
+  }
+
   if (persona === "platform_owner") {
     phaseOne.push(fetchPlatformOverview());
   }
@@ -1338,11 +1350,18 @@ export const prewarmDashboardData = (persona: DashboardPrewarmPersona): void => 
       phaseTwo.push(fetchWorkspaceNotes(20));
       phaseTwo.push(fetchWorkspaceCalendar(month));
       phaseTwo.push(fetchLeaveBalances());
+      phaseTwo.push(fetchLeaveTypes());
       phaseTwo.push(fetchLeaveHistory({ page: 1, pageSize: 10 }));
       phaseTwo.push(fetchLeaveCalendar(monthRange));
       phaseTwo.push(fetchShiftSwapRequests({ scope: "mine", limit: 30 }));
       phaseTwo.push(fetchWorkspaceChat({ limit: 20 }));
       phaseTwo.push(fetchWorkspaceContacts(200));
+    }
+
+    if (persona === "it") {
+      phaseTwo.push(fetchMonitoringOverview());
+      phaseTwo.push(fetchBillingOverview());
+      phaseTwo.push(fetchWorkspaceNotifications({ limit: 30 }));
     }
 
     if (persona === "employee") {
@@ -1370,3 +1389,4 @@ export const prewarmDashboardData = (persona: DashboardPrewarmPersona): void => 
     window.setTimeout(runPhaseTwo, 850);
   }
 };
+
