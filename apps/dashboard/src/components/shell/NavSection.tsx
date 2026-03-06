@@ -75,7 +75,7 @@ export const NavSection = ({
   const pathname = usePathname();
   const router = useRouter();
 
-  const prefetchTargets = React.useMemo(() => items.slice(0, 8), [items]);
+  const prefetchTargets = React.useMemo(() => items.slice(0, 16), [items]);
 
   React.useEffect(() => {
     for (const item of prefetchTargets) {
@@ -128,3 +128,4 @@ export const NavSection = ({
     </nav>
   );
 };
+

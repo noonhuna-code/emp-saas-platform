@@ -6,6 +6,7 @@ import {
   createWorkspaceNote,
   fetchEmployeeMe,
   fetchWorkspaceNotes,
+  peekCachedResult,
   uploadEmployeeDocumentVersion
 } from "@/lib/client/api";
 import type { WorkspaceNote } from "@/lib/types/workspace";
@@ -15,11 +16,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusChip } from "@/components/ui/StatusChip";
 
 const NotesPageClient = () => {
-  const [rows, setRows] = useState<WorkspaceNote[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cachedNotes = peekCachedResult<{ rows: WorkspaceNote[] }>("/api/workspace/notes?limit=50");
+  const cachedMe = peekCachedResult<{ employeeId: string }>("/api/employees/me");
+  const [rows, setRows] = useState<WorkspaceNote[]>(cachedNotes?.ok ? (cachedNotes.data?.rows ?? []) : []);
+  const [loading, setLoading] = useState(!(cachedNotes?.ok && cachedNotes.data));
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-  const [employeeId, setEmployeeId] = useState<string | null>(null);
+  const [employeeId, setEmployeeId] = useState<string | null>(cachedMe?.ok ? (cachedMe.data?.employeeId ?? null) : null);
   const [file, setFile] = useState<File | null>(null);
   const [form, setForm] = useState({ title: "", body: "", fileUrl: "", fileName: "", isPinned: false });
 
@@ -200,3 +203,4 @@ const NotesPageClient = () => {
 };
 
 export default NotesPageClient;
+

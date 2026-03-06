@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import type { ReactNode } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -40,8 +40,8 @@ export const DashboardHero = ({
     >
       <CardHeader className="p-5 pb-3">
         {eyebrow ? <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--accent)]">{eyebrow}</p> : null}
-        <CardTitle className="text-3xl leading-tight">{title}</CardTitle>
-        <CardDescription className="text-sm">{subtitle}</CardDescription>
+        <CardTitle className="text-2xl leading-tight md:text-3xl">{title}</CardTitle>
+        <CardDescription className="text-sm text-muted-foreground">{subtitle}</CardDescription>
       </CardHeader>
       {actions ? <CardContent className="flex flex-wrap items-center gap-2 p-5 pt-0">{actions}</CardContent> : null}
     </Card>
@@ -57,7 +57,7 @@ export const DashboardModeSwitch = ({
 }) => {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3">
-      <h2 className="text-lg font-semibold">Dashboard mode</h2>
+      <h2 className="text-lg font-semibold tracking-tight">Dashboard mode</h2>
       <Tabs
         tabs={DASHBOARD_VIEW_OPTIONS}
         active={value}
@@ -216,4 +216,5 @@ export const TimelineList = ({
     </div>
   );
 };
+
 

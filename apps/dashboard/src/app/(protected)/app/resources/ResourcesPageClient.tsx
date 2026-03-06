@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { fetchWorkspaceResources } from "@/lib/client/api";
+import { fetchWorkspaceResources, peekCachedResult } from "@/lib/client/api";
 import type { WorkspaceResource } from "@/lib/types/workspace";
 import { LoadingState } from "@/components/states/LoadingState";
 import { ErrorState } from "@/components/states/ErrorState";
@@ -9,8 +9,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusChip } from "@/components/ui/StatusChip";
 
 const ResourcesPageClient = () => {
-  const [rows, setRows] = useState<WorkspaceResource[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cachedResources = peekCachedResult<{ rows: WorkspaceResource[] }>("/api/workspace/resources?limit=50");
+  const [rows, setRows] = useState<WorkspaceResource[]>(cachedResources?.ok ? (cachedResources.data?.rows ?? []) : []);
+  const [loading, setLoading] = useState(!(cachedResources?.ok && cachedResources.data));
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {

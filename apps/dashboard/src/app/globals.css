@@ -1637,3 +1637,58 @@ p { margin: 0; }
 
 
 
+
+/* Final compact shell polish overrides */
+.nav-section__item {
+  gap: 10px;
+}
+
+.nav-section__label {
+  font-size: 0.98rem;
+  line-height: 1.2;
+}
+
+.header-bar {
+  gap: 12px;
+}
+
+.header-bar__left {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.header-bar__title-wrap h1 {
+  font-size: clamp(1.12rem, 1.9vw, 1.55rem);
+}
+
+.header-bar__actions {
+  gap: 6px;
+  max-width: 72%;
+}
+
+.header-bar__toggle-desktop {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+}
+
+.topbar-profile__avatar--xl,
+.topbar-profile__avatar-fallback.topbar-profile__avatar--xl {
+  width: 52px;
+  height: 52px;
+}
+
+.header-bar[data-compact="true"] .header-bar__title-wrap h1 {
+  font-size: 1.05rem;
+  line-height: 1.15;
+}
+
+.header-bar[data-compact="true"] .header-bar__title-wrap p {
+  font-size: 0.78rem;
+}
+
+@media (max-width: 1200px) {
+  .header-bar__actions {
+    max-width: 60%;
+  }
+}

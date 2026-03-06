@@ -5,6 +5,7 @@ import {
   fetchEmployeeDashboard,
   fetchWorkspaceChat,
   fetchWorkspaceContacts,
+  peekCachedResult,
   sendWorkspaceChat
 } from "@/lib/client/api";
 import type { WorkspaceChatMessage, WorkspaceContact } from "@/lib/types/workspace";
@@ -15,15 +16,18 @@ import { SkeletonLoader } from "@/components/ui/SkeletonLoader";
 import { StatusChip } from "@/components/ui/StatusChip";
 
 const ChatPageClient = () => {
-  const [rows, setRows] = useState<WorkspaceChatMessage[]>([]);
-  const [contacts, setContacts] = useState<WorkspaceContact[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cachedChat = peekCachedResult<{ rows: WorkspaceChatMessage[] }>("/api/workspace/chat?limit=120");
+  const cachedContacts = peekCachedResult<{ rows: WorkspaceContact[] }>("/api/workspace/contacts?limit=300");
+
+  const [rows, setRows] = useState<WorkspaceChatMessage[]>(cachedChat?.ok ? (cachedChat.data?.rows ?? []) : []);
+  const initialContacts = cachedContacts?.ok ? (cachedContacts.data?.rows ?? []).filter((item) => !item.is_self) : [];
+  const [contacts, setContacts] = useState<WorkspaceContact[]>(initialContacts);
+  const [loading, setLoading] = useState(!(cachedChat?.ok || cachedContacts?.ok));
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState("");
-  const [selectedEmployeeId, setSelectedEmployeeId] = useState("");
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState(initialContacts[0]?.employee_id ?? "");
 
   const load = async () => {
-    setLoading(true);
     setError(null);
 
     const [chatResult, contactsResult, dashboardResult] = await Promise.all([

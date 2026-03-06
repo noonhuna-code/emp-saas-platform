@@ -1,7 +1,7 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { fetchWorkspaceNotifications, markWorkspaceNotificationsRead } from "@/lib/client/api";
+import { fetchWorkspaceNotifications, markWorkspaceNotificationsRead, peekCachedResult } from "@/lib/client/api";
 import type { WorkspaceNotification } from "@/lib/types/workspace";
 import { LoadingState } from "@/components/states/LoadingState";
 import { ErrorState } from "@/components/states/ErrorState";
@@ -10,15 +10,15 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { StatusChip } from "@/components/ui/StatusChip";
 
 const NotificationsPageClient = () => {
-  const [rows, setRows] = useState<WorkspaceNotification[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cachedNotifications = peekCachedResult<{ rows: WorkspaceNotification[] }>("/api/workspace/notifications?limit=100");
+  const [rows, setRows] = useState<WorkspaceNotification[]>(cachedNotifications?.ok ? (cachedNotifications.data?.rows ?? []) : []);
+  const [loading, setLoading] = useState(!(cachedNotifications?.ok && cachedNotifications.data));
   const [error, setError] = useState<string | null>(null);
   const [markingRead, setMarkingRead] = useState(false);
 
   const unreadCount = useMemo(() => rows.filter((row) => !row.is_read).length, [rows]);
 
   const load = async () => {
-    setLoading(true);
     setError(null);
     const result = await fetchWorkspaceNotifications({ limit: 100 });
     if (!result.ok || !result.data) {

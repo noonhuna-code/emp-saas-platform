@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Filter, Landmark, Sparkles } from "lucide-react";
-import { fetchWorkspaceCalendar } from "@/lib/client/api";
+import { fetchWorkspaceCalendar, peekCachedResult } from "@/lib/client/api";
 import type { WorkspaceCalendarDay, WorkspaceCalendarResponse, WorkspaceCalendarEvent } from "@/lib/types/workspace";
 import { LoadingState } from "@/components/states/LoadingState";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -82,9 +82,12 @@ const buildFallbackCalendar = (month: string): WorkspaceCalendarResponse => {
 const weekdayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 const WorkCalendarPageClient = () => {
-  const [month, setMonth] = useState(todayMonth());
-  const [data, setData] = useState<WorkspaceCalendarResponse | null>(null);
-  const [loading, setLoading] = useState(true);
+  const initialMonth = todayMonth();
+  const [month, setMonth] = useState(initialMonth);
+  const initialCached = peekCachedResult<WorkspaceCalendarResponse>(`/api/workspace/calendar?month=${initialMonth}`);
+
+  const [data, setData] = useState<WorkspaceCalendarResponse | null>(initialCached?.ok ? (initialCached.data ?? null) : null);
+  const [loading, setLoading] = useState(!(initialCached?.ok && initialCached.data));
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<Record<WorkspaceCalendarEvent["type"], boolean>>({
     holiday: true,
@@ -94,15 +97,23 @@ const WorkCalendarPageClient = () => {
   });
 
   const load = useCallback(async (targetMonth: string) => {
-    setLoading(true);
+    const cached = peekCachedResult<WorkspaceCalendarResponse>(`/api/workspace/calendar?month=${targetMonth}`);
+    if (cached?.ok && cached.data) {
+      setData(cached.data);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
+
     setError(null);
     const result = await fetchWorkspaceCalendar(targetMonth);
     if (!result.ok || !result.data) {
-      setData(buildFallbackCalendar(targetMonth));
+      setData((prev) => prev ?? buildFallbackCalendar(targetMonth));
       setError(result.error ?? "Calendar data is temporarily unavailable. Showing a basic month view.");
       setLoading(false);
       return;
     }
+
     setData(result.data);
     setLoading(false);
   }, []);
@@ -283,5 +294,3 @@ const WorkCalendarPageClient = () => {
 };
 
 export default WorkCalendarPageClient;
-
-

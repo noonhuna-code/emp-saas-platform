@@ -105,7 +105,7 @@ const parseJson = async <T>(response: Response): Promise<DashboardApiResult<T>> 
 
 type CacheEntry<T> = { ts: number; value?: DashboardApiResult<T>; promise?: Promise<DashboardApiResult<T>> };
 const GET_CACHE = new Map<string, CacheEntry<unknown>>();
-const DEFAULT_TTL = 45000;
+const DEFAULT_TTL = 120000;
 const STORAGE_PREFIX = "emp:get:";
 let CACHE_SCOPE = "global";
 
@@ -199,6 +199,21 @@ const fetchWithCache = async <T>(url: string, ttlMs: number = DEFAULT_TTL): Prom
   return promise;
 };
 
+export const peekCachedResult = <T>(url: string): DashboardApiResult<T> | null => {
+  const cacheKey = getCacheKey(url);
+  const existing = GET_CACHE.get(cacheKey) as CacheEntry<T> | undefined;
+  if (existing?.value?.ok && existing.value.data) {
+    return existing.value;
+  }
+
+  const persisted = readSessionCache<T>(cacheKey);
+  if (persisted?.value?.ok && persisted.value.data) {
+    GET_CACHE.set(cacheKey, persisted as CacheEntry<unknown>);
+    return persisted.value;
+  }
+
+  return null;
+};
 export const setClientCacheScope = (scope: string): void => {
   const normalized = scope.trim().toLowerCase();
   const nextScope = normalized.length > 0 ? normalized : "global";
@@ -1426,10 +1441,11 @@ export const prewarmDashboardData = (persona: DashboardPrewarmPersona): void => 
   }).requestIdleCallback;
 
   if (typeof requestIdleCallbackFn === "function") {
-    requestIdleCallbackFn(runPhaseTwo, { timeout: 1500 });
+    requestIdleCallbackFn(runPhaseTwo, { timeout: 900 });
   } else {
-    window.setTimeout(runPhaseTwo, 850);
+    window.setTimeout(runPhaseTwo, 260);
   }
 };
+
 
 

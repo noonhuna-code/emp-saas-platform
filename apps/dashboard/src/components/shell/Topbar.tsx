@@ -1,4 +1,4 @@
-﻿import { HeaderBar } from "@/components/layout/HeaderBar";
+import { HeaderBar } from "@/components/layout/HeaderBar";
 import { CompanyContextBadge } from "./CompanyContextBadge";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import { StatusChip } from "@/components/ui/StatusChip";
@@ -71,7 +71,7 @@ export const Topbar = ({
   const leadingAvatar = isEmployeePersona ? (
     avatarUrl ? (
       // eslint-disable-next-line @next/next/no-img-element
-      <img src={avatarUrl} alt="Profile" width={44} height={44} className="topbar-profile__avatar topbar-profile__avatar--xl" />
+      <img src={avatarUrl} alt="Profile" width={52} height={52} className="topbar-profile__avatar topbar-profile__avatar--xl" />
     ) : (
       <span className="topbar-profile__avatar-fallback topbar-profile__avatar--xl">{(identityLabel[0] ?? "U").toUpperCase()}</span>
     )
@@ -91,7 +91,7 @@ export const Topbar = ({
           {!isEmployeePersona && renewalLabel ? <StatusChip label={renewalLabel} tone="info" compact /> : null}
           {!isEmployeePersona && seatSummary ? <StatusChip label={`Seats ${seatLimitText}`} compact /> : null}
           {shiftText ? <StatusChip label={`Shift ${shiftText}`} compact /> : null}
-          {isEmployeePersona && employeeIdentity ? <StatusChip label={`Employee ID ${employeeIdentity}`} compact tone="info" /> : null}
+          {isEmployeePersona && employeeIdentity ? <StatusChip label={`ID ${employeeIdentity}`} compact tone="info" /> : null}
           {!isEmployeePersona ? (
             <div className="topbar-profile" title={identityLabel}>
               {avatarUrl ? (
@@ -115,4 +115,5 @@ export const Topbar = ({
     />
   );
 };
+
 

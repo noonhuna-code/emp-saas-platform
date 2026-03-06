@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Menu } from "lucide-react";
+import { Menu, PanelLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export const HeaderBar = ({
@@ -7,6 +7,7 @@ export const HeaderBar = ({
   subtitle,
   leading,
   compact = false,
+  onToggleSidebar,
   onToggleMobileSidebar,
   actions
 }: {
@@ -31,6 +32,18 @@ export const HeaderBar = ({
         >
           <Menu size={16} />
         </Button>
+        {onToggleSidebar ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="header-bar__toggle-desktop hidden md:inline-flex"
+            onClick={onToggleSidebar}
+            aria-label="Toggle sidebar"
+          >
+            <PanelLeft size={16} />
+          </Button>
+        ) : null}
         {leading ? <div className="header-bar__leading">{leading}</div> : null}
         <div className="header-bar__title-wrap">
           <h1>{title}</h1>

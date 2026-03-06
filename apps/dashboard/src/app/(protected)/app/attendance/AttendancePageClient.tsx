@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { AttendanceClockActionState } from "./actions";
-import { fetchAttendanceToday } from "@/lib/client/api";
+import { fetchAttendanceToday, peekCachedResult } from "@/lib/client/api";
 import type { AttendanceHistoryRow, AttendanceTodayResponse } from "@/lib/types/attendance";
 import { TodayAttendanceCard } from "@/components/attendance/TodayAttendanceCard";
 import { ClockActions } from "@/components/attendance/ClockActions";
@@ -25,15 +25,15 @@ export const AttendancePageClient = ({
   clockInAction: ClockActionFn;
   clockOutAction: ClockActionFn;
 }) => {
-  const [todayData, setTodayData] = useState<AttendanceTodayResponse | null>(null);
-  const [loadingToday, setLoadingToday] = useState(true);
+  const cachedToday = peekCachedResult<AttendanceTodayResponse>("/api/attendance/today");
+  const [todayData, setTodayData] = useState<AttendanceTodayResponse | null>(cachedToday?.ok ? (cachedToday.data ?? null) : null);
+  const [loadingToday, setLoadingToday] = useState(!(cachedToday?.ok && cachedToday.data));
   const [todayError, setTodayError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [selectedRecord, setSelectedRecord] = useState<AttendanceHistoryRow | null>(null);
   const [correctionDialogOpen, setCorrectionDialogOpen] = useState(false);
 
   const loadToday = useCallback(async () => {
-    setLoadingToday(true);
     setTodayError(null);
 
     try {
@@ -144,3 +144,4 @@ export const AttendancePageClient = ({
     </div>
   );
 };
+

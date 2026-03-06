@@ -1,19 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { fetchCurrentEmployeeId } from "@/lib/client/api";
+import { fetchCurrentEmployeeId, peekCachedResult } from "@/lib/client/api";
 import { EmployeeProfileScreen } from "@/components/profile/EmployeeProfileScreen";
 import { LoadingState } from "@/components/states/LoadingState";
 import { ErrorState } from "@/components/states/ErrorState";
 
 export const MyProfileScreen = () => {
-  const [employeeId, setEmployeeId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const cachedEmployee = peekCachedResult<{ employeeId: string }>("/api/employees/me");
+  const [employeeId, setEmployeeId] = useState<string | null>(cachedEmployee?.ok ? (cachedEmployee.data?.employeeId ?? null) : null);
+  const [loading, setLoading] = useState(!(cachedEmployee?.ok && cachedEmployee.data?.employeeId));
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
-    setLoading(true);
     setError(null);
 
     void fetchCurrentEmployeeId()
@@ -56,3 +56,4 @@ export const MyProfileScreen = () => {
 
   return <EmployeeProfileScreen employeeId={employeeId} />;
 };
+

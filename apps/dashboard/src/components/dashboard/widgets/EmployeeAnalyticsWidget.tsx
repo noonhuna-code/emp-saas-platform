@@ -85,8 +85,8 @@ export default function EmployeeAnalyticsWidget() {
   return (
     <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
       <DashboardPanel
-        title="Attendance momentum"
-        subtitle="Recent worked hours and late-minute patterns"
+        title="Attendance trend"
+        subtitle="Hours and late marks (last 10 days)"
         tone="spotlight"
         actions={<span className="tag"><TrendingUp className="h-3.5 w-3.5" /> Trend</span>}
       >
@@ -96,17 +96,17 @@ export default function EmployeeAnalyticsWidget() {
             <MiniBarChart values={trends.lateMinutesTrend.map((value) => Math.max(1, value))} height={56} />
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">No recent attendance history available.</p>
+          <p className="text-sm text-muted-foreground">No attendance history yet.</p>
         )}
       </DashboardPanel>
 
       <DashboardPanel
-        title="Leave utilization mix"
-        subtitle="Current year leave usage vs remaining"
+        title="Leave balance trend"
+        subtitle="Used vs remaining by leave type"
         tone="soft"
         actions={<span className="tag"><Sparkles className="h-3.5 w-3.5" /> Live</span>}
       >
-        {stacked.length > 0 ? <StackedBarChart rows={stacked} height={96} /> : <p className="text-sm text-muted-foreground">No leave balances available.</p>}
+        {stacked.length > 0 ? <StackedBarChart rows={stacked} height={96} /> : <p className="text-sm text-muted-foreground">No leave balances configured.</p>}
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <SignalRow label="Tracked days" value={historyRows.length} />
           <SignalRow label="Leave types" value={stacked.length} />
@@ -115,3 +115,4 @@ export default function EmployeeAnalyticsWidget() {
     </div>
   );
 }
+

@@ -1,9 +1,9 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from "react";
 import { Clock3, FileUp, MessageSquare, RefreshCw, ShieldCheck, UserCheck } from "lucide-react";
-import { fetchEmployeeDashboard } from "@/lib/client/api";
+import { fetchEmployeeDashboard, peekCachedResult } from "@/lib/client/api";
 import type { EmployeeDashboardResponse } from "@/lib/types/dashboard";
 import { ErrorState } from "@/components/states/ErrorState";
 import { StatusBadge } from "@/components/shared/StatusBadge";
@@ -59,14 +59,13 @@ const getLeaveBreakdown = (rows: EmployeeDashboardResponse["leaveBalances"]): Le
 };
 
 export const EmployeeDashboard = () => {
-  const [data, setData] = useState<EmployeeDashboardResponse | null>(null);
-  const [loading, setLoading] = useState(true);
+  const cachedDashboard = peekCachedResult<EmployeeDashboardResponse>("/api/dashboard/employee");
+  const [data, setData] = useState<EmployeeDashboardResponse | null>(cachedDashboard?.ok ? (cachedDashboard.data ?? null) : null);
   const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState<DashboardView>("workspace");
 
   const loadDashboard = useCallback(() => {
     let active = true;
-    setLoading(true);
     setError(null);
 
     void fetchEmployeeDashboard()
@@ -81,9 +80,6 @@ export const EmployeeDashboard = () => {
       .catch((err: unknown) => {
         if (!active) return;
         setError(err instanceof Error ? err.message : "Unable to load dashboard");
-      })
-      .finally(() => {
-        if (active) setLoading(false);
       });
 
     return () => {
@@ -157,7 +153,7 @@ export const EmployeeDashboard = () => {
       <DashboardSection visible={view === "workspace"}>
         <section className="space-y-4">
           <h2 className="text-xl font-semibold">Today</h2>
-          {loading || !data ? (
+          {!data ? (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
               <SkeletonCard rows={3} />
               <SkeletonCard rows={3} />
@@ -298,4 +294,5 @@ export const EmployeeDashboard = () => {
     </div>
   );
 };
+
 
