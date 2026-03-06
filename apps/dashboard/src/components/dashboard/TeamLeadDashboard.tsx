@@ -1,68 +1,52 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import { fetchManagerDashboard } from "@/lib/client/api";
-import type { ManagerDashboardResponse } from "@/lib/types/dashboard";
-import { LoadingState } from "@/components/states/LoadingState";
-import { ErrorState } from "@/components/states/ErrorState";
-import { Donut, MiniBarChart } from "@/components/shared/Charts";
+import { Suspense, lazy, useMemo, useState } from "react";
+import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
 import {
+  ChartPanel,
   DashboardHero,
-  DashboardKpiTile,
+  DashboardModeSwitch,
   DashboardPanel,
-  QuickActionGrid,
-  SignalRow,
-  TimelineList
+  DashboardSection,
+  WorkflowPanel,
+  type DashboardView
 } from "@/components/dashboard/DashboardPrimitives";
+import { SkeletonCard, SkeletonChart, SkeletonList } from "@/components/ui/SkeletonBlocks";
+
+const ManagerKpiWidget = lazy(() => import("@/components/dashboard/widgets/ManagerKpiWidget"));
+const ManagerOperationsWidget = lazy(() => import("@/components/dashboard/widgets/ManagerOperationsWidget"));
+const ManagerWorkflowWidget = lazy(() => import("@/components/dashboard/widgets/ManagerWorkflowWidget"));
 
 export const TeamLeadDashboard = () => {
-  const [data, setData] = useState<ManagerDashboardResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [view, setView] = useState<DashboardView>("workspace");
 
-  useEffect(() => {
-    let active = true;
-    setLoading(true);
-    setError(null);
-
-    void fetchManagerDashboard()
-      .then((result) => {
-        if (!active) return;
-        if (!result.ok || !result.data) {
-          setError(result.error ?? "Unable to load Team Lead dashboard");
-          return;
-        }
-        setData(result.data);
-      })
-      .catch((err: unknown) => {
-        if (!active) return;
-        setError(err instanceof Error ? err.message : "Unable to load Team Lead dashboard");
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
-
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  const attendanceTrend = useMemo(() => data?.teamAttendanceHeatmap.map((d) => d.present + d.onLeave) ?? [], [data]);
-
-  const pulseTimeline = useMemo(() => {
-    return (data?.teamAttendanceHeatmap ?? []).map((row) => ({
-      title: row.date,
-      subtitle: `Present ${row.present} | Absent ${row.absent} | Leave ${row.onLeave}`,
-      meta: `${row.present + row.onLeave} covered`
-    }));
-  }, [data]);
-
-  if (loading) return <LoadingState label="Loading Team Lead dashboard..." />;
-  if (error || !data) return <ErrorState message={error ?? "Team Lead dashboard unavailable"} />;
+  const activityItems = useMemo(
+    () => [
+      {
+        id: "teamlead-1",
+        title: "Daily shift board refreshed",
+        description: "Today’s assigned employees and attendance records have been updated.",
+        timestamp: "Now"
+      },
+      {
+        id: "teamlead-2",
+        title: "Shift swap request pending",
+        description: "A team member requested a swap and needs review routing.",
+        timestamp: "4 min ago"
+      },
+      {
+        id: "teamlead-3",
+        title: "Correction queue updated",
+        description: "Attendance corrections are ready for validation.",
+        timestamp: "9 min ago"
+      }
+    ],
+    []
+  );
 
   return (
-    <div className="dashboard-shell fade-in">
+    <div className="page-wrap space-y-8 fade-in">
       <DashboardHero
         eyebrow="Team Lead Workspace"
         title="Daily team coordination"
@@ -77,51 +61,58 @@ export const TeamLeadDashboard = () => {
         )}
       />
 
-      <div className="dashboard-kpi-grid">
-        <DashboardKpiTile label="Pending leave" value={data.pendingLeaveApprovals} accent={data.pendingLeaveApprovals > 0 ? "warning" : "success"} />
-        <DashboardKpiTile label="Pending overtime" value={data.pendingOvertimeApprovals} accent={data.pendingOvertimeApprovals > 0 ? "warning" : "success"} />
-        <DashboardKpiTile label="Team reliability" value={`${data.teamReliabilityScore ?? 0}%`} footer={<Donut value={data.teamReliabilityScore ?? 0} />} />
-        <DashboardKpiTile label="Team members" value={data.quickSearch.length} hint="Current lead scope" accent="info" />
-      </div>
+      <DashboardModeSwitch value={view} onChange={setView} />
 
-      <div className="grid-2">
-        <DashboardPanel title="Quick actions" subtitle="Daily operational shortcuts">
-          <QuickActionGrid
-            actions={[
-              { label: "Team attendance", href: "/app/attendance/team", caption: "Today status" },
-              { label: "Review corrections", href: "/app/attendance/review", caption: "Attendance review" },
-              { label: "Approvals queue", href: "/app/approvals", caption: "Leave and corrections" },
-              { label: "Employee profiles", href: "/app/employees", caption: "Direct reports" }
-            ]}
-          />
-        </DashboardPanel>
-
-        <DashboardPanel title="Attendance momentum" subtitle="Coverage trend over recent days" tone="soft">
-          {attendanceTrend.length > 0 ? <MiniBarChart values={attendanceTrend} height={88} /> : <p className="muted">No recent attendance.</p>}
-          {data.teamAttendanceHeatmap.slice(0, 3).map((row) => (
-            <SignalRow key={row.date} label={row.date} value={`P ${row.present} | A ${row.absent} | L ${row.onLeave}`} />
-          ))}
-        </DashboardPanel>
-      </div>
-
-      <div className="grid-2">
-        <DashboardPanel title="Team attendance pulse" subtitle="Daily coverage summary" tone="spotlight">
-          {pulseTimeline.length > 0 ? <TimelineList items={pulseTimeline} /> : <p className="muted">No attendance data for current scope.</p>}
-        </DashboardPanel>
-
-        <DashboardPanel title="Direct report access" subtitle="Open employee records quickly">
-          {data.quickSearch.length === 0 ? <p className="muted">No direct report scope available.</p> : null}
-          {data.quickSearch.slice(0, 8).map((employee) => (
-            <div key={employee.id} className="row" style={{ justifyContent: "space-between" }}>
-              <div className="stack" style={{ gap: 4 }}>
-                <strong>{employee.full_name}</strong>
-                <span className="muted">{employee.designation ?? "Employee"}</span>
+      <DashboardSection visible={view === "workspace"}>
+        <section className="space-y-4">
+          <Suspense
+            fallback={(
+              <div className="dashboard-kpi-grid">
+                <SkeletonCard rows={2} />
+                <SkeletonCard rows={2} />
+                <SkeletonCard rows={2} />
+                <SkeletonCard rows={2} />
               </div>
-              <Link href={`/app/employees/${employee.id}`} className="secondary-btn">Open</Link>
-            </div>
-          ))}
+            )}
+          >
+            <ManagerKpiWidget variant="team_lead" />
+          </Suspense>
+        </section>
+
+        <section className="space-y-4">
+          <Suspense fallback={<div className="grid-2"><SkeletonCard rows={6} /><SkeletonChart /></div>}>
+            <ManagerOperationsWidget variant="team_lead" />
+          </Suspense>
+        </section>
+      </DashboardSection>
+
+      <DashboardSection visible={view === "analytics"}>
+        <ChartPanel title="Team analytics" subtitle="Coverage and reliability signal view">
+          <Suspense fallback={<div className="grid-2"><SkeletonCard rows={6} /><SkeletonChart /></div>}>
+            <ManagerOperationsWidget variant="team_lead" />
+          </Suspense>
+        </ChartPanel>
+      </DashboardSection>
+
+      <DashboardSection visible={view === "operations"}>
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+          <WorkflowPanel title="Team workflow" subtitle="Review queue and pending actions">
+            <Suspense fallback={<div className="grid-2"><SkeletonList rows={6} /><SkeletonList rows={6} /></div>}>
+              <ManagerWorkflowWidget variant="team_lead" />
+            </Suspense>
+          </WorkflowPanel>
+          <WorkflowPanel title="Activity feed" subtitle="Latest team-lead actions">
+            <ActivityFeed items={activityItems} />
+          </WorkflowPanel>
+        </div>
+
+        <DashboardPanel title="Performance profile" subtitle="Independent widgets render progressively">
+          <p className="muted">
+            Team lead widgets resolve independently for faster first paint and non-blocking dashboard rendering.
+          </p>
         </DashboardPanel>
-      </div>
+      </DashboardSection>
     </div>
   );
 };
+

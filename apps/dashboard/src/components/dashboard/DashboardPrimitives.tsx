@@ -1,17 +1,27 @@
-"use client";
+﻿"use client";
 
 import type { ReactNode } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { MetricCard } from "@/components/ui/MetricCard";
 import { SectionContainer } from "@/components/ui/SectionContainer";
 import { ActionCard } from "@/components/ui/ActionCard";
+import { Tabs } from "@/components/shared/Tabs";
 import { cn } from "@/lib/utils";
+
+export type DashboardView = "workspace" | "analytics" | "operations";
+
+export const DASHBOARD_VIEW_OPTIONS: Array<{ id: DashboardView; label: string }> = [
+  { id: "workspace", label: "Workspace" },
+  { id: "analytics", label: "Analytics" },
+  { id: "operations", label: "Operations" }
+];
 
 export const DashboardHero = ({
   eyebrow,
   title,
   subtitle,
-  actions
+  actions,
+  emphasis = "default"
 }: {
   eyebrow?: string;
   title: string;
@@ -20,7 +30,14 @@ export const DashboardHero = ({
   emphasis?: "default" | "executive" | "operations";
 }) => {
   return (
-    <Card className="rounded-xl border-border shadow-sm">
+    <Card
+      className={cn(
+        "rounded-xl border-border shadow-sm",
+        emphasis === "executive" && "dashboard-hero dashboard-hero--executive",
+        emphasis === "operations" && "dashboard-hero dashboard-hero--operations",
+        emphasis === "default" && "dashboard-hero"
+      )}
+    >
       <CardHeader className="p-5 pb-3">
         {eyebrow ? <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--accent)]">{eyebrow}</p> : null}
         <CardTitle className="text-3xl leading-tight">{title}</CardTitle>
@@ -28,6 +45,25 @@ export const DashboardHero = ({
       </CardHeader>
       {actions ? <CardContent className="flex flex-wrap items-center gap-2 p-5 pt-0">{actions}</CardContent> : null}
     </Card>
+  );
+};
+
+export const DashboardModeSwitch = ({
+  value,
+  onChange
+}: {
+  value: DashboardView;
+  onChange: (value: DashboardView) => void;
+}) => {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <h2 className="text-lg font-semibold">Dashboard mode</h2>
+      <Tabs
+        tabs={DASHBOARD_VIEW_OPTIONS}
+        active={value}
+        onChange={(next) => onChange((next as DashboardView) ?? "workspace")}
+      />
+    </div>
   );
 };
 
@@ -67,6 +103,53 @@ export const DashboardPanel = ({
       {children}
     </SectionContainer>
   );
+};
+
+export const ChartPanel = ({
+  title,
+  subtitle,
+  actions,
+  children
+}: {
+  title: string;
+  subtitle?: string;
+  actions?: ReactNode;
+  children: ReactNode;
+}) => {
+  return (
+    <DashboardPanel title={title} subtitle={subtitle} actions={actions} tone="soft">
+      {children}
+    </DashboardPanel>
+  );
+};
+
+export const WorkflowPanel = ({
+  title,
+  subtitle,
+  actions,
+  children
+}: {
+  title: string;
+  subtitle?: string;
+  actions?: ReactNode;
+  children: ReactNode;
+}) => {
+  return (
+    <DashboardPanel title={title} subtitle={subtitle} actions={actions} tone="spotlight">
+      {children}
+    </DashboardPanel>
+  );
+};
+
+export const DashboardSection = ({
+  visible,
+  children
+}: {
+  visible: boolean;
+  children: ReactNode;
+}) => {
+  if (!visible) return null;
+  return <>{children}</>;
 };
 
 export const QuickActionGrid = ({
@@ -133,3 +216,4 @@ export const TimelineList = ({
     </div>
   );
 };
+

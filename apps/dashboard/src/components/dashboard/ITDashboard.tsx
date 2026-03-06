@@ -1,18 +1,23 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
 import { fetchBillingOverview, fetchMonitoringOverview } from "@/lib/client/api";
 import type { BillingOverview } from "@/lib/types/billing";
 import type { MonitoringOverview } from "@/lib/types/monitoring";
 import { LoadingState } from "@/components/states/LoadingState";
 import { ErrorState } from "@/components/states/ErrorState";
 import {
+  ChartPanel,
   DashboardHero,
   DashboardKpiTile,
-  DashboardPanel,
+  DashboardModeSwitch,
+  DashboardSection,
   QuickActionGrid,
-  SignalRow
+  SignalRow,
+  WorkflowPanel,
+  type DashboardView
 } from "@/components/dashboard/DashboardPrimitives";
 
 export const ITDashboard = () => {
@@ -20,6 +25,7 @@ export const ITDashboard = () => {
   const [billing, setBilling] = useState<BillingOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [view, setView] = useState<DashboardView>("workspace");
 
   useEffect(() => {
     let active = true;
@@ -74,6 +80,30 @@ export const ITDashboard = () => {
     } as const;
   }, [monitoring]);
 
+  const activityItems = useMemo(
+    () => [
+      {
+        id: "it-1",
+        title: "Monitoring heartbeat captured",
+        description: "Security and API integrity snapshots updated.",
+        timestamp: "Now"
+      },
+      {
+        id: "it-2",
+        title: "Idempotency conflicts checked",
+        description: `${securityPressure.conflicts} conflict events in current sample window.`,
+        timestamp: "4 min ago"
+      },
+      {
+        id: "it-3",
+        title: "License usage refreshed",
+        description: `Active billable seats: ${billing?.seatSummary.activeBillable ?? 0}.`,
+        timestamp: "8 min ago"
+      }
+    ],
+    [billing?.seatSummary.activeBillable, securityPressure.conflicts]
+  );
+
   if (loading) return <LoadingState label="Loading IT dashboard..." />;
   if (error || !monitoring) return <ErrorState message={error ?? "IT dashboard unavailable"} />;
 
@@ -83,6 +113,7 @@ export const ITDashboard = () => {
         eyebrow="IT Workspace"
         title="Security and system operations"
         subtitle="Monitor tenant-safe security pressure, request integrity conflicts, and operational risk signals in one read-only IT view."
+        emphasis="operations"
         actions={(
           <>
             <Link href="/app/monitoring" className="primary-btn">Monitoring</Link>
@@ -92,28 +123,23 @@ export const ITDashboard = () => {
         )}
       />
 
-      <div className="dashboard-kpi-grid">
-        <DashboardKpiTile label="System health" value={securityPressure.health} hint="Derived from live monitoring signals" accent={securityPressure.health === "healthy" ? "success" : "warning"} />
-        <DashboardKpiTile label="Rate-limit breaches" value={securityPressure.breaches} hint="Last 24h threshold exceedances" accent={securityPressure.breaches > 0 ? "warning" : "success"} />
-        <DashboardKpiTile label="Integrity conflicts" value={securityPressure.conflicts} hint="Idempotency collisions" accent={securityPressure.conflicts > 0 ? "warning" : "success"} />
-        <DashboardKpiTile label="Approval failures" value={securityPressure.approvalFailures} hint="Workflow error pressure" accent={securityPressure.approvalFailures > 0 ? "danger" : "success"} />
-        <DashboardKpiTile
-          label="Active licenses"
-          value={billing ? `${billing.seatSummary.activeBillable}` : "-"}
-          hint={billing?.seatSummary.seatLimit ? `of ${billing.seatSummary.seatLimit}` : "custom plan"}
-          accent="info"
-        />
-      </div>
+      <DashboardModeSwitch value={view} onChange={setView} />
 
-      <div className="grid-2">
-        <DashboardPanel title="Security event summary" subtitle="Most recent monitoring snapshot" tone="spotlight">
-          <SignalRow label="Generated at" value={monitoring.generated_at} />
-          <SignalRow label="Rate-limit events" value={monitoring.rateLimitBreaches.length} tone={monitoring.rateLimitBreaches.length > 0 ? "warning" : "success"} />
-          <SignalRow label="Conflict endpoints" value={monitoring.idempotencyConflicts.length} tone={monitoring.idempotencyConflicts.length > 0 ? "warning" : "success"} />
-          <SignalRow label="Approval failure endpoints" value={monitoring.approvalFailures.length} tone={monitoring.approvalFailures.length > 0 ? "danger" : "success"} />
-        </DashboardPanel>
+      <DashboardSection visible={view === "workspace"}>
+        <div className="dashboard-kpi-grid">
+          <DashboardKpiTile label="System health" value={securityPressure.health} hint="Derived from live monitoring signals" accent={securityPressure.health === "healthy" ? "success" : "warning"} />
+          <DashboardKpiTile label="Rate-limit breaches" value={securityPressure.breaches} hint="Last 24h threshold exceedances" accent={securityPressure.breaches > 0 ? "warning" : "success"} />
+          <DashboardKpiTile label="Integrity conflicts" value={securityPressure.conflicts} hint="Idempotency collisions" accent={securityPressure.conflicts > 0 ? "warning" : "success"} />
+          <DashboardKpiTile label="Approval failures" value={securityPressure.approvalFailures} hint="Workflow error pressure" accent={securityPressure.approvalFailures > 0 ? "danger" : "success"} />
+          <DashboardKpiTile
+            label="Active licenses"
+            value={billing ? `${billing.seatSummary.activeBillable}` : "-"}
+            hint={billing?.seatSummary.seatLimit ? `of ${billing.seatSummary.seatLimit}` : "custom plan"}
+            accent="info"
+          />
+        </div>
 
-        <DashboardPanel title="Access and operations" subtitle="IT actions and review paths">
+        <WorkflowPanel title="Access and operations" subtitle="IT actions and review paths">
           <QuickActionGrid
             actions={[
               { label: "Monitoring center", href: "/app/monitoring", caption: "Security and SLA signals" },
@@ -122,8 +148,24 @@ export const ITDashboard = () => {
               { label: "Billing licenses", href: "/app/billing", caption: "Seat and license counts" }
             ]}
           />
-        </DashboardPanel>
-      </div>
+        </WorkflowPanel>
+      </DashboardSection>
+
+      <DashboardSection visible={view === "analytics"}>
+        <ChartPanel title="Security event summary" subtitle="Most recent monitoring snapshot">
+          <SignalRow label="Generated at" value={monitoring.generated_at} />
+          <SignalRow label="Rate-limit events" value={monitoring.rateLimitBreaches.length} tone={monitoring.rateLimitBreaches.length > 0 ? "warning" : "success"} />
+          <SignalRow label="Conflict endpoints" value={monitoring.idempotencyConflicts.length} tone={monitoring.idempotencyConflicts.length > 0 ? "warning" : "success"} />
+          <SignalRow label="Approval failure endpoints" value={monitoring.approvalFailures.length} tone={monitoring.approvalFailures.length > 0 ? "danger" : "success"} />
+        </ChartPanel>
+      </DashboardSection>
+
+      <DashboardSection visible={view === "operations"}>
+        <WorkflowPanel title="Activity feed" subtitle="Latest IT operations">
+          <ActivityFeed items={activityItems} />
+        </WorkflowPanel>
+      </DashboardSection>
     </div>
   );
 };
+
