@@ -1,19 +1,11 @@
+import { memo } from "react";
 import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
 import { ArrowRight, LayoutGrid } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
-export function ActionCard({
-  title,
-  description,
-  subtitle,
-  href,
-  onClick,
-  icon: Icon = LayoutGrid,
-  disabled = false,
-  className
-}: {
+type ActionCardProps = {
   title: string;
   description?: string;
   subtitle?: string;
@@ -22,7 +14,18 @@ export function ActionCard({
   icon?: LucideIcon;
   disabled?: boolean;
   className?: string;
-}) {
+};
+
+const ActionCardComponent = ({
+  title,
+  description,
+  subtitle,
+  href,
+  onClick,
+  icon: Icon = LayoutGrid,
+  disabled = false,
+  className
+}: ActionCardProps) => {
   const bodyText = description ?? subtitle ?? "";
 
   const content = (
@@ -60,4 +63,7 @@ export function ActionCard({
       {content}
     </button>
   );
-}
+};
+
+export const ActionCard = memo(ActionCardComponent);
+ActionCard.displayName = "ActionCard";

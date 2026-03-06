@@ -1,4 +1,5 @@
-﻿import { Bell, CalendarDays, MessageSquare, Sparkles, Timer } from "lucide-react";
+import { memo, useMemo } from "react";
+import { Bell, CalendarDays, MessageSquare, Sparkles, Timer } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/EmptyState";
 
@@ -19,7 +20,28 @@ const resolveIcon = (title: string) => {
   return Bell;
 };
 
-export const ActivityFeed = ({ items }: { items: ActivityItem[] }) => {
+const ActivityFeedComponent = ({ items }: { items: ActivityItem[] }) => {
+  const rendered = useMemo(
+    () =>
+      items.map((item) => {
+        const Icon = resolveIcon(item.title);
+        return (
+          <div key={item.id} className="dashboard-timeline__item">
+            <span className="dashboard-timeline__dot" />
+            <div className="dashboard-timeline__content">
+              <div className="flex items-center gap-2">
+                <Icon className="h-4 w-4 text-muted-foreground" />
+                <strong>{item.title}</strong>
+              </div>
+              <p className="text-sm text-muted-foreground">{item.description}</p>
+            </div>
+            <span className="dashboard-timeline__meta">{item.timestamp}</span>
+          </div>
+        );
+      }),
+    [items]
+  );
+
   return (
     <Card className="rounded-xl border-border shadow-sm">
       <CardHeader className="p-5 pb-3">
@@ -29,24 +51,12 @@ export const ActivityFeed = ({ items }: { items: ActivityItem[] }) => {
         {items.length === 0 ? (
           <EmptyState title="Your workspace is up to date" subtitle="No recent activity to display." compact />
         ) : (
-          items.map((item) => {
-            const Icon = resolveIcon(item.title);
-            return (
-              <div key={item.id} className="dashboard-timeline__item">
-                <span className="dashboard-timeline__dot" />
-                <div className="dashboard-timeline__content">
-                  <div className="flex items-center gap-2">
-                    <Icon className="h-4 w-4 text-muted-foreground" />
-                    <strong>{item.title}</strong>
-                  </div>
-                  <p className="text-sm text-muted-foreground">{item.description}</p>
-                </div>
-                <span className="dashboard-timeline__meta">{item.timestamp}</span>
-              </div>
-            );
-          })
+          rendered
         )}
       </CardContent>
     </Card>
   );
 };
+
+export const ActivityFeed = memo(ActivityFeedComponent);
+ActivityFeed.displayName = "ActivityFeed";

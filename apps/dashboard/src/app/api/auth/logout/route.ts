@@ -11,43 +11,52 @@ const clearAuthCookies = (response: NextResponse) => {
   }
 };
 
+const buildSafeRedirect = (request: Request, target = "/login") => {
+  const response = NextResponse.redirect(new URL(target, request.url));
+  clearAuthCookies(response);
+  return response;
+};
+
 const handleLogout = async (request: Request, applyRateLimit: boolean) => {
   const route = await beginRoute();
   const endpoint = "/api/auth/logout";
 
-  if (applyRateLimit) {
-    try {
-      const supabase = createUserScopedSupabaseServerClient();
-      await enforceAuthRateLimit(supabase, request, {
-        includeIp: true,
-        includeEmail: false,
-        windowSeconds: 60,
-        maxAttempts: 60,
-        lockMinutes: 1
-      });
-    } catch {
-      const response = NextResponse.redirect(
-        new URL(`/login?error=${encodeURIComponent("Too many requests. Try again later.")}`, request.url),
-        { status: 429 }
-      );
-      return finalizeRoute(route, endpoint, response);
+  try {
+    if (applyRateLimit) {
+      try {
+        const supabase = createUserScopedSupabaseServerClient();
+        await enforceAuthRateLimit(supabase, request, {
+          includeIp: true,
+          includeEmail: false,
+          windowSeconds: 60,
+          maxAttempts: 60,
+          lockMinutes: 1
+        });
+      } catch {
+        const response = NextResponse.redirect(
+          new URL(`/login?error=${encodeURIComponent("Too many requests. Try again later.")}`, request.url),
+          { status: 429 }
+        );
+        clearAuthCookies(response);
+        return finalizeRoute(route, endpoint, response);
+      }
     }
-  }
 
-  const response = NextResponse.redirect(new URL("/login", request.url));
-  const cookieStore = await cookies();
-  const accessToken = cookieStore.get("lf_access_token")?.value ?? null;
-  const sessionId = cookieStore.get("lf_session_id")?.value ?? null;
-  if (accessToken && sessionId) {
-    try {
-      await revokeAuthSession(accessToken, sessionId, "logout");
-    } catch {
-      // best-effort revoke
+    const cookieStore = await cookies();
+    const accessToken = cookieStore.get("lf_access_token")?.value ?? null;
+    const sessionId = cookieStore.get("lf_session_id")?.value ?? null;
+    if (accessToken && sessionId) {
+      try {
+        await revokeAuthSession(accessToken, sessionId, "logout");
+      } catch {
+        // best-effort revoke only
+      }
     }
-  }
 
-  clearAuthCookies(response);
-  return finalizeRoute(route, endpoint, response);
+    return finalizeRoute(route, endpoint, buildSafeRedirect(request, "/login"));
+  } catch {
+    return finalizeRoute(route, endpoint, buildSafeRedirect(request, "/login"));
+  }
 };
 
 export async function GET(request: Request) {

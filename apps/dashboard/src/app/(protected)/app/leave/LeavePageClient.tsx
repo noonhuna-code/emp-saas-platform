@@ -6,9 +6,10 @@ import {
   cancelLeaveRequest,
   fetchEmployeeMe,
   fetchLeaveBalances,
-  fetchLeaveHistory
+  fetchLeaveHistory,
+  fetchLeaveTypes
 } from "@/lib/client/api";
-import type { LeaveBalance, LeaveRequest } from "@/lib/types/leave";
+import type { LeaveBalance, LeaveRequest, LeaveTypeOption } from "@/lib/types/leave";
 import { LeaveBalanceCard } from "@/components/leave/LeaveBalanceCard";
 import { LeaveApplyForm } from "@/components/leave/LeaveApplyForm";
 import { LeaveHistoryTable } from "@/components/leave/LeaveHistoryTable";
@@ -19,6 +20,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export const LeavePageClient = () => {
   const [balances, setBalances] = useState<LeaveBalance[]>([]);
+  const [leaveTypes, setLeaveTypes] = useState<LeaveTypeOption[]>([]);
   const [requests, setRequests] = useState<LeaveRequest[]>([]);
   const [selectedRequest, setSelectedRequest] = useState<LeaveRequest | null>(null);
   const [historyPage, setHistoryPage] = useState(1);
@@ -33,10 +35,11 @@ export const LeavePageClient = () => {
     setLoading(true);
     setError(null);
     try {
-      const [meResult, balancesResult, historyResult] = await Promise.all([
+      const [meResult, balancesResult, historyResult, leaveTypesResult] = await Promise.all([
         fetchEmployeeMe(),
         fetchLeaveBalances(),
-        fetchLeaveHistory({ page: historyPage, pageSize: historyPageSize })
+        fetchLeaveHistory({ page: historyPage, pageSize: historyPageSize }),
+        fetchLeaveTypes()
       ]);
 
       if (meResult.ok && meResult.data?.employeeId) {
@@ -48,6 +51,12 @@ export const LeavePageClient = () => {
         setBalances([]);
       } else {
         setBalances(balancesResult.data.balances ?? []);
+      }
+
+      if (!leaveTypesResult.ok || !leaveTypesResult.data) {
+        setLeaveTypes([]);
+      } else {
+        setLeaveTypes(leaveTypesResult.data.leaveTypes ?? []);
       }
 
       if (!historyResult.ok || !historyResult.data) {
@@ -172,7 +181,13 @@ export const LeavePageClient = () => {
           </Card>
 
           <LeaveBalanceCard balances={balances} />
-          <LeaveApplyForm onSubmit={handleApply} loading={submitting} employeeId={employeeId} balances={balances} />
+          <LeaveApplyForm
+            onSubmit={handleApply}
+            loading={submitting}
+            employeeId={employeeId}
+            balances={balances}
+            leaveTypes={leaveTypes}
+          />
           <LeaveHistoryTable
             requests={requests}
             onCancel={handleCancel}

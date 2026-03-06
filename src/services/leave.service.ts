@@ -23,6 +23,14 @@ export type LeaveBalanceItem = {
   leave_type_is_paid?: boolean | null;
 };
 
+export type LeaveTypeItem = {
+  id: string;
+  name: string;
+  description?: string | null;
+  is_paid: boolean;
+  gender_restriction?: string | null;
+};
+
 export type LeaveRequestItem = {
   id: string;
   employee_id: string;
@@ -133,6 +141,41 @@ const applyDateFilters = (query: any, filters?: LeaveRequestFilters) => {
     query = query.lte("end_date", filters.dateTo);
   }
   return query;
+};
+
+
+export const listLeaveTypes = async (
+  ctx: ServiceContext
+): Promise<ServiceResult<{ leaveTypes: LeaveTypeItem[] }>> => {
+  try {
+    await requireLeaveEntitlement(ctx);
+
+    const { data, error } = await ctx.supabase
+      .from("leave_types")
+      .select("id, name, description, is_paid, gender_restriction")
+      .eq("company_id", ctx.companyId)
+      .is("is_deleted", false)
+      .order("name", { ascending: true });
+
+    if (error) {
+      return { ok: false, error: sanitizeError(error.message, "Leave type lookup failed") };
+    }
+
+    return {
+      ok: true,
+      data: {
+        leaveTypes: (data ?? []).map((row) => ({
+          id: row.id as string,
+          name: row.name as string,
+          description: (row.description as string | null) ?? null,
+          is_paid: Boolean(row.is_paid),
+          gender_restriction: (row.gender_restriction as string | null) ?? null
+        }))
+      }
+    };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Leave type lookup failed" };
+  }
 };
 
 export const applyLeave = async (

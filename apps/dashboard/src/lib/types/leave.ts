@@ -31,10 +31,19 @@ export type LeaveRequest = {
   leave_type_name?: string | null;
 };
 
+export type LeaveTypeOption = {
+  id: string;
+  name: string;
+  description?: string | null;
+  is_paid: boolean;
+  gender_restriction?: string | null;
+};
+
 export type LeaveBalancesResponse = { balances: LeaveBalance[] };
 export type LeaveHistoryResponse = { requests: LeaveRequest[] };
 export type LeaveReviewResponse = { requests: LeaveRequest[] };
 export type LeaveCalendarResponse = { requests: LeaveRequest[] };
+export type LeaveTypesResponse = { leaveTypes: LeaveTypeOption[] };
 
 export type LeaveApplyInput = {
   employeeId: string;
@@ -49,3 +58,5 @@ export type LeaveApplyInput = {
 export type LeaveApplyResponse = { requestId: string };
 export type LeaveDecisionResponse = { status: string };
 export type LeaveCancelResponse = { status: string };
+
+

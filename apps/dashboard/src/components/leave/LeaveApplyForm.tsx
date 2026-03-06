@@ -1,17 +1,19 @@
 import { useMemo, useState } from "react";
-import type { LeaveApplyInput, LeaveBalance } from "@/lib/types/leave";
+import type { LeaveApplyInput, LeaveBalance, LeaveTypeOption } from "@/lib/types/leave";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export const LeaveApplyForm = ({
   onSubmit,
   loading,
   employeeId,
-  balances
+  balances,
+  leaveTypes
 }: {
   onSubmit: (payload: LeaveApplyInput) => Promise<void>;
   loading?: boolean;
   employeeId?: string | null;
   balances: LeaveBalance[];
+  leaveTypes?: LeaveTypeOption[];
 }) => {
   const [payload, setPayload] = useState<LeaveApplyInput>({
     employeeId: employeeId ?? "",
@@ -23,15 +25,23 @@ export const LeaveApplyForm = ({
     half_day_type: undefined
   });
 
-  const leaveTypes = useMemo(() => {
+  const leaveTypeOptions = useMemo(() => {
     const map = new Map<string, string>();
+
+    (leaveTypes ?? []).forEach((type) => {
+      if (type.id) {
+        map.set(type.id, type.name ?? "Leave");
+      }
+    });
+
     balances.forEach((balance) => {
-      if (balance.leave_type_id) {
+      if (balance.leave_type_id && !map.has(balance.leave_type_id)) {
         map.set(balance.leave_type_id, balance.leave_type_name ?? "Leave");
       }
     });
+
     return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
-  }, [balances]);
+  }, [balances, leaveTypes]);
 
   const handleChange = (field: keyof LeaveApplyInput, value: string | boolean) => {
     setPayload((prev) => ({ ...prev, [field]: value }));
@@ -42,7 +52,7 @@ export const LeaveApplyForm = ({
     await onSubmit({ ...payload, employeeId: employeeId ?? "" });
   };
 
-  const hasTypes = leaveTypes.length > 0;
+  const hasTypes = leaveTypeOptions.length > 0;
 
   return (
     <Card>
@@ -65,7 +75,7 @@ export const LeaveApplyForm = ({
                 required
               >
                 <option value="">Select leave type</option>
-                {leaveTypes.map((type) => (
+                {leaveTypeOptions.map((type) => (
                   <option key={type.id} value={type.id}>
                     {type.name}
                   </option>

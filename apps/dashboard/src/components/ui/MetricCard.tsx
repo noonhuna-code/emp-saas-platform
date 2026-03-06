@@ -1,22 +1,24 @@
-import type { ReactNode } from "react";
+import { memo, type ReactNode } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
-export const MetricCard = ({
-  label,
-  value,
-  hint,
-  trend,
-  accent = "default",
-  footer
-}: {
+type MetricCardProps = {
   label: string;
   value: string | number;
   hint?: string;
   trend?: string;
   accent?: "default" | "success" | "warning" | "danger" | "info";
   footer?: ReactNode;
-}) => {
+};
+
+const MetricCardComponent = ({
+  label,
+  value,
+  hint,
+  trend,
+  accent = "default",
+  footer
+}: MetricCardProps) => {
   return (
     <Card
       className={cn(
@@ -39,3 +41,6 @@ export const MetricCard = ({
     </Card>
   );
 };
+
+export const MetricCard = memo(MetricCardComponent);
+MetricCard.displayName = "MetricCard";
