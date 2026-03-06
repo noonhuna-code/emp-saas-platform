@@ -1,0 +1,3 @@
+﻿-- Recovered migration placeholder.
+-- This version exists on remote but file was missing locally.
+-- Intentionally no-op to restore migration history continuity.

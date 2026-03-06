@@ -1605,3 +1605,35 @@ p { margin: 0; }
 
 
 
+
+
+.topbar-profile__avatar--xl {
+  width: 48px;
+  height: 48px;
+  border-radius: 999px;
+}
+
+.topbar-profile__avatar-fallback.topbar-profile__avatar--xl {
+  width: 48px;
+  height: 48px;
+  font-size: 16px;
+}
+
+.header-bar[data-compact="true"] .header-bar__left {
+  flex: 1 1 auto;
+  min-width: 320px;
+}
+.header-bar[data-compact="true"] .header-bar__title-wrap {
+  gap: 1px;
+}
+.header-bar[data-compact="true"] .header-bar__title-wrap h1 {
+  font-size: 1.15rem;
+  white-space: nowrap;
+}
+.header-bar[data-compact="true"] .header-bar__title-wrap p {
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+
+

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { listShiftTemplates } from "@emp/services/attendance.service";
 import { beginRoute, finalizeRoute } from "@/lib/server/route-helpers";
 import { handleRouteError } from "@/lib/server/api-errors";
-import { buildAttendanceRouteContext, isUnauthenticatedError, jsonError, mapAttendanceServiceErrorStatus, sanitizeAttendanceServiceError } from "@/app/api/attendance/_utils";
+import { jsonError, mapAttendanceServiceErrorStatus, sanitizeAttendanceServiceError } from "@/app/api/attendance/_utils";
 
 export async function GET() {
   const route = await beginRoute();
@@ -13,8 +13,7 @@ export async function GET() {
       return finalizeRoute(route, endpoint, jsonError("Authentication required", 401, route.requestId));
     }
 
-    const { ctx } = await buildAttendanceRouteContext(route.ctx, ["manage_attendance", "manage_employees"]);
-    const result = await listShiftTemplates(ctx);
+    const result = await listShiftTemplates(route.ctx);
 
     if (!result.ok) {
       return finalizeRoute(
@@ -26,9 +25,6 @@ export async function GET() {
 
     return finalizeRoute(route, endpoint, NextResponse.json({ ok: true, data: result.data, requestId: route.requestId }, { status: 200 }));
   } catch (error) {
-    if (isUnauthenticatedError(error)) {
-      return finalizeRoute(route, endpoint, jsonError("Authentication required", 401, route.requestId));
-    }
     return finalizeRoute(route, endpoint, handleRouteError(error, "Unable to load shift templates", route.requestId));
   }
 }

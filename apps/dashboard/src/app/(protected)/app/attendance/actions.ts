@@ -24,6 +24,10 @@ const sanitizeClockError = (error?: string): string => {
 
   if (knownSafe.includes(error)) return error;
   if (error.startsWith("Missing permission:")) return "Permission denied";
+  const lower = error.toLowerCase();
+  if (lower.includes("row-level security policy") || lower.includes("permission denied") || lower.includes("not enough privileges")) {
+    return "Permission denied";
+  }
   return "Attendance action failed";
 };
 
@@ -108,3 +112,4 @@ export async function clockOutAction(
     return buildActionResult(false, { error: message });
   }
 }
+

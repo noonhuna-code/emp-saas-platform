@@ -1120,44 +1120,102 @@ export const listShiftSwapRequests = async (
       requireShiftSwapReviewAccess(ctx);
     }
 
-    let query = ctx.supabase
-      .from("shift_change_requests")
-      .select(
-        "id, employee_id, attendance_date, old_shift_template_id, requested_shift_template_id, reason, status, created_at, reviewed_at, reviewed_by, employees!shift_change_requests_employee_id_fkey(user_profiles(full_name)), old_shift:shift_templates!shift_change_requests_old_shift_template_id_fkey(name), requested_shift:shift_templates!shift_change_requests_requested_shift_template_id_fkey(name)"
-      )
-      .eq("company_id", ctx.companyId)
-      .is("is_deleted", false)
-      .order("created_at", { ascending: false })
-      .limit(limit);
+    let rows: ShiftSwapRequestRow[] = [];
 
     if (scope === "mine" && actorEmployeeId) {
-      query = query.eq("employee_id", actorEmployeeId);
-    }
+      let mineQuery = ctx.supabase
+        .from("shift_change_requests")
+        .select("id, employee_id, attendance_date, old_shift_template_id, requested_shift_template_id, reason, status, created_at, reviewed_at, reviewed_by")
+        .eq("company_id", ctx.companyId)
+        .eq("employee_id", actorEmployeeId)
+        .is("is_deleted", false)
+        .order("created_at", { ascending: false })
+        .limit(limit);
 
-    if (options.status) {
-      query = query.eq("status", options.status);
-    }
+      if (options.status) {
+        mineQuery = mineQuery.eq("status", options.status);
+      }
 
-    const { data, error } = await query;
-    if (error) {
-      return { ok: false, error: sanitizeError(error.message, "Unable to load shift swap requests") };
-    }
+      const { data: mineData, error: mineError } = await mineQuery;
+      if (mineError) {
+        return { ok: false, error: sanitizeError(mineError.message, "Unable to load shift swap requests") };
+      }
 
-    const rows = (data ?? []).map((row: any) => ({
-      id: row.id as string,
-      employee_id: row.employee_id as string,
-      employee_name: (row.employees?.user_profiles?.full_name as string | null) ?? null,
-      attendance_date: row.attendance_date as string,
-      old_shift_template_id: row.old_shift_template_id as string,
-      old_shift_name: (row.old_shift?.name as string | null) ?? null,
-      requested_shift_template_id: row.requested_shift_template_id as string,
-      requested_shift_name: (row.requested_shift?.name as string | null) ?? null,
-      reason: row.reason as string,
-      status: (row.status as "pending" | "approved" | "rejected") ?? "pending",
-      created_at: row.created_at as string,
-      reviewed_at: (row.reviewed_at as string | null) ?? null,
-      reviewed_by: (row.reviewed_by as string | null) ?? null
-    }));
+      const shiftTemplateIds = Array.from(
+        new Set(
+          (mineData ?? [])
+            .flatMap((row) => [row.old_shift_template_id as string | null, row.requested_shift_template_id as string | null])
+            .filter((value): value is string => Boolean(value))
+        )
+      );
+
+      let templateNameById = new Map<string, string>();
+      if (shiftTemplateIds.length > 0) {
+        const { data: templates, error: templatesError } = await ctx.supabase
+          .from("shift_templates")
+          .select("id, name")
+          .eq("company_id", ctx.companyId)
+          .is("is_deleted", false)
+          .in("id", shiftTemplateIds);
+
+        if (templatesError) {
+          return { ok: false, error: sanitizeError(templatesError.message, "Unable to load shift swap requests") };
+        }
+
+        templateNameById = new Map((templates ?? []).map((row) => [row.id as string, row.name as string]));
+      }
+
+      rows = (mineData ?? []).map((row) => ({
+        id: row.id as string,
+        employee_id: row.employee_id as string,
+        employee_name: null,
+        attendance_date: row.attendance_date as string,
+        old_shift_template_id: row.old_shift_template_id as string,
+        old_shift_name: templateNameById.get(row.old_shift_template_id as string) ?? null,
+        requested_shift_template_id: row.requested_shift_template_id as string,
+        requested_shift_name: templateNameById.get(row.requested_shift_template_id as string) ?? null,
+        reason: row.reason as string,
+        status: (row.status as "pending" | "approved" | "rejected") ?? "pending",
+        created_at: row.created_at as string,
+        reviewed_at: (row.reviewed_at as string | null) ?? null,
+        reviewed_by: (row.reviewed_by as string | null) ?? null
+      }));
+    } else {
+      let reviewQuery = ctx.supabase
+        .from("shift_change_requests")
+        .select(
+          "id, employee_id, attendance_date, old_shift_template_id, requested_shift_template_id, reason, status, created_at, reviewed_at, reviewed_by, employees!shift_change_requests_employee_id_fkey(user_profiles(full_name)), old_shift:shift_templates!shift_change_requests_old_shift_template_id_fkey(name), requested_shift:shift_templates!shift_change_requests_requested_shift_template_id_fkey(name)"
+        )
+        .eq("company_id", ctx.companyId)
+        .is("is_deleted", false)
+        .order("created_at", { ascending: false })
+        .limit(limit);
+
+      if (options.status) {
+        reviewQuery = reviewQuery.eq("status", options.status);
+      }
+
+      const { data: reviewData, error: reviewError } = await reviewQuery;
+      if (reviewError) {
+        return { ok: false, error: sanitizeError(reviewError.message, "Unable to load shift swap requests") };
+      }
+
+      rows = (reviewData ?? []).map((row: any) => ({
+        id: row.id as string,
+        employee_id: row.employee_id as string,
+        employee_name: (row.employees?.user_profiles?.full_name as string | null) ?? null,
+        attendance_date: row.attendance_date as string,
+        old_shift_template_id: row.old_shift_template_id as string,
+        old_shift_name: (row.old_shift?.name as string | null) ?? null,
+        requested_shift_template_id: row.requested_shift_template_id as string,
+        requested_shift_name: (row.requested_shift?.name as string | null) ?? null,
+        reason: row.reason as string,
+        status: (row.status as "pending" | "approved" | "rejected") ?? "pending",
+        created_at: row.created_at as string,
+        reviewed_at: (row.reviewed_at as string | null) ?? null,
+        reviewed_by: (row.reviewed_by as string | null) ?? null
+      }));
+    }
 
     return { ok: true, data: { scope, rows } };
   } catch (err) {
