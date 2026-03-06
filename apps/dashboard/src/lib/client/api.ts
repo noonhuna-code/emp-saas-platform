@@ -107,6 +107,9 @@ type CacheEntry<T> = { ts: number; value?: DashboardApiResult<T>; promise?: Prom
 const GET_CACHE = new Map<string, CacheEntry<unknown>>();
 const DEFAULT_TTL = 45000;
 const STORAGE_PREFIX = "emp:get:";
+let CACHE_SCOPE = "global";
+
+const getCacheKey = (url: string): string => `${CACHE_SCOPE}:${url}`;
 
 const readSessionCache = <T>(url: string): CacheEntry<T> | null => {
   if (typeof window === "undefined") return null;
@@ -115,6 +118,7 @@ const readSessionCache = <T>(url: string): CacheEntry<T> | null => {
     if (!raw) return null;
     const parsed = JSON.parse(raw) as { ts: number; value: DashboardApiResult<T> };
     if (!parsed || typeof parsed.ts !== "number" || !parsed.value) return null;
+    if (!parsed.value.ok) return null;
     return { ts: parsed.ts, value: parsed.value };
   } catch {
     return null;
@@ -132,12 +136,18 @@ const writeSessionCache = <T>(url: string, ts: number, value: DashboardApiResult
 
 const fetchWithCache = async <T>(url: string, ttlMs: number = DEFAULT_TTL): Promise<DashboardApiResult<T>> => {
   const now = Date.now();
-  let existing = GET_CACHE.get(url) as CacheEntry<T> | undefined;
+  const cacheKey = getCacheKey(url);
+  let existing = GET_CACHE.get(cacheKey) as CacheEntry<T> | undefined;
+
+  if (existing?.value && !existing.value.ok) {
+    GET_CACHE.delete(cacheKey);
+    existing = undefined;
+  }
 
   if (!existing?.value && !existing?.promise) {
-    const persisted = readSessionCache<T>(url);
+    const persisted = readSessionCache<T>(cacheKey);
     if (persisted?.value) {
-      GET_CACHE.set(url, persisted as CacheEntry<unknown>);
+      GET_CACHE.set(cacheKey, persisted as CacheEntry<unknown>);
       existing = persisted;
     }
   }
@@ -147,16 +157,19 @@ const fetchWithCache = async <T>(url: string, ttlMs: number = DEFAULT_TTL): Prom
       const refreshPromise = fetch(url, { cache: "no-store" })
         .then(parseJson<T>)
         .then((result) => {
+          if (!result.ok) {
+            return existing?.value ?? result;
+          }
           const ts = Date.now();
-          GET_CACHE.set(url, { ts, value: result });
-          writeSessionCache(url, ts, result);
+          GET_CACHE.set(cacheKey, { ts, value: result });
+          writeSessionCache(cacheKey, ts, result);
           return result;
         })
         .finally(() => {
-          const entry = GET_CACHE.get(url);
+          const entry = GET_CACHE.get(cacheKey);
           if (entry) entry.promise = undefined;
         });
-      GET_CACHE.set(url, { ts: existing.ts, value: existing.value, promise: refreshPromise });
+      GET_CACHE.set(cacheKey, { ts: existing.ts, value: existing.value, promise: refreshPromise });
     }
     return existing.value;
   }
@@ -168,18 +181,47 @@ const fetchWithCache = async <T>(url: string, ttlMs: number = DEFAULT_TTL): Prom
   const promise = fetch(url, { cache: "no-store" })
     .then(parseJson<T>)
     .then((result) => {
+      if (!result.ok) {
+        GET_CACHE.delete(cacheKey);
+        return result;
+      }
       const ts = Date.now();
-      GET_CACHE.set(url, { ts, value: result });
-      writeSessionCache(url, ts, result);
+      GET_CACHE.set(cacheKey, { ts, value: result });
+      writeSessionCache(cacheKey, ts, result);
       return result;
     })
     .finally(() => {
-      const entry = GET_CACHE.get(url);
+      const entry = GET_CACHE.get(cacheKey);
       if (entry) entry.promise = undefined;
     });
 
-  GET_CACHE.set(url, { ts: now, promise });
+  GET_CACHE.set(cacheKey, { ts: now, promise });
   return promise;
+};
+
+export const setClientCacheScope = (scope: string): void => {
+  const normalized = scope.trim().toLowerCase();
+  const nextScope = normalized.length > 0 ? normalized : "global";
+  if (nextScope === CACHE_SCOPE) return;
+
+  CACHE_SCOPE = nextScope;
+  GET_CACHE.clear();
+
+  if (typeof window === "undefined") return;
+  try {
+    const keysToDelete: string[] = [];
+    for (let index = 0; index < window.sessionStorage.length; index += 1) {
+      const key = window.sessionStorage.key(index);
+      if (key && key.startsWith(STORAGE_PREFIX)) {
+        keysToDelete.push(key);
+      }
+    }
+    for (const key of keysToDelete) {
+      window.sessionStorage.removeItem(key);
+    }
+  } catch {
+    // ignore session storage access failures
+  }
 };
 const postJson = async <T>(
   url: string,
@@ -1389,4 +1431,5 @@ export const prewarmDashboardData = (persona: DashboardPrewarmPersona): void => 
     window.setTimeout(runPhaseTwo, 850);
   }
 };
+
 

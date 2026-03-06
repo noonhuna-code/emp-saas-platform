@@ -10,7 +10,7 @@ import { Topbar } from "./Topbar";
 import { PlanRouteGuard } from "@/components/guards/PlanRouteGuard";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { resolveDashboardPersona } from "@/lib/dashboard/capabilities";
-import { prewarmDashboardData, prewarmRouteData } from "@/lib/client/api";
+import { prewarmDashboardData, prewarmRouteData, setClientCacheScope } from "@/lib/client/api";
 
 export const TenantShellFrame = ({
   session,
@@ -29,6 +29,11 @@ export const TenantShellFrame = ({
   });
   const pathname = usePathname();
   const prewarmScheduledRef = useRef(false);
+
+  useEffect(() => {
+    const scopeKey = [session.companyId ?? "no-company", session.userId ?? "no-user", session.role ?? "no-role"].join(":");
+    setClientCacheScope(scopeKey);
+  }, [session.companyId, session.userId, session.role]);
 
   useEffect(() => {
     try {
@@ -133,3 +138,5 @@ export const TenantShellFrame = ({
     </DashboardLayout>
   );
 };
+
+
