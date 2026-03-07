@@ -13,17 +13,22 @@ export const Tabs = ({
   onChange: (id: string) => void;
 }) => {
   return (
-    <div className="tabs">
-      {tabs.map((tab) => (
-        <button
-          key={tab.id}
-          type="button"
-          className={active === tab.id ? "tab tab--active" : "tab"}
-          onClick={() => onChange(tab.id)}
-        >
-          {tab.label}
-        </button>
-      ))}
+    <div className="tabs" role="tablist" aria-label="Dashboard views">
+      {tabs.map((tab) => {
+        const selected = active === tab.id;
+        return (
+          <button
+            key={tab.id}
+            type="button"
+            role="tab"
+            aria-selected={selected}
+            className={selected ? "tab tab--active" : "tab"}
+            onClick={() => onChange(tab.id)}
+          >
+            {tab.label}
+          </button>
+        );
+      })}
     </div>
   );
 };

@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { MetricCard } from "@/components/ui/MetricCard";
 import { SectionContainer } from "@/components/ui/SectionContainer";
 import { ActionCard } from "@/components/ui/ActionCard";
@@ -32,18 +32,22 @@ export const DashboardHero = ({
   return (
     <Card
       className={cn(
-        "rounded-xl border-border shadow-sm",
+        "dashboard-hero-shell rounded-xl border-border shadow-sm",
         emphasis === "executive" && "dashboard-hero dashboard-hero--executive",
         emphasis === "operations" && "dashboard-hero dashboard-hero--operations",
         emphasis === "default" && "dashboard-hero"
       )}
     >
-      <CardHeader className="p-5 pb-3">
-        {eyebrow ? <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--accent)]">{eyebrow}</p> : null}
-        <CardTitle className="text-2xl leading-tight md:text-3xl">{title}</CardTitle>
-        <CardDescription className="text-sm text-muted-foreground">{subtitle}</CardDescription>
-      </CardHeader>
-      {actions ? <CardContent className="flex flex-wrap items-center gap-2 p-5 pt-0">{actions}</CardContent> : null}
+      <CardContent className="dashboard-hero__layout p-6 md:p-7">
+        <div className="dashboard-hero__content">
+          {eyebrow ? <p className="dashboard-hero__eyebrow">{eyebrow}</p> : null}
+          <div className="dashboard-hero__copy">
+            <h2 className="dashboard-hero__title">{title}</h2>
+            <p className="dashboard-hero__subtitle">{subtitle}</p>
+          </div>
+        </div>
+        {actions ? <div className="dashboard-hero__actions">{actions}</div> : null}
+      </CardContent>
     </Card>
   );
 };
@@ -56,8 +60,11 @@ export const DashboardModeSwitch = ({
   onChange: (value: DashboardView) => void;
 }) => {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3">
-      <h2 className="text-lg font-semibold tracking-tight">Dashboard mode</h2>
+    <div className="dashboard-mode-switch">
+      <div className="dashboard-mode-switch__copy">
+        <h2 className="dashboard-mode-switch__title">Control modes</h2>
+        <p className="dashboard-mode-switch__subtitle">Move between workspace execution, analytics, and workflow operations without leaving the role dashboard.</p>
+      </div>
       <Tabs
         tabs={DASHBOARD_VIEW_OPTIONS}
         active={value}
@@ -158,7 +165,7 @@ export const QuickActionGrid = ({
   actions: Array<{ label: string; href: string; caption?: string }>;
 }) => {
   return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+    <div className="dashboard-quick-grid">
       {actions.map((action) => (
         <ActionCard key={`${action.href}-${action.label}`} href={action.href} title={action.label} description={action.caption} />
       ))}
@@ -178,15 +185,15 @@ export const SignalRow = ({
   return (
     <div
       className={cn(
-        "flex items-center justify-between gap-3 rounded-xl border border-border px-3 py-2.5",
-        tone === "success" && "border-[color:rgba(22,163,74,0.35)]",
-        tone === "warning" && "border-[color:rgba(245,158,11,0.35)]",
-        tone === "danger" && "border-[color:rgba(220,38,38,0.35)]",
-        tone === "info" && "border-[color:rgba(30,98,255,0.35)]"
+        "dashboard-signal-row",
+        tone === "success" && "dashboard-signal-row--success",
+        tone === "warning" && "dashboard-signal-row--warning",
+        tone === "danger" && "dashboard-signal-row--danger",
+        tone === "info" && "dashboard-signal-row--info"
       )}
     >
-      <span className="text-sm text-muted-foreground">{label}</span>
-      <span className="text-sm font-medium">{value}</span>
+      <span className="dashboard-signal-row__label">{label}</span>
+      <span className="dashboard-signal-row__value">{value}</span>
     </div>
   );
 };
@@ -197,14 +204,11 @@ export const TimelineList = ({
   items: Array<{ title: string; subtitle?: string; meta?: string }>;
 }) => {
   return (
-    <div className="space-y-3">
+    <div className="dashboard-timeline-list">
       {items.map((item, index) => (
-        <Card key={`${item.title}-${item.meta ?? ""}-${index}`} className="rounded-xl border-border shadow-sm">
+        <Card key={`${item.title}-${item.meta ?? ""}-${index}`} className="dashboard-timeline-card rounded-xl border-border shadow-sm">
           <CardContent className="grid grid-cols-[auto_1fr_auto] items-start gap-3 p-4">
-            <span
-              className="mt-1 h-2.5 w-2.5 rounded-full bg-[var(--accent)] shadow-[0_0_0_4px_rgba(30,98,255,0.12)]"
-              aria-hidden="true"
-            />
+            <span className="dashboard-timeline-card__dot" aria-hidden="true" />
             <div className="min-w-0 space-y-1">
               <p className="text-sm font-semibold">{item.title}</p>
               {item.subtitle ? <p className="text-sm text-muted-foreground">{item.subtitle}</p> : null}
@@ -216,5 +220,3 @@ export const TimelineList = ({
     </div>
   );
 };
-
-

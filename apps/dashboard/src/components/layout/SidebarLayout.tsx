@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
-import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { PanelLeftClose, PanelLeftOpen, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 export const SidebarLayout = ({
   title,
@@ -28,9 +29,15 @@ export const SidebarLayout = ({
         .trim()}
     >
       <header className="sidebar-layout__head">
-        <div className="sidebar-layout__brand">
-          <h2>{collapsed ? title.slice(0, 3) : title}</h2>
-          {!collapsed && subtitle ? <p>{subtitle}</p> : null}
+        <div className="sidebar-layout__brand-wrap">
+          <Badge variant="info" className="sidebar-layout__workspace-badge">
+            <Sparkles className="h-3.5 w-3.5" />
+            {!collapsed ? <span>Workspace</span> : null}
+          </Badge>
+          <div className="sidebar-layout__brand">
+            <h2>{collapsed ? title.slice(0, 3) : title}</h2>
+            {!collapsed && subtitle ? <p>{subtitle}</p> : null}
+          </div>
         </div>
         <Button
           type="button"

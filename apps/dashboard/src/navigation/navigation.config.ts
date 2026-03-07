@@ -11,6 +11,13 @@ export type NavigationItem = {
   requiredLimitKey?: string;
 };
 
+export type NavigationGroup = {
+  id: string;
+  label: string;
+  badge?: string;
+  items: NavigationItem[];
+};
+
 export type NavigationVisibilityContext = {
   permissions: string[];
   hasEmployeeContext: boolean;
@@ -210,6 +217,76 @@ export const PLATFORM_NAVIGATION_ITEMS: NavigationItem[] = [
   { href: "/app/monitoring", label: "Tenant Monitoring", icon: "shield" }
 ];
 
+const itemByHref = (href: string): NavigationItem => {
+  const item = TENANT_NAVIGATION_ITEMS.find((candidate) => candidate.href === href);
+  if (!item) {
+    throw new Error(`Unknown navigation item for href: ${href}`);
+  }
+  return item;
+};
+
+export const TENANT_NAVIGATION_GROUPS: NavigationGroup[] = [
+  {
+    id: "workspace",
+    label: "Workspace",
+    items: [itemByHref("/app/dashboard"), itemByHref("/app/profile")]
+  },
+  {
+    id: "operations",
+    label: "Operations",
+    items: [
+      itemByHref("/app/employees"),
+      itemByHref("/app/attendance"),
+      itemByHref("/app/calendar"),
+      itemByHref("/app/attendance/review"),
+      itemByHref("/app/attendance/team"),
+      itemByHref("/app/attendance/shifts"),
+      itemByHref("/app/attendance/shift-swaps"),
+      itemByHref("/app/leave"),
+      itemByHref("/app/leave/review"),
+      itemByHref("/app/approvals"),
+      itemByHref("/app/org-chart")
+    ]
+  },
+  {
+    id: "communication",
+    label: "Communication",
+    items: [itemByHref("/app/chat"), itemByHref("/app/notifications")]
+  },
+  {
+    id: "documents",
+    label: "Documents",
+    items: [itemByHref("/app/resources"), itemByHref("/app/notes")]
+  },
+  {
+    id: "finance",
+    label: "Finance",
+    items: [
+      itemByHref("/app/payslips"),
+      itemByHref("/app/loans"),
+      itemByHref("/app/overtime"),
+      itemByHref("/app/overtime/review"),
+      itemByHref("/app/payroll"),
+      itemByHref("/app/billing")
+    ]
+  },
+  {
+    id: "intelligence",
+    label: "Intelligence",
+    badge: "Plus",
+    items: [
+      itemByHref("/app/intelligence/reliability"),
+      itemByHref("/app/intelligence/feedback"),
+      itemByHref("/app/intelligence/kudos")
+    ]
+  },
+  {
+    id: "system",
+    label: "System",
+    items: [itemByHref("/app/monitoring")]
+  }
+];
+
 const hasCapability = (permissions: string[], required?: string | string[]) => {
   if (!required) return true;
   if (Array.isArray(required)) return required.some((permission) => permissions.includes(permission));
@@ -249,3 +326,14 @@ export const resolveVisibleNavigationItems = (
   items: NavigationItem[],
   context: NavigationVisibilityContext
 ) => items.filter((item) => canRenderNavigationItem(item, context));
+
+export const resolveVisibleNavigationGroups = (
+  groups: NavigationGroup[],
+  context: NavigationVisibilityContext
+) =>
+  groups
+    .map((group) => ({
+      ...group,
+      items: resolveVisibleNavigationItems(group.items, context)
+    }))
+    .filter((group) => group.items.length > 0);

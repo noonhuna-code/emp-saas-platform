@@ -3,8 +3,8 @@
 import { SidebarLayout } from "@/components/layout/SidebarLayout";
 import { NavSection } from "@/components/shell/NavSection";
 import {
-  TENANT_NAVIGATION_ITEMS,
-  resolveVisibleNavigationItems
+  TENANT_NAVIGATION_GROUPS,
+  resolveVisibleNavigationGroups
 } from "@/navigation/navigation.config";
 
 export const Sidebar = ({
@@ -24,7 +24,7 @@ export const Sidebar = ({
   onToggleCollapsed: () => void;
   onCloseMobile: () => void;
 }) => {
-  const visibleItems = resolveVisibleNavigationItems(TENANT_NAVIGATION_ITEMS, {
+  const visibleGroups = resolveVisibleNavigationGroups(TENANT_NAVIGATION_GROUPS, {
     permissions,
     hasEmployeeContext,
     entitlements
@@ -34,12 +34,12 @@ export const Sidebar = ({
     <aside className={`sidebar ${collapsed ? "sidebar--collapsed" : ""} ${mobileOpen ? "sidebar--open" : ""}`}>
       <SidebarLayout
         title="EMP OS"
-        subtitle="Enterprise Suite"
+        subtitle="Enterprise Workforce OS"
         collapsed={collapsed}
         mobileOpen={mobileOpen}
         onToggleCollapsed={onToggleCollapsed}
       >
-        <NavSection items={visibleItems} collapsed={collapsed} onNavigate={onCloseMobile} />
+        <NavSection groups={visibleGroups} collapsed={collapsed} onNavigate={onCloseMobile} />
       </SidebarLayout>
     </aside>
   );

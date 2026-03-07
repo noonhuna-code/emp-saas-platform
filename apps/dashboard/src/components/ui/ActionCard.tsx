@@ -29,14 +29,14 @@ const ActionCardComponent = ({
   const bodyText = description ?? subtitle ?? "";
 
   const content = (
-    <Card className="h-full transition-all duration-150 ease-out hover:-translate-y-[1px] hover:shadow-md">
+    <Card className="action-card-surface h-full rounded-xl border-border shadow-sm transition-all duration-150 ease-out hover:-translate-y-[2px] hover:shadow-lg">
       <CardContent className="p-5">
         <div className="flex items-start gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border bg-muted/30">
+          <div className="action-card-surface__icon">
             <Icon className="h-[18px] w-[18px] text-muted-foreground" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="mb-1 text-sm font-semibold">{title}</p>
+            <p className="mb-1 text-sm font-semibold text-foreground">{title}</p>
             {bodyText ? <p className="text-sm text-muted-foreground">{bodyText}</p> : null}
           </div>
           <ArrowRight className="mt-0.5 h-[18px] w-[18px] shrink-0 text-muted-foreground" />

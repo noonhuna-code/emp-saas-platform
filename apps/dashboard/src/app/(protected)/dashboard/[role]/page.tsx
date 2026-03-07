@@ -4,6 +4,7 @@ import { resolveDashboardPersona, type DashboardPersona } from "@/lib/dashboard/
 
 const ROLE_ROUTE_MAP: Record<string, DashboardPersona> = {
   employee: "employee",
+  finance: "finance",
   "team-lead": "team_lead",
   manager: "manager",
   hr: "hr",

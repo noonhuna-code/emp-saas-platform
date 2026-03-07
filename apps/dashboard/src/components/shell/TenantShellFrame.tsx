@@ -48,12 +48,13 @@ export const TenantShellFrame = ({
     const baseRoutes = ["/app/dashboard", "/app/attendance", "/app/leave", "/app/calendar"];
     const personaRoutes: Record<string, string[]> = {
       employee: ["/app/profile", "/app/notes", "/app/notifications", "/app/resources", "/app/chat", "/app/payslips", "/app/attendance/shift-swaps"],
-      team_lead: ["/app/attendance/team", "/app/attendance/shift-swaps"],
-      manager: ["/app/attendance/team", "/app/approvals"],
-      hr: ["/app/leave/review", "/app/employees"],
-      admin: ["/app/billing", "/app/payroll"],
-      founder: ["/app/billing", "/app/monitoring"],
-      it: ["/app/monitoring", "/app/notifications"]
+      team_lead: ["/app/attendance/team", "/app/attendance/shift-swaps", "/app/approvals"],
+      manager: ["/app/attendance/team", "/app/approvals", "/app/employees"],
+      hr: ["/app/leave/review", "/app/employees", "/app/payroll"],
+      admin: ["/app/billing", "/app/payroll", "/app/monitoring"],
+      founder: ["/app/billing", "/app/monitoring", "/app/employees"],
+      it: ["/app/monitoring", "/app/notifications", "/app/billing"],
+      finance: ["/app/billing", "/app/payroll", "/app/payslips", "/app/notifications"]
     };
 
     const warmRoutes = [...new Set([...baseRoutes, ...(personaRoutes[persona] ?? [])])];
@@ -160,6 +161,3 @@ export const TenantShellFrame = ({
     </DashboardLayout>
   );
 };
-
-
-

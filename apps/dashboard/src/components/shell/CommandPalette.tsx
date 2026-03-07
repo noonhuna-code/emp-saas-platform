@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Sparkles } from "lucide-react";
+import { ArrowUpRight, Command, Search, Sparkles } from "lucide-react";
 import type { DashboardPersona } from "@/lib/dashboard/capabilities";
 
 export type CommandItem = {
@@ -13,7 +13,7 @@ export type CommandItem = {
 };
 
 const COMMANDS: CommandItem[] = [
-  { label: "Open Dashboard", href: "/app/dashboard", section: "Employee", personas: ["employee", "it", "manager", "team_lead", "hr", "admin", "founder"] },
+  { label: "Open Dashboard", href: "/app/dashboard", section: "Workspace", personas: ["employee", "finance", "it", "manager", "team_lead", "hr", "admin", "founder"] },
   { label: "Open Attendance", href: "/app/attendance", section: "Employee", personas: ["employee"] },
   { label: "Apply Leave", href: "/app/leave", section: "Employee", personas: ["employee"] },
   { label: "Request Shift Swap", href: "/app/attendance/shift-swaps", section: "Employee", personas: ["employee"] },
@@ -30,17 +30,21 @@ const COMMANDS: CommandItem[] = [
   { label: "Manage Policies", href: "/app/resources", section: "HR", personas: ["hr", "admin"] },
   { label: "View Workforce", href: "/app/employees", section: "HR", personas: ["hr", "admin"] },
 
-  { label: "View Payroll", href: "/app/payroll", section: "Finance", personas: ["hr", "admin"] },
-  { label: "Generate Payslips", href: "/app/payroll", section: "Finance", personas: ["hr", "admin"] },
-  { label: "Export Salary Data", href: "/app/payroll", section: "Finance", personas: ["hr", "admin"] },
+  { label: "View Payroll", href: "/app/payroll", section: "Finance", personas: ["finance", "hr", "admin", "founder"] },
+  { label: "Generate Payslips", href: "/app/payroll", section: "Finance", personas: ["finance", "hr", "admin", "founder"] },
+  { label: "Export Salary Data", href: "/app/payslips", section: "Finance", personas: ["finance", "hr", "admin", "founder"] },
+  { label: "Open Billing Console", href: "/app/billing", section: "Finance", personas: ["finance", "admin", "founder"] },
 
   { label: "Open Monitoring", href: "/app/monitoring", section: "IT", personas: ["it", "admin", "founder"] },
   { label: "View Security Events", href: "/app/monitoring", section: "IT", personas: ["it", "admin", "founder"] },
   { label: "Open System Notifications", href: "/app/notifications", section: "IT", personas: ["it"] },
 
-  { label: "Open Tenants", href: "/platform", section: "Platform Owner", personas: ["platform_owner"] },
-  { label: "View System Health", href: "/platform", section: "Platform Owner", personas: ["platform_owner"] },
-  { label: "View API Usage", href: "/platform", section: "Platform Owner", personas: ["platform_owner"] }
+  { label: "Open Executive Overview", href: "/dashboard/founder", section: "Founder", personas: ["founder"] },
+  { label: "View System Health", href: "/app/monitoring", section: "Founder", personas: ["founder"] },
+
+  { label: "Open Tenants", href: "/platform", section: "Platform", personas: ["platform_owner"] },
+  { label: "View Global Audit", href: "/platform", section: "Platform", personas: ["platform_owner"] },
+  { label: "View API Usage", href: "/platform", section: "Platform", personas: ["platform_owner"] }
 ];
 
 export const CommandPalette = ({ persona }: { persona: DashboardPersona }) => {
@@ -54,8 +58,18 @@ export const CommandPalette = ({ persona }: { persona: DashboardPersona }) => {
     const q = query.trim().toLowerCase();
     const filtered = COMMANDS.filter((item) => item.personas.includes(persona));
     if (!q) return filtered;
-    return filtered.filter((item) => item.label.toLowerCase().includes(q));
+    return filtered.filter((item) => `${item.label} ${item.section} ${item.href}`.toLowerCase().includes(q));
   }, [persona, query]);
+
+  const groupedItems = useMemo(() => {
+    const buckets = new Map<string, CommandItem[]>();
+    for (const item of items) {
+      const bucket = buckets.get(item.section) ?? [];
+      bucket.push(item);
+      buckets.set(item.section, bucket);
+    }
+    return Array.from(buckets.entries());
+  }, [items]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -89,8 +103,18 @@ export const CommandPalette = ({ persona }: { persona: DashboardPersona }) => {
       }
     };
 
+    const onPaletteToggle = () => setOpen((prev) => !prev);
+    const onPaletteOpen = () => setOpen(true);
+
     window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    window.addEventListener("emp.commandPalette.toggle", onPaletteToggle as EventListener);
+    window.addEventListener("emp.commandPalette.open", onPaletteOpen as EventListener);
+
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("emp.commandPalette.toggle", onPaletteToggle as EventListener);
+      window.removeEventListener("emp.commandPalette.open", onPaletteOpen as EventListener);
+    };
   }, [open, items, activeIndex, router]);
 
   useEffect(() => {
@@ -102,6 +126,8 @@ export const CommandPalette = ({ persona }: { persona: DashboardPersona }) => {
   }, [open]);
 
   if (!open) return null;
+
+  let flatIndex = -1;
 
   return (
     <div className="command-palette__backdrop" role="dialog" aria-modal="true">
@@ -115,37 +141,52 @@ export const CommandPalette = ({ persona }: { persona: DashboardPersona }) => {
             type="text"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search commands..."
+            placeholder="Search people, workflows, and actions"
             className="command-palette__input"
             aria-label="Search commands"
           />
-          <span className="command-palette__hint">Esc</span>
+          <span className="command-palette__hint"><Command className="h-3 w-3" />K</span>
         </div>
         <div className="command-palette__list" role="listbox">
-          {items.length === 0 ? (
+          {groupedItems.length === 0 ? (
             <div className="command-palette__empty">No matching commands.</div>
           ) : (
-            items.map((item, index) => (
-              <button
-                key={`${item.section}-${item.label}`}
-                type="button"
-                className={`command-palette__item ${index === activeIndex ? "command-palette__item--active" : ""}`}
-                onMouseEnter={() => setActiveIndex(index)}
-                onClick={() => {
-                  setOpen(false);
-                  router.push(item.href);
-                }}
-              >
-                <div className="command-palette__item-text">
-                  <span className="command-palette__item-title">{item.label}</span>
-                  <span className="command-palette__item-section">{item.section}</span>
-                </div>
-                <Sparkles className="h-4 w-4 text-muted-foreground" />
-              </button>
+            groupedItems.map(([section, sectionItems]) => (
+              <div key={section} className="command-palette__group">
+                <div className="command-palette__group-label">{section}</div>
+                {sectionItems.map((item) => {
+                  flatIndex += 1;
+                  const isActive = flatIndex === activeIndex;
+                  return (
+                    <button
+                      key={`${item.section}-${item.label}`}
+                      type="button"
+                      className={`command-palette__item ${isActive ? "command-palette__item--active" : ""}`}
+                      onMouseEnter={() => setActiveIndex(flatIndex)}
+                      onClick={() => {
+                        setOpen(false);
+                        router.push(item.href);
+                      }}
+                    >
+                      <div className="command-palette__item-text">
+                        <span className="command-palette__item-title">{item.label}</span>
+                        <span className="command-palette__item-section">{item.href}</span>
+                      </div>
+                      <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
+                    </button>
+                  );
+                })}
+              </div>
             ))
           )}
         </div>
-        <div className="command-palette__footer">Tip: Ctrl + K</div>
+        <div className="command-palette__footer">
+          <span className="command-palette__footer-chip">
+            <Sparkles className="h-3.5 w-3.5" />
+            Instant navigation
+          </span>
+          <span>Esc to close</span>
+        </div>
       </div>
     </div>
   );

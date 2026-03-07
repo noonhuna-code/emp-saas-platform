@@ -8,6 +8,7 @@ import { SidebarLayout } from "@/components/layout/SidebarLayout";
 import { NavSection } from "@/components/shell/NavSection";
 import { CommandPalette } from "@/components/shell/CommandPalette";
 import type { DashboardPersona } from "@/lib/dashboard/capabilities";
+import type { NavigationGroup } from "@/navigation/navigation.config";
 import { PLATFORM_NAVIGATION_ITEMS } from "@/navigation/navigation.config";
 
 export const PlatformShell = ({
@@ -21,6 +22,13 @@ export const PlatformShell = ({
 }) => {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const platformGroups: NavigationGroup[] = [
+    {
+      id: "platform",
+      label: "Platform",
+      items: PLATFORM_NAVIGATION_ITEMS
+    }
+  ];
 
   return (
     <>
@@ -35,7 +43,7 @@ export const PlatformShell = ({
               mobileOpen={mobileOpen}
               onToggleCollapsed={() => setCollapsed((prev) => !prev)}
             >
-              <NavSection items={PLATFORM_NAVIGATION_ITEMS} collapsed={collapsed} onNavigate={() => setMobileOpen(false)} />
+              <NavSection groups={platformGroups} collapsed={collapsed} onNavigate={() => setMobileOpen(false)} />
               {!collapsed ? (
                 <div className="section-container section-container--soft">
                   <div className="section-container__body">

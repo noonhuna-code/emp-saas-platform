@@ -18,21 +18,21 @@ export const SectionContainer = ({
   return (
     <Card
       className={cn(
-        "rounded-xl border-border shadow-sm",
-        tone === "soft" && "bg-[var(--surface-1)]",
-        tone === "spotlight" && "bg-[var(--surface-2)]"
+        "section-container rounded-xl border-border shadow-sm",
+        tone === "soft" && "section-container--soft bg-[var(--surface-1)]",
+        tone === "spotlight" && "section-container--spotlight bg-[var(--surface-2)]"
       )}
     >
-      <CardHeader className="space-y-2 p-5 pb-3">
-        <div className="flex items-start justify-between gap-3">
+      <CardHeader className="section-container__head space-y-2 p-5 pb-3">
+        <div className="section-container__head-row flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <CardTitle className="text-xl">{title}</CardTitle>
-            {subtitle ? <CardDescription>{subtitle}</CardDescription> : null}
+            <CardTitle className="section-container__title text-xl">{title}</CardTitle>
+            {subtitle ? <CardDescription className="section-container__subtitle">{subtitle}</CardDescription> : null}
           </div>
-          {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
+          {actions ? <div className="section-container__actions flex flex-wrap items-center gap-2">{actions}</div> : null}
         </div>
       </CardHeader>
-      <CardContent className="space-y-4 p-5 pt-0">{children}</CardContent>
+      <CardContent className="section-container__body space-y-4 p-5 pt-0">{children}</CardContent>
     </Card>
   );
 };

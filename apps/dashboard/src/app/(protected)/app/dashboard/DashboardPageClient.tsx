@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { Suspense, lazy, useMemo } from "react";
@@ -13,9 +13,6 @@ type DashboardPageClientProps = {
   hasEmployeeContext: boolean;
 };
 
-const hasAnyPermission = (permissions: string[], checks: string[]): boolean =>
-  checks.some((permission) => permissions.includes(permission));
-
 const LazyAdminDashboard = lazy(() => import("@/components/dashboard/AdminDashboard").then((mod) => ({ default: mod.AdminDashboard })));
 const LazyFinanceDashboard = lazy(() => import("@/components/dashboard/FinanceDashboard").then((mod) => ({ default: mod.FinanceDashboard })));
 const LazyFounderDashboard = lazy(() => import("@/components/dashboard/FounderDashboard").then((mod) => ({ default: mod.FounderDashboard })));
@@ -26,13 +23,9 @@ const LazyTeamLeadDashboard = lazy(() => import("@/components/dashboard/TeamLead
 
 export const DashboardPageClient = ({ role, permissions }: DashboardPageClientProps) => {
   const persona = resolveDashboardPersona({ role, permissions });
-  const financePersona =
-    persona === "employee" &&
-    hasAnyPermission(permissions, ["manage_billing", "approve_billing_payments"]) &&
-    !hasAnyPermission(permissions, ["view_all_companies", "view_global_audit"]);
 
   const roleWorkspace = useMemo(() => {
-    if (financePersona) {
+    if (persona === "finance") {
       return <LazyFinanceDashboard />;
     }
 
@@ -61,7 +54,7 @@ export const DashboardPageClient = ({ role, permissions }: DashboardPageClientPr
     }
 
     return <LazyFounderDashboard />;
-  }, [financePersona, persona]);
+  }, [persona]);
 
   if (persona === "platform_owner") {
     return (

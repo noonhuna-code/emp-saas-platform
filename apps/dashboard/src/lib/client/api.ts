@@ -1267,7 +1267,7 @@ export const reviewShiftSwap = async (payload: {
 
 
 
-type DashboardPrewarmPersona = "employee" | "team_lead" | "manager" | "hr" | "it" | "admin" | "founder" | "platform_owner";
+type DashboardPrewarmPersona = "employee" | "team_lead" | "manager" | "hr" | "it" | "admin" | "founder" | "finance" | "platform_owner";
 
 const settlePrewarm = (tasks: Array<Promise<unknown>>): void => {
   if (tasks.length === 0) return;

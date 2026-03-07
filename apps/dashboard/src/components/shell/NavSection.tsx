@@ -28,8 +28,9 @@ import {
   Users,
   Wallet
 } from "lucide-react";
-import type { NavigationItem } from "@/navigation/navigation.config";
+import type { NavigationGroup } from "@/navigation/navigation.config";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { Badge } from "@/components/ui/badge";
 import { prewarmRouteData } from "@/lib/client/api";
 import { cn } from "@/lib/utils";
 
@@ -64,18 +65,18 @@ const ICONS: Record<string, LucideIcon> = {
 };
 
 export const NavSection = ({
-  items,
+  groups,
   collapsed,
   onNavigate
 }: {
-  items: NavigationItem[];
+  groups: NavigationGroup[];
   collapsed: boolean;
   onNavigate?: () => void;
 }) => {
   const pathname = usePathname();
   const router = useRouter();
 
-  const prefetchTargets = React.useMemo(() => items.slice(0, 16), [items]);
+  const prefetchTargets = React.useMemo(() => groups.flatMap((group) => group.items).slice(0, 20), [groups]);
 
   React.useEffect(() => {
     for (const item of prefetchTargets) {
@@ -83,49 +84,60 @@ export const NavSection = ({
     }
   }, [router, prefetchTargets]);
 
-  if (items.length === 0) {
+  if (groups.length === 0) {
     return <EmptyState title="No modules enabled" subtitle="Your current plan does not expose tenant modules." compact />;
   }
 
   return (
     <nav className="nav-section" aria-label="Primary navigation">
-      {items.map((item) => {
-        const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
-        const Icon = ICONS[item.icon] ?? Home;
+      {groups.map((group) => (
+        <section key={group.id} className="nav-group" aria-label={group.label}>
+          {!collapsed ? (
+            <div className="nav-group__header">
+              <span className="nav-group__label">{group.label}</span>
+              {group.badge ? <Badge variant="info" className="nav-group__badge">{group.badge}</Badge> : null}
+            </div>
+          ) : null}
+          <div className="nav-group__items">
+            {group.items.map((item) => {
+              const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+              const Icon = ICONS[item.icon] ?? Home;
 
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={cn(
-              "nav-section__item",
-              collapsed && "nav-section__item--collapsed",
-              isActive ? "nav-section__item--active" : "nav-section__item--idle"
-            )}
-            aria-current={isActive ? "page" : undefined}
-            prefetch
-            title={collapsed ? item.label : undefined}
-            onMouseEnter={() => {
-              router.prefetch(item.href);
-              prewarmRouteData(item.href);
-            }}
-            onFocus={() => prewarmRouteData(item.href)}
-            onClick={onNavigate}
-          >
-            <span className="nav-section__icon-wrap">
-              <Icon
-                className={cn(
-                  "nav-section__icon",
-                  isActive ? "nav-section__icon--active" : "nav-section__icon--idle"
-                )}
-                aria-hidden="true"
-              />
-            </span>
-            {!collapsed ? <span className="nav-section__label">{item.label}</span> : null}
-          </Link>
-        );
-      })}
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "nav-section__item",
+                    collapsed && "nav-section__item--collapsed",
+                    isActive ? "nav-section__item--active" : "nav-section__item--idle"
+                  )}
+                  aria-current={isActive ? "page" : undefined}
+                  prefetch
+                  title={collapsed ? item.label : undefined}
+                  onMouseEnter={() => {
+                    router.prefetch(item.href);
+                    prewarmRouteData(item.href);
+                  }}
+                  onFocus={() => prewarmRouteData(item.href)}
+                  onClick={onNavigate}
+                >
+                  <span className="nav-section__icon-wrap">
+                    <Icon
+                      className={cn(
+                        "nav-section__icon",
+                        isActive ? "nav-section__icon--active" : "nav-section__icon--idle"
+                      )}
+                      aria-hidden="true"
+                    />
+                  </span>
+                  {!collapsed ? <span className="nav-section__label">{item.label}</span> : null}
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+      ))}
     </nav>
   );
 };
-

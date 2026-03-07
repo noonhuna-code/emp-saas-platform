@@ -22,19 +22,21 @@ const MetricCardComponent = ({
   return (
     <Card
       className={cn(
-        "rounded-xl border-border shadow-sm",
-        accent === "info" && "border-l-2 border-l-[var(--accent)]",
-        accent === "success" && "border-l-2 border-l-[var(--success)]",
-        accent === "warning" && "border-l-2 border-l-[var(--warning)]",
-        accent === "danger" && "border-l-2 border-l-[var(--danger)]"
+        "metric-card-surface rounded-xl border-border shadow-sm",
+        accent === "info" && "metric-card-surface--info",
+        accent === "success" && "metric-card-surface--success",
+        accent === "warning" && "metric-card-surface--warning",
+        accent === "danger" && "metric-card-surface--danger"
       )}
     >
       <CardContent className="space-y-3 p-5">
         <div className="flex items-start justify-between gap-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{label}</p>
-          {trend ? <span className="text-xs text-[var(--accent)]">{trend}</span> : null}
+          <div className="space-y-2">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">{label}</p>
+            <p className="text-3xl font-semibold leading-none tracking-tight text-foreground">{value}</p>
+          </div>
+          {trend ? <span className="metric-card-surface__trend">{trend}</span> : null}
         </div>
-        <p className="text-3xl font-semibold leading-none tracking-tight">{value}</p>
         {hint ? <p className="text-sm text-muted-foreground">{hint}</p> : null}
         {footer ? <div className="pt-1">{footer}</div> : null}
       </CardContent>
