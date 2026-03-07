@@ -2,12 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { fetchWorkspaceNotifications, fetchWorkspaceResources } from "@/lib/client/api";
-import { ActivityFeed, type ActivityItem } from "@/components/dashboard/ActivityFeed";
+import { TimelineList } from "@/components/dashboard/DashboardPrimitives";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { SkeletonList } from "@/components/ui/SkeletonBlocks";
 
 export default function EmployeeActivityFeedWidget() {
   const [loading, setLoading] = useState(true);
-  const [items, setItems] = useState<ActivityItem[]>([]);
+  const [items, setItems] = useState<Array<{ id: string; title: string; subtitle?: string; meta?: string }>>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -29,8 +30,8 @@ export default function EmployeeActivityFeedWidget() {
           ? notificationResult.data.rows.map((row) => ({
               id: row.id,
               title: row.title,
-              description: row.message ?? "Workspace update",
-              timestamp: new Date(row.created_at).toLocaleString()
+              subtitle: row.message ?? "Workspace update",
+              meta: new Date(row.created_at).toLocaleString()
             }))
           : [];
 
@@ -38,8 +39,8 @@ export default function EmployeeActivityFeedWidget() {
           ? resourceResult.data.rows.map((resource) => ({
               id: resource.id,
               title: "New company announcement",
-              description: resource.title,
-              timestamp: new Date(resource.created_at).toLocaleDateString()
+              subtitle: resource.title,
+              meta: new Date(resource.created_at).toLocaleDateString()
             }))
           : [];
 
@@ -65,12 +66,12 @@ export default function EmployeeActivityFeedWidget() {
   }
 
   if (error) {
-    return (
-      <div className="rounded-xl border border-dashed border-border px-4 py-5 text-sm text-muted-foreground">
-        Activity feed unavailable. {error}
-      </div>
-    );
+    return <div className="rounded-xl border border-dashed border-border px-4 py-5 text-sm text-muted-foreground">Activity feed unavailable. {error}</div>;
   }
 
-  return <ActivityFeed items={list} />;
+  if (list.length === 0) {
+    return <EmptyState title="Your workspace is up to date" subtitle="No recent activity to display." compact />;
+  }
+
+  return <TimelineList items={list} />;
 }

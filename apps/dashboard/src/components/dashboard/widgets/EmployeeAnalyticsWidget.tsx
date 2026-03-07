@@ -5,7 +5,8 @@ import { Sparkles, TrendingUp } from "lucide-react";
 import { fetchAttendanceHistory, fetchLeaveBalances } from "@/lib/client/api";
 import type { AttendanceHistoryRow } from "@/lib/types/attendance";
 import type { LeaveBalance } from "@/lib/types/leave";
-import { DashboardPanel, SignalRow } from "@/components/dashboard/DashboardPrimitives";
+import { SignalRow } from "@/components/dashboard/DashboardPrimitives";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { LineChart, MiniBarChart, StackedBarChart } from "@/components/shared/Charts";
 import { SkeletonChart } from "@/components/ui/SkeletonBlocks";
 
@@ -86,56 +87,61 @@ export default function EmployeeAnalyticsWidget() {
 
   if (loading) {
     return (
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+      <div className="employee-analytics-stack">
         <SkeletonChart />
         <SkeletonChart />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-        <DashboardPanel title="Attendance trend" subtitle="Analytics unavailable" tone="spotlight">
-          <p className="text-sm text-muted-foreground">{error}</p>
-        </DashboardPanel>
-        <DashboardPanel title="Leave balance trend" subtitle="Analytics unavailable" tone="soft">
-          <p className="text-sm text-muted-foreground">Try again in a moment.</p>
-        </DashboardPanel>
       </div>
     );
   }
 
   return (
-    <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-      <DashboardPanel
-        title="Attendance trend"
-        subtitle="Hours and late marks (last 10 days)"
-        tone="spotlight"
-        actions={<span className="tag"><TrendingUp className="h-3.5 w-3.5" /> Trend</span>}
-      >
-        {trends.workHoursTrend.length > 0 ? (
-          <div className="space-y-3">
+    <div className="employee-analytics-stack">
+      <section className="employee-analytics-surface">
+        <div className="employee-analytics-surface__head">
+          <div>
+            <h3 className="employee-analytics-surface__title">Attendance trend</h3>
+            <p className="employee-analytics-surface__subtitle">Hours and late marks over the last 10 days</p>
+          </div>
+          <span className="metric-card-surface__trend"><TrendingUp className="h-3.5 w-3.5" /> Trend</span>
+        </div>
+        {error ? (
+          <EmptyState title="Attendance analytics unavailable" subtitle={error} compact />
+        ) : trends.workHoursTrend.length > 0 ? (
+          <div className="space-y-4">
             <LineChart values={trends.workHoursTrend} height={92} />
             <MiniBarChart values={trends.lateMinutesTrend.map((value) => Math.max(1, value))} height={56} />
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <SignalRow label="Records tracked" value={historyRows.length} />
+              <SignalRow label="Late flags" value={trends.lateMinutesTrend.filter((value) => value > 0).length} tone="warning" />
+            </div>
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">No attendance history yet.</p>
+          <EmptyState title="No attendance history yet" subtitle="Attendance trends will appear after your first tracked days." compact />
         )}
-      </DashboardPanel>
+      </section>
 
-      <DashboardPanel
-        title="Leave balance trend"
-        subtitle="Used vs remaining by leave type"
-        tone="soft"
-        actions={<span className="tag"><Sparkles className="h-3.5 w-3.5" /> Live</span>}
-      >
-        {stacked.length > 0 ? <StackedBarChart rows={stacked} height={96} /> : <p className="text-sm text-muted-foreground">No leave balances configured.</p>}
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-          <SignalRow label="Tracked days" value={historyRows.length} />
-          <SignalRow label="Leave types" value={stacked.length} />
+      <section className="employee-analytics-surface">
+        <div className="employee-analytics-surface__head">
+          <div>
+            <h3 className="employee-analytics-surface__title">Leave balance trend</h3>
+            <p className="employee-analytics-surface__subtitle">Used versus remaining leave by type</p>
+          </div>
+          <span className="metric-card-surface__trend"><Sparkles className="h-3.5 w-3.5" /> Live</span>
         </div>
-      </DashboardPanel>
+        {error ? (
+          <EmptyState title="Leave analytics unavailable" subtitle="Try again in a moment." compact />
+        ) : stacked.length > 0 ? (
+          <div className="space-y-4">
+            <StackedBarChart rows={stacked} height={104} />
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <SignalRow label="Tracked days" value={historyRows.length} />
+              <SignalRow label="Leave types" value={stacked.length} tone="info" />
+            </div>
+          </div>
+        ) : (
+          <EmptyState title="No leave balances configured" subtitle="Leave utilization appears after HR assigns leave balances." compact />
+        )}
+      </section>
     </div>
   );
 }

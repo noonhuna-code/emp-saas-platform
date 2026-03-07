@@ -216,7 +216,7 @@ const WorkCalendarPageClient = () => {
               <div className="flex flex-wrap gap-2">
                 <StatusChip label={`Company: ${data.company_name ?? "-"}`} compact />
                 <StatusChip label={`Timezone: ${data.timezone}`} compact />
-                <StatusChip label={`Team Lead: ${data.team_lead_name ?? "Not assigned"}`} compact />
+                <StatusChip label={`Reporting lead: ${data.team_lead_name ?? "Not assigned"}`} compact />
               </div>
               {eventLoadSeries.length > 0 ? <MiniBarChart values={eventLoadSeries} height={40} /> : null}
             </CardContent>

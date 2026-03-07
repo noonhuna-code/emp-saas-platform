@@ -32,7 +32,7 @@ export const SidebarLayout = ({
         <div className="sidebar-layout__brand-wrap">
           <Badge variant="info" className="sidebar-layout__workspace-badge">
             <Sparkles className="h-3.5 w-3.5" />
-            {!collapsed ? <span>Workspace</span> : null}
+            {!collapsed ? <span>Command deck</span> : null}
           </Badge>
           <div className="sidebar-layout__brand">
             <h2>{collapsed ? title.slice(0, 3) : title}</h2>
@@ -54,3 +54,5 @@ export const SidebarLayout = ({
     </div>
   );
 };
+
+

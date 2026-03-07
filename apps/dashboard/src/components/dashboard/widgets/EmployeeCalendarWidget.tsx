@@ -5,7 +5,6 @@ import { useEffect, useMemo, useState } from "react";
 import { CalendarDays } from "lucide-react";
 import { fetchWorkspaceCalendar } from "@/lib/client/api";
 import type { WorkspaceCalendarResponse } from "@/lib/types/workspace";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { SkeletonCard } from "@/components/ui/SkeletonBlocks";
 
@@ -52,32 +51,26 @@ export default function EmployeeCalendarWidget() {
   }
 
   return (
-    <Card className="rounded-xl border-border shadow-sm">
-      <CardHeader className="p-5 pb-3">
-        <CardTitle className="text-lg">Calendar preview</CardTitle>
-        <CardDescription>{error ? "Calendar preview unavailable" : "Upcoming holidays and approved timeline signals"}</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-3 p-5 pt-0">
-        {error ? (
-          <EmptyState title="Calendar unavailable" subtitle={error} compact />
-        ) : highlights.length === 0 ? (
-          <EmptyState title="No upcoming events" subtitle="Use calendar for full month view." compact />
-        ) : (
-          highlights.map((row) => (
-            <div key={`${row.date}-${row.title}`} className="flex items-center gap-3 rounded-xl border border-border px-3 py-2.5">
-              <CalendarDays className="h-4 w-4 text-muted-foreground" />
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium">{row.title}</p>
-                <p className="text-xs text-muted-foreground">{row.date}</p>
-              </div>
+    <div className="space-y-3">
+      {error ? (
+        <EmptyState title="Calendar unavailable" subtitle={error} compact />
+      ) : highlights.length === 0 ? (
+        <EmptyState title="No upcoming events" subtitle="Use calendar for the full month view." compact />
+      ) : (
+        highlights.map((row) => (
+          <div key={`${row.date}-${row.title}`} className="flex items-center gap-3 rounded-xl border border-border px-3 py-2.5">
+            <CalendarDays className="h-4 w-4 text-muted-foreground" />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium">{row.title}</p>
+              <p className="text-xs text-muted-foreground">{row.date}</p>
             </div>
-          ))
-        )}
+          </div>
+        ))
+      )}
 
-        <div className="flex justify-end">
-          <Link href="/app/calendar" className="secondary-btn">Open calendar</Link>
-        </div>
-      </CardContent>
-    </Card>
+      <div className="flex justify-end">
+        <Link href="/app/calendar" className="secondary-btn">Open calendar</Link>
+      </div>
+    </div>
   );
 }

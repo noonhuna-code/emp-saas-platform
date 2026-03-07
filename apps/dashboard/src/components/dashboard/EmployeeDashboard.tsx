@@ -9,7 +9,7 @@ import { ErrorState } from "@/components/states/ErrorState";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { ActionCard } from "@/components/ui/ActionCard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { DashboardPerfMarker, useDashboardPerf } from "@/components/dashboard/useDashboardPerf";
 import { DashboardWidgetBoundary } from "@/components/dashboard/DashboardWidgetBoundary";
 import {
@@ -18,6 +18,7 @@ import {
   DashboardModeSwitch,
   DashboardSection,
   SignalRow,
+  TimelineList,
   WorkflowPanel,
   type DashboardView
 } from "@/components/dashboard/DashboardPrimitives";
@@ -127,23 +128,11 @@ export const EmployeeDashboard = () => {
   const unreadNotifications = workspace?.counts.unreadNotifications ?? 0;
 
   const activityItems = useMemo(() => {
-    const base = (data?.notifications ?? []).slice(0, 5).map((item) => ({
-      id: item.id,
+    return (data?.notifications ?? []).slice(0, 5).map((item) => ({
       title: item.title,
-      description: item.message ?? "Workspace update",
-      timestamp: new Date(item.created_at).toLocaleString()
+      subtitle: item.message ?? "Workspace update",
+      meta: new Date(item.created_at).toLocaleString()
     }));
-
-    if (base.length > 0) return base;
-
-    return [
-      {
-        id: "employee-activity-fallback",
-        title: "Workspace initialized",
-        description: "No recent events yet. Your daily activity feed will appear here.",
-        timestamp: "Just now"
-      }
-    ];
   }, [data?.notifications]);
 
   return (
@@ -201,7 +190,7 @@ export const EmployeeDashboard = () => {
                   <CardDescription>Assigned reporting and organization context.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3 p-5 pt-0">
-                  <SignalRow label="Team lead" value={workspace?.teamLead?.full_name ?? "Not assigned"} />
+                  <SignalRow label="Reporting lead" value={workspace?.teamLead?.full_name ?? "Not assigned"} />
                   <SignalRow label="Department" value={workspace?.employee.department_name ?? "-"} />
                   <SignalRow label="Company" value={workspace?.company?.name ?? "-"} />
                 </CardContent>
@@ -273,10 +262,20 @@ export const EmployeeDashboard = () => {
 
       <DashboardSection visible={view === "operations"}>
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-          <WorkflowPanel title="Activity feed" subtitle="Latest role-scoped workspace events">
-            <ActivityFeed items={activityItems} />
+          <WorkflowPanel title="Activity feed" subtitle="Recent role-scoped workspace events">
+            {activityItems.length === 0 ? (
+              <EmptyState title="Your workspace is up to date" subtitle="No recent activity to display." compact />
+            ) : (
+              <TimelineList
+                items={activityItems.map((item, index) => ({
+                  title: item.title,
+                  subtitle: item.subtitle,
+                  meta: item.meta ?? `#${index + 1}`
+                }))}
+              />
+            )}
           </WorkflowPanel>
-          <WorkflowPanel title="Operational queue" subtitle="Calendar and chat previews">
+          <WorkflowPanel title="Calendar & chat" subtitle="Upcoming events and team signals">
             <div className="space-y-4">
               <Suspense fallback={<SkeletonCard rows={4} />}>
                 <DashboardWidgetBoundary title="Calendar preview" message="Calendar preview is temporarily unavailable.">
