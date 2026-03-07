@@ -368,22 +368,35 @@ const requireAttendanceEntitlement = async (ctx: ServiceContext): Promise<void> 
   await requirePlanFeature(ctx, "feature.core_attendance");
 };
 
+const hasAttendanceActorPermission = (ctx: ServiceContext): boolean => {
+  return (
+    ctx.permissions.includes("manage_attendance")
+    || ctx.permissions.includes("view_attendance")
+    || ctx.permissions.includes("approve_attendance")
+    || ctx.permissions.includes("override_attendance")
+    || ctx.permissions.includes("manage_employees")
+  );
+};
+
 const requireSelfAttendanceAccess = async (ctx: ServiceContext): Promise<void> => {
-  if (ctx.permissions.includes("manage_attendance") || ctx.permissions.includes("view_attendance")) {
+  if (hasAttendanceActorPermission(ctx)) {
     return;
   }
 
-  const employeeId = await resolveCurrentEmployeeId(ctx.supabase, ctx);
-  if (!employeeId) {
-    throw new Error("Employee record not found");
-  }
+  throw new Error("Missing permission: view_attendance");
 };
 
 const ensureSelfOrManageAttendance = async (
   ctx: ServiceContext,
   employeeId: string
 ): Promise<void> => {
-  if (ctx.permissions.includes("manage_attendance")) {
+  if (
+    ctx.permissions.includes("manage_attendance")
+    || ctx.permissions.includes("manage_employees")
+    || ctx.permissions.includes("assign_shifts")
+    || ctx.permissions.includes("approve_attendance")
+    || ctx.permissions.includes("override_attendance")
+  ) {
     return;
   }
 
@@ -404,6 +417,7 @@ const requireShiftSwapReviewAccess = (ctx: ServiceContext): void => {
     ctx.permissions.includes("manage_attendance")
     || ctx.permissions.includes("manage_employees")
     || ctx.permissions.includes("assign_shifts")
+    || ctx.permissions.includes("approve_attendance")
   ) {
     return;
   }
@@ -1120,6 +1134,7 @@ export const listShiftSwapRequests = async (
 
     let actorEmployeeId: string | null = null;
     if (scope === "mine") {
+      await requireSelfAttendanceAccess(ctx);
       actorEmployeeId = await resolveCurrentEmployeeId(ctx.supabase, ctx);
       if (!actorEmployeeId) {
         return { ok: false, error: "Employee record not found" };
@@ -1241,6 +1256,7 @@ export const createShiftSwapRequest = async (
 ): Promise<ServiceResult<{ requestId: string }>> => {
   try {
     await requireAttendanceEntitlement(ctx);
+    await requireSelfAttendanceAccess(ctx);
     const employeeId = await resolveCurrentEmployeeId(ctx.supabase, ctx);
     if (!employeeId) return { ok: false, error: "Employee record not found" };
 
@@ -1523,6 +1539,7 @@ export const clockIn = async (
 ): Promise<ServiceResult<{ attendanceId: string }>> => {
   try {
     await requireAttendanceEntitlement(ctx);
+    await requireSelfAttendanceAccess(ctx);
     await ensureSelfOrManageAttendance(ctx, employeeId);
     assertEmployeeScope(employeeId, ctx);
 
@@ -1620,6 +1637,7 @@ export const clockOut = async (
 ): Promise<ServiceResult<{ attendanceId: string }>> => {
   try {
     await requireAttendanceEntitlement(ctx);
+    await requireSelfAttendanceAccess(ctx);
     await ensureSelfOrManageAttendance(ctx, employeeId);
     assertEmployeeScope(employeeId, ctx);
     const today = new Date().toISOString().slice(0, 10);
@@ -2062,9 +2080,3 @@ export const rejectAttendanceCorrection = async (
     return { ok: false, error: err instanceof Error ? err.message : "Attendance correction rejection error" };
   }
 };
-
-
-
-
-
-

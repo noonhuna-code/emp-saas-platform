@@ -136,7 +136,15 @@ const ShiftSwapsPageClient = () => {
       </Card>
 
       {loading ? <LoadingState label="Loading shift swap workspace..." /> : null}
-      {!loading && error ? <ErrorState message={`${error}${error?.toLowerCase().includes("permission") ? " � Contact HR to confirm your attendance access and shift assignment." : ""}`} /> : null}
+      {!loading && error ? (
+        <ErrorState
+          message={
+            error.toLowerCase().includes("permission")
+              ? "You do not currently have shift swap access. Contact HR/Admin to confirm attendance permissions and shift scope."
+              : error
+          }
+        />
+      ) : null}
 
       {!loading && !error ? (
         <>
