@@ -1,8 +1,10 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
-import { Suspense, lazy, useMemo, useState } from "react";
+import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
+import { DashboardPerfMarker, useDashboardPerf } from "@/components/dashboard/useDashboardPerf";
+import { DashboardWidgetBoundary } from "@/components/dashboard/DashboardWidgetBoundary";
 import {
   ChartPanel,
   DashboardHero,
@@ -13,8 +15,8 @@ import {
   type DashboardView
 } from "@/components/dashboard/DashboardPrimitives";
 import { SkeletonCard, SkeletonChart, SkeletonList } from "@/components/ui/SkeletonBlocks";
+import AdminKpiWidget from "@/components/dashboard/widgets/AdminKpiWidget";
 
-const AdminKpiWidget = lazy(() => import("@/components/dashboard/widgets/AdminKpiWidget"));
 const AdminAnalyticsWidget = lazy(() => import("@/components/dashboard/widgets/AdminAnalyticsWidget"));
 const AdminOperationsWidget = lazy(() => import("@/components/dashboard/widgets/AdminOperationsWidget"));
 const AdminSecurityWidget = lazy(() => import("@/components/dashboard/widgets/AdminSecurityWidget"));
@@ -22,6 +24,11 @@ const AdminDepartmentWidget = lazy(() => import("@/components/dashboard/widgets/
 
 export const AdminDashboard = () => {
   const [view, setView] = useState<DashboardView>("workspace");
+  const perf = useDashboardPerf("admin");
+
+  useEffect(() => {
+    perf.markKpiRendered();
+  }, [perf]);
 
   const activityItems = useMemo(
     () => [
@@ -68,24 +75,14 @@ export const AdminDashboard = () => {
 
       <DashboardSection visible={view === "workspace"}>
         <section className="space-y-4">
-          <Suspense
-            fallback={(
-              <div className="dashboard-kpi-grid">
-                <SkeletonCard rows={2} />
-                <SkeletonCard rows={2} />
-                <SkeletonCard rows={2} />
-                <SkeletonCard rows={2} />
-                <SkeletonCard rows={2} />
-              </div>
-            )}
-          >
-            <AdminKpiWidget />
-          </Suspense>
+          <AdminKpiWidget />
         </section>
 
         <section className="space-y-4">
           <Suspense fallback={<div className="grid-3"><SkeletonCard rows={5} /><SkeletonCard rows={6} /><SkeletonCard rows={5} /></div>}>
-            <AdminOperationsWidget />
+            <DashboardWidgetBoundary title="Admin operations" message="Admin operational widgets are temporarily unavailable.">
+              <AdminOperationsWidget />
+            </DashboardWidgetBoundary>
           </Suspense>
         </section>
       </DashboardSection>
@@ -94,12 +91,19 @@ export const AdminDashboard = () => {
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
           <ChartPanel title="Workforce analytics" subtitle="Attendance, leave, and payroll analytics">
             <Suspense fallback={<SkeletonChart />}>
-              <AdminAnalyticsWidget />
+              <DashboardWidgetBoundary title="Workforce analytics" message="Analytics are temporarily unavailable.">
+                <>
+                  <DashboardPerfMarker onReady={perf.markChartsLoaded} />
+                  <AdminAnalyticsWidget />
+                </>
+              </DashboardWidgetBoundary>
             </Suspense>
           </ChartPanel>
           <ChartPanel title="Department analytics" subtitle="Headcount and trend breakdown">
             <Suspense fallback={<div className="grid-2"><SkeletonChart /><SkeletonCard rows={6} /></div>}>
-              <AdminDepartmentWidget />
+              <DashboardWidgetBoundary title="Department analytics" message="Department analytics are temporarily unavailable.">
+                <AdminDepartmentWidget />
+              </DashboardWidgetBoundary>
             </Suspense>
           </ChartPanel>
         </div>
@@ -109,7 +113,9 @@ export const AdminDashboard = () => {
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
           <WorkflowPanel title="Security and workflow" subtitle="Operational risks and queue health">
             <Suspense fallback={<div className="grid-2"><SkeletonCard rows={5} /><SkeletonList rows={6} /></div>}>
-              <AdminSecurityWidget />
+              <DashboardWidgetBoundary title="Security and workflow" message="Security workflow data is temporarily unavailable.">
+                <AdminSecurityWidget />
+              </DashboardWidgetBoundary>
             </Suspense>
           </WorkflowPanel>
           <WorkflowPanel title="Activity feed" subtitle="Recent admin actions">
@@ -119,11 +125,10 @@ export const AdminDashboard = () => {
 
         <DashboardPanel title="Rendering mode" subtitle="Progressive dashboard hydration active">
           <p className="muted">
-            Widgets render independently with lazy boundaries and cached route payloads to keep the shell interactive.
+            KPI metrics render immediately while analytics and security widgets stream in behind Suspense boundaries.
           </p>
         </DashboardPanel>
       </DashboardSection>
     </div>
   );
 };
-

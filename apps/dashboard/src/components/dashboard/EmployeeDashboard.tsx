@@ -10,6 +10,8 @@ import { StatusBadge } from "@/components/shared/StatusBadge";
 import { ActionCard } from "@/components/ui/ActionCard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
+import { DashboardPerfMarker, useDashboardPerf } from "@/components/dashboard/useDashboardPerf";
+import { DashboardWidgetBoundary } from "@/components/dashboard/DashboardWidgetBoundary";
 import {
   ChartPanel,
   DashboardHero,
@@ -20,8 +22,8 @@ import {
   type DashboardView
 } from "@/components/dashboard/DashboardPrimitives";
 import { SkeletonCard, SkeletonChart, SkeletonList } from "@/components/ui/SkeletonBlocks";
+import EmployeeKpiSection from "@/components/dashboard/widgets/EmployeeKpiSection";
 
-const EmployeeKpiSection = lazy(() => import("@/components/dashboard/widgets/EmployeeKpiSection"));
 const EmployeeAnalyticsWidget = lazy(() => import("@/components/dashboard/widgets/EmployeeAnalyticsWidget"));
 const EmployeeActivityFeedWidget = lazy(() => import("@/components/dashboard/widgets/EmployeeActivityFeedWidget"));
 const EmployeeNotificationsWidget = lazy(() => import("@/components/dashboard/widgets/EmployeeNotificationsWidget"));
@@ -63,6 +65,7 @@ export const EmployeeDashboard = () => {
   const [data, setData] = useState<EmployeeDashboardResponse | null>(cachedDashboard?.ok ? (cachedDashboard.data ?? null) : null);
   const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState<DashboardView>("workspace");
+  const perf = useDashboardPerf("employee");
 
   const loadDashboard = useCallback(() => {
     let active = true;
@@ -91,6 +94,10 @@ export const EmployeeDashboard = () => {
     const cleanup = loadDashboard();
     return cleanup;
   }, [loadDashboard]);
+
+  useEffect(() => {
+    perf.markKpiRendered();
+  }, [perf]);
 
   const attendanceStatus = useMemo(() => {
     const status = data?.attendanceToday?.status ?? "not_clocked_in";
@@ -220,15 +227,13 @@ export const EmployeeDashboard = () => {
 
         <section className="space-y-4">
           <h2 className="text-xl font-semibold">My Stats</h2>
-          <Suspense fallback={<div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5"><SkeletonCard rows={2} /><SkeletonCard rows={2} /><SkeletonCard rows={2} /><SkeletonCard rows={2} /><SkeletonCard rows={2} /></div>}>
-            <EmployeeKpiSection
-              workMinutes={attendance?.workMinutes ?? null}
-              leaveUtilization={leaveUtilization}
-              pendingShiftSwaps={pendingShiftSwaps}
-              upcomingLeave={upcomingLeave ? formatDate(upcomingLeave.created_at) : "None"}
-              unreadNotifications={unreadNotifications}
-            />
-          </Suspense>
+          <EmployeeKpiSection
+            workMinutes={attendance?.workMinutes ?? null}
+            leaveUtilization={leaveUtilization}
+            pendingShiftSwaps={pendingShiftSwaps}
+            upcomingLeave={upcomingLeave ? formatDate(upcomingLeave.created_at) : "None"}
+            unreadNotifications={unreadNotifications}
+          />
         </section>
 
         <section className="space-y-4">
@@ -248,12 +253,19 @@ export const EmployeeDashboard = () => {
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
           <ChartPanel title="Productivity trends" subtitle="Attendance and leave movement">
             <Suspense fallback={<SkeletonChart />}>
-              <EmployeeAnalyticsWidget />
+              <DashboardWidgetBoundary title="Productivity trends" message="Analytics are temporarily unavailable.">
+                <>
+                  <DashboardPerfMarker onReady={perf.markChartsLoaded} />
+                  <EmployeeAnalyticsWidget />
+                </>
+              </DashboardWidgetBoundary>
             </Suspense>
           </ChartPanel>
           <ChartPanel title="Notification load" subtitle="Unread and recent updates">
             <Suspense fallback={<SkeletonCard rows={5} />}>
-              <EmployeeNotificationsWidget />
+              <DashboardWidgetBoundary title="Notification load" message="Notification insight is temporarily unavailable.">
+                <EmployeeNotificationsWidget />
+              </DashboardWidgetBoundary>
             </Suspense>
           </ChartPanel>
         </div>
@@ -267,10 +279,14 @@ export const EmployeeDashboard = () => {
           <WorkflowPanel title="Operational queue" subtitle="Calendar and chat previews">
             <div className="space-y-4">
               <Suspense fallback={<SkeletonCard rows={4} />}>
-                <EmployeeCalendarWidget />
+                <DashboardWidgetBoundary title="Calendar preview" message="Calendar preview is temporarily unavailable.">
+                  <EmployeeCalendarWidget />
+                </DashboardWidgetBoundary>
               </Suspense>
               <Suspense fallback={<SkeletonList rows={4} />}>
-                <EmployeeChatPreviewWidget />
+                <DashboardWidgetBoundary title="Chat preview" message="Chat preview is temporarily unavailable.">
+                  <EmployeeChatPreviewWidget />
+                </DashboardWidgetBoundary>
               </Suspense>
             </div>
           </WorkflowPanel>
@@ -278,7 +294,9 @@ export const EmployeeDashboard = () => {
 
         <WorkflowPanel title="Detailed timeline" subtitle="Role-scoped workflow events">
           <Suspense fallback={<SkeletonList rows={6} />}>
-            <EmployeeActivityFeedWidget />
+            <DashboardWidgetBoundary title="Detailed timeline" message="The activity timeline is temporarily unavailable.">
+              <EmployeeActivityFeedWidget />
+            </DashboardWidgetBoundary>
           </Suspense>
         </WorkflowPanel>
 
@@ -294,5 +312,3 @@ export const EmployeeDashboard = () => {
     </div>
   );
 };
-
-

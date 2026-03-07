@@ -48,6 +48,7 @@ export default function EmployeeAnalyticsWidget() {
   const [historyRows, setHistoryRows] = useState<AttendanceHistoryRow[]>([]);
   const [leaveRows, setLeaveRows] = useState<LeaveBalance[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -58,8 +59,18 @@ export default function EmployeeAnalyticsWidget() {
     ])
       .then(([historyResult, leaveResult]) => {
         if (!active) return;
+
+        if (!historyResult.ok && !leaveResult.ok) {
+          setError(historyResult.error ?? leaveResult.error ?? "Unable to load analytics");
+          return;
+        }
+
         setHistoryRows(historyResult.ok && historyResult.data ? historyResult.data.rows ?? [] : []);
         setLeaveRows(leaveResult.ok && leaveResult.data ? leaveResult.data.balances ?? [] : []);
+      })
+      .catch((err: unknown) => {
+        if (!active) return;
+        setError(err instanceof Error ? err.message : "Unable to load analytics");
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -78,6 +89,19 @@ export default function EmployeeAnalyticsWidget() {
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <SkeletonChart />
         <SkeletonChart />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+        <DashboardPanel title="Attendance trend" subtitle="Analytics unavailable" tone="spotlight">
+          <p className="text-sm text-muted-foreground">{error}</p>
+        </DashboardPanel>
+        <DashboardPanel title="Leave balance trend" subtitle="Analytics unavailable" tone="soft">
+          <p className="text-sm text-muted-foreground">Try again in a moment.</p>
+        </DashboardPanel>
       </div>
     );
   }
@@ -115,4 +139,3 @@ export default function EmployeeAnalyticsWidget() {
     </div>
   );
 }
-

@@ -8,6 +8,7 @@ import { SkeletonList } from "@/components/ui/SkeletonBlocks";
 export default function EmployeeActivityFeedWidget() {
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<ActivityItem[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -18,6 +19,11 @@ export default function EmployeeActivityFeedWidget() {
     ])
       .then(([notificationResult, resourceResult]) => {
         if (!active) return;
+
+        if (!notificationResult.ok && !resourceResult.ok) {
+          setError(notificationResult.error ?? resourceResult.error ?? "Unable to load activity feed");
+          return;
+        }
 
         const notificationItems = notificationResult.ok && notificationResult.data
           ? notificationResult.data.rows.map((row) => ({
@@ -39,6 +45,10 @@ export default function EmployeeActivityFeedWidget() {
 
         setItems([...notificationItems, ...resourceItems].slice(0, 6));
       })
+      .catch((err: unknown) => {
+        if (!active) return;
+        setError(err instanceof Error ? err.message : "Unable to load activity feed");
+      })
       .finally(() => {
         if (active) setLoading(false);
       });
@@ -52,6 +62,14 @@ export default function EmployeeActivityFeedWidget() {
 
   if (loading) {
     return <SkeletonList rows={6} />;
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-xl border border-dashed border-border px-4 py-5 text-sm text-muted-foreground">
+        Activity feed unavailable. {error}
+      </div>
+    );
   }
 
   return <ActivityFeed items={list} />;

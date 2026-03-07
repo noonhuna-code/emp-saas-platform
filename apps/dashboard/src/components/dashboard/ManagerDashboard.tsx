@@ -1,8 +1,10 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
-import { Suspense, lazy, useMemo, useState } from "react";
+import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
+import { DashboardPerfMarker, useDashboardPerf } from "@/components/dashboard/useDashboardPerf";
+import { DashboardWidgetBoundary } from "@/components/dashboard/DashboardWidgetBoundary";
 import {
   ChartPanel,
   DashboardHero,
@@ -13,13 +15,18 @@ import {
   type DashboardView
 } from "@/components/dashboard/DashboardPrimitives";
 import { SkeletonCard, SkeletonChart, SkeletonList } from "@/components/ui/SkeletonBlocks";
+import ManagerKpiWidget from "@/components/dashboard/widgets/ManagerKpiWidget";
 
-const ManagerKpiWidget = lazy(() => import("@/components/dashboard/widgets/ManagerKpiWidget"));
 const ManagerOperationsWidget = lazy(() => import("@/components/dashboard/widgets/ManagerOperationsWidget"));
 const ManagerWorkflowWidget = lazy(() => import("@/components/dashboard/widgets/ManagerWorkflowWidget"));
 
 export const ManagerDashboard = () => {
   const [view, setView] = useState<DashboardView>("workspace");
+  const perf = useDashboardPerf("manager");
+
+  useEffect(() => {
+    perf.markKpiRendered();
+  }, [perf]);
 
   const activityItems = useMemo(
     () => [
@@ -65,23 +72,14 @@ export const ManagerDashboard = () => {
 
       <DashboardSection visible={view === "workspace"}>
         <section className="space-y-4">
-          <Suspense
-            fallback={(
-              <div className="dashboard-kpi-grid">
-                <SkeletonCard rows={2} />
-                <SkeletonCard rows={2} />
-                <SkeletonCard rows={2} />
-                <SkeletonCard rows={2} />
-              </div>
-            )}
-          >
-            <ManagerKpiWidget variant="manager" />
-          </Suspense>
+          <ManagerKpiWidget variant="manager" />
         </section>
 
         <section className="space-y-4">
           <Suspense fallback={<div className="grid-2"><SkeletonCard rows={6} /><SkeletonChart /></div>}>
-            <ManagerOperationsWidget variant="manager" />
+            <DashboardWidgetBoundary title="Manager operations" message="Manager operations are temporarily unavailable.">
+              <ManagerOperationsWidget variant="manager" />
+            </DashboardWidgetBoundary>
           </Suspense>
         </section>
       </DashboardSection>
@@ -89,7 +87,12 @@ export const ManagerDashboard = () => {
       <DashboardSection visible={view === "analytics"}>
         <ChartPanel title="Team performance analytics" subtitle="Attendance momentum and reliability curves">
           <Suspense fallback={<div className="grid-2"><SkeletonCard rows={6} /><SkeletonChart /></div>}>
-            <ManagerOperationsWidget variant="manager" />
+            <DashboardWidgetBoundary title="Team analytics" message="Analytics are temporarily unavailable.">
+              <>
+                <DashboardPerfMarker onReady={perf.markChartsLoaded} />
+                <ManagerOperationsWidget variant="manager" />
+              </>
+            </DashboardWidgetBoundary>
           </Suspense>
         </ChartPanel>
       </DashboardSection>
@@ -98,7 +101,9 @@ export const ManagerDashboard = () => {
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
           <WorkflowPanel title="Workflow queue" subtitle="Pending approvals and exceptions">
             <Suspense fallback={<div className="grid-2"><SkeletonList rows={6} /><SkeletonList rows={6} /></div>}>
-              <ManagerWorkflowWidget variant="manager" />
+              <DashboardWidgetBoundary title="Workflow queue" message="Workflow data is temporarily unavailable.">
+                <ManagerWorkflowWidget variant="manager" />
+              </DashboardWidgetBoundary>
             </Suspense>
           </WorkflowPanel>
           <WorkflowPanel title="Activity feed" subtitle="Recent manager events">
@@ -108,11 +113,10 @@ export const ManagerDashboard = () => {
 
         <DashboardPanel title="Performance profile" subtitle="Independent widgets render progressively">
           <p className="muted">
-            Team KPIs, operations, and workflow timelines are split into independent lazy widgets for non-blocking rendering.
+            Team KPIs render immediately while operational widgets and review timelines resolve independently.
           </p>
         </DashboardPanel>
       </DashboardSection>
     </div>
   );
 };
-

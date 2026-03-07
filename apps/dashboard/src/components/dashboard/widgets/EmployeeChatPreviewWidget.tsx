@@ -18,13 +18,22 @@ const formatTime = (value: string) => {
 export default function EmployeeChatPreviewWidget() {
   const [rows, setRows] = useState<WorkspaceChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
     void fetchWorkspaceChat({ limit: 6 })
       .then((result) => {
         if (!active) return;
-        setRows(result.ok && result.data ? result.data.rows ?? [] : []);
+        if (!result.ok) {
+          setError(result.error ?? "Unable to load chat preview");
+          return;
+        }
+        setRows(result.data?.rows ?? []);
+      })
+      .catch((err: unknown) => {
+        if (!active) return;
+        setError(err instanceof Error ? err.message : "Unable to load chat preview");
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -43,10 +52,12 @@ export default function EmployeeChatPreviewWidget() {
     <Card className="rounded-xl border-border shadow-sm">
       <CardHeader className="p-5 pb-3">
         <CardTitle className="text-lg">Chat preview</CardTitle>
-        <CardDescription>Recent team messages</CardDescription>
+        <CardDescription>{error ? "Chat preview unavailable" : "Recent team messages"}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3 p-5 pt-0">
-        {rows.length === 0 ? (
+        {error ? (
+          <EmptyState title="Chat preview unavailable" subtitle={error} compact />
+        ) : rows.length === 0 ? (
           <EmptyState title="No chat messages yet" subtitle="Start a conversation from team chat." compact />
         ) : (
           rows.slice(0, 4).map((row) => (

@@ -12,13 +12,22 @@ import { SkeletonList } from "@/components/ui/SkeletonBlocks";
 export default function EmployeeNotificationsWidget() {
   const [rows, setRows] = useState<WorkspaceNotification[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
     void fetchWorkspaceNotifications({ limit: 6, unreadOnly: true })
       .then((result) => {
         if (!active) return;
-        setRows(result.ok && result.data ? result.data.rows ?? [] : []);
+        if (!result.ok) {
+          setError(result.error ?? "Unable to load notifications");
+          return;
+        }
+        setRows(result.data?.rows ?? []);
+      })
+      .catch((err: unknown) => {
+        if (!active) return;
+        setError(err instanceof Error ? err.message : "Unable to load notifications");
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -39,10 +48,12 @@ export default function EmployeeNotificationsWidget() {
     <Card className="rounded-xl border-border shadow-sm">
       <CardHeader className="p-5 pb-3">
         <CardTitle className="text-lg">Notifications</CardTitle>
-        <CardDescription>{unread.length} unread updates</CardDescription>
+        <CardDescription>{error ? "Notifications unavailable" : `${unread.length} unread updates`}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3 p-5 pt-0">
-        {unread.length === 0 ? (
+        {error ? (
+          <EmptyState title="Notifications unavailable" subtitle={error} compact />
+        ) : unread.length === 0 ? (
           <EmptyState title="No notifications yet" subtitle="Your workspace is up to date." compact />
         ) : (
           unread.slice(0, 4).map((row) => (

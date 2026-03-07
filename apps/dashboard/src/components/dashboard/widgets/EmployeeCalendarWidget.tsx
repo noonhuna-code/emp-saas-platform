@@ -12,6 +12,7 @@ import { SkeletonCard } from "@/components/ui/SkeletonBlocks";
 export default function EmployeeCalendarWidget() {
   const [data, setData] = useState<WorkspaceCalendarResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -19,7 +20,15 @@ export default function EmployeeCalendarWidget() {
     void fetchWorkspaceCalendar(month)
       .then((result) => {
         if (!active) return;
-        setData(result.ok && result.data ? result.data : null);
+        if (!result.ok) {
+          setError(result.error ?? "Unable to load calendar preview");
+          return;
+        }
+        setData(result.data ?? null);
+      })
+      .catch((err: unknown) => {
+        if (!active) return;
+        setError(err instanceof Error ? err.message : "Unable to load calendar preview");
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -46,10 +55,12 @@ export default function EmployeeCalendarWidget() {
     <Card className="rounded-xl border-border shadow-sm">
       <CardHeader className="p-5 pb-3">
         <CardTitle className="text-lg">Calendar preview</CardTitle>
-        <CardDescription>Upcoming holidays and approved timeline signals</CardDescription>
+        <CardDescription>{error ? "Calendar preview unavailable" : "Upcoming holidays and approved timeline signals"}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3 p-5 pt-0">
-        {highlights.length === 0 ? (
+        {error ? (
+          <EmptyState title="Calendar unavailable" subtitle={error} compact />
+        ) : highlights.length === 0 ? (
           <EmptyState title="No upcoming events" subtitle="Use calendar for full month view." compact />
         ) : (
           highlights.map((row) => (

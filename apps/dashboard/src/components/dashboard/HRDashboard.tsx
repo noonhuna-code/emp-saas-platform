@@ -1,8 +1,10 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
-import { Suspense, lazy, useMemo, useState } from "react";
+import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
+import { DashboardPerfMarker, useDashboardPerf } from "@/components/dashboard/useDashboardPerf";
+import { DashboardWidgetBoundary } from "@/components/dashboard/DashboardWidgetBoundary";
 import {
   ChartPanel,
   DashboardHero,
@@ -13,13 +15,18 @@ import {
   type DashboardView
 } from "@/components/dashboard/DashboardPrimitives";
 import { SkeletonCard, SkeletonChart, SkeletonList } from "@/components/ui/SkeletonBlocks";
+import HRKpiWidget from "@/components/dashboard/widgets/HRKpiWidget";
 
-const HRKpiWidget = lazy(() => import("@/components/dashboard/widgets/HRKpiWidget"));
 const HROperationsWidget = lazy(() => import("@/components/dashboard/widgets/HROperationsWidget"));
 const HRTimelineWidget = lazy(() => import("@/components/dashboard/widgets/HRTimelineWidget"));
 
 export const HRDashboard = () => {
   const [view, setView] = useState<DashboardView>("workspace");
+  const perf = useDashboardPerf("hr");
+
+  useEffect(() => {
+    perf.markKpiRendered();
+  }, [perf]);
 
   const activityItems = useMemo(
     () => [
@@ -65,24 +72,14 @@ export const HRDashboard = () => {
 
       <DashboardSection visible={view === "workspace"}>
         <section className="space-y-4">
-          <Suspense
-            fallback={(
-              <div className="dashboard-kpi-grid">
-                <SkeletonCard rows={2} />
-                <SkeletonCard rows={2} />
-                <SkeletonCard rows={2} />
-                <SkeletonCard rows={2} />
-                <SkeletonCard rows={2} />
-              </div>
-            )}
-          >
-            <HRKpiWidget />
-          </Suspense>
+          <HRKpiWidget />
         </section>
 
         <section className="space-y-4">
           <Suspense fallback={<div className="grid-3"><SkeletonCard rows={5} /><SkeletonChart /><SkeletonCard rows={6} /></div>}>
-            <HROperationsWidget />
+            <DashboardWidgetBoundary title="HR operations" message="HR operational widgets are temporarily unavailable.">
+              <HROperationsWidget />
+            </DashboardWidgetBoundary>
           </Suspense>
         </section>
       </DashboardSection>
@@ -90,7 +87,12 @@ export const HRDashboard = () => {
       <DashboardSection visible={view === "analytics"}>
         <ChartPanel title="HR analytics" subtitle="Payroll throughput, delivery quality, and policy trends">
           <Suspense fallback={<div className="grid-3"><SkeletonCard rows={5} /><SkeletonChart /><SkeletonCard rows={6} /></div>}>
-            <HROperationsWidget />
+            <DashboardWidgetBoundary title="HR analytics" message="Analytics are temporarily unavailable.">
+              <>
+                <DashboardPerfMarker onReady={perf.markChartsLoaded} />
+                <HROperationsWidget />
+              </>
+            </DashboardWidgetBoundary>
           </Suspense>
         </ChartPanel>
       </DashboardSection>
@@ -99,7 +101,9 @@ export const HRDashboard = () => {
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
           <WorkflowPanel title="Workflow timeline" subtitle="HR queue and lifecycle events">
             <Suspense fallback={<div className="grid-2"><SkeletonList rows={6} /><SkeletonList rows={8} /></div>}>
-              <HRTimelineWidget />
+              <DashboardWidgetBoundary title="Workflow timeline" message="Workflow timeline is temporarily unavailable.">
+                <HRTimelineWidget />
+              </DashboardWidgetBoundary>
             </Suspense>
           </WorkflowPanel>
           <WorkflowPanel title="Activity feed" subtitle="Recent HR operations">
@@ -109,11 +113,10 @@ export const HRDashboard = () => {
 
         <DashboardPanel title="Rendering mode" subtitle="Progressive dashboard hydration active">
           <p className="muted">
-            HR widgets resolve independently to keep the shell interactive while payroll and workflow sections continue loading.
+            HR KPIs render immediately while payroll and workflow sections continue loading in independent boundaries.
           </p>
         </DashboardPanel>
       </DashboardSection>
     </div>
   );
 };
-
