@@ -1,9 +1,32 @@
-import { HeaderBar } from "@/components/layout/HeaderBar";
+﻿import { HeaderBar } from "@/components/layout/HeaderBar";
 import { CompanyContextBadge } from "./CompanyContextBadge";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import { StatusChip } from "@/components/ui/StatusChip";
 import type { BillingNavigationContext } from "@/lib/types/billing";
 import type { DashboardPersona } from "@/lib/dashboard/capabilities";
+
+const resolveHeaderTitle = (persona: DashboardPersona): string => {
+  switch (persona) {
+    case "employee":
+      return "Employee Management";
+    case "team_lead":
+      return "Team Lead Workspace";
+    case "manager":
+      return "Manager Workspace";
+    case "hr":
+      return "HR Workspace";
+    case "it":
+      return "IT Workspace";
+    case "admin":
+      return "Admin Operations";
+    case "founder":
+      return "Founder Dashboard";
+    case "platform_owner":
+      return "Platform Operations";
+    default:
+      return "Dashboard";
+  }
+};
 
 export const Topbar = ({
   persona,
@@ -71,7 +94,7 @@ export const Topbar = ({
   const leadingAvatar = isEmployeePersona ? (
     avatarUrl ? (
       // eslint-disable-next-line @next/next/no-img-element
-      <img src={avatarUrl} alt="Profile" width={52} height={52} className="topbar-profile__avatar topbar-profile__avatar--xl" />
+      <img src={avatarUrl} alt="Profile" width={44} height={44} className="topbar-profile__avatar topbar-profile__avatar--xl" />
     ) : (
       <span className="topbar-profile__avatar-fallback topbar-profile__avatar--xl">{(identityLabel[0] ?? "U").toUpperCase()}</span>
     )
@@ -79,7 +102,7 @@ export const Topbar = ({
 
   return (
     <HeaderBar
-      title="Employee Management"
+      title={resolveHeaderTitle(persona)}
       subtitle={isEmployeePersona ? (lastLoginText ?? "Last login unavailable") : (lastLoginText ?? identityLabel)}
       leading={leadingAvatar}
       compact={isEmployeePersona}
@@ -115,5 +138,3 @@ export const Topbar = ({
     />
   );
 };
-
-

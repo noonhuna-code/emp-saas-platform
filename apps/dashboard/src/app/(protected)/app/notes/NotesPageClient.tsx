@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import {
@@ -18,16 +18,17 @@ import { StatusChip } from "@/components/ui/StatusChip";
 const NotesPageClient = () => {
   const cachedNotes = peekCachedResult<{ rows: WorkspaceNote[] }>("/api/workspace/notes?limit=50");
   const cachedMe = peekCachedResult<{ employeeId: string }>("/api/employees/me");
+  const hasCachedNotes = Boolean(cachedNotes?.ok && cachedNotes.data);
   const [rows, setRows] = useState<WorkspaceNote[]>(cachedNotes?.ok ? (cachedNotes.data?.rows ?? []) : []);
-  const [loading, setLoading] = useState(!(cachedNotes?.ok && cachedNotes.data));
+  const [loading, setLoading] = useState(!hasCachedNotes);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [employeeId, setEmployeeId] = useState<string | null>(cachedMe?.ok ? (cachedMe.data?.employeeId ?? null) : null);
   const [file, setFile] = useState<File | null>(null);
   const [form, setForm] = useState({ title: "", body: "", fileUrl: "", fileName: "", isPinned: false });
 
-  const load = async () => {
-    setLoading(true);
+  const load = async (showLoading = true) => {
+    if (showLoading) setLoading(true);
     setError(null);
     const result = await fetchWorkspaceNotes();
     if (!result.ok || !result.data) {
@@ -40,14 +41,14 @@ const NotesPageClient = () => {
   };
 
   useEffect(() => {
-    void load();
+    void load(!hasCachedNotes);
     void (async () => {
       const me = await fetchEmployeeMe();
       if (me.ok && me.data?.employeeId) {
         setEmployeeId(me.data.employeeId);
       }
     })();
-  }, []);
+  }, [hasCachedNotes]);
 
   const onSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -102,7 +103,7 @@ const NotesPageClient = () => {
     setMessage("Note saved successfully.");
     setForm({ title: "", body: "", fileUrl: "", fileName: "", isPinned: false });
     setFile(null);
-    await load();
+    await load(false);
   };
 
   return (
@@ -203,4 +204,3 @@ const NotesPageClient = () => {
 };
 
 export default NotesPageClient;
-

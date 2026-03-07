@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -16,9 +16,10 @@ import {
   addEmployeeSkill,
   updateEmployeeSkill,
   deleteEmployeeSkill,
-  fetchSession
+  fetchSession,
+  peekCachedResult
 } from "@/lib/client/api";
-import type { EmployeeProfile, EmployeeLookupResponse } from "@/lib/types/profile";
+import type { EmployeeProfile, EmployeeLookupResponse, EmployeeProfileResponse } from "@/lib/types/profile";
 import { EmployeeProfileHeader } from "@/components/profile/EmployeeProfileHeader";
 import { PersonalInfoSection } from "@/components/profile/PersonalInfoSection";
 import { EmploymentInfoSection } from "@/components/profile/EmploymentInfoSection";
@@ -40,16 +41,25 @@ const TAB_ITEMS = [
 ];
 
 export const EmployeeProfileScreen = ({ employeeId }: { employeeId: string }) => {
-  const [profile, setProfile] = useState<EmployeeProfile | null>(null);
-  const [lookups, setLookups] = useState<EmployeeLookupResponse | null>(null);
-  const [loading, setLoading] = useState(true);
+  const cachedProfile = peekCachedResult<EmployeeProfileResponse>(`/api/employees/${employeeId}/profile`);
+  const cachedLookups = peekCachedResult<EmployeeLookupResponse>("/api/employees/lookups");
+  const cachedSession = peekCachedResult<{ permissions: string[] }>("/api/auth/session");
+
+  const hasCachedProfile = Boolean(cachedProfile?.ok && cachedProfile.data?.profile);
+  const [profile, setProfile] = useState<EmployeeProfile | null>(cachedProfile?.ok ? (cachedProfile.data?.profile ?? null) : null);
+  const [lookups, setLookups] = useState<EmployeeLookupResponse | null>(cachedLookups?.ok ? (cachedLookups.data ?? null) : null);
+  const [loading, setLoading] = useState(!hasCachedProfile);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("personal");
-  const [canManageEmployees, setCanManageEmployees] = useState(false);
+  const [canManageEmployees, setCanManageEmployees] = useState(
+    cachedSession?.ok ? Boolean(cachedSession.data?.permissions?.includes("manage_employees")) : false
+  );
 
   useEffect(() => {
     let active = true;
-    setLoading(true);
+    if (!hasCachedProfile) {
+      setLoading(true);
+    }
     setError(null);
 
     void Promise.all([fetchEmployeeProfile(employeeId), fetchEmployeeLookups(), fetchSession()])
@@ -78,7 +88,7 @@ export const EmployeeProfileScreen = ({ employeeId }: { employeeId: string }) =>
     return () => {
       active = false;
     };
-  }, [employeeId]);
+  }, [employeeId, hasCachedProfile]);
 
   const updateProfileState = (next: EmployeeProfile | undefined) => {
     if (next) {

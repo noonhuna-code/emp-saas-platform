@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { fetchWorkspaceResources, peekCachedResult } from "@/lib/client/api";
@@ -10,12 +10,17 @@ import { StatusChip } from "@/components/ui/StatusChip";
 
 const ResourcesPageClient = () => {
   const cachedResources = peekCachedResult<{ rows: WorkspaceResource[] }>("/api/workspace/resources?limit=50");
+  const hasCachedResources = Boolean(cachedResources?.ok && cachedResources.data);
   const [rows, setRows] = useState<WorkspaceResource[]>(cachedResources?.ok ? (cachedResources.data?.rows ?? []) : []);
-  const [loading, setLoading] = useState(!(cachedResources?.ok && cachedResources.data));
+  const [loading, setLoading] = useState(!hasCachedResources);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
+    if (!hasCachedResources) {
+      setLoading(true);
+    }
+
     void fetchWorkspaceResources()
       .then((result) => {
         if (!active) return;
@@ -36,7 +41,7 @@ const ResourcesPageClient = () => {
     return () => {
       active = false;
     };
-  }, []);
+  }, [hasCachedResources]);
 
   return (
     <div className="page-wrap space-y-8">

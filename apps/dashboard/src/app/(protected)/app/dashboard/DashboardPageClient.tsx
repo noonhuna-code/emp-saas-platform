@@ -1,7 +1,8 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { Suspense, lazy, useMemo } from "react";
+import { EmployeeDashboard } from "@/components/dashboard/EmployeeDashboard";
 import { resolveDashboardPersona } from "@/lib/dashboard/capabilities";
 import { DashboardRoleFallback } from "@/components/dashboard/DashboardRoleFallback";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,7 +17,6 @@ const hasAnyPermission = (permissions: string[], checks: string[]): boolean =>
   checks.some((permission) => permissions.includes(permission));
 
 const LazyAdminDashboard = lazy(() => import("@/components/dashboard/AdminDashboard").then((mod) => ({ default: mod.AdminDashboard })));
-const LazyEmployeeDashboard = lazy(() => import("@/components/dashboard/EmployeeDashboard").then((mod) => ({ default: mod.EmployeeDashboard })));
 const LazyFinanceDashboard = lazy(() => import("@/components/dashboard/FinanceDashboard").then((mod) => ({ default: mod.FinanceDashboard })));
 const LazyFounderDashboard = lazy(() => import("@/components/dashboard/FounderDashboard").then((mod) => ({ default: mod.FounderDashboard })));
 const LazyHRDashboard = lazy(() => import("@/components/dashboard/HRDashboard").then((mod) => ({ default: mod.HRDashboard })));
@@ -37,7 +37,7 @@ export const DashboardPageClient = ({ role, permissions }: DashboardPageClientPr
     }
 
     if (persona === "employee") {
-      return <LazyEmployeeDashboard />;
+      return <EmployeeDashboard />;
     }
 
     if (persona === "team_lead") {

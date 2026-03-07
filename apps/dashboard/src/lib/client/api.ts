@@ -1,4 +1,4 @@
-import type { DashboardApiResult } from "@/lib/types/api";
+﻿import type { DashboardApiResult } from "@/lib/types/api";
 import type { DashboardSession } from "@/lib/types/auth";
 import type {
   AttendanceCorrectionRequestInput,
@@ -256,8 +256,8 @@ const postJson = async <T>(
 };
 
 export const fetchSession = async (): Promise<DashboardApiResult<DashboardSession>> => {
-  const response = await fetch("/api/auth/session", { cache: "no-store" });
-  return parseJson<DashboardSession>(response);
+  const response = await fetchWithCache<DashboardSession>("/api/auth/session", 30000);
+  return response;
 };
 
 export const fetchEmployees = async (params: {
@@ -494,8 +494,8 @@ export const rejectOvertime = async (
 };
 
 export const fetchOrgChart = async (): Promise<DashboardApiResult<OrgChartResponse>> => {
-  const response = await fetch("/api/org-chart", { cache: "no-store" });
-  return parseJson<OrgChartResponse>(response);
+  const response = await fetchWithCache<OrgChartResponse>("/api/org-chart", 60000);
+  return response;
 };
 
 export const fetchAttendanceToday = async (): Promise<DashboardApiResult<AttendanceTodayResponse>> => {
@@ -1057,8 +1057,8 @@ export const requestBillingSubscriptionCancellation = async (
 };
 
 export const fetchPlatformOverview = async (): Promise<DashboardApiResult<PlatformOverviewResponse>> => {
-  const response = await fetch("/api/platform/overview", { cache: "no-store" });
-  return parseJson<PlatformOverviewResponse>(response);
+  const response = await fetchWithCache<PlatformOverviewResponse>("/api/platform/overview", 45000);
+  return response;
 };
 
 export const fetchWorkspaceResources = async (
@@ -1446,6 +1446,8 @@ export const prewarmDashboardData = (persona: DashboardPrewarmPersona): void => 
     window.setTimeout(runPhaseTwo, 260);
   }
 };
+
+
 
 
 
