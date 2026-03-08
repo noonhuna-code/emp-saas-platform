@@ -16,6 +16,24 @@ export const DASHBOARD_VIEW_OPTIONS: Array<{ id: DashboardView; label: string }>
   { id: "operations", label: "Operations" }
 ];
 
+const HERO_SIGNALS: Record<"default" | "executive" | "operations", Array<{ label: string; value: string }>> = {
+  default: [
+    { label: "Context", value: "Role aware" },
+    { label: "Scope", value: "Tenant isolated" },
+    { label: "Refresh", value: "Live workspace" }
+  ],
+  executive: [
+    { label: "Visibility", value: "Cross-team" },
+    { label: "Metrics", value: "Decision ready" },
+    { label: "Signal", value: "Executive view" }
+  ],
+  operations: [
+    { label: "Approvals", value: "Workflow ready" },
+    { label: "Coverage", value: "Operational view" },
+    { label: "Updates", value: "Near real-time" }
+  ]
+};
+
 export const DashboardHero = ({
   eyebrow,
   title,
@@ -29,6 +47,8 @@ export const DashboardHero = ({
   actions?: ReactNode;
   emphasis?: "default" | "executive" | "operations";
 }) => {
+  const signals = HERO_SIGNALS[emphasis] ?? HERO_SIGNALS.default;
+
   return (
     <Card
       className={cn(
@@ -46,7 +66,17 @@ export const DashboardHero = ({
             <p className="dashboard-hero__subtitle">{subtitle}</p>
           </div>
         </div>
-        {actions ? <div className="dashboard-hero__actions">{actions}</div> : null}
+        <aside className="dashboard-hero__aside">
+          <div className="dashboard-hero__signal-grid">
+            {signals.map((signal) => (
+              <div key={`${signal.label}-${signal.value}`} className="dashboard-hero__signal-card">
+                <span className="dashboard-hero__signal-label">{signal.label}</span>
+                <strong className="dashboard-hero__signal-value">{signal.value}</strong>
+              </div>
+            ))}
+          </div>
+          {actions ? <div className="dashboard-hero__actions">{actions}</div> : null}
+        </aside>
       </CardContent>
     </Card>
   );
@@ -62,8 +92,8 @@ export const DashboardModeSwitch = ({
   return (
     <div className="dashboard-mode-switch">
       <div className="dashboard-mode-switch__copy">
-        <h2 className="dashboard-mode-switch__title">Control modes</h2>
-        <p className="dashboard-mode-switch__subtitle">Move between workspace execution, analytics, and workflow operations without leaving the role dashboard.</p>
+        <h2 className="dashboard-mode-switch__title">Workspace views</h2>
+        <p className="dashboard-mode-switch__subtitle">Switch between execution, analytics, and workflow oversight without leaving the dashboard.</p>
       </div>
       <Tabs
         tabs={DASHBOARD_VIEW_OPTIONS}
@@ -123,11 +153,11 @@ export const ChartPanel = ({
   actions?: ReactNode;
   children: ReactNode;
 }) => {
-  return (
-    <DashboardPanel title={title} subtitle={subtitle} actions={actions} tone="soft">
-      {children}
-    </DashboardPanel>
-  );
+    return (
+      <DashboardPanel title={title} subtitle={subtitle} actions={actions} tone="soft">
+        {children}
+      </DashboardPanel>
+    );
 };
 
 export const WorkflowPanel = ({
