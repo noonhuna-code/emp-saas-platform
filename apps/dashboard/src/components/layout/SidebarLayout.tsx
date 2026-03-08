@@ -18,6 +18,13 @@ export const SidebarLayout = ({
   onToggleCollapsed?: () => void;
   children: ReactNode;
 }) => {
+  const initials = title
+    .split(" ")
+    .map((segment) => segment[0] ?? "")
+    .join("")
+    .slice(0, 2)
+    .toUpperCase() || "EO";
+
   return (
     <div
       className={[
@@ -29,7 +36,7 @@ export const SidebarLayout = ({
         .trim()}
     >
       <header className="sidebar-layout__head">
-        <div className="sidebar-layout__topline">
+        <div className="sidebar-layout__utility-row">
           <Badge variant="info" className="sidebar-layout__workspace-badge">
             <Sparkles className="h-3.5 w-3.5" />
             {!collapsed ? <span>Operations OS</span> : null}
@@ -47,12 +54,15 @@ export const SidebarLayout = ({
         </div>
         <div className="sidebar-layout__brand-wrap">
           <div className="sidebar-layout__brand-mark" aria-hidden="true">
-            <span>{title.slice(0, 2)}</span>
+            <span>{collapsed ? initials.slice(0, 1) : initials}</span>
           </div>
-          <div className="sidebar-layout__brand">
-            <h2>{collapsed ? title.slice(0, 3) : title}</h2>
-            {!collapsed && subtitle ? <p>{subtitle}</p> : null}
-          </div>
+          {!collapsed ? (
+            <div className="sidebar-layout__brand">
+              <span className="sidebar-layout__overline">Enterprise command system</span>
+              <h2>{title}</h2>
+              {subtitle ? <p>{subtitle}</p> : null}
+            </div>
+          ) : null}
         </div>
       </header>
       <div className="sidebar-layout__body">{children}</div>

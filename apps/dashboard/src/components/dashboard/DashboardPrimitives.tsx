@@ -91,10 +91,7 @@ export const DashboardModeSwitch = ({
 }) => {
   return (
     <div className="dashboard-mode-switch">
-      <div className="dashboard-mode-switch__copy">
-        <h2 className="dashboard-mode-switch__title">Workspace views</h2>
-        <p className="dashboard-mode-switch__subtitle">Switch between execution, analytics, and workflow oversight without leaving the dashboard.</p>
-      </div>
+      <span className="dashboard-mode-switch__eyebrow">View mode</span>
       <Tabs
         tabs={DASHBOARD_VIEW_OPTIONS}
         active={value}
@@ -250,3 +247,4 @@ export const TimelineList = ({
     </div>
   );
 };
+

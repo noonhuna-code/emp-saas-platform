@@ -33,7 +33,7 @@ export const PlatformShell = ({
   return (
     <>
       <DashboardLayout
-        shellClassName={`platform-shell ${collapsed ? "platform-shell--collapsed" : ""} ${mobileOpen ? "platform-shell--mobile-open" : ""}`}
+        shellClassName={`enterprise-shell-v8 platform-shell ${collapsed ? "platform-shell--collapsed" : ""} ${mobileOpen ? "platform-shell--mobile-open" : ""}`}
         sidebar={(
           <aside className={`platform-sidebar ${collapsed ? "platform-sidebar--collapsed" : ""} ${mobileOpen ? "platform-sidebar--open" : ""}`}>
             <SidebarLayout

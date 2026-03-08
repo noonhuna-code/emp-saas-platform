@@ -112,65 +112,61 @@ export const Topbar = ({
     <span className="topbar-profile__avatar-fallback topbar-profile__avatar--xl">{(identityLabel[0] ?? "U").toUpperCase()}</span>
   );
 
+  const chipRow = (
+    <div className="topbar-suite__meta">
+      {shiftText ? <StatusChip label={`Shift ${shiftText}`} compact /> : null}
+      {employeeIdentity ? <StatusChip label={`ID ${employeeIdentity}`} compact tone="info" /> : null}
+      {!isEmployeePersona && subscription ? <StatusChip label={`${subscription.planName} - ${subscription.status}`} compact /> : null}
+      {!isEmployeePersona && renewalLabel ? <StatusChip label={renewalLabel} tone="info" compact /> : null}
+      {!isEmployeePersona && seatSummary ? <StatusChip label={`Seats ${seatLimitText}`} compact /> : null}
+      {!isEmployeePersona ? <CompanyContextBadge companyId={companyId} role={role} /> : null}
+      {!isEmployeePersona ? <StatusChip label={resolveWorkspaceLabel(persona)} compact tone="info" /> : null}
+    </div>
+  );
+
+  const utilityRow = (
+    <div className="topbar-suite__tools">
+      <Button
+        type="button"
+        variant="secondary"
+        size="sm"
+        className="topbar-command"
+        onClick={() => window.dispatchEvent(new CustomEvent("emp.commandPalette.toggle"))}
+        aria-label="Open command palette"
+      >
+        <Search className="h-4 w-4" />
+        <span className="topbar-command__label">Search</span>
+        <span className="topbar-command__kbd"><Command className="h-3 w-3" />K</span>
+      </Button>
+      <Link href="/app/notifications" className="topbar-icon-btn" aria-label="Open notifications"><Bell className="h-4 w-4" /></Link>
+      <Link href="/app/resources" className="topbar-icon-btn" aria-label="Open help and resources"><CircleHelp className="h-4 w-4" /></Link>
+      <div className="topbar-workspace-badge">
+        <Sparkles className="h-3.5 w-3.5" />
+        <span>{isEmployeePersona ? "Personal workspace" : companyId ? "Tenant command" : "Workspace command"}</span>
+      </div>
+      <ThemeToggle />
+      <form action="/api/auth/logout" method="post">
+        <button type="submit" className="secondary-btn topbar-logout-btn">
+          Logout
+        </button>
+      </form>
+    </div>
+  );
+
   return (
     <HeaderBar
       title={headerTitle}
-      subtitle={isEmployeePersona ? (lastLoginText ?? "Last login unavailable") : (lastLoginText ?? `${resolveWorkspaceLabel(persona)} workspace`)}
+      subtitle={lastLoginText ?? (isEmployeePersona ? "Personal workspace" : `${resolveWorkspaceLabel(persona)} workspace`)}
       leading={leadingAvatar}
       compact={isEmployeePersona}
       onToggleSidebar={onToggleSidebar}
       onToggleMobileSidebar={onToggleMobileSidebar}
       actions={(
-        <>
-          {shiftText ? <StatusChip label={`Shift ${shiftText}`} compact /> : null}
-          {isEmployeePersona && employeeIdentity ? <StatusChip label={`ID ${employeeIdentity}`} compact tone="info" /> : null}
-          {persona === "finance" && subscription ? <StatusChip label={`Plan ${subscription.planName}`} compact tone="info" /> : null}
-          {!isEmployeePersona && persona !== "finance" && subscription ? <StatusChip label={`${subscription.planName} - ${subscription.status}`} compact /> : null}
-          {!isEmployeePersona && renewalLabel ? <StatusChip label={renewalLabel} tone="info" compact /> : null}
-          {!isEmployeePersona && seatSummary ? <StatusChip label={`Seats ${seatLimitText}`} compact /> : null}
-          {!isEmployeePersona ? (
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              className="topbar-command"
-              onClick={() => window.dispatchEvent(new CustomEvent("emp.commandPalette.toggle"))}
-              aria-label="Open command palette"
-            >
-              <Search className="h-4 w-4" />
-              <span>Search</span>
-              <span className="topbar-command__kbd"><Command className="h-3 w-3" />K</span>
-            </Button>
-          ) : null}
-          {!isEmployeePersona ? <Link href="/app/notifications" className="topbar-icon-btn" aria-label="Open notifications"><Bell className="h-4 w-4" /></Link> : null}
-          {!isEmployeePersona ? <Link href="/app/resources" className="topbar-icon-btn" aria-label="Open help and resources"><CircleHelp className="h-4 w-4" /></Link> : null}
-          {!isEmployeePersona ? (
-            <div className="topbar-workspace-badge">
-              <Sparkles className="h-3.5 w-3.5" />
-              <span>{companyId ? "Tenant scoped" : "Workspace scoped"}</span>
-            </div>
-          ) : null}
-          {!isEmployeePersona ? (
-            <div className="topbar-profile" title={identityLabel}>
-              {avatarUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={avatarUrl} alt="Profile" width={28} height={28} className="topbar-profile__avatar" />
-              ) : (
-                <span className="topbar-profile__avatar-fallback">{(identityLabel[0] ?? "U").toUpperCase()}</span>
-              )}
-              <span className="topbar-profile__name">{fullName ?? email ?? "User"}</span>
-            </div>
-          ) : null}
-          {!isEmployeePersona ? <CompanyContextBadge companyId={companyId} role={role} /> : null}
-          <ThemeToggle />
-          <form action="/api/auth/logout" method="post">
-            <button type="submit" className="secondary-btn">
-              Logout
-            </button>
-          </form>
-        </>
+        <div className="topbar-suite topbar-suite--v8">
+          {chipRow}
+          {utilityRow}
+        </div>
       )}
     />
   );
 };
-

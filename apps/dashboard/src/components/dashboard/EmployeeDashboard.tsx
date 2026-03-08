@@ -115,6 +115,7 @@ export const EmployeeDashboard = () => {
 
   const leave = getLeaveBreakdown(data?.leaveBalances ?? []);
   const leaveUtilization = leave.totalEntitled > 0 ? Math.round((leave.totalUsed / leave.totalEntitled) * 100) : 0;
+  const leaveRemaining = Math.max(0, leave.totalEntitled - leave.totalUsed);
 
   const pendingShiftSwaps = (data?.notifications ?? []).filter((row) =>
     /shift swap/i.test(`${row.title} ${row.message ?? ""}`)
@@ -136,24 +137,46 @@ export const EmployeeDashboard = () => {
 
   return (
     <div className="page-wrap space-y-8 fade-in">
-      <div className="employee-dashboard-lead">
-        <Card className="employee-dashboard-lead__summary rounded-xl border-border shadow-sm">
-          <CardContent className="space-y-4 p-6">
-            <p className="employee-dashboard-lead__eyebrow">Employee control center</p>
-            <div className="space-y-3">
-              <h2 className="employee-dashboard-lead__title">Daily workspace</h2>
-              <p className="employee-dashboard-lead__subtitle">Run your shift, requests, collaboration, and personal workflow from one focused control surface.</p>
+      <div className="employee-dashboard-command-center employee-dashboard-command-center--v8">
+        <Card className="employee-dashboard-command-lead rounded-xl border-border shadow-sm">
+          <CardContent className="employee-dashboard-command-lead__content p-6">
+            <div className="employee-dashboard-command-lead__copy">
+              <p className="employee-dashboard-command-lead__eyebrow">Employee control center</p>
+              <h2 className="employee-dashboard-command-lead__title">Daily workspace</h2>
+              <p className="employee-dashboard-command-lead__subtitle">Shift execution, requests, collaboration, and visibility in one compact operating surface.</p>
             </div>
-            <div className="employee-dashboard-lead__signals">
-              <span>Shift-ready</span>
-              <span>Leave-aware</span>
-              <span>Team-connected</span>
+            <div className="employee-dashboard-command-lead__signals">
+              <div className="employee-dashboard-command-lead__signal">
+                <span>Attendance</span>
+                <strong>{attendanceStatus}</strong>
+                <small>{shift ? `${shift.start_time} - ${shift.end_time}` : "No shift assigned"}</small>
+              </div>
+              <div className="employee-dashboard-command-lead__signal">
+                <span>Leave</span>
+                <strong>{leaveRemaining} days</strong>
+                <small>{upcomingLeave ? `Next update ${formatDate(upcomingLeave.created_at)}` : "No leave updates yet"}</small>
+              </div>
+              <div className="employee-dashboard-command-lead__signal">
+                <span>Signals</span>
+                <strong>{unreadNotifications} unread</strong>
+                <small>{pendingShiftSwaps} swaps pending</small>
+              </div>
             </div>
           </CardContent>
         </Card>
-        <Card className="employee-dashboard-lead__switch rounded-xl border-border shadow-sm">
-          <CardContent className="p-5">
+
+        <Card className="employee-dashboard-command-bar rounded-xl border-border shadow-sm">
+          <CardContent className="employee-dashboard-command-bar__content p-5">
+            <div className="employee-dashboard-command-bar__copy">
+              <p className="employee-dashboard-command-bar__eyebrow">Command lanes</p>
+              <p className="employee-dashboard-command-bar__subtitle">Switch between execution, analytics, and workflow visibility without leaving the dashboard.</p>
+            </div>
             <DashboardModeSwitch value={view} onChange={setView} />
+            <div className="employee-dashboard-command-bar__signals">
+              <span>{pendingShiftSwaps} swaps pending</span>
+              <span>{unreadNotifications} notifications</span>
+              <span>{leaveRemaining} leave days remaining</span>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -323,5 +346,6 @@ export const EmployeeDashboard = () => {
     </div>
   );
 };
+
 
 

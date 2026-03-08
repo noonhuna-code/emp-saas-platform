@@ -120,7 +120,7 @@ export const TenantShellFrame = ({
 
   return (
     <DashboardLayout
-      shellClassName={`app-shell ${collapsed ? "app-shell--collapsed" : ""} ${mobileOpen ? "app-shell--mobile-open" : ""}`}
+      shellClassName={`enterprise-shell-v8 ${collapsed ? "app-shell--collapsed" : ""} ${mobileOpen ? "app-shell--mobile-open" : ""}`}
       sidebar={(
         <Sidebar
           permissions={session.permissions}

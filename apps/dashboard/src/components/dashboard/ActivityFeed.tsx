@@ -43,7 +43,7 @@ const ActivityFeedComponent = ({ items }: { items: ActivityItem[] }) => {
   );
 
   return (
-    <Card className="rounded-xl border-border shadow-sm">
+    <Card className="activity-feed-card rounded-xl border-border shadow-sm">
       <CardHeader className="p-5 pb-3">
         <CardTitle className="text-lg">Activity feed</CardTitle>
       </CardHeader>

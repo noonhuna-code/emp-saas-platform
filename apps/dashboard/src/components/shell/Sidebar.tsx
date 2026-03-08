@@ -34,7 +34,7 @@ export const Sidebar = ({
     <aside className={`sidebar ${collapsed ? "sidebar--collapsed" : ""} ${mobileOpen ? "sidebar--open" : ""}`}>
       <SidebarLayout
         title="EMP OS"
-        subtitle="Unified workforce operations"
+        subtitle="Unified workforce command"
         collapsed={collapsed}
         mobileOpen={mobileOpen}
         onToggleCollapsed={onToggleCollapsed}
