@@ -14,7 +14,6 @@ import { DashboardPerfMarker, useDashboardPerf } from "@/components/dashboard/us
 import { DashboardWidgetBoundary } from "@/components/dashboard/DashboardWidgetBoundary";
 import {
   ChartPanel,
-  DashboardHero,
   DashboardModeSwitch,
   DashboardSection,
   SignalRow,
@@ -137,14 +136,27 @@ export const EmployeeDashboard = () => {
 
   return (
     <div className="page-wrap space-y-8 fade-in">
-      <DashboardHero
-        eyebrow="Employee workspace"
-        title="My Daily Work Workspace"
-        subtitle="Focused shift operations, attendance momentum, leave planning, and team updates in one premium workspace."
-        emphasis="operations"
-      />
-
-      <DashboardModeSwitch value={view} onChange={setView} />
+      <div className="employee-dashboard-lead">
+        <Card className="employee-dashboard-lead__summary rounded-xl border-border shadow-sm">
+          <CardContent className="space-y-4 p-6">
+            <p className="employee-dashboard-lead__eyebrow">Employee control center</p>
+            <div className="space-y-3">
+              <h2 className="employee-dashboard-lead__title">Daily workspace</h2>
+              <p className="employee-dashboard-lead__subtitle">Run your shift, requests, collaboration, and personal workflow from one focused control surface.</p>
+            </div>
+            <div className="employee-dashboard-lead__signals">
+              <span>Shift-ready</span>
+              <span>Leave-aware</span>
+              <span>Team-connected</span>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="employee-dashboard-lead__switch rounded-xl border-border shadow-sm">
+          <CardContent className="p-5">
+            <DashboardModeSwitch value={view} onChange={setView} />
+          </CardContent>
+        </Card>
+      </div>
 
       <DashboardSection visible={view === "workspace"}>
         <section className="space-y-4">
@@ -311,3 +323,5 @@ export const EmployeeDashboard = () => {
     </div>
   );
 };
+
+
