@@ -14,6 +14,7 @@ import { DashboardPerfMarker, useDashboardPerf } from "@/components/dashboard/us
 import { DashboardWidgetBoundary } from "@/components/dashboard/DashboardWidgetBoundary";
 import {
   ChartPanel,
+  DashboardHero,
   DashboardModeSwitch,
   DashboardSection,
   SignalRow,
@@ -117,13 +118,9 @@ export const EmployeeDashboard = () => {
   const leaveUtilization = leave.totalEntitled > 0 ? Math.round((leave.totalUsed / leave.totalEntitled) * 100) : 0;
   const leaveRemaining = Math.max(0, leave.totalEntitled - leave.totalUsed);
 
-  const pendingShiftSwaps = (data?.notifications ?? []).filter((row) =>
-    /shift swap/i.test(`${row.title} ${row.message ?? ""}`)
-  ).length;
+  const pendingShiftSwaps = (data?.notifications ?? []).filter((row) => /shift swap/i.test(`${row.title} ${row.message ?? ""}`)).length;
 
-  const upcomingLeave = (data?.notifications ?? []).find((row) =>
-    /leave.*approved|approved.*leave/i.test(`${row.title} ${row.message ?? ""}`)
-  );
+  const upcomingLeave = (data?.notifications ?? []).find((row) => /leave.*approved|approved.*leave/i.test(`${row.title} ${row.message ?? ""}`));
 
   const unreadNotifications = workspace?.counts.unreadNotifications ?? 0;
 
@@ -136,50 +133,33 @@ export const EmployeeDashboard = () => {
   }, [data?.notifications]);
 
   return (
-    <div className="page-wrap space-y-8 fade-in">
-      <div className="employee-dashboard-command-center employee-dashboard-command-center--v8">
-        <Card className="employee-dashboard-command-lead rounded-xl border-border shadow-sm">
-          <CardContent className="employee-dashboard-command-lead__content p-6">
-            <div className="employee-dashboard-command-lead__copy">
-              <p className="employee-dashboard-command-lead__eyebrow">Employee control center</p>
-              <h2 className="employee-dashboard-command-lead__title">Daily workspace</h2>
-              <p className="employee-dashboard-command-lead__subtitle">Shift execution, requests, collaboration, and visibility in one compact operating surface.</p>
+    <div className="page-wrap space-y-8 fade-in employee-dashboard-v11">
+      <section className="employee-dashboard-overview space-y-4">
+        <DashboardHero
+          eyebrow="Employee control center"
+          title="Today at a glance"
+          subtitle="See the shift, requests, and signals that need action now without scanning the full workspace."
+          emphasis="operations"
+          actions={
+            <div className="employee-dashboard-overview__pills">
+              <span>{attendanceStatus}</span>
+              <span>{pendingShiftSwaps} swaps pending</span>
+              <span>{leaveRemaining} leave days left</span>
             </div>
-            <div className="employee-dashboard-command-lead__signals">
-              <div className="employee-dashboard-command-lead__signal">
-                <span>Attendance</span>
-                <strong>{attendanceStatus}</strong>
-                <small>{shift ? `${shift.start_time} - ${shift.end_time}` : "No shift assigned"}</small>
-              </div>
-              <div className="employee-dashboard-command-lead__signal">
-                <span>Leave</span>
-                <strong>{leaveRemaining} days</strong>
-                <small>{upcomingLeave ? `Next update ${formatDate(upcomingLeave.created_at)}` : "No leave updates yet"}</small>
-              </div>
-              <div className="employee-dashboard-command-lead__signal">
-                <span>Signals</span>
-                <strong>{unreadNotifications} unread</strong>
-                <small>{pendingShiftSwaps} swaps pending</small>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+          }
+        />
 
-        <Card className="employee-dashboard-command-bar rounded-xl border-border shadow-sm">
-          <CardContent className="employee-dashboard-command-bar__content p-5">
-            <div className="employee-dashboard-command-bar__copy">
-              <p className="employee-dashboard-command-bar__eyebrow">Command lanes</p>
-              <p className="employee-dashboard-command-bar__subtitle">Switch between execution, analytics, and workflow visibility without leaving the dashboard.</p>
+        <Card className="employee-dashboard-mode-panel rounded-xl border-border shadow-sm">
+          <CardContent className="employee-dashboard-mode-panel__content p-5">
+            <div className="employee-dashboard-mode-panel__copy">
+              <p className="employee-dashboard-mode-panel__eyebrow">Control modes</p>
+              <h3 className="employee-dashboard-mode-panel__title">Workspace views</h3>
+              <p className="employee-dashboard-mode-panel__subtitle">Switch between execution, analytics, and workflow visibility without leaving the dashboard.</p>
             </div>
             <DashboardModeSwitch value={view} onChange={setView} />
-            <div className="employee-dashboard-command-bar__signals">
-              <span>{pendingShiftSwaps} swaps pending</span>
-              <span>{unreadNotifications} notifications</span>
-              <span>{leaveRemaining} leave days remaining</span>
-            </div>
           </CardContent>
         </Card>
-      </div>
+      </section>
 
       <DashboardSection visible={view === "workspace"}>
         <section className="space-y-4">
@@ -346,6 +326,3 @@ export const EmployeeDashboard = () => {
     </div>
   );
 };
-
-
-

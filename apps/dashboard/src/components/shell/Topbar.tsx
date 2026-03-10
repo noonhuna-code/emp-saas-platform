@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Bell, CircleHelp, Command, Search, Sparkles } from "lucide-react";
+import { Bell, CircleHelp, Command, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { HeaderBar } from "@/components/layout/HeaderBar";
 import { CompanyContextBadge } from "./CompanyContextBadge";
@@ -75,21 +75,9 @@ export const Topbar = ({
   onToggleMobileSidebar?: () => void;
 }) => {
   const isEmployeePersona = persona === "employee";
-  const subscription = billingContext?.subscription ?? null;
   const seatSummary = billingContext?.seatSummary ?? null;
   const identityLabel = fullName ?? email ?? "Authenticated user";
   const headerTitle = isEmployeePersona ? (fullName ?? "Employee Workspace") : resolveHeaderTitle(persona);
-  const seatLimitText =
-    seatSummary?.seatLimit !== null && seatSummary?.seatLimit !== undefined
-      ? `${seatSummary.activeBillable}/${seatSummary.seatLimit}`
-      : `${seatSummary?.activeBillable ?? 0}`;
-
-  const renewalLabel = (() => {
-    if (!subscription) return null;
-    const periodEnd = new Date(subscription.currentPeriodEnd);
-    if (!Number.isFinite(periodEnd.getTime())) return null;
-    return `Renews ${periodEnd.toLocaleDateString()}`;
-  })();
 
   const lastLoginText = (() => {
     if (!lastLoginAt) return null;
@@ -107,25 +95,23 @@ export const Topbar = ({
   const employeeIdentity = employeeCode ?? (employeeId ? employeeId.slice(0, 8) : null);
   const leadingAvatar = avatarUrl ? (
     // eslint-disable-next-line @next/next/no-img-element
-    <img src={avatarUrl} alt="Profile" width={52} height={52} className="topbar-profile__avatar topbar-profile__avatar--xl" />
+    <img src={avatarUrl} alt="Profile" width={56} height={56} className="topbar-profile__avatar topbar-profile__avatar--xl" />
   ) : (
     <span className="topbar-profile__avatar-fallback topbar-profile__avatar--xl">{(identityLabel[0] ?? "U").toUpperCase()}</span>
   );
 
-  const chipRow = (
-    <div className="topbar-suite__meta">
+  const leadingChips = (
+    <div className="topbar-suite__meta-strip">
       {shiftText ? <StatusChip label={`Shift ${shiftText}`} compact /> : null}
       {employeeIdentity ? <StatusChip label={`ID ${employeeIdentity}`} compact tone="info" /> : null}
-      {!isEmployeePersona && subscription ? <StatusChip label={`${subscription.planName} - ${subscription.status}`} compact /> : null}
-      {!isEmployeePersona && renewalLabel ? <StatusChip label={renewalLabel} tone="info" compact /> : null}
-      {!isEmployeePersona && seatSummary ? <StatusChip label={`Seats ${seatLimitText}`} compact /> : null}
-      {!isEmployeePersona ? <CompanyContextBadge companyId={companyId} role={role} /> : null}
+      {!isEmployeePersona && seatSummary ? <StatusChip label={`Seats ${seatSummary.activeBillable}/${seatSummary.seatLimit ?? "-"}`} compact /> : null}
       {!isEmployeePersona ? <StatusChip label={resolveWorkspaceLabel(persona)} compact tone="info" /> : null}
+      {!isEmployeePersona ? <CompanyContextBadge companyId={companyId} role={role} /> : null}
     </div>
   );
 
-  const utilityRow = (
-    <div className="topbar-suite__tools">
+  const actionBar = (
+    <div className="topbar-suite topbar-suite--v11">
       <Button
         type="button"
         variant="secondary"
@@ -138,18 +124,22 @@ export const Topbar = ({
         <span className="topbar-command__label">Search</span>
         <span className="topbar-command__kbd"><Command className="h-3 w-3" />K</span>
       </Button>
-      <Link href="/app/notifications" className="topbar-icon-btn" aria-label="Open notifications"><Bell className="h-4 w-4" /></Link>
-      <Link href="/app/resources" className="topbar-icon-btn" aria-label="Open help and resources"><CircleHelp className="h-4 w-4" /></Link>
-      <div className="topbar-workspace-badge">
-        <Sparkles className="h-3.5 w-3.5" />
-        <span>{isEmployeePersona ? "Personal workspace" : companyId ? "Tenant command" : "Workspace command"}</span>
+
+      {leadingChips}
+
+      <div className="topbar-suite__action-strip">
+        <Link href="/app/notifications" className="topbar-icon-btn" aria-label="Open notifications"><Bell className="h-4 w-4" /></Link>
+        <Link href="/app/resources" className="topbar-icon-btn" aria-label="Open help and resources"><CircleHelp className="h-4 w-4" /></Link>
+        <div className="topbar-workspace-badge">
+          <span>{isEmployeePersona ? "Personal workspace" : "Operations workspace"}</span>
+        </div>
+        <ThemeToggle />
+        <form action="/api/auth/logout" method="post">
+          <button type="submit" className="secondary-btn topbar-logout-btn">
+            Logout
+          </button>
+        </form>
       </div>
-      <ThemeToggle />
-      <form action="/api/auth/logout" method="post">
-        <button type="submit" className="secondary-btn topbar-logout-btn">
-          Logout
-        </button>
-      </form>
     </div>
   );
 
@@ -161,12 +151,7 @@ export const Topbar = ({
       compact={isEmployeePersona}
       onToggleSidebar={onToggleSidebar}
       onToggleMobileSidebar={onToggleMobileSidebar}
-      actions={(
-        <div className="topbar-suite topbar-suite--v8">
-          {chipRow}
-          {utilityRow}
-        </div>
-      )}
+      actions={actionBar}
     />
   );
 };

@@ -18,19 +18,19 @@ export const DASHBOARD_VIEW_OPTIONS: Array<{ id: DashboardView; label: string }>
 
 const HERO_SIGNALS: Record<"default" | "executive" | "operations", Array<{ label: string; value: string }>> = {
   default: [
-    { label: "Context", value: "Role aware" },
-    { label: "Scope", value: "Tenant isolated" },
-    { label: "Refresh", value: "Live workspace" }
+    { label: "Context", value: "Role-aware" },
+    { label: "Scope", value: "Tenant-secure" },
+    { label: "State", value: "Live" }
   ],
   executive: [
-    { label: "Visibility", value: "Cross-team" },
-    { label: "Metrics", value: "Decision ready" },
-    { label: "Signal", value: "Executive view" }
+    { label: "Visibility", value: "Executive" },
+    { label: "Metrics", value: "Decision-ready" },
+    { label: "Signal", value: "Cross-team" }
   ],
   operations: [
-    { label: "Approvals", value: "Workflow ready" },
-    { label: "Coverage", value: "Operational view" },
-    { label: "Updates", value: "Near real-time" }
+    { label: "Workflow", value: "Action-ready" },
+    { label: "Coverage", value: "Real-time" },
+    { label: "Updates", value: "Synced" }
   ]
 };
 
@@ -58,13 +58,14 @@ export const DashboardHero = ({
         emphasis === "default" && "dashboard-hero"
       )}
     >
-      <CardContent className="dashboard-hero__layout p-6 md:p-7">
+      <CardContent className="dashboard-hero__layout p-6">
         <div className="dashboard-hero__content">
           {eyebrow ? <p className="dashboard-hero__eyebrow">{eyebrow}</p> : null}
           <div className="dashboard-hero__copy">
             <h2 className="dashboard-hero__title">{title}</h2>
             <p className="dashboard-hero__subtitle">{subtitle}</p>
           </div>
+          {actions ? <div className="dashboard-hero__actions">{actions}</div> : null}
         </div>
         <aside className="dashboard-hero__aside">
           <div className="dashboard-hero__signal-grid">
@@ -75,7 +76,6 @@ export const DashboardHero = ({
               </div>
             ))}
           </div>
-          {actions ? <div className="dashboard-hero__actions">{actions}</div> : null}
         </aside>
       </CardContent>
     </Card>
@@ -91,7 +91,6 @@ export const DashboardModeSwitch = ({
 }) => {
   return (
     <div className="dashboard-mode-switch">
-      <span className="dashboard-mode-switch__eyebrow">View mode</span>
       <Tabs
         tabs={DASHBOARD_VIEW_OPTIONS}
         active={value}
@@ -150,11 +149,11 @@ export const ChartPanel = ({
   actions?: ReactNode;
   children: ReactNode;
 }) => {
-    return (
-      <DashboardPanel title={title} subtitle={subtitle} actions={actions} tone="soft">
-        {children}
-      </DashboardPanel>
-    );
+  return (
+    <DashboardPanel title={title} subtitle={subtitle} actions={actions} tone="soft">
+      {children}
+    </DashboardPanel>
+  );
 };
 
 export const WorkflowPanel = ({
@@ -247,4 +246,3 @@ export const TimelineList = ({
     </div>
   );
 };
-

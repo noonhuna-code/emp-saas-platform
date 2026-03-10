@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, type ReactNode } from "react";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
@@ -33,7 +33,7 @@ export const PlatformShell = ({
   return (
     <>
       <DashboardLayout
-        shellClassName={`enterprise-shell-v8 platform-shell ${collapsed ? "platform-shell--collapsed" : ""} ${mobileOpen ? "platform-shell--mobile-open" : ""}`}
+        shellClassName={`enterprise-shell-v10 platform-shell ${collapsed ? "platform-shell--collapsed" : ""} ${mobileOpen ? "platform-shell--mobile-open" : ""}`}
         sidebar={(
           <aside className={`platform-sidebar ${collapsed ? "platform-sidebar--collapsed" : ""} ${mobileOpen ? "platform-sidebar--open" : ""}`}>
             <SidebarLayout
@@ -81,3 +81,4 @@ export const PlatformShell = ({
     </>
   );
 };
+

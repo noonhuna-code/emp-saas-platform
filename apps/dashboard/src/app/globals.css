@@ -2,6 +2,7 @@
 @import "tailwindcss";
 @config "../../tailwind.config.ts";
 @import "./theme-tokens.css";
+@import "./enterprise-shell-v10.css";
 
 :root {
   color-scheme: light;
@@ -3993,3 +3994,5 @@ p { margin: 0; }
 .enterprise-shell-v8 .metric-card-surface {
   border-radius: 20px;
 }
+
+
