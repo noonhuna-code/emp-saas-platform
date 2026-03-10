@@ -89,16 +89,16 @@ export const NavSection = ({
   }
 
   return (
-    <nav className="nav-section" aria-label="Primary navigation">
+    <nav className="ui-nav" aria-label="Primary navigation">
       {groups.map((group) => (
-        <section key={group.id} className="nav-group" aria-label={group.label}>
+        <section key={group.id} className="ui-nav__group" aria-label={group.label}>
           {!collapsed ? (
-            <div className="nav-group__header">
-              <span className="nav-group__label">{group.label}</span>
-              {group.badge ? <Badge variant="info" className="nav-group__badge">{group.badge}</Badge> : null}
+            <div className="ui-nav__header">
+              <span className="ui-nav__label">{group.label}</span>
+              {group.badge ? <Badge variant="info" className="ui-nav__badge">{group.badge}</Badge> : null}
             </div>
           ) : null}
-          <div className="nav-group__items">
+          <div className="ui-nav__items">
             {group.items.map((item) => {
               const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
               const Icon = ICONS[item.icon] ?? Home;
@@ -108,9 +108,9 @@ export const NavSection = ({
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    "nav-section__item",
-                    collapsed && "nav-section__item--collapsed",
-                    isActive ? "nav-section__item--active" : "nav-section__item--idle"
+                    "ui-nav__item",
+                    collapsed && "ui-nav__item--collapsed",
+                    isActive ? "ui-nav__item--active" : "ui-nav__item--idle"
                   )}
                   aria-current={isActive ? "page" : undefined}
                   prefetch
@@ -122,16 +122,16 @@ export const NavSection = ({
                   onFocus={() => prewarmRouteData(item.href)}
                   onClick={onNavigate}
                 >
-                  <span className="nav-section__icon-wrap">
+                  <span className="ui-nav__icon-wrap">
                     <Icon
                       className={cn(
-                        "nav-section__icon",
-                        isActive ? "nav-section__icon--active" : "nav-section__icon--idle"
+                        "ui-nav__icon",
+                        isActive ? "ui-nav__icon--active" : "ui-nav__icon--idle"
                       )}
                       aria-hidden="true"
                     />
                   </span>
-                  {!collapsed ? <span className="nav-section__label">{item.label}</span> : null}
+                  {!collapsed ? <span className="ui-nav__text">{item.label}</span> : null}
                 </Link>
               );
             })}

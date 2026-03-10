@@ -59,29 +59,27 @@ export const DashboardHero = ({
       )}
     >
       <CardContent className="dashboard-hero__layout p-6">
-        <div className="dashboard-hero__content">
-          {eyebrow ? <p className="dashboard-hero__eyebrow">{eyebrow}</p> : null}
-          <div className="dashboard-hero__copy">
-            <h2 className="dashboard-hero__title">{title}</h2>
-            <p className="dashboard-hero__subtitle">{subtitle}</p>
+        <div className="dashboard-hero__body">
+          <div className="dashboard-hero__content">
+            {eyebrow ? <p className="dashboard-hero__eyebrow">{eyebrow}</p> : null}
+            <div className="dashboard-hero__copy">
+              <h2 className="dashboard-hero__title">{title}</h2>
+              <p className="dashboard-hero__subtitle">{subtitle}</p>
+            </div>
           </div>
           {actions ? <div className="dashboard-hero__actions">{actions}</div> : null}
         </div>
-        <aside className="dashboard-hero__aside">
-          <div className="dashboard-hero__signal-grid">
-            {signals.map((signal) => (
-              <div key={`${signal.label}-${signal.value}`} className="dashboard-hero__signal-card">
-                <span className="dashboard-hero__signal-label">{signal.label}</span>
-                <strong className="dashboard-hero__signal-value">{signal.value}</strong>
-              </div>
-            ))}
-          </div>
-        </aside>
+        <div className="dashboard-hero__signal-bar">
+          {signals.map((signal) => (
+            <span key={`${signal.label}-${signal.value}`} className="dashboard-hero__signal-pill">
+              {signal.label}: {signal.value}
+            </span>
+          ))}
+        </div>
       </CardContent>
     </Card>
   );
 };
-
 export const DashboardModeSwitch = ({
   value,
   onChange
@@ -246,3 +244,5 @@ export const TimelineList = ({
     </div>
   );
 };
+
+

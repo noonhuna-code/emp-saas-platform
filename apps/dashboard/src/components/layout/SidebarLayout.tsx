@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
-import { PanelLeftClose, PanelLeftOpen, Sparkles } from "lucide-react";
+import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 
 export const SidebarLayout = ({
   title,
@@ -18,58 +17,50 @@ export const SidebarLayout = ({
   onToggleCollapsed?: () => void;
   children: ReactNode;
 }) => {
-  const initials = title
-    .split(" ")
-    .map((segment) => segment[0] ?? "")
-    .join("")
-    .slice(0, 2)
-    .toUpperCase() || "EO";
+  const initials =
+    title
+      .split(" ")
+      .map((segment) => segment[0] ?? "")
+      .join("")
+      .slice(0, 2)
+      .toUpperCase() || "EO";
 
   return (
     <div
       className={[
-        "sidebar-layout",
-        collapsed ? "sidebar-layout--collapsed" : "",
-        mobileOpen ? "sidebar-layout--mobile-open" : ""
+        "ui-nav-shell",
+        collapsed ? "ui-nav-shell--collapsed" : "",
+        mobileOpen ? "ui-nav-shell--mobile-open" : ""
       ]
         .join(" ")
         .trim()}
     >
-      <header className="sidebar-layout__head">
-        <div className="sidebar-layout__masthead">
-          <div className="sidebar-layout__brand-wrap">
-            <div className="sidebar-layout__brand-mark" aria-hidden="true">
-              <span>{collapsed ? initials.slice(0, 1) : initials}</span>
+      <header className="ui-nav-shell__head">
+        <div className="ui-nav-shell__brandline">
+          <div className="ui-nav-shell__brandmark" aria-hidden="true">
+            {collapsed ? initials.slice(0, 1) : initials}
+          </div>
+          {!collapsed ? (
+            <div className="ui-nav-shell__copy">
+              <span className="ui-nav-shell__product">{title}</span>
+              {subtitle ? <p className="ui-nav-shell__subtitle">{subtitle}</p> : null}
             </div>
-            {!collapsed ? (
-              <div className="sidebar-layout__brand">
-                <span className="sidebar-layout__overline">Workforce operating system</span>
-                <h2>{title}</h2>
-                {subtitle ? <p>{subtitle}</p> : null}
-              </div>
-            ) : null}
-          </div>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="sidebar-layout__toggle"
-            onClick={onToggleCollapsed}
-            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          >
-            {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
-          </Button>
+          ) : null}
         </div>
-        {!collapsed ? (
-          <div className="sidebar-layout__workspace-strip">
-            <Badge variant="info" className="sidebar-layout__workspace-badge">
-              <Sparkles className="h-3.5 w-3.5" />
-              <span>Operations OS</span>
-            </Badge>
-          </div>
-        ) : null}
+
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="ui-nav-shell__toggle"
+          onClick={onToggleCollapsed}
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+        </Button>
       </header>
-      <div className="sidebar-layout__body">{children}</div>
+
+      <div className="ui-nav-shell__body">{children}</div>
     </div>
   );
 };

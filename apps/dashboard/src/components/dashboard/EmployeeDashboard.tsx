@@ -14,7 +14,6 @@ import { DashboardPerfMarker, useDashboardPerf } from "@/components/dashboard/us
 import { DashboardWidgetBoundary } from "@/components/dashboard/DashboardWidgetBoundary";
 import {
   ChartPanel,
-  DashboardHero,
   DashboardModeSwitch,
   DashboardSection,
   SignalRow,
@@ -133,28 +132,49 @@ export const EmployeeDashboard = () => {
   }, [data?.notifications]);
 
   return (
-    <div className="page-wrap space-y-8 fade-in employee-dashboard-v11">
-      <section className="employee-dashboard-overview space-y-4">
-        <DashboardHero
-          eyebrow="Employee control center"
-          title="Today at a glance"
-          subtitle="See the shift, requests, and signals that need action now without scanning the full workspace."
-          emphasis="operations"
-          actions={
-            <div className="employee-dashboard-overview__pills">
-              <span>{attendanceStatus}</span>
-              <span>{pendingShiftSwaps} swaps pending</span>
-              <span>{leaveRemaining} leave days left</span>
+    <div className="page-wrap space-y-6 fade-in employee-dashboard">      <section className="employee-dashboard__masthead">
+        <Card className="employee-dashboard__masthead-card rounded-xl border-border shadow-sm">
+          <CardContent className="employee-dashboard__masthead-body p-6">
+            <div className="employee-dashboard__masthead-copy">
+              <p className="employee-dashboard__eyebrow">Employee workspace</p>
+              <h2 className="employee-dashboard__title">Daily workspace</h2>
+              <p className="employee-dashboard__subtitle">
+                Run your shift, requests, collaboration, and updates from one compact operating surface.
+              </p>
+              <div className="employee-dashboard__tags">
+                <span>{attendanceStatus}</span>
+                <span>{pendingShiftSwaps} swaps pending</span>
+                <span>{leaveRemaining} leave days left</span>
+              </div>
             </div>
-          }
-        />
+            <div className="employee-dashboard__masthead-metrics">
+              <div className="employee-dashboard__metric-card">
+                <span className="employee-dashboard__metric-label">Shift</span>
+                <strong className="employee-dashboard__metric-value">{shift ? `${shift.start_time} - ${shift.end_time}` : "No shift"}</strong>
+                <span className="employee-dashboard__metric-meta">{shift?.shift_name ?? "Awaiting assignment"}</span>
+              </div>
+              <div className="employee-dashboard__metric-card">
+                <span className="employee-dashboard__metric-label">Leave</span>
+                <strong className="employee-dashboard__metric-value">{leaveRemaining} days</strong>
+                <span className="employee-dashboard__metric-meta">{leave.totalEntitled} entitled this cycle</span>
+              </div>
+              <div className="employee-dashboard__metric-card">
+                <span className="employee-dashboard__metric-label">Signals</span>
+                <strong className="employee-dashboard__metric-value">{unreadNotifications}</strong>
+                <span className="employee-dashboard__metric-meta">Unread notifications</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-        <Card className="employee-dashboard-mode-panel rounded-xl border-border shadow-sm">
-          <CardContent className="employee-dashboard-mode-panel__content p-5">
-            <div className="employee-dashboard-mode-panel__copy">
-              <p className="employee-dashboard-mode-panel__eyebrow">Control modes</p>
-              <h3 className="employee-dashboard-mode-panel__title">Workspace views</h3>
-              <p className="employee-dashboard-mode-panel__subtitle">Switch between execution, analytics, and workflow visibility without leaving the dashboard.</p>
+        <Card className="employee-dashboard__mode-card rounded-xl border-border shadow-sm">
+          <CardContent className="employee-dashboard__mode-card-body p-5">
+            <div>
+              <p className="employee-dashboard__eyebrow">View mode</p>
+              <h3 className="employee-dashboard__mode-title">Switch lanes</h3>
+              <p className="employee-dashboard__mode-subtitle">
+                Use the same dashboard for execution, analytics, and workflow oversight.
+              </p>
             </div>
             <DashboardModeSwitch value={view} onChange={setView} />
           </CardContent>
@@ -326,3 +346,14 @@ export const EmployeeDashboard = () => {
     </div>
   );
 };
+
+
+
+
+
+
+
+
+
+
+
