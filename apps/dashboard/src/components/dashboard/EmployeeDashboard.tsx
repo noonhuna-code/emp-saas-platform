@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from "react";
@@ -115,8 +115,6 @@ export const EmployeeDashboard = () => {
 
   const leave = getLeaveBreakdown(data?.leaveBalances ?? []);
   const leaveUtilization = leave.totalEntitled > 0 ? Math.round((leave.totalUsed / leave.totalEntitled) * 100) : 0;
-  const leaveRemaining = Math.max(0, leave.totalEntitled - leave.totalUsed);
-
   const pendingShiftSwaps = (data?.notifications ?? []).filter((row) => /shift swap/i.test(`${row.title} ${row.message ?? ""}`)).length;
 
   const upcomingLeave = (data?.notifications ?? []).find((row) => /leave.*approved|approved.*leave/i.test(`${row.title} ${row.message ?? ""}`));
@@ -132,51 +130,64 @@ export const EmployeeDashboard = () => {
   }, [data?.notifications]);
 
   return (
-    <div className="page-wrap space-y-6 fade-in employee-dashboard">      <section className="employee-dashboard__masthead">
-        <Card className="employee-dashboard__masthead-card rounded-xl border-border shadow-sm">
-          <CardContent className="employee-dashboard__masthead-body p-6">
-            <div className="employee-dashboard__masthead-copy">
-              <p className="employee-dashboard__eyebrow">Employee workspace</p>
-              <h2 className="employee-dashboard__title">Daily workspace</h2>
-              <p className="employee-dashboard__subtitle">
-                Run your shift, requests, collaboration, and updates from one compact operating surface.
+    <div className="page-wrap space-y-6 fade-in employee-dashboard">
+      <section className="employee-command-deck">
+        <Card className="employee-command-deck__lead rounded-xl border-border shadow-sm">
+          <CardContent className="employee-command-deck__lead-body p-5">
+            <div className="employee-command-deck__copy">
+              <p className="employee-command-deck__eyebrow">Employee Control Center</p>
+              <h2 className="employee-command-deck__title">Daily workspace</h2>
+              <p className="employee-command-deck__subtitle">
+                Run your shift, requests, collaboration, and personal workflow from one focused control surface.
               </p>
-              <div className="employee-dashboard__tags">
-                <span>{attendanceStatus}</span>
-                <span>{pendingShiftSwaps} swaps pending</span>
-                <span>{leaveRemaining} leave days left</span>
-              </div>
             </div>
-            <div className="employee-dashboard__masthead-metrics">
-              <div className="employee-dashboard__metric-card">
-                <span className="employee-dashboard__metric-label">Shift</span>
-                <strong className="employee-dashboard__metric-value">{shift ? `${shift.start_time} - ${shift.end_time}` : "No shift"}</strong>
-                <span className="employee-dashboard__metric-meta">{shift?.shift_name ?? "Awaiting assignment"}</span>
-              </div>
-              <div className="employee-dashboard__metric-card">
-                <span className="employee-dashboard__metric-label">Leave</span>
-                <strong className="employee-dashboard__metric-value">{leaveRemaining} days</strong>
-                <span className="employee-dashboard__metric-meta">{leave.totalEntitled} entitled this cycle</span>
-              </div>
-              <div className="employee-dashboard__metric-card">
-                <span className="employee-dashboard__metric-label">Signals</span>
-                <strong className="employee-dashboard__metric-value">{unreadNotifications}</strong>
-                <span className="employee-dashboard__metric-meta">Unread notifications</span>
-              </div>
+            <div className="employee-command-deck__signals">
+              <span>Shift-ready</span>
+              <span>Leave-aware</span>
+              <span>Team-connected</span>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="employee-dashboard__mode-card rounded-xl border-border shadow-sm">
-          <CardContent className="employee-dashboard__mode-card-body p-5">
-            <div>
-              <p className="employee-dashboard__eyebrow">View mode</p>
-              <h3 className="employee-dashboard__mode-title">Switch lanes</h3>
-              <p className="employee-dashboard__mode-subtitle">
-                Use the same dashboard for execution, analytics, and workflow oversight.
-              </p>
+        <div className="employee-command-deck__aside">
+          <Card className="employee-command-deck__mini rounded-xl border-border shadow-sm">
+            <CardContent className="p-4">
+              <p className="employee-command-deck__mini-label">Attendance</p>
+              <strong>{attendanceStatus}</strong>
+              <span>{attendance?.checkIn ?? "No check in yet"}</span>
+            </CardContent>
+          </Card>
+          <Card className="employee-command-deck__mini rounded-xl border-border shadow-sm">
+            <CardContent className="p-4">
+              <p className="employee-command-deck__mini-label">Leave</p>
+              <strong>{leave.totalEntitled - leave.totalUsed} days</strong>
+              <span>{upcomingLeave ? `Upcoming ${formatDate(upcomingLeave.created_at)}` : "No leave updates yet"}</span>
+            </CardContent>
+          </Card>
+          <Card className="employee-command-deck__mini rounded-xl border-border shadow-sm">
+            <CardContent className="p-4">
+              <p className="employee-command-deck__mini-label">Signals</p>
+              <strong>{unreadNotifications} unread</strong>
+              <span>{pendingShiftSwaps} swaps pending</span>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
+
+      <section className="employee-command-deck__controls">
+        <Card className="rounded-xl border-border shadow-sm">
+          <CardContent className="employee-command-deck__controls-body p-4">
+            <div className="employee-command-deck__controls-copy">
+              <p className="employee-command-deck__eyebrow">Command lanes</p>
+              <h3>Switch dashboard mode</h3>
+              <p>Move between execution, analytics, and workflow visibility without leaving the dashboard.</p>
             </div>
             <DashboardModeSwitch value={view} onChange={setView} />
+            <div className="employee-command-deck__control-pills">
+              <span>{pendingShiftSwaps} swaps pending</span>
+              <span>{unreadNotifications} notifications</span>
+              <span>{leave.totalEntitled - leave.totalUsed} leave days remaining</span>
+            </div>
           </CardContent>
         </Card>
       </section>
@@ -271,6 +282,8 @@ export const EmployeeDashboard = () => {
             <ActionCard title="Upload Document" description="Save profile files and notes" href="/app/notes" icon={FileUp} />
           </div>
         </section>
+
+
       </DashboardSection>
 
       <DashboardSection visible={view === "analytics"}>
@@ -346,14 +359,6 @@ export const EmployeeDashboard = () => {
     </div>
   );
 };
-
-
-
-
-
-
-
-
 
 
 

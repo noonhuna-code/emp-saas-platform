@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+﻿import type { ReactNode } from "react";
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -36,28 +36,32 @@ export const SidebarLayout = ({
         .trim()}
     >
       <header className="ui-nav-shell__head">
-        <div className="ui-nav-shell__brandline">
-          <div className="ui-nav-shell__brandmark" aria-hidden="true">
-            {collapsed ? initials.slice(0, 1) : initials}
-          </div>
-          {!collapsed ? (
-            <div className="ui-nav-shell__copy">
-              <span className="ui-nav-shell__product">{title}</span>
-              {subtitle ? <p className="ui-nav-shell__subtitle">{subtitle}</p> : null}
+        <div className="ui-nav-shell__brand-row">
+          <div className="ui-nav-shell__brand">
+            <div className="ui-nav-shell__brandmark" aria-hidden="true">
+              {initials.slice(0, 1)}
             </div>
-          ) : null}
+            {!collapsed ? (
+              <div className="ui-nav-shell__copy">
+                <span className="ui-nav-shell__product">{title}</span>
+                {subtitle ? <p className="ui-nav-shell__subtitle">{subtitle}</p> : null}
+              </div>
+            ) : null}
+          </div>
+
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="ui-nav-shell__toggle"
+            onClick={onToggleCollapsed}
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+          </Button>
         </div>
 
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          className="ui-nav-shell__toggle"
-          onClick={onToggleCollapsed}
-          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-        >
-          {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
-        </Button>
+        {!collapsed ? <span className="ui-nav-shell__eyebrow">Enterprise workforce platform</span> : null}
       </header>
 
       <div className="ui-nav-shell__body">{children}</div>

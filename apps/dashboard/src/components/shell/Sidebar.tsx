@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { SidebarLayout } from "@/components/layout/SidebarLayout";
 import { NavSection } from "@/components/shell/NavSection";
@@ -34,7 +34,7 @@ export const Sidebar = ({
     <aside className={`ui-sidebar ${collapsed ? "ui-sidebar--collapsed" : ""} ${mobileOpen ? "ui-sidebar--open" : ""}`}>
       <SidebarLayout
         title="EMP OS"
-        subtitle="Unified workforce operations"
+        subtitle="Workforce operating system"
         collapsed={collapsed}
         mobileOpen={mobileOpen}
         onToggleCollapsed={onToggleCollapsed}
@@ -44,3 +44,6 @@ export const Sidebar = ({
     </aside>
   );
 };
+
+
+
