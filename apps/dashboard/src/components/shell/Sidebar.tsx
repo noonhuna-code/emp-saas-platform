@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { SidebarLayout } from "@/components/layout/SidebarLayout";
 import { NavSection } from "@/components/shell/NavSection";
@@ -6,6 +6,7 @@ import {
   TENANT_NAVIGATION_GROUPS,
   resolveVisibleNavigationGroups
 } from "@/navigation/navigation.config";
+import { cn } from "@/lib/utils";
 
 export const Sidebar = ({
   permissions,
@@ -31,10 +32,10 @@ export const Sidebar = ({
   });
 
   return (
-    <aside className={`ui-sidebar ${collapsed ? "ui-sidebar--collapsed" : ""} ${mobileOpen ? "ui-sidebar--open" : ""}`}>
+    <aside className={cn("ui-sidebar overflow-hidden bg-transparent text-white", collapsed && "ui-sidebar--collapsed", mobileOpen && "ui-sidebar--open")}>
       <SidebarLayout
         title="EMP OS"
-        subtitle="Workforce operating system"
+        subtitle="Operations cockpit"
         collapsed={collapsed}
         mobileOpen={mobileOpen}
         onToggleCollapsed={onToggleCollapsed}
@@ -44,6 +45,3 @@ export const Sidebar = ({
     </aside>
   );
 };
-
-
-

@@ -30,7 +30,6 @@ import {
 } from "lucide-react";
 import type { NavigationGroup } from "@/navigation/navigation.config";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { Badge } from "@/components/ui/badge";
 import { prewarmRouteData } from "@/lib/client/api";
 import { cn } from "@/lib/utils";
 
@@ -79,9 +78,7 @@ export const NavSection = ({
   const prefetchTargets = React.useMemo(() => groups.flatMap((group) => group.items).slice(0, 20), [groups]);
 
   React.useEffect(() => {
-    for (const item of prefetchTargets) {
-      router.prefetch(item.href);
-    }
+    for (const item of prefetchTargets) router.prefetch(item.href);
   }, [router, prefetchTargets]);
 
   if (groups.length === 0) {
@@ -89,16 +86,12 @@ export const NavSection = ({
   }
 
   return (
-    <nav className="ui-nav" aria-label="Primary navigation">
+    <nav className="space-y-7" aria-label="Primary navigation">
       {groups.map((group) => (
-        <section key={group.id} className="ui-nav__group" aria-label={group.label}>
-          {!collapsed ? (
-            <div className="ui-nav__header">
-              <span className="ui-nav__label">{group.label}</span>
-              {group.badge ? <Badge variant="info" className="ui-nav__badge">{group.badge}</Badge> : null}
-            </div>
-          ) : null}
-          <div className="ui-nav__items">
+        <section key={group.id} className="space-y-3" aria-label={group.label}>
+          {!collapsed ? <p className="control-sidebar__section-title">{group.label}</p> : null}
+
+          <div className="space-y-1.5">
             {group.items.map((item) => {
               const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
               const Icon = ICONS[item.icon] ?? Home;
@@ -108,9 +101,9 @@ export const NavSection = ({
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    "ui-nav__item",
-                    collapsed && "ui-nav__item--collapsed",
-                    isActive ? "ui-nav__item--active" : "ui-nav__item--idle"
+                    "control-nav-item group",
+                    collapsed && "control-nav-item--collapsed",
+                    isActive ? "control-nav-item--active" : "control-nav-item--idle"
                   )}
                   aria-current={isActive ? "page" : undefined}
                   prefetch
@@ -122,16 +115,10 @@ export const NavSection = ({
                   onFocus={() => prewarmRouteData(item.href)}
                   onClick={onNavigate}
                 >
-                  <span className="ui-nav__icon-wrap">
-                    <Icon
-                      className={cn(
-                        "ui-nav__icon",
-                        isActive ? "ui-nav__icon--active" : "ui-nav__icon--idle"
-                      )}
-                      aria-hidden="true"
-                    />
+                  <span className={cn("control-nav-item__icon", isActive && "control-nav-item__icon--active")}>
+                    <Icon className="h-4 w-4 stroke-[2.1]" aria-hidden="true" />
                   </span>
-                  {!collapsed ? <span className="ui-nav__text">{item.label}</span> : null}
+                  {!collapsed ? <span className="control-nav-item__label">{item.label}</span> : null}
                 </Link>
               );
             })}

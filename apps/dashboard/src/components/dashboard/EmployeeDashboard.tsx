@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from "react";
@@ -130,67 +130,52 @@ export const EmployeeDashboard = () => {
   }, [data?.notifications]);
 
   return (
-    <div className="page-wrap space-y-6 fade-in employee-dashboard">
-      <section className="employee-command-deck">
-        <Card className="employee-command-deck__lead rounded-xl border-border shadow-sm">
-          <CardContent className="employee-command-deck__lead-body p-5">
-            <div className="employee-command-deck__copy">
-              <p className="employee-command-deck__eyebrow">Employee Control Center</p>
-              <h2 className="employee-command-deck__title">Daily workspace</h2>
-              <p className="employee-command-deck__subtitle">
-                Run your shift, requests, collaboration, and personal workflow from one focused control surface.
-              </p>
+    <div className="page-wrap space-y-5 fade-in employee-dashboard">
+      <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_296px]">
+        <Card className="rounded-[18px] border-slate-200/80 bg-white/95 shadow-[0_12px_28px_rgba(15,23,42,0.05)] dark:border-slate-800/80 dark:bg-slate-950/88">
+          <CardContent className="space-y-3 p-4">
+            <div className="space-y-2">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-blue-600 dark:text-blue-300">Employee control center</p>
+              <div className="space-y-2">
+                <h2 className="text-[1.85rem] font-semibold tracking-[-0.05em] leading-[0.94] text-slate-950 dark:text-slate-50">Daily workspace</h2>
+                <p className="max-w-lg text-[13px] leading-6 text-slate-500 dark:text-slate-400">
+                  Run your shift, requests, collaboration, and personal workflow from one focused control surface.
+                </p>
+              </div>
             </div>
-            <div className="employee-command-deck__signals">
-              <span>Shift-ready</span>
-              <span>Leave-aware</span>
-              <span>Team-connected</span>
+
+            <div className="flex flex-wrap gap-2">
+              <span className="rounded-full border border-slate-200/80 bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">Shift-ready</span>
+              <span className="rounded-full border border-slate-200/80 bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">Leave-aware</span>
+              <span className="rounded-full border border-slate-200/80 bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">Team-connected</span>
             </div>
           </CardContent>
         </Card>
 
-        <div className="employee-command-deck__aside">
-          <Card className="employee-command-deck__mini rounded-xl border-border shadow-sm">
-            <CardContent className="p-4">
-              <p className="employee-command-deck__mini-label">Attendance</p>
-              <strong>{attendanceStatus}</strong>
-              <span>{attendance?.checkIn ?? "No check in yet"}</span>
-            </CardContent>
-          </Card>
-          <Card className="employee-command-deck__mini rounded-xl border-border shadow-sm">
-            <CardContent className="p-4">
-              <p className="employee-command-deck__mini-label">Leave</p>
-              <strong>{leave.totalEntitled - leave.totalUsed} days</strong>
-              <span>{upcomingLeave ? `Upcoming ${formatDate(upcomingLeave.created_at)}` : "No leave updates yet"}</span>
-            </CardContent>
-          </Card>
-          <Card className="employee-command-deck__mini rounded-xl border-border shadow-sm">
-            <CardContent className="p-4">
-              <p className="employee-command-deck__mini-label">Signals</p>
-              <strong>{unreadNotifications} unread</strong>
-              <span>{pendingShiftSwaps} swaps pending</span>
-            </CardContent>
-          </Card>
-        </div>
-      </section>
-
-      <section className="employee-command-deck__controls">
-        <Card className="rounded-xl border-border shadow-sm">
-          <CardContent className="employee-command-deck__controls-body p-4">
-            <div className="employee-command-deck__controls-copy">
-              <p className="employee-command-deck__eyebrow">Command lanes</p>
-              <h3>Switch dashboard mode</h3>
-              <p>Move between execution, analytics, and workflow visibility without leaving the dashboard.</p>
+        <Card className="rounded-[18px] border-slate-200/80 bg-white/95 shadow-sm dark:border-slate-800/80 dark:bg-slate-950/88">
+          <CardContent className="space-y-3 p-4">
+            <div className="space-y-1">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">Control summary</p>
+              <h3 className="text-lg font-semibold tracking-[-0.03em] text-slate-950 dark:text-slate-50">Live status</h3>
             </div>
-            <DashboardModeSwitch value={view} onChange={setView} />
-            <div className="employee-command-deck__control-pills">
-              <span>{pendingShiftSwaps} swaps pending</span>
-              <span>{unreadNotifications} notifications</span>
-              <span>{leave.totalEntitled - leave.totalUsed} leave days remaining</span>
-            </div>
+            <SignalRow label="Attendance" value={<StatusBadge status={attendanceStatus} tone={isLate ? "warning" : "info"} />} tone={isLate ? "warning" : "info"} />
+            <SignalRow label="Shift" value={shift ? `${shift.start_time} - ${shift.end_time}` : "Not assigned"} />
+            <SignalRow label="Unread updates" value={unreadNotifications} tone={unreadNotifications > 0 ? "info" : "default"} />
+            <SignalRow label="Pending swaps" value={pendingShiftSwaps} tone={pendingShiftSwaps > 0 ? "warning" : "default"} />
           </CardContent>
         </Card>
       </section>
+
+      <Card className="rounded-[18px] border-slate-200/80 bg-white/95 shadow-sm dark:border-slate-800/80 dark:bg-slate-950/88">
+        <CardContent className="flex flex-col gap-4 p-5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="space-y-2">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">View mode</p>
+            <h3 className="text-lg font-semibold tracking-[-0.03em] text-slate-950 dark:text-slate-50">Switch lanes</h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400">Move between workspace execution, analytics, and workflow oversight without leaving the dashboard.</p>
+          </div>
+          <DashboardModeSwitch value={view} onChange={setView} />
+        </CardContent>
+      </Card>
 
       <DashboardSection visible={view === "workspace"}>
         <section className="space-y-4">
@@ -282,8 +267,6 @@ export const EmployeeDashboard = () => {
             <ActionCard title="Upload Document" description="Save profile files and notes" href="/app/notes" icon={FileUp} />
           </div>
         </section>
-
-
       </DashboardSection>
 
       <DashboardSection visible={view === "analytics"}>
@@ -359,6 +342,5 @@ export const EmployeeDashboard = () => {
     </div>
   );
 };
-
 
 
