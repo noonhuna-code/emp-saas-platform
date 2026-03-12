@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { RoleHomeFoundation } from "@/components/dashboard-v2/RoleHomeFoundation";
+import { Suspense, lazy, useMemo } from "react";
+import { DashboardRoleFallback } from "@/components/dashboard/DashboardRoleFallback";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { resolveDashboardPersona } from "@/lib/dashboard/capabilities";
 
@@ -11,8 +12,55 @@ type DashboardPageClientProps = {
   hasEmployeeContext: boolean;
 };
 
-export const DashboardPageClient = ({ role, permissions }: DashboardPageClientProps) => {
+const EmployeeDashboard = lazy(() =>
+  import("@/components/dashboard/EmployeeDashboard").then((module) => ({ default: module.EmployeeDashboard }))
+);
+const ManagerDashboard = lazy(() =>
+  import("@/components/dashboard/ManagerDashboard").then((module) => ({ default: module.ManagerDashboard }))
+);
+const TeamLeadDashboard = lazy(() =>
+  import("@/components/dashboard/TeamLeadDashboard").then((module) => ({ default: module.TeamLeadDashboard }))
+);
+const HRDashboard = lazy(() =>
+  import("@/components/dashboard/HRDashboard").then((module) => ({ default: module.HRDashboard }))
+);
+const AdminDashboard = lazy(() =>
+  import("@/components/dashboard/AdminDashboard").then((module) => ({ default: module.AdminDashboard }))
+);
+const FounderDashboard = lazy(() =>
+  import("@/components/dashboard/FounderDashboard").then((module) => ({ default: module.FounderDashboard }))
+);
+const FinanceDashboard = lazy(() =>
+  import("@/components/dashboard/FinanceDashboard").then((module) => ({ default: module.FinanceDashboard }))
+);
+const ITDashboard = lazy(() =>
+  import("@/components/dashboard/ITDashboard").then((module) => ({ default: module.ITDashboard }))
+);
+
+export const DashboardPageClient = ({ role, permissions, hasEmployeeContext }: DashboardPageClientProps) => {
   const persona = resolveDashboardPersona({ role, permissions });
+
+  const roleDashboard = useMemo(() => {
+    switch (persona) {
+      case "founder":
+        return <FounderDashboard />;
+      case "admin":
+        return <AdminDashboard />;
+      case "hr":
+        return <HRDashboard />;
+      case "finance":
+        return <FinanceDashboard />;
+      case "it":
+        return <ITDashboard />;
+      case "manager":
+        return <ManagerDashboard />;
+      case "team_lead":
+        return <TeamLeadDashboard />;
+      case "employee":
+      default:
+        return hasEmployeeContext ? <EmployeeDashboard /> : <ManagerDashboard />;
+    }
+  }, [hasEmployeeContext, persona]);
 
   if (persona === "platform_owner") {
     return (
@@ -32,5 +80,5 @@ export const DashboardPageClient = ({ role, permissions }: DashboardPageClientPr
     );
   }
 
-  return <RoleHomeFoundation persona={persona} />;
+  return <Suspense fallback={<DashboardRoleFallback />}>{roleDashboard}</Suspense>;
 };
