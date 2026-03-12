@@ -1,14 +1,24 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/EmptyState";
 import type { EmployeeSkill } from "@/lib/types/profile";
+import {
+  ProfilePanel,
+  ProfileSectionCard,
+  ReadonlyField,
+  SectionActionBar,
+  profileFieldClassName,
+  profileLabelClassName,
+} from "@/components/profile/ProfileSectionPrimitives";
 
 export const SkillsSection = ({
   skills,
   onAdd,
   onUpdate,
   onDelete,
-  canEdit
+  canEdit,
 }: {
   skills: EmployeeSkill[];
   onAdd: (payload: Omit<EmployeeSkill, "id" | "company_id" | "employee_id" | "created_at" | "updated_at">) => Promise<void>;
@@ -25,7 +35,7 @@ export const SkillsSection = ({
     await onAdd({
       skill_name: draft.skill_name,
       proficiency: draft.proficiency || null,
-      years_experience: draft.years_experience ? Number(draft.years_experience) : null
+      years_experience: draft.years_experience ? Number(draft.years_experience) : null,
     });
     setDraft({ skill_name: "", proficiency: "", years_experience: "" });
   };
@@ -35,7 +45,7 @@ export const SkillsSection = ({
     setEditingDraft({
       skill_name: skill.skill_name,
       proficiency: skill.proficiency ?? "",
-      years_experience: skill.years_experience?.toString() ?? ""
+      years_experience: skill.years_experience?.toString() ?? "",
     });
   };
 
@@ -44,83 +54,96 @@ export const SkillsSection = ({
     await onUpdate(editingId, {
       skill_name: editingDraft.skill_name,
       proficiency: editingDraft.proficiency || null,
-      years_experience: editingDraft.years_experience ? Number(editingDraft.years_experience) : null
+      years_experience: editingDraft.years_experience ? Number(editingDraft.years_experience) : null,
     });
     setEditingId(null);
   };
 
   return (
-    <section className="card stack">
-      <div>
-        <h3>Skills</h3>
-        <p className="muted">Capabilities and proficiency levels.</p>
-      </div>
-
+    <ProfileSectionCard
+      title="Skills"
+      description="Maintain a high-signal inventory of role capabilities, proficiency, and experience depth."
+      actions={
+        canEdit ? (
+          <Button type="button" variant="secondary" size="sm" className="rounded-full" onClick={handleAdd} disabled={!draft.skill_name}>
+            Add skill
+          </Button>
+        ) : undefined
+      }
+    >
       {canEdit ? (
-        <>
-          <div className="form-grid form-grid--three">
-            <label>
-              Skill
-              <input value={draft.skill_name} onChange={(event) => setDraft((prev) => ({ ...prev, skill_name: event.target.value }))} />
+        <ProfilePanel title="Add skill" description="Capture the skill name, proficiency level, and years of experience.">
+          <div className="grid gap-4 xl:grid-cols-3">
+            <label className={profileLabelClassName}>
+              <span>Skill</span>
+              <input className={profileFieldClassName} value={draft.skill_name} onChange={(event) => setDraft((prev) => ({ ...prev, skill_name: event.target.value }))} />
             </label>
-            <label>
-              Proficiency
-              <input value={draft.proficiency} onChange={(event) => setDraft((prev) => ({ ...prev, proficiency: event.target.value }))} />
+            <label className={profileLabelClassName}>
+              <span>Proficiency</span>
+              <input className={profileFieldClassName} value={draft.proficiency} onChange={(event) => setDraft((prev) => ({ ...prev, proficiency: event.target.value }))} />
             </label>
-            <label>
-              Years
-              <input value={draft.years_experience} onChange={(event) => setDraft((prev) => ({ ...prev, years_experience: event.target.value }))} />
+            <label className={profileLabelClassName}>
+              <span>Years of experience</span>
+              <input className={profileFieldClassName} value={draft.years_experience} onChange={(event) => setDraft((prev) => ({ ...prev, years_experience: event.target.value }))} />
             </label>
           </div>
+        </ProfilePanel>
+      ) : null}
 
-          <div className="row" style={{ justifyContent: "flex-end" }}>
-            <button className="secondary-btn" type="button" onClick={handleAdd}>Add skill</button>
-          </div>
-        </>
-      ) : (
-        <p className="muted">Skill updates are restricted to permitted roles.</p>
-      )}
+      <div className="space-y-4">
+        {skills.length === 0 ? (
+          <EmptyState title="No skills recorded yet" subtitle="Add capabilities to make project staffing, reviews, and growth planning easier." />
+        ) : null}
 
-      <div className="stack">
-        {skills.length === 0 ? <p className="muted">No skills recorded.</p> : null}
         {skills.map((skill) => (
-          <div key={skill.id} className="card card--nested">
+          <ProfilePanel key={skill.id} title={skill.skill_name} description={skill.proficiency ?? "Proficiency not set"}>
             {editingId === skill.id ? (
-              <div className="form-grid form-grid--three">
-                <label>
-                  Skill
-                  <input value={editingDraft.skill_name} onChange={(event) => setEditingDraft((prev) => ({ ...prev, skill_name: event.target.value }))} />
-                </label>
-                <label>
-                  Proficiency
-                  <input value={editingDraft.proficiency} onChange={(event) => setEditingDraft((prev) => ({ ...prev, proficiency: event.target.value }))} />
-                </label>
-                <label>
-                  Years
-                  <input value={editingDraft.years_experience} onChange={(event) => setEditingDraft((prev) => ({ ...prev, years_experience: event.target.value }))} />
-                </label>
-                <div className="row" style={{ justifyContent: "flex-end", gridColumn: "1 / -1" }}>
-                  <button className="secondary-btn" type="button" onClick={() => setEditingId(null)}>Cancel</button>
-                  <button className="primary-btn" type="button" onClick={saveEdit}>Save</button>
+              <div className="space-y-4">
+                <div className="grid gap-4 xl:grid-cols-3">
+                  <label className={profileLabelClassName}>
+                    <span>Skill</span>
+                    <input className={profileFieldClassName} value={editingDraft.skill_name} onChange={(event) => setEditingDraft((prev) => ({ ...prev, skill_name: event.target.value }))} />
+                  </label>
+                  <label className={profileLabelClassName}>
+                    <span>Proficiency</span>
+                    <input className={profileFieldClassName} value={editingDraft.proficiency} onChange={(event) => setEditingDraft((prev) => ({ ...prev, proficiency: event.target.value }))} />
+                  </label>
+                  <label className={profileLabelClassName}>
+                    <span>Years of experience</span>
+                    <input className={profileFieldClassName} value={editingDraft.years_experience} onChange={(event) => setEditingDraft((prev) => ({ ...prev, years_experience: event.target.value }))} />
+                  </label>
                 </div>
+                <SectionActionBar>
+                  <Button type="button" variant="secondary" className="rounded-full" onClick={() => setEditingId(null)}>
+                    Cancel
+                  </Button>
+                  <Button type="button" className="rounded-full" onClick={saveEdit}>
+                    Save changes
+                  </Button>
+                </SectionActionBar>
               </div>
             ) : (
-              <div className="row" style={{ justifyContent: "space-between" }}>
-                <div className="stack" style={{ gap: 4 }}>
-                  <strong>{skill.skill_name}</strong>
-                  <span className="muted">{skill.proficiency ?? ""}</span>
+              <div className="space-y-4">
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  <ReadonlyField label="Skill" value={skill.skill_name} />
+                  <ReadonlyField label="Proficiency" value={skill.proficiency ?? "—"} />
+                  <ReadonlyField label="Experience" value={skill.years_experience !== null && skill.years_experience !== undefined ? `${skill.years_experience} years` : "—"} />
                 </div>
                 {canEdit ? (
-                  <div className="row">
-                    <button className="secondary-btn" type="button" onClick={() => startEdit(skill)}>Edit</button>
-                    <button className="secondary-btn" type="button" onClick={() => onDelete(skill.id)}>Remove</button>
-                  </div>
+                  <SectionActionBar>
+                    <Button type="button" variant="secondary" className="rounded-full" onClick={() => startEdit(skill)}>
+                      Edit
+                    </Button>
+                    <Button type="button" variant="secondary" className="rounded-full" onClick={() => onDelete(skill.id)}>
+                      Remove
+                    </Button>
+                  </SectionActionBar>
                 ) : null}
               </div>
             )}
-          </div>
+          </ProfilePanel>
         ))}
       </div>
-    </section>
+    </ProfileSectionCard>
   );
 };

@@ -1,8 +1,16 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import type { EmployeeLookupResponse } from "@/lib/types/profile";
+import {
+  ProfilePanel,
+  ProfileSectionCard,
+  SectionActionBar,
+  profileFieldClassName,
+  profileLabelClassName,
+} from "@/components/profile/ProfileSectionPrimitives";
 
 type EmploymentFormState = {
   department_id?: string | null;
@@ -25,7 +33,7 @@ export const EmploymentInfoSection = ({
   employee,
   lookups,
   canEdit,
-  onSave
+  onSave,
 }: {
   employee: Record<string, unknown>;
   lookups: EmployeeLookupResponse | null;
@@ -50,7 +58,7 @@ export const EmploymentInfoSection = ({
       exit_date: (employee.exit_date as string | null | undefined) ?? null,
       termination_reason: (employee.termination_reason as string | null | undefined) ?? null,
       employee_code: (employee.employee_code as string | null | undefined) ?? null,
-      profile_image_url: (employee.profile_image_url as string | null | undefined) ?? null
+      profile_image_url: (employee.profile_image_url as string | null | undefined) ?? null,
     });
   }, [employee]);
 
@@ -60,164 +68,183 @@ export const EmploymentInfoSection = ({
   };
 
   return (
-    <section className="card stack">
-      <div className="row" style={{ justifyContent: "space-between" }}>
-        <div>
-          <h3>Employment Info</h3>
-          <p className="muted">Job assignment, status, and reporting structure.</p>
-        </div>
-        {canEdit ? (
-          <button className="secondary-btn" type="button" onClick={() => setEditing((prev) => !prev)}>
-            {editing ? "Cancel" : "Edit"}
-          </button>
+    <ProfileSectionCard
+      title="Employment information"
+      description="Role assignment, reporting hierarchy, employment status, and lifecycle milestones."
+      actions={
+        canEdit ? (
+          <Button type="button" variant="secondary" size="sm" className="rounded-full" onClick={() => setEditing((prev) => !prev)}>
+            {editing ? "Cancel" : "Edit assignment"}
+          </Button>
         ) : (
           <StatusBadge status="Read-only" />
-        )}
-      </div>
+        )
+      }
+    >
+      <ProfilePanel title="Role & status" description="Current employment position, level, and work arrangement.">
+        <div className="grid gap-4 xl:grid-cols-2">
+          <label className={profileLabelClassName}>
+            <span>Employee code</span>
+            <input
+              className={profileFieldClassName}
+              type="text"
+              value={form.employee_code ?? ""}
+              onChange={(event) => setForm((prev) => ({ ...prev, employee_code: event.target.value || null }))}
+              disabled={!editing}
+            />
+          </label>
+          <label className={profileLabelClassName}>
+            <span>Designation</span>
+            <input
+              className={profileFieldClassName}
+              type="text"
+              value={form.designation ?? ""}
+              onChange={(event) => setForm((prev) => ({ ...prev, designation: event.target.value || null }))}
+              disabled={!editing}
+            />
+          </label>
+          <label className={profileLabelClassName}>
+            <span>Job level</span>
+            <input
+              className={profileFieldClassName}
+              type="text"
+              value={form.job_level ?? ""}
+              onChange={(event) => setForm((prev) => ({ ...prev, job_level: event.target.value || null }))}
+              disabled={!editing}
+            />
+          </label>
+          <label className={profileLabelClassName}>
+            <span>Employment type</span>
+            <input
+              className={profileFieldClassName}
+              type="text"
+              value={form.employment_type ?? ""}
+              onChange={(event) => setForm((prev) => ({ ...prev, employment_type: event.target.value || null }))}
+              disabled={!editing}
+            />
+          </label>
+          <label className={profileLabelClassName}>
+            <span>Work mode</span>
+            <input
+              className={profileFieldClassName}
+              type="text"
+              value={form.work_mode ?? ""}
+              onChange={(event) => setForm((prev) => ({ ...prev, work_mode: event.target.value || null }))}
+              disabled={!editing}
+            />
+          </label>
+          <label className={profileLabelClassName}>
+            <span>Employment status</span>
+            <input
+              className={profileFieldClassName}
+              type="text"
+              value={form.employment_status ?? ""}
+              onChange={(event) => setForm((prev) => ({ ...prev, employment_status: event.target.value || null }))}
+              disabled={!editing}
+            />
+          </label>
+        </div>
+      </ProfilePanel>
 
-      <div className="form-grid form-grid--two">
-        <label>
-          Employee code
-          <input
-            type="text"
-            value={form.employee_code ?? ""}
-            onChange={(event) => setForm((prev) => ({ ...prev, employee_code: event.target.value || null }))}
-            disabled={!editing}
-          />
-        </label>
-        <label>
-          Designation
-          <input
-            type="text"
-            value={form.designation ?? ""}
-            onChange={(event) => setForm((prev) => ({ ...prev, designation: event.target.value || null }))}
-            disabled={!editing}
-          />
-        </label>
-        <label>
-          Job level
-          <input
-            type="text"
-            value={form.job_level ?? ""}
-            onChange={(event) => setForm((prev) => ({ ...prev, job_level: event.target.value || null }))}
-            disabled={!editing}
-          />
-        </label>
-        <label>
-          Employment type
-          <input
-            type="text"
-            value={form.employment_type ?? ""}
-            onChange={(event) => setForm((prev) => ({ ...prev, employment_type: event.target.value || null }))}
-            disabled={!editing}
-          />
-        </label>
-        <label>
-          Work mode
-          <input
-            type="text"
-            value={form.work_mode ?? ""}
-            onChange={(event) => setForm((prev) => ({ ...prev, work_mode: event.target.value || null }))}
-            disabled={!editing}
-          />
-        </label>
-        <label>
-          Employment status
-          <input
-            type="text"
-            value={form.employment_status ?? ""}
-            onChange={(event) => setForm((prev) => ({ ...prev, employment_status: event.target.value || null }))}
-            disabled={!editing}
-          />
-        </label>
-      </div>
+      <ProfilePanel title="Organization mapping" description="Department, team, and reporting line used in approvals and org hierarchy.">
+        <div className="grid gap-4 xl:grid-cols-3">
+          <label className={profileLabelClassName}>
+            <span>Department</span>
+            <select
+              className={profileFieldClassName}
+              value={form.department_id ?? ""}
+              onChange={(event) => setForm((prev) => ({ ...prev, department_id: event.target.value || null }))}
+              disabled={!editing}
+            >
+              <option value="">Unassigned</option>
+              {lookups?.departments.map((dept) => (
+                <option key={dept.id} value={dept.id}>{dept.name}</option>
+              ))}
+            </select>
+          </label>
+          <label className={profileLabelClassName}>
+            <span>Team</span>
+            <select
+              className={profileFieldClassName}
+              value={form.team_id ?? ""}
+              onChange={(event) => setForm((prev) => ({ ...prev, team_id: event.target.value || null }))}
+              disabled={!editing}
+            >
+              <option value="">Unassigned</option>
+              {lookups?.teams.map((team) => (
+                <option key={team.id} value={team.id}>{team.name}</option>
+              ))}
+            </select>
+          </label>
+          <label className={profileLabelClassName}>
+            <span>Reporting manager</span>
+            <select
+              className={profileFieldClassName}
+              value={form.manager_id ?? ""}
+              onChange={(event) => setForm((prev) => ({ ...prev, manager_id: event.target.value || null }))}
+              disabled={!editing}
+            >
+              <option value="">None</option>
+              {lookups?.managers.map((manager) => (
+                <option key={manager.id} value={manager.id}>{manager.full_name}</option>
+              ))}
+            </select>
+          </label>
+        </div>
+      </ProfilePanel>
 
-      <div className="form-grid form-grid--two">
-        <label>
-          Department
-          <select
-            value={form.department_id ?? ""}
-            onChange={(event) => setForm((prev) => ({ ...prev, department_id: event.target.value || null }))}
-            disabled={!editing}
-          >
-            <option value="">Unassigned</option>
-            {lookups?.departments.map((dept) => (
-              <option key={dept.id} value={dept.id}>{dept.name}</option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Team
-          <select
-            value={form.team_id ?? ""}
-            onChange={(event) => setForm((prev) => ({ ...prev, team_id: event.target.value || null }))}
-            disabled={!editing}
-          >
-            <option value="">Unassigned</option>
-            {lookups?.teams.map((team) => (
-              <option key={team.id} value={team.id}>{team.name}</option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Reporting manager
-          <select
-            value={form.manager_id ?? ""}
-            onChange={(event) => setForm((prev) => ({ ...prev, manager_id: event.target.value || null }))}
-            disabled={!editing}
-          >
-            <option value="">None</option>
-            {lookups?.managers.map((manager) => (
-              <option key={manager.id} value={manager.id}>{manager.full_name}</option>
-            ))}
-          </select>
-        </label>
-      </div>
-
-      <div className="form-grid form-grid--two">
-        <label>
-          Confirmation date
-          <input
-            type="date"
-            value={form.confirmation_date ?? ""}
-            onChange={(event) => setForm((prev) => ({ ...prev, confirmation_date: event.target.value || null }))}
-            disabled={!editing}
-          />
-        </label>
-        <label>
-          Probation end date
-          <input
-            type="date"
-            value={form.probation_end_date ?? ""}
-            onChange={(event) => setForm((prev) => ({ ...prev, probation_end_date: event.target.value || null }))}
-            disabled={!editing}
-          />
-        </label>
-        <label>
-          Exit date
-          <input
-            type="date"
-            value={form.exit_date ?? ""}
-            onChange={(event) => setForm((prev) => ({ ...prev, exit_date: event.target.value || null }))}
-            disabled={!editing}
-          />
-        </label>
-        <label>
-          Termination reason
-          <input
-            type="text"
-            value={form.termination_reason ?? ""}
-            onChange={(event) => setForm((prev) => ({ ...prev, termination_reason: event.target.value || null }))}
-            disabled={!editing}
-          />
-        </label>
-      </div>
+      <ProfilePanel title="Lifecycle milestones" description="Confirmation, probation, and exit tracking values.">
+        <div className="grid gap-4 xl:grid-cols-2">
+          <label className={profileLabelClassName}>
+            <span>Confirmation date</span>
+            <input
+              className={profileFieldClassName}
+              type="date"
+              value={form.confirmation_date ?? ""}
+              onChange={(event) => setForm((prev) => ({ ...prev, confirmation_date: event.target.value || null }))}
+              disabled={!editing}
+            />
+          </label>
+          <label className={profileLabelClassName}>
+            <span>Probation end date</span>
+            <input
+              className={profileFieldClassName}
+              type="date"
+              value={form.probation_end_date ?? ""}
+              onChange={(event) => setForm((prev) => ({ ...prev, probation_end_date: event.target.value || null }))}
+              disabled={!editing}
+            />
+          </label>
+          <label className={profileLabelClassName}>
+            <span>Exit date</span>
+            <input
+              className={profileFieldClassName}
+              type="date"
+              value={form.exit_date ?? ""}
+              onChange={(event) => setForm((prev) => ({ ...prev, exit_date: event.target.value || null }))}
+              disabled={!editing}
+            />
+          </label>
+          <label className={profileLabelClassName}>
+            <span>Termination reason</span>
+            <input
+              className={profileFieldClassName}
+              type="text"
+              value={form.termination_reason ?? ""}
+              onChange={(event) => setForm((prev) => ({ ...prev, termination_reason: event.target.value || null }))}
+              disabled={!editing}
+            />
+          </label>
+        </div>
+      </ProfilePanel>
 
       {editing ? (
-        <div className="row" style={{ justifyContent: "flex-end" }}>
-          <button className="primary-btn" type="button" onClick={handleSave}>Save changes</button>
-        </div>
+        <SectionActionBar>
+          <Button type="button" className="rounded-full px-5" onClick={handleSave}>
+            Save changes
+          </Button>
+        </SectionActionBar>
       ) : null}
-    </section>
+    </ProfileSectionCard>
   );
 };

@@ -1,13 +1,26 @@
 ﻿"use client";
 
 import { useMemo, useState } from "react";
-import type { EmployeeDocument, EmployeeDocumentVersion } from "@/lib/types/profile";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { StatusBadge } from "@/components/shared/StatusBadge";
+import { cn } from "@/lib/utils";
+import type { EmployeeDocument, EmployeeDocumentVersion } from "@/lib/types/profile";
 import {
   fetchEmployeeDocumentDownloadUrl,
   fetchEmployeeDocumentVersions,
-  uploadEmployeeDocumentVersion
+  uploadEmployeeDocumentVersion,
 } from "@/lib/client/api";
+import {
+  ProfilePanel,
+  ProfileSectionCard,
+  ReadonlyField,
+  SectionActionBar,
+  profileEmptyStateClassName,
+  profileFieldClassName,
+  profileLabelClassName,
+  profileNestedPanelClassName,
+} from "@/components/profile/ProfileSectionPrimitives";
 
 type DocumentPayload = {
   document_type: string;
@@ -26,7 +39,7 @@ export const DocumentsSection = ({
   onUpdate,
   onDelete,
   onRefresh,
-  canEdit
+  canEdit,
 }: {
   employeeId: string;
   documents: EmployeeDocument[];
@@ -36,6 +49,30 @@ export const DocumentsSection = ({
   onRefresh?: () => Promise<void>;
   canEdit: boolean;
 }) => {
+  const [draft, setDraft] = useState({
+    document_type: "",
+    document_name: "",
+    document_number: "",
+    file_url: "",
+    issued_at: "",
+    expires_at: "",
+    status: "",
+  });
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingDraft, setEditingDraft] = useState(draft);
+  const [uploadingId, setUploadingId] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [versionMap, setVersionMap] = useState<Record<string, EmployeeDocumentVersion[]>>({});
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  const formatBytes = (bytes?: number | null) => {
+    if (!bytes || bytes <= 0) return "-";
+    const units = ["B", "KB", "MB", "GB"];
+    const idx = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+    const value = bytes / Math.pow(1024, idx);
+    return `${value.toFixed(value >= 10 ? 0 : 1)} ${units[idx]}`;
+  };
+
   const getExpiryStatus = (expiresAt?: string | null): { label: string; tone: "success" | "warning" | "danger" } | null => {
     if (!expiresAt) return null;
     const date = new Date(expiresAt);
@@ -46,30 +83,10 @@ export const DocumentsSection = ({
     return { label: `Valid (${diffDays}d)`, tone: "success" };
   };
 
-  const formatBytes = (bytes?: number | null) => {
-    if (!bytes || bytes <= 0) return "-";
-    const units = ["B", "KB", "MB", "GB"];
-    const idx = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
-    const value = bytes / Math.pow(1024, idx);
-    return `${value.toFixed(value >= 10 ? 0 : 1)} ${units[idx]}`;
-  };
-
-  const [draft, setDraft] = useState({
-    document_type: "",
-    document_name: "",
-    document_number: "",
-    file_url: "",
-    issued_at: "",
-    expires_at: "",
-    status: ""
-  });
-
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editingDraft, setEditingDraft] = useState<typeof draft>(draft);
-  const [uploadingId, setUploadingId] = useState<string | null>(null);
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-  const [versionMap, setVersionMap] = useState<Record<string, EmployeeDocumentVersion[]>>({});
-  const [actionError, setActionError] = useState<string | null>(null);
+  const sortedDocuments = useMemo(
+    () => [...documents].sort((a, b) => (a.document_type || "").localeCompare(b.document_type || "")),
+    [documents],
+  );
 
   const handleAdd = async () => {
     if (!draft.document_type) return;
@@ -80,7 +97,7 @@ export const DocumentsSection = ({
       file_url: draft.file_url || null,
       issued_at: draft.issued_at || null,
       expires_at: draft.expires_at || null,
-      status: draft.status || null
+      status: draft.status || null,
     });
     setDraft({ document_type: "", document_name: "", document_number: "", file_url: "", issued_at: "", expires_at: "", status: "" });
   };
@@ -94,7 +111,7 @@ export const DocumentsSection = ({
       file_url: doc.file_url ?? "",
       issued_at: doc.issued_at ?? "",
       expires_at: doc.expires_at ?? "",
-      status: doc.status ?? ""
+      status: doc.status ?? "",
     });
   };
 
@@ -107,7 +124,7 @@ export const DocumentsSection = ({
       file_url: editingDraft.file_url || null,
       issued_at: editingDraft.issued_at || null,
       expires_at: editingDraft.expires_at || null,
-      status: editingDraft.status || null
+      status: editingDraft.status || null,
     });
     setEditingId(null);
   };
@@ -115,14 +132,14 @@ export const DocumentsSection = ({
   const loadVersions = async (docId: string) => {
     const result = await fetchEmployeeDocumentVersions(employeeId, docId);
     if (result.ok) {
-      const versions = result.data?.versions ?? [];
-      setVersionMap((prev) => ({ ...prev, [docId]: versions }));
+      setVersionMap((prev) => ({ ...prev, [docId]: result.data?.versions ?? [] }));
     }
   };
 
   const handleToggleVersions = async (docId: string) => {
-    setExpanded((prev) => ({ ...prev, [docId]: !prev[docId] }));
-    if (!expanded[docId]) {
+    const nextExpanded = !expanded[docId];
+    setExpanded((prev) => ({ ...prev, [docId]: nextExpanded }));
+    if (nextExpanded) {
       await loadVersions(docId);
     }
   };
@@ -171,225 +188,200 @@ export const DocumentsSection = ({
     setActionError("No file available for download");
   };
 
-  const sortedDocuments = useMemo(
-    () => [...documents].sort((a, b) => (a.document_type || "").localeCompare(b.document_type || "")),
-    [documents]
-  );
-
   return (
-    <section className="card stack">
-      <div>
-        <h3>Documents</h3>
-        <p className="muted">Track document status, expiry, and secure vault versions.</p>
-      </div>
-
-      {actionError ? <p className="error-text">{actionError}</p> : null}
+    <ProfileSectionCard
+      title="Documents"
+      description="Track active document status, expiry, and secure vault versions without changing the current document contract."
+      actions={
+        canEdit ? (
+          <Button type="button" variant="secondary" size="sm" className="rounded-full" onClick={handleAdd} disabled={!draft.document_type}>
+            Add document
+          </Button>
+        ) : undefined
+      }
+    >
+      {actionError ? (
+        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{actionError}</div>
+      ) : null}
 
       {canEdit ? (
-        <>
-          <div className="form-grid form-grid--two">
-            <label>
-              Document type
-              <input
-                value={draft.document_type}
-                onChange={(event) => setDraft((prev) => ({ ...prev, document_type: event.target.value }))}
-              />
+        <ProfilePanel title="Register document" description="Add a document reference, external URL, or lifecycle dates before uploading new versions.">
+          <div className="grid gap-4 xl:grid-cols-2">
+            <label className={profileLabelClassName}>
+              <span>Document type</span>
+              <input className={profileFieldClassName} value={draft.document_type} onChange={(event) => setDraft((prev) => ({ ...prev, document_type: event.target.value }))} />
             </label>
-            <label>
-              Document name
-              <input
-                value={draft.document_name}
-                onChange={(event) => setDraft((prev) => ({ ...prev, document_name: event.target.value }))}
-              />
+            <label className={profileLabelClassName}>
+              <span>Document name</span>
+              <input className={profileFieldClassName} value={draft.document_name} onChange={(event) => setDraft((prev) => ({ ...prev, document_name: event.target.value }))} />
             </label>
-            <label>
-              Document number
-              <input
-                value={draft.document_number}
-                onChange={(event) => setDraft((prev) => ({ ...prev, document_number: event.target.value }))}
-              />
+            <label className={profileLabelClassName}>
+              <span>Document number</span>
+              <input className={profileFieldClassName} value={draft.document_number} onChange={(event) => setDraft((prev) => ({ ...prev, document_number: event.target.value }))} />
             </label>
-            <label>
-              External file URL (optional)
-              <input
-                value={draft.file_url}
-                onChange={(event) => setDraft((prev) => ({ ...prev, file_url: event.target.value }))}
-              />
+            <label className={profileLabelClassName}>
+              <span>External file URL</span>
+              <input className={profileFieldClassName} value={draft.file_url} onChange={(event) => setDraft((prev) => ({ ...prev, file_url: event.target.value }))} />
             </label>
-            <label>
-              Issued at
-              <input
-                type="date"
-                value={draft.issued_at}
-                onChange={(event) => setDraft((prev) => ({ ...prev, issued_at: event.target.value }))}
-              />
+            <label className={profileLabelClassName}>
+              <span>Issued at</span>
+              <input className={profileFieldClassName} type="date" value={draft.issued_at} onChange={(event) => setDraft((prev) => ({ ...prev, issued_at: event.target.value }))} />
             </label>
-            <label>
-              Expires at
-              <input
-                type="date"
-                value={draft.expires_at}
-                onChange={(event) => setDraft((prev) => ({ ...prev, expires_at: event.target.value }))}
-              />
+            <label className={profileLabelClassName}>
+              <span>Expires at</span>
+              <input className={profileFieldClassName} type="date" value={draft.expires_at} onChange={(event) => setDraft((prev) => ({ ...prev, expires_at: event.target.value }))} />
             </label>
-            <label>
-              Status
-              <input
-                value={draft.status}
-                onChange={(event) => setDraft((prev) => ({ ...prev, status: event.target.value }))}
-              />
+            <label className={profileLabelClassName}>
+              <span>Status</span>
+              <input className={profileFieldClassName} value={draft.status} onChange={(event) => setDraft((prev) => ({ ...prev, status: event.target.value }))} />
             </label>
           </div>
+        </ProfilePanel>
+      ) : null}
 
-          <div className="row" style={{ justifyContent: "flex-end" }}>
-            <button className="secondary-btn" type="button" onClick={handleAdd}>Add document</button>
-          </div>
-        </>
-      ) : (
-        <p className="muted">Document edits are restricted to permitted roles.</p>
-      )}
+      <div className="space-y-4">
+        {sortedDocuments.length === 0 ? (
+          <EmptyState title="No documents uploaded" subtitle="Add a document reference or upload a secured version to begin building the employee vault." />
+        ) : null}
 
-      <div className="stack">
-        {sortedDocuments.length === 0 ? <p className="muted">No documents uploaded.</p> : null}
         {sortedDocuments.map((doc) => {
           const expiry = getExpiryStatus(doc.expires_at);
           const versions = versionMap[doc.id] ?? [];
           const showVersions = expanded[doc.id];
 
           return (
-            <div key={doc.id} className="card card--nested stack">
+            <div key={doc.id} className={profileNestedPanelClassName}>
               {editingId === doc.id ? (
-                <div className="form-grid form-grid--two">
-                  <label>
-                    Document type
-                    <input
-                      value={editingDraft.document_type}
-                      onChange={(event) => setEditingDraft((prev) => ({ ...prev, document_type: event.target.value }))}
-                    />
-                  </label>
-                  <label>
-                    Document name
-                    <input
-                      value={editingDraft.document_name}
-                      onChange={(event) => setEditingDraft((prev) => ({ ...prev, document_name: event.target.value }))}
-                    />
-                  </label>
-                  <label>
-                    Document number
-                    <input
-                      value={editingDraft.document_number}
-                      onChange={(event) => setEditingDraft((prev) => ({ ...prev, document_number: event.target.value }))}
-                    />
-                  </label>
-                  <label>
-                    External file URL (optional)
-                    <input
-                      value={editingDraft.file_url}
-                      onChange={(event) => setEditingDraft((prev) => ({ ...prev, file_url: event.target.value }))}
-                    />
-                  </label>
-                  <label>
-                    Issued at
-                    <input
-                      type="date"
-                      value={editingDraft.issued_at}
-                      onChange={(event) => setEditingDraft((prev) => ({ ...prev, issued_at: event.target.value }))}
-                    />
-                  </label>
-                  <label>
-                    Expires at
-                    <input
-                      type="date"
-                      value={editingDraft.expires_at}
-                      onChange={(event) => setEditingDraft((prev) => ({ ...prev, expires_at: event.target.value }))}
-                    />
-                  </label>
-                  <label>
-                    Status
-                    <input
-                      value={editingDraft.status}
-                      onChange={(event) => setEditingDraft((prev) => ({ ...prev, status: event.target.value }))}
-                    />
-                  </label>
-                  <div className="row" style={{ justifyContent: "flex-end", gridColumn: "1 / -1" }}>
-                    <button className="secondary-btn" type="button" onClick={() => setEditingId(null)}>Cancel</button>
-                    <button className="primary-btn" type="button" onClick={saveEdit}>Save</button>
+                <div className="space-y-4">
+                  <div className="grid gap-4 xl:grid-cols-2">
+                    <label className={profileLabelClassName}>
+                      <span>Document type</span>
+                      <input className={profileFieldClassName} value={editingDraft.document_type} onChange={(event) => setEditingDraft((prev) => ({ ...prev, document_type: event.target.value }))} />
+                    </label>
+                    <label className={profileLabelClassName}>
+                      <span>Document name</span>
+                      <input className={profileFieldClassName} value={editingDraft.document_name} onChange={(event) => setEditingDraft((prev) => ({ ...prev, document_name: event.target.value }))} />
+                    </label>
+                    <label className={profileLabelClassName}>
+                      <span>Document number</span>
+                      <input className={profileFieldClassName} value={editingDraft.document_number} onChange={(event) => setEditingDraft((prev) => ({ ...prev, document_number: event.target.value }))} />
+                    </label>
+                    <label className={profileLabelClassName}>
+                      <span>External file URL</span>
+                      <input className={profileFieldClassName} value={editingDraft.file_url} onChange={(event) => setEditingDraft((prev) => ({ ...prev, file_url: event.target.value }))} />
+                    </label>
+                    <label className={profileLabelClassName}>
+                      <span>Issued at</span>
+                      <input className={profileFieldClassName} type="date" value={editingDraft.issued_at} onChange={(event) => setEditingDraft((prev) => ({ ...prev, issued_at: event.target.value }))} />
+                    </label>
+                    <label className={profileLabelClassName}>
+                      <span>Expires at</span>
+                      <input className={profileFieldClassName} type="date" value={editingDraft.expires_at} onChange={(event) => setEditingDraft((prev) => ({ ...prev, expires_at: event.target.value }))} />
+                    </label>
+                    <label className={profileLabelClassName}>
+                      <span>Status</span>
+                      <input className={profileFieldClassName} value={editingDraft.status} onChange={(event) => setEditingDraft((prev) => ({ ...prev, status: event.target.value }))} />
+                    </label>
                   </div>
+                  <SectionActionBar>
+                    <Button type="button" variant="secondary" className="rounded-full" onClick={() => setEditingId(null)}>
+                      Cancel
+                    </Button>
+                    <Button type="button" className="rounded-full" onClick={saveEdit}>
+                      Save changes
+                    </Button>
+                  </SectionActionBar>
                 </div>
               ) : (
-                <div className="row" style={{ justifyContent: "space-between", alignItems: "flex-start" }}>
-                  <div className="stack" style={{ gap: 6 }}>
-                    <div className="row" style={{ justifyContent: "space-between" }}>
-                      <strong>{doc.document_type}</strong>
-                      {expiry ? <StatusBadge status={expiry.label} tone={expiry.tone} /> : null}
+                <div className="space-y-4">
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="space-y-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h4 className="text-base font-semibold tracking-tight text-slate-950">{doc.document_type}</h4>
+                        {expiry ? <StatusBadge status={expiry.label} tone={expiry.tone} /> : null}
+                        {doc.status ? <StatusBadge status={doc.status} tone="info" /> : null}
+                      </div>
+                      <p className="text-sm text-slate-600">{doc.document_name ?? "Document reference"}</p>
                     </div>
-                    <span className="muted">{doc.document_name ?? "Document"}</span>
-                    <span className="muted">Expires: {doc.expires_at ?? "N/A"}</span>
-                    <span className="muted">Vault version: {doc.current_version ?? "—"}</span>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Button type="button" variant="secondary" className="rounded-full" onClick={() => handleDownload(doc)}>
+                        Download
+                      </Button>
+                      <Button type="button" variant="secondary" className="rounded-full" onClick={() => handleToggleVersions(doc.id)}>
+                        {showVersions ? "Hide versions" : "View versions"}
+                      </Button>
+                      {canEdit ? (
+                        <label className={cn(buttonVariants({ variant: "secondary" }), "h-10 cursor-pointer rounded-full px-4") }>
+                          {uploadingId === doc.id ? "Uploading..." : "Upload version"}
+                          <input
+                            type="file"
+                            hidden
+                            disabled={uploadingId === doc.id}
+                            onChange={(event) => {
+                              const file = event.target.files?.[0];
+                              if (file) {
+                                void handleUpload(doc.id, file);
+                              }
+                            }}
+                          />
+                        </label>
+                      ) : null}
+                      {canEdit ? (
+                        <Button type="button" variant="secondary" className="rounded-full" onClick={() => startEdit(doc)}>
+                          Edit
+                        </Button>
+                      ) : null}
+                      {canEdit ? (
+                        <Button type="button" variant="secondary" className="rounded-full" onClick={() => onDelete(doc.id)}>
+                          Remove
+                        </Button>
+                      ) : null}
+                    </div>
                   </div>
-                  <div className="row" style={{ flexWrap: "wrap" }}>
-                    <button className="secondary-btn" type="button" onClick={() => handleDownload(doc)}>
-                      Download
-                    </button>
-                    <button className="secondary-btn" type="button" onClick={() => handleToggleVersions(doc.id)}>
-                      {showVersions ? "Hide versions" : "View versions"}
-                    </button>
-                    {canEdit ? (
-                      <label className="secondary-btn" style={{ cursor: "pointer" }}>
-                        {uploadingId === doc.id ? "Uploading..." : "Upload version"}
-                        <input
-                          type="file"
-                          hidden
-                          disabled={uploadingId === doc.id}
-                          onChange={(event) => {
-                            const file = event.target.files?.[0];
-                            if (file) {
-                              void handleUpload(doc.id, file);
-                            }
-                          }}
-                        />
-                      </label>
-                    ) : null}
-                    {canEdit ? (
-                      <button className="secondary-btn" type="button" onClick={() => startEdit(doc)}>Edit</button>
-                    ) : null}
-                    {canEdit ? (
-                      <button className="secondary-btn" type="button" onClick={() => onDelete(doc.id)}>Remove</button>
-                    ) : null}
+
+                  <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                    <ReadonlyField label="Document number" value={doc.document_number ?? "—"} />
+                    <ReadonlyField label="Issued at" value={doc.issued_at ?? "—"} />
+                    <ReadonlyField label="Expires at" value={doc.expires_at ?? "—"} />
+                    <ReadonlyField label="Current version" value={doc.current_version ?? "—"} hint={doc.storage_path ? "Vault-backed" : "External reference"} />
                   </div>
+
+                  {showVersions ? (
+                    <div className="space-y-3 rounded-2xl border border-dashed border-slate-200 bg-white/75 p-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-semibold text-slate-900">Version history</p>
+                          <p className="text-sm text-slate-500">Secure uploads linked to this document.</p>
+                        </div>
+                      </div>
+                      {versions.length === 0 ? (
+                        <div className={profileEmptyStateClassName}>No versions uploaded yet.</div>
+                      ) : (
+                        <div className="space-y-3">
+                          {versions.map((version) => (
+                            <div key={version.id} className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                              <div className="space-y-1">
+                                <p className="text-sm font-medium text-slate-900">v{version.version_number} · {version.file_name}</p>
+                                <p className="text-sm text-slate-500">
+                                  Uploaded {version.uploaded_at ? new Date(version.uploaded_at).toLocaleDateString() : "-"}
+                                  {version.storage_size ? ` · ${formatBytes(version.storage_size)}` : ""}
+                                </p>
+                              </div>
+                              <Button type="button" variant="secondary" className="rounded-full" onClick={() => handleDownload(doc, version.id)}>
+                                Download version
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ) : null}
                 </div>
               )}
-
-              {showVersions ? (
-                <div className="stack">
-                  {versions.length === 0 ? (
-                    <p className="muted">No versions uploaded yet.</p>
-                  ) : (
-                    versions.map((version) => (
-                      <div key={version.id} className="row" style={{ justifyContent: "space-between" }}>
-                        <div className="stack" style={{ gap: 4 }}>
-                          <span>v{version.version_number} · {version.file_name}</span>
-                          <span className="muted">
-                            Uploaded: {version.uploaded_at ? new Date(version.uploaded_at).toLocaleDateString() : "-"}
-                            {version.storage_size ? ` · ${formatBytes(version.storage_size)}` : ""}
-                          </span>
-                        </div>
-                        <button
-                          className="secondary-btn"
-                          type="button"
-                          onClick={() => handleDownload(doc, version.id)}
-                        >
-                          Download
-                        </button>
-                      </div>
-                    ))
-                  )}
-                </div>
-              ) : null}
             </div>
           );
         })}
       </div>
-    </section>
+    </ProfileSectionCard>
   );
 };

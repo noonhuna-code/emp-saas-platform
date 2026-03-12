@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from "react";
@@ -19,10 +19,16 @@ import {
   SignalRow,
   TimelineList,
   WorkflowPanel,
-  type DashboardView
+  type DashboardView,
 } from "@/components/dashboard/DashboardPrimitives";
 import { SkeletonCard, SkeletonChart, SkeletonList } from "@/components/ui/SkeletonBlocks";
 import EmployeeKpiSection from "@/components/dashboard/widgets/EmployeeKpiSection";
+import {
+  DashboardRail,
+  OverviewChips,
+  StatePanel,
+  SurfacePanel,
+} from "@/components/dashboard-v2/PagePrimitives";
 
 const EmployeeAnalyticsWidget = lazy(() => import("@/components/dashboard/widgets/EmployeeAnalyticsWidget"));
 const EmployeeActivityFeedWidget = lazy(() => import("@/components/dashboard/widgets/EmployeeActivityFeedWidget"));
@@ -49,14 +55,14 @@ const formatDate = (value?: string | null) => {
   return parsed.toLocaleDateString();
 };
 
-const getLeaveBreakdown = (rows: EmployeeDashboardResponse["leaveBalances"]): LeaveBreakdown => {
+const getLeaveBreakdown = (rows: EmployeeDashboardResponse["leaveBalances"]) : LeaveBreakdown => {
   return rows.reduce(
     (acc, row) => {
       acc.totalUsed += Math.max(0, row.used_days);
       acc.totalEntitled += Math.max(0, row.entitled_days);
       return acc;
     },
-    { totalUsed: 0, totalEntitled: 0 }
+    { totalUsed: 0, totalEntitled: 0 },
   );
 };
 
@@ -114,72 +120,78 @@ export const EmployeeDashboard = () => {
   const isLate = (attendance?.lateMinutes ?? 0) > 0;
 
   const leave = getLeaveBreakdown(data?.leaveBalances ?? []);
+  const remainingLeave = Math.max(leave.totalEntitled - leave.totalUsed, 0);
   const leaveUtilization = leave.totalEntitled > 0 ? Math.round((leave.totalUsed / leave.totalEntitled) * 100) : 0;
   const pendingShiftSwaps = (data?.notifications ?? []).filter((row) => /shift swap/i.test(`${row.title} ${row.message ?? ""}`)).length;
-
   const upcomingLeave = (data?.notifications ?? []).find((row) => /leave.*approved|approved.*leave/i.test(`${row.title} ${row.message ?? ""}`));
-
   const unreadNotifications = workspace?.counts.unreadNotifications ?? 0;
-
-  const activityItems = useMemo(() => {
-    return (data?.notifications ?? []).slice(0, 5).map((item) => ({
-      title: item.title,
-      subtitle: item.message ?? "Workspace update",
-      meta: new Date(item.created_at).toLocaleString()
-    }));
-  }, [data?.notifications]);
+  const activityItems = useMemo(
+    () =>
+      (data?.notifications ?? []).slice(0, 5).map((item) => ({
+        title: item.title,
+        subtitle: item.message ?? "Workspace update",
+        meta: new Date(item.created_at).toLocaleString(),
+      })),
+    [data?.notifications],
+  );
 
   return (
-    <div className="page-wrap space-y-5 fade-in employee-dashboard">
-      <section className="employee-overview">
-        <Card className="employee-overview__card rounded-[18px] border-slate-200/80 bg-white/95 shadow-[0_10px_22px_rgba(15,23,42,0.05)] dark:border-slate-800/80 dark:bg-slate-950/88">
-          <CardContent className="employee-overview__body p-5">
-            <div className="employee-overview__copy">
-              <p className="employee-overview__eyebrow">Employee control center</p>
-              <h2 className="employee-overview__title">Daily workspace</h2>
-              <p className="employee-overview__subtitle">
-                Run today&apos;s shift, requests, collaboration, and personal workflow from one compact control surface.
-              </p>
-              <div className="employee-overview__signals">
-                <span>Shift-ready</span>
-                <span>Leave-aware</span>
-                <span>Team-connected</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+    <div className="space-y-8 fade-in">
+      <DashboardRail className="items-start xl:grid-cols-[minmax(0,1.55fr)_minmax(320px,0.85fr)]">
+        <SurfacePanel
+          title="Daily workspace"
+          description="Run your shift, requests, collaboration, and personal workflow from one compact control surface."
+          className="min-h-0"
+        >
+          <div className="space-y-5">
+            <OverviewChips
+              chips={[
+                shift ? `${shift.start_time} - ${shift.end_time}` : "No shift assigned",
+                `${pendingShiftSwaps} swaps pending`,
+                `${unreadNotifications} notifications`,
+                `${remainingLeave} leave days remaining`,
+              ]}
+            />
 
-        <Card className="employee-overview__card rounded-[18px] border-slate-200/80 bg-white/95 shadow-sm dark:border-slate-800/80 dark:bg-slate-950/88">
-          <CardContent className="employee-overview__stats p-4">
-            <div className="employee-overview__stat">
-              <span className="employee-overview__stat-label">Attendance</span>
-              <strong>{attendanceStatus}</strong>
-              <span>{shift ? `${shift.start_time} - ${shift.end_time}` : "No shift assigned"}</span>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <StatePanel
+                title="Attendance"
+                description={isLate ? "Late mark detected" : "Shift status ready"}
+                className="border-slate-200 bg-slate-50/80 shadow-none"
+              >
+                <div className="flex items-center gap-2">
+                  <StatusBadge status={attendanceStatus} tone={isLate ? "warning" : "info"} />
+                </div>
+              </StatePanel>
+              <StatePanel
+                title="Leave"
+                description="Current remaining balance"
+                className="border-slate-200 bg-slate-50/80 shadow-none"
+              >
+                <p className="text-xl font-semibold tracking-tight text-slate-950">{remainingLeave} days</p>
+              </StatePanel>
+              <StatePanel
+                title="Signals"
+                description="Unread workspace items"
+                className="border-slate-200 bg-slate-50/80 shadow-none"
+              >
+                <p className="text-xl font-semibold tracking-tight text-slate-950">{unreadNotifications}</p>
+              </StatePanel>
             </div>
-            <div className="employee-overview__stat">
-              <span className="employee-overview__stat-label">Leave</span>
-              <strong>{leave.totalEntitled - leave.totalUsed} days</strong>
-              <span>{upcomingLeave ? `Upcoming ${formatDate(upcomingLeave.created_at)}` : "No leave updates"}</span>
-            </div>
-            <div className="employee-overview__stat">
-              <span className="employee-overview__stat-label">Signals</span>
-              <strong>{unreadNotifications} unread</strong>
-              <span>{pendingShiftSwaps} swaps pending</span>
-            </div>
-          </CardContent>
-        </Card>
-      </section>
-
-      <Card className="employee-viewcard rounded-[18px] border-slate-200/80 bg-white/95 shadow-sm dark:border-slate-800/80 dark:bg-slate-950/88">
-        <CardContent className="employee-viewcard__body p-4">
-          <div className="employee-viewcard__copy">
-            <p className="employee-viewcard__eyebrow">View mode</p>
-            <h3 className="employee-viewcard__title">Switch lanes</h3>
-            <p className="employee-viewcard__subtitle">Move between execution, analytics, and workflow visibility.</p>
           </div>
-          <DashboardModeSwitch value={view} onChange={setView} />
-        </CardContent>
-      </Card>
+        </SurfacePanel>
+
+        <SurfacePanel title="Control lanes" description="Switch between execution, analytics, and workflow visibility.">
+          <div className="space-y-4">
+            <DashboardModeSwitch value={view} onChange={setView} />
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+              <SignalRow label="Current shift" value={shift ? `${shift.start_time} - ${shift.end_time}` : "Not assigned"} />
+              <SignalRow label="Pending shift swaps" value={pendingShiftSwaps} tone={pendingShiftSwaps > 0 ? "warning" : "default"} />
+              <SignalRow label="Unread notifications" value={unreadNotifications} tone={unreadNotifications > 0 ? "info" : "default"} />
+            </div>
+          </div>
+        </SurfacePanel>
+      </DashboardRail>
 
       <DashboardSection visible={view === "workspace"}>
         <section className="space-y-4">
@@ -193,9 +205,9 @@ export const EmployeeDashboard = () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-              <Card className="rounded-xl border-border shadow-sm">
+              <Card className="rounded-[22px] border border-slate-200/80 bg-white/92 shadow-[0_18px_40px_rgba(15,23,42,0.05)]">
                 <CardHeader className="p-5 pb-2">
-                  <CardTitle className="text-lg">Today&apos;s Shift</CardTitle>
+                  <CardTitle className="text-lg">Today's Shift</CardTitle>
                   <CardDescription>{shift ? `${shift.start_time} - ${shift.end_time} (${shift.shift_name})` : "No shift assigned"}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3 p-5 pt-0">
@@ -205,7 +217,7 @@ export const EmployeeDashboard = () => {
                 </CardContent>
               </Card>
 
-              <Card className="rounded-xl border-border shadow-sm">
+              <Card className="rounded-[22px] border border-slate-200/80 bg-white/92 shadow-[0_18px_40px_rgba(15,23,42,0.05)]">
                 <CardHeader className="p-5 pb-2">
                   <CardTitle className="text-lg">Clock In / Out</CardTitle>
                   <CardDescription>Open attendance to record your shift status.</CardDescription>
@@ -214,12 +226,14 @@ export const EmployeeDashboard = () => {
                   <SignalRow label="Worked today" value={formatMinutes(attendance?.workMinutes)} />
                   <SignalRow label="Overtime" value={formatMinutes(attendance?.overtimeMinutes)} tone={(attendance?.overtimeMinutes ?? 0) > 0 ? "warning" : "default"} />
                   <div className="flex justify-end">
-                    <Link href="/app/attendance" className="secondary-btn">Open Attendance</Link>
+                    <Link href="/app/attendance" className="secondary-btn">
+                      Open Attendance
+                    </Link>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="rounded-xl border-border shadow-sm">
+              <Card className="rounded-[22px] border border-slate-200/80 bg-white/92 shadow-[0_18px_40px_rgba(15,23,42,0.05)]">
                 <CardHeader className="p-5 pb-2">
                   <CardTitle className="text-lg">Team & Company</CardTitle>
                   <CardDescription>Assigned reporting and organization context.</CardDescription>
@@ -231,7 +245,7 @@ export const EmployeeDashboard = () => {
                 </CardContent>
               </Card>
 
-              <Card className="rounded-xl border-border shadow-sm">
+              <Card className="rounded-[22px] border border-slate-200/80 bg-white/92 shadow-[0_18px_40px_rgba(15,23,42,0.05)]">
                 <CardHeader className="p-5 pb-2">
                   <CardTitle className="text-lg">Security</CardTitle>
                   <CardDescription>Last known auth health signal.</CardDescription>
@@ -305,7 +319,7 @@ export const EmployeeDashboard = () => {
                 items={activityItems.map((item, index) => ({
                   title: item.title,
                   subtitle: item.subtitle,
-                  meta: item.meta ?? `#${index + 1}`
+                  meta: item.meta ?? `#${index + 1}`,
                 }))}
               />
             )}
