@@ -1,6 +1,16 @@
-import type { LeaveRequest } from "@/lib/types/leave";
+﻿import type { LeaveRequest } from "@/lib/types/leave";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusChip } from "@/components/ui/StatusChip";
+import { Button } from "@/components/ui/button";
+
+const formatDate = (value?: string | null) => {
+  if (!value) return "-";
+  return new Intl.DateTimeFormat(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(new Date(value));
+};
 
 export const LeaveHistoryTable = ({
   requests,
@@ -8,7 +18,7 @@ export const LeaveHistoryTable = ({
   busy,
   page,
   hasNext,
-  onPageChange
+  onPageChange,
 }: {
   requests: LeaveRequest[];
   onCancel?: (requestId: string, employeeId: string) => void;
@@ -18,69 +28,62 @@ export const LeaveHistoryTable = ({
   onPageChange?: (page: number) => void;
 }) => {
   const currentPage = page ?? 1;
+
   return (
-    <Card>
+    <Card className="rounded-[24px] border border-slate-200/80 bg-white/92 shadow-sm">
       <CardHeader>
-        <CardTitle className="text-lg">Leave History</CardTitle>
+        <CardTitle className="text-lg font-semibold text-slate-950">Leave history</CardTitle>
+        <p className="text-sm text-slate-600">Review requests, statuses, and cancellations without leaving the workspace.</p>
       </CardHeader>
-      <CardContent>
-        <div className="table-wrap">
-          <table className="table">
-            <thead>
+      <CardContent className="space-y-5 pt-0">
+        <div className="overflow-hidden rounded-[22px] border border-slate-200">
+          <table className="min-w-full divide-y divide-slate-200 text-sm">
+            <thead className="bg-slate-50/90 text-left text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
               <tr>
-                <th>Dates</th>
-                <th>Type</th>
-                <th>Status</th>
-                <th>Total Days</th>
-                <th>Actions</th>
+                <th className="px-4 py-3">Dates</th>
+                <th className="px-4 py-3">Type</th>
+                <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3">Total days</th>
+                <th className="px-4 py-3">Actions</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-slate-100 bg-white text-slate-700">
               {requests.map((req) => (
-                <tr key={req.id}>
-                  <td>{req.start_date} ? {req.end_date}</td>
-                  <td>{req.leave_type_name ?? req.leave_type_id}</td>
-                  <td><StatusChip label={req.status} compact /></td>
-                  <td>{req.total_days}</td>
-                  <td>
+                <tr key={req.id} className="align-top">
+                  <td className="px-4 py-4">{formatDate(req.start_date)} – {formatDate(req.end_date)}</td>
+                  <td className="px-4 py-4">{req.leave_type_name ?? req.leave_type_id}</td>
+                  <td className="px-4 py-4"><StatusChip label={req.status} compact /></td>
+                  <td className="px-4 py-4">{req.total_days}</td>
+                  <td className="px-4 py-4">
                     {req.status === "pending" && onCancel ? (
-                      <button className="secondary-btn" onClick={() => onCancel(req.id, req.employee_id)} disabled={busy}>
+                      <Button variant="secondary" size="sm" className="rounded-full" onClick={() => onCancel(req.id, req.employee_id)} disabled={busy}>
                         Cancel
-                      </button>
+                      </Button>
                     ) : (
-                      "-"
+                      <span className="text-slate-400">-</span>
                     )}
                   </td>
                 </tr>
               ))}
               {requests.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="text-sm text-muted-foreground">No leave requests</td>
+                  <td colSpan={5} className="px-4 py-6 text-sm text-slate-500">No leave requests yet.</td>
                 </tr>
               ) : null}
             </tbody>
           </table>
         </div>
+
         {onPageChange ? (
-          <div className="row" style={{ justifyContent: "space-between", alignItems: "center", marginTop: 12 }}>
-            <span className="text-xs text-muted-foreground">Page {currentPage}</span>
-            <div className="row">
-              <button
-                className="secondary-btn"
-                type="button"
-                disabled={currentPage <= 1}
-                onClick={() => onPageChange(Math.max(1, currentPage - 1))}
-              >
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-sm text-slate-500">Page {currentPage}</span>
+            <div className="flex items-center gap-2">
+              <Button variant="secondary" size="sm" className="rounded-full" type="button" disabled={currentPage <= 1} onClick={() => onPageChange(Math.max(1, currentPage - 1))}>
                 Previous
-              </button>
-              <button
-                className="secondary-btn"
-                type="button"
-                disabled={!hasNext}
-                onClick={() => onPageChange(currentPage + 1)}
-              >
+              </Button>
+              <Button variant="secondary" size="sm" className="rounded-full" type="button" disabled={!hasNext} onClick={() => onPageChange(currentPage + 1)}>
                 Next
-              </button>
+              </Button>
             </div>
           </div>
         ) : null}
@@ -88,3 +91,4 @@ export const LeaveHistoryTable = ({
     </Card>
   );
 };
+

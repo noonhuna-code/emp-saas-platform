@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { fetchAttendanceHistory } from "@/lib/client/api";
@@ -6,23 +6,25 @@ import type { AttendanceHistoryResponse, AttendanceHistoryRow } from "@/lib/type
 import { EmptyState } from "@/components/states/EmptyState";
 import { ErrorState } from "@/components/states/ErrorState";
 import { LoadingState } from "@/components/states/LoadingState";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 const formatDate = (value: string | null | undefined): string => {
-  if (!value) return "—";
+  if (!value) return "-";
   const parsed = new Date(`${value}T00:00:00`);
   if (Number.isNaN(parsed.getTime())) return value;
   return parsed.toLocaleDateString();
 };
 
 const formatTime = (value: string | null | undefined): string => {
-  if (!value) return "—";
+  if (!value) return "-";
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return value;
   return parsed.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 };
 
 const formatMinutes = (value: number | null | undefined): string => {
-  if (typeof value !== "number") return "—";
+  if (typeof value !== "number") return "-";
   const hours = Math.floor(value / 60);
   const minutes = value % 60;
   return `${hours}h ${minutes}m`;
@@ -75,9 +77,7 @@ export const AttendanceHistoryTable = ({
         setError(err instanceof Error ? err.message : "Unable to load attendance history");
       })
       .finally(() => {
-        if (active) {
-          setLoading(false);
-        }
+        if (active) setLoading(false);
       });
 
     return () => {
@@ -88,94 +88,76 @@ export const AttendanceHistoryTable = ({
   const totalPages = data ? Math.max(1, Math.ceil(data.total / data.pageSize)) : 1;
 
   return (
-    <section className="card stack">
-      <div className="row" style={{ justifyContent: "space-between", alignItems: "flex-start" }}>
-        <div>
-          <h2 style={{ margin: 0 }}>Attendance History</h2>
-          <p className="muted" style={{ margin: "6px 0 0" }}>
-            Filter by date range and status. Use the correction action per record when needed.
-          </p>
-        </div>
-        <span className="badge">Page {page}</span>
-      </div>
-
-      <div className="row" style={{ flexWrap: "wrap" }}>
-        <label className="stack" style={{ minWidth: 180 }}>
-          <span className="muted">From</span>
-          <input type="date" value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); setPage(1); }} />
+    <div className="space-y-5">
+      <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-4">
+        <label className="grid gap-1.5 text-sm font-medium text-slate-700 dark:text-slate-300">
+          From
+          <input className="rounded-2xl border border-slate-200/80 bg-slate-50/80 px-3 py-2.5 text-sm dark:border-slate-800 dark:bg-slate-900/60" type="date" value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); setPage(1); }} />
         </label>
-        <label className="stack" style={{ minWidth: 180 }}>
-          <span className="muted">To</span>
-          <input type="date" value={dateTo} onChange={(e) => { setDateTo(e.target.value); setPage(1); }} />
+        <label className="grid gap-1.5 text-sm font-medium text-slate-700 dark:text-slate-300">
+          To
+          <input className="rounded-2xl border border-slate-200/80 bg-slate-50/80 px-3 py-2.5 text-sm dark:border-slate-800 dark:bg-slate-900/60" type="date" value={dateTo} onChange={(e) => { setDateTo(e.target.value); setPage(1); }} />
         </label>
-        <label className="stack" style={{ minWidth: 200 }}>
-          <span className="muted">Status</span>
-          <select value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }}>
+        <label className="grid gap-1.5 text-sm font-medium text-slate-700 dark:text-slate-300 md:col-span-1 xl:col-span-2">
+          Status
+          <select className="rounded-2xl border border-slate-200/80 bg-slate-50/80 px-3 py-2.5 text-sm dark:border-slate-800 dark:bg-slate-900/60" value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }}>
             <option value="">All</option>
             <option value="present">Present</option>
             <option value="absent">Absent</option>
             <option value="late">Late</option>
             <option value="corrected">Corrected</option>
-            <option value="half_day">Half Day</option>
+            <option value="half_day">Half day</option>
             <option value="pending">Pending</option>
           </select>
         </label>
       </div>
 
-      {loading ? <LoadingState label="Loading attendance history..." /> : null}
+      {loading ? <LoadingState label="Loading attendance history..." description="Filtering recent attendance logs for this employee." /> : null}
       {!loading && error ? <ErrorState message={error} /> : null}
       {!loading && !error && data && data.rows.length === 0 ? (
-        <EmptyState title="No attendance records found" subtitle="Try adjusting the filters." />
+        <EmptyState title="No attendance records found" subtitle="Try adjusting the filters or come back after your next shift." />
       ) : null}
 
       {!loading && !error && data && data.rows.length > 0 ? (
         <>
-          <div style={{ overflowX: "auto" }}>
-            <table className="table">
-              <thead>
+          <div className="overflow-x-auto rounded-2xl border border-slate-200/80 dark:border-slate-800">
+            <table className="min-w-full divide-y divide-slate-200 text-sm dark:divide-slate-800">
+              <thead className="bg-slate-50/80 text-left text-xs font-semibold uppercase tracking-[0.14em] text-slate-500 dark:bg-slate-900/50 dark:text-slate-400">
                 <tr>
-                  <th>Date</th>
-                  <th>Shift</th>
-                  <th>Clock In / Out</th>
-                  <th>Status</th>
-                  <th>Worked</th>
-                  <th>Correction</th>
-                  <th>Action</th>
+                  <th className="px-4 py-3">Date</th>
+                  <th className="px-4 py-3">Shift</th>
+                  <th className="px-4 py-3">Clock in / out</th>
+                  <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3">Worked</th>
+                  <th className="px-4 py-3">Correction</th>
+                  <th className="px-4 py-3">Action</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-slate-200/80 bg-white/70 dark:divide-slate-800 dark:bg-slate-950/40">
                 {data.rows.map((row) => (
                   <tr key={row.id}>
-                    <td>{formatDate(row.attendance_date)}</td>
-                    <td>
-                      <div>{row.shift_start_time ?? "—"} - {row.shift_end_time ?? "—"}</div>
-                    </td>
-                    <td>
+                    <td className="px-4 py-3 align-top">{formatDate(row.attendance_date)}</td>
+                    <td className="px-4 py-3 align-top">{row.shift_start_time ?? "-"} - {row.shift_end_time ?? "-"}</td>
+                    <td className="px-4 py-3 align-top">
                       <div>{formatTime(row.check_in)}</div>
-                      <div className="muted">{formatTime(row.check_out)}</div>
+                      <div className="text-slate-500 dark:text-slate-400">{formatTime(row.check_out)}</div>
                     </td>
-                    <td>
-                      <div>{row.status ?? "—"}</div>
-                      <div className="muted" style={{ fontSize: 12 }}>
-                        {row.is_absent ? "Absent" : row.is_late ? "Late" : " "}
+                    <td className="px-4 py-3 align-top">
+                      <div className="space-y-1">
+                        <Badge className="rounded-full px-2.5 py-1">{row.status ?? "-"}</Badge>
+                        {row.is_absent ? <div className="text-xs text-red-600 dark:text-red-400">Absent</div> : null}
+                        {!row.is_absent && row.is_late ? <div className="text-xs text-amber-600 dark:text-amber-400">Late</div> : null}
                       </div>
                     </td>
-                    <td>
+                    <td className="px-4 py-3 align-top">
                       <div>{formatMinutes(row.work_minutes)}</div>
-                      <div className="muted" style={{ fontSize: 12 }}>
-                        OT: {formatMinutes(row.overtime_minutes)}
-                      </div>
+                      <div className="text-slate-500 dark:text-slate-400">OT: {formatMinutes(row.overtime_minutes)}</div>
                     </td>
-                    <td>{row.correction_status ?? "—"}</td>
-                    <td>
-                      <button
-                        type="button"
-                        className="secondary-btn"
-                        disabled={row.is_locked}
-                        onClick={() => onRequestCorrection(row)}
-                      >
-                        Request Correction
-                      </button>
+                    <td className="px-4 py-3 align-top">{row.correction_status ?? "-"}</td>
+                    <td className="px-4 py-3 align-top">
+                      <Button type="button" variant="secondary" size="sm" disabled={row.is_locked} onClick={() => onRequestCorrection(row)}>
+                        Request correction
+                      </Button>
                     </td>
                   </tr>
                 ))}
@@ -183,31 +165,21 @@ export const AttendanceHistoryTable = ({
             </table>
           </div>
 
-          <div className="row" style={{ justifyContent: "space-between" }}>
-            <span className="muted">Total records: {data.total}</span>
-            <div className="row">
-              <button
-                type="button"
-                className="secondary-btn"
-                disabled={page <= 1}
-                onClick={() => setPage((value) => Math.max(1, value - 1))}
-              >
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <span className="text-sm text-slate-500 dark:text-slate-400">Total records: {data.total}</span>
+            <div className="flex items-center gap-2">
+              <Button type="button" variant="secondary" size="sm" disabled={page <= 1} onClick={() => setPage((value) => Math.max(1, value - 1))}>
                 Previous
-              </button>
-              <span className="badge">{page} / {totalPages}</span>
-              <button
-                type="button"
-                className="secondary-btn"
-                disabled={page >= totalPages}
-                onClick={() => setPage((value) => Math.min(totalPages, value + 1))}
-              >
+              </Button>
+              <Badge className="rounded-full px-3 py-1.5">{page} / {totalPages}</Badge>
+              <Button type="button" variant="secondary" size="sm" disabled={page >= totalPages} onClick={() => setPage((value) => Math.min(totalPages, value + 1))}>
                 Next
-              </button>
+              </Button>
             </div>
           </div>
         </>
       ) : null}
-    </section>
+    </div>
   );
 };
 

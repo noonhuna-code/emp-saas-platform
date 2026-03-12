@@ -1,6 +1,9 @@
-"use client";
+﻿"use client";
 
 import { useActionState, useEffect, useMemo, useState } from "react";
+import { MapPin, ShieldCheck } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 export type ClockActionState = {
   ok: boolean;
@@ -57,9 +60,9 @@ export const ClockActions = ({
   const guidance = useMemo(() => {
     if (!latestError) return null;
     const lower = latestError.toLowerCase();
-    if (lower.includes('shift assignment')) return 'Ask HR or your team lead to assign a shift template.';
-    if (lower.includes('employee record')) return 'HR needs to link your profile to an employee record.';
-    if (lower.includes('permission')) return 'Your role needs attendance access to clock in/out.';
+    if (lower.includes("shift assignment")) return "Ask HR or your team lead to assign a shift template.";
+    if (lower.includes("employee record")) return "HR needs to link your profile to an employee record.";
+    if (lower.includes("permission")) return "Your role needs attendance access to clock in or out.";
     return null;
   }, [latestError]);
 
@@ -67,18 +70,15 @@ export const ClockActions = ({
     if (!geoPoint) return null;
     const lat = geoPoint.latitude.toFixed(5);
     const lng = geoPoint.longitude.toFixed(5);
-    const acc = geoPoint.accuracy ? ` ?${Math.round(geoPoint.accuracy)}m` : "";
-    return `Coordinates: ${lat}, ${lng}${acc}`;
+    const acc = geoPoint.accuracy ? ` (+/-${Math.round(geoPoint.accuracy)}m)` : "";
+    return `${lat}, ${lng}${acc}`;
   }, [geoPoint]);
+
   const geoLabel = useMemo(() => {
-    if (geoStatus === "capturing") return "Capturing location...";
-    if (geoStatus === "ready" && geoPoint) {
-      const lat = geoPoint.latitude.toFixed(5);
-      const lng = geoPoint.longitude.toFixed(5);
-      return `Location ready (${lat}, ${lng})`;
-    }
+    if (geoStatus === "capturing") return "Capturing location…";
+    if (geoStatus === "ready" && geoPoint) return "Location captured and ready for your next clock action.";
     if (geoStatus === "error") return geoError ?? "Location capture failed";
-    return "Optional: capture location for geo-verified attendance logs";
+    return "Optional: capture location for geo-verified attendance logs.";
   }, [geoStatus, geoPoint, geoError]);
 
   const captureLocation = () => {
@@ -108,27 +108,17 @@ export const ClockActions = ({
   };
 
   return (
-    <section className="card stack">
-      <div className="row" style={{ justifyContent: "space-between" }}>
-        <div>
-          <h2 style={{ margin: 0 }}>Clock Actions</h2>
-          <p className="muted" style={{ margin: "6px 0 0" }}>
-            Attendance mutations are executed via server actions and the backend attendance service.
-          </p>
-        </div>
-        {locked ? <span className="badge">Attendance locked</span> : null}
-      </div>
-
-      <div className="row" style={{ flexWrap: "wrap" }}>
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-center gap-3">
         <form action={clockInFormAction}>
           <input type="hidden" name="employeeId" value={employeeId} />
           <input type="hidden" name="source" value="web" />
           <input type="hidden" name="geoLatitude" value={geoPoint?.latitude ?? ""} />
           <input type="hidden" name="geoLongitude" value={geoPoint?.longitude ?? ""} />
           <input type="hidden" name="geoAccuracy" value={geoPoint?.accuracy ?? ""} />
-          <button className="primary-btn" type="submit" disabled={disabledAll || !canClockIn}>
-            {clockInPending ? "Clocking In..." : "Clock In"}
-          </button>
+          <Button type="submit" disabled={disabledAll || !canClockIn}>
+            {clockInPending ? "Clocking in…" : "Clock in"}
+          </Button>
         </form>
 
         <form action={clockOutFormAction}>
@@ -137,22 +127,43 @@ export const ClockActions = ({
           <input type="hidden" name="geoLatitude" value={geoPoint?.latitude ?? ""} />
           <input type="hidden" name="geoLongitude" value={geoPoint?.longitude ?? ""} />
           <input type="hidden" name="geoAccuracy" value={geoPoint?.accuracy ?? ""} />
-          <button className="secondary-btn" type="submit" disabled={disabledAll || !canClockOut}>
-            {clockOutPending ? "Clocking Out..." : "Clock Out"}
-          </button>
+          <Button variant="secondary" type="submit" disabled={disabledAll || !canClockOut}>
+            {clockOutPending ? "Clocking out…" : "Clock out"}
+          </Button>
         </form>
 
-        <button type="button" className="ghost-btn" onClick={captureLocation} disabled={disabledAll || geoStatus === "capturing"}>
-          {geoStatus === "capturing" ? "Locating..." : "Capture location"}
-        </button>
+        <Button type="button" variant="ghost" onClick={captureLocation} disabled={disabledAll || geoStatus === "capturing"}>
+          <MapPin className="h-4 w-4" />
+          {geoStatus === "capturing" ? "Locating…" : "Capture location"}
+        </Button>
+
+        {locked ? <Badge className="rounded-full px-3 py-1.5">Attendance locked</Badge> : null}
       </div>
 
-      <p className={geoStatus === "error" ? "error" : "muted"} style={{ margin: 0 }}>{geoLabel}</p>
-  {geoCoordsLabel ? <p className="muted" style={{ margin: 0 }}>{geoCoordsLabel}</p> : null}
-      {latestError ? <p className="error" style={{ margin: 0 }}>{latestError}</p> : null}
-      {guidance ? <p className="muted" style={{ margin: 0 }}>{guidance}</p> : null}
-      {!latestError && clockInState.ok ? <p className="muted" style={{ margin: 0 }}>Clock-in completed.</p> : null}
-      {!latestError && clockOutState.ok ? <p className="muted" style={{ margin: 0 }}>Clock-out completed.</p> : null}
-    </section>
+      <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4 dark:border-slate-800 dark:bg-slate-900/60">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="space-y-1">
+            <div className="inline-flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300">
+              <ShieldCheck className="h-4 w-4" />
+              Geo verification
+            </div>
+            <p className={geoStatus === "error" ? "text-sm text-red-600 dark:text-red-400" : "text-sm text-slate-600 dark:text-slate-400"}>{geoLabel}</p>
+            {geoCoordsLabel ? <p className="text-sm font-medium text-slate-950 dark:text-slate-50">{geoCoordsLabel}</p> : null}
+          </div>
+          {geoStatus === "ready" ? <Badge className="rounded-full px-3 py-1.5">Ready</Badge> : null}
+        </div>
+      </div>
+
+      {latestError ? (
+        <div className="rounded-2xl border border-red-200 bg-red-50/80 px-4 py-3 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-300">
+          <p className="font-medium">{latestError}</p>
+          {guidance ? <p className="mt-1 text-red-600/90 dark:text-red-300/90">{guidance}</p> : null}
+        </div>
+      ) : null}
+
+      {!latestError && clockInState.ok ? <p className="text-sm text-slate-500 dark:text-slate-400">Clock-in completed.</p> : null}
+      {!latestError && clockOutState.ok ? <p className="text-sm text-slate-500 dark:text-slate-400">Clock-out completed.</p> : null}
+    </div>
   );
 };
+

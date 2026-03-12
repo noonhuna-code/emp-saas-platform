@@ -17,10 +17,9 @@ import {
   updateEmployeeSkill,
   deleteEmployeeSkill,
   fetchSession,
-  peekCachedResult
+  peekCachedResult,
 } from "@/lib/client/api";
-import type { EmployeeProfile, EmployeeLookupResponse, EmployeeProfileResponse } from "@/lib/types/profile";
-import { EmployeeProfileHeader } from "@/components/profile/EmployeeProfileHeader";
+import type { EmployeeLookupResponse, EmployeeProfile, EmployeeProfileResponse } from "@/lib/types/profile";
 import { PersonalInfoSection } from "@/components/profile/PersonalInfoSection";
 import { EmploymentInfoSection } from "@/components/profile/EmploymentInfoSection";
 import { SensitiveDataSection } from "@/components/profile/SensitiveDataSection";
@@ -30,6 +29,16 @@ import { SkillsSection } from "@/components/profile/SkillsSection";
 import { Tabs } from "@/components/shared/Tabs";
 import { ErrorState } from "@/components/states/ErrorState";
 import { LoadingState } from "@/components/states/LoadingState";
+import {
+  DashboardRail,
+  FeatureCallout,
+  PageContainer,
+  PageHeader,
+  StatCard,
+  StatGrid,
+  SurfacePanel,
+} from "@/components/dashboard-v2/PagePrimitives";
+import { Badge } from "@/components/ui/badge";
 
 const TAB_ITEMS = [
   { id: "personal", label: "Personal" },
@@ -37,8 +46,13 @@ const TAB_ITEMS = [
   { id: "sensitive", label: "Sensitive" },
   { id: "documents", label: "Documents" },
   { id: "family", label: "Family" },
-  { id: "skills", label: "Skills" }
+  { id: "skills", label: "Skills" },
 ];
+
+const getEmployeeField = (profile: EmployeeProfile, key: string): string | null => {
+  const value = profile.employee[key];
+  return typeof value === "string" && value.length > 0 ? value : null;
+};
 
 export const EmployeeProfileScreen = ({ employeeId }: { employeeId: string }) => {
   const cachedProfile = peekCachedResult<EmployeeProfileResponse>(`/api/employees/${employeeId}/profile`);
@@ -52,7 +66,7 @@ export const EmployeeProfileScreen = ({ employeeId }: { employeeId: string }) =>
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("personal");
   const [canManageEmployees, setCanManageEmployees] = useState(
-    cachedSession?.ok ? Boolean(cachedSession.data?.permissions?.includes("manage_employees")) : false
+    cachedSession?.ok ? Boolean(cachedSession.data?.permissions?.includes("manage_employees")) : false,
   );
 
   useEffect(() => {
@@ -122,49 +136,96 @@ export const EmployeeProfileScreen = ({ employeeId }: { employeeId: string }) =>
 
   if (loading) {
     return (
-      <div className="page-wrap">
-        <LoadingState label="Loading employee profile..." />
-      </div>
+      <PageContainer>
+        <PageHeader eyebrow="Profile" title="Profile workspace" description="Manage your personal, employment, family, skill, and document records." />
+        <LoadingState label="Loading profile workspace" />
+      </PageContainer>
     );
   }
 
   if (error || !profile) {
     return (
-      <div className="page-wrap">
+      <PageContainer>
+        <PageHeader eyebrow="Profile" title="Profile workspace" description="Manage your personal, employment, family, skill, and document records." />
         <ErrorState message={error ?? "Employee profile unavailable"} />
-      </div>
+      </PageContainer>
     );
   }
 
   const displayName = profile.userProfile?.full_name ?? "Employee";
-  const designation = (profile.employee.designation as string | undefined) ?? null;
-  const department = profile.department?.name ?? null;
-  const employmentStatus = (profile.employee.employment_status as string | undefined) ?? null;
+  const designation = getEmployeeField(profile, "designation");
+  const department = profile.department?.name ?? "Unassigned";
+  const team = profile.team?.name ?? "No team";
+  const manager = profile.manager?.full_name ?? "No manager assigned";
+  const employmentStatus = getEmployeeField(profile, "employment_status") ?? "active";
+  const employeeCode = getEmployeeField(profile, "employee_code") ?? employeeId;
+  const profileCompleteness = profile.profileCompletenessScore ?? 0;
 
   return (
-    <div className="page-wrap stack">
-      <div className="page-header">
-        <div>
-          <h1>Employee Profile</h1>
-          <p className="muted">Manage profile data, documents, and employment status.</p>
-        </div>
-        <a className="secondary-btn" href={canManageEmployees ? "/app/employees" : "/app/dashboard"}>
-          {canManageEmployees ? "Back to Directory" : "Back to Dashboard"}
-        </a>
-      </div>
-
-      <EmployeeProfileHeader
-        name={displayName}
-        avatarUrl={profile.userProfile?.avatar_url ?? null}
-        designation={designation}
-        department={department}
-        employmentStatus={employmentStatus}
-        profileCompleteness={profile.profileCompletenessScore}
+    <PageContainer>
+      <PageHeader
+        eyebrow="Profile"
+        title={displayName}
+        description="Manage your personal record, employment details, supporting documents, family data, and skill inventory."
+        actions={
+          <>
+            <Badge className="rounded-full border-blue-200 bg-blue-50 text-blue-700">
+              {employeeCode}
+            </Badge>
+            <Badge className="rounded-full border-slate-200 bg-white text-slate-700">
+              {employmentStatus}
+            </Badge>
+            <a
+              className="inline-flex h-10 items-center justify-center rounded-full border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+              href={canManageEmployees ? "/app/employees" : "/app/dashboard"}
+            >
+              {canManageEmployees ? "Back to directory" : "Back to dashboard"}
+            </a>
+          </>
+        }
       />
+
+      <FeatureCallout
+        badge="Employee profile"
+        title="Keep core identity, compliance, and skills aligned"
+        description="The profile workspace brings together the current employee record, document readiness, household information, and talent inventory without changing the existing profile contracts."
+      />
+
+      <DashboardRail>
+        <SurfacePanel title="Profile overview" description="Current reporting structure and organizational placement.">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Designation</p>
+              <p className="mt-2 text-sm font-medium text-slate-900">{designation ?? "Employee"}</p>
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Department</p>
+              <p className="mt-2 text-sm font-medium text-slate-900">{department}</p>
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Team</p>
+              <p className="mt-2 text-sm font-medium text-slate-900">{team}</p>
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Reports to</p>
+              <p className="mt-2 text-sm font-medium text-slate-900">{manager}</p>
+            </div>
+          </div>
+        </SurfacePanel>
+
+        <StatGrid className="xl:grid-cols-2">
+          <StatCard label="Profile completeness" value={`${profileCompleteness}%`} hint="Signal used by HR profile quality checks" />
+          <StatCard label="Documents" value={profile.documents.length} hint="Uploaded employee records" />
+          <StatCard label="Family members" value={profile.familyMembers.length} hint="Dependents and emergency records" />
+          <StatCard label="Skills" value={profile.skills.length} hint="Tracked capabilities" />
+        </StatGrid>
+      </DashboardRail>
 
       {error ? <ErrorState message={error} /> : null}
 
-      <Tabs tabs={TAB_ITEMS} active={activeTab} onChange={setActiveTab} />
+      <SurfacePanel title="Profile sections" description="Switch between employee data sections without leaving the profile workspace.">
+        <Tabs tabs={TAB_ITEMS} active={activeTab} onChange={setActiveTab} />
+      </SurfacePanel>
 
       {activeTab === "personal" ? (
         <PersonalInfoSection
@@ -259,6 +320,7 @@ export const EmployeeProfileScreen = ({ employeeId }: { employeeId: string }) =>
           }}
         />
       ) : null}
-    </div>
+    </PageContainer>
   );
 };
+

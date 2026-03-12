@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { AttendanceClockActionState } from "./actions";
@@ -10,17 +10,47 @@ import { AttendanceHistoryTable } from "@/components/attendance/AttendanceHistor
 import { CorrectionRequestDialog } from "@/components/attendance/CorrectionRequestDialog";
 import { ErrorState } from "@/components/states/ErrorState";
 import { LoadingState } from "@/components/states/LoadingState";
-import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  DashboardRail,
+  FeatureCallout,
+  PageContainer,
+  PageHeader,
+  StatCard,
+  StatGrid,
+  SurfacePanel,
+} from "@/components/dashboard-v2/PagePrimitives";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 type ClockActionFn = (
   prevState: AttendanceClockActionState,
-  formData: FormData
+  formData: FormData,
 ) => Promise<AttendanceClockActionState>;
+
+const formatMinutes = (value: number | null | undefined): string => {
+  if (typeof value !== "number") return "-";
+  const hours = Math.floor(value / 60);
+  const minutes = value % 60;
+  return `${hours}h ${minutes}m`;
+};
+
+const prettyCurrentStatus = (status: AttendanceTodayResponse["currentStatus"]): string => {
+  switch (status) {
+    case "clocked_in":
+      return "Clocked in";
+    case "clocked_out":
+      return "Clocked out";
+    case "on_break":
+      return "On break";
+    case "not_clocked_in":
+    default:
+      return "Not clocked in";
+  }
+};
 
 export const AttendancePageClient = ({
   clockInAction,
-  clockOutAction
+  clockOutAction,
 }: {
   clockInAction: ClockActionFn;
   clockOutAction: ClockActionFn;
@@ -35,7 +65,6 @@ export const AttendancePageClient = ({
 
   const loadToday = useCallback(async () => {
     setTodayError(null);
-
     try {
       const result = await fetchAttendanceToday();
       if (!result.ok || !result.data) {
@@ -57,21 +86,9 @@ export const AttendancePageClient = ({
   }, [loadToday, refreshKey]);
 
   const actionDisabledState = useMemo(() => {
-    if (!todayData) {
-      return {
-        canClockIn: false,
-        canClockOut: false
-      };
-    }
-
+    if (!todayData) return { canClockIn: false, canClockOut: false };
     const locked = todayData.record?.is_locked ?? false;
-    if (locked) {
-      return {
-        canClockIn: false,
-        canClockOut: false
-      };
-    }
-
+    if (locked) return { canClockIn: false, canClockOut: false };
     switch (todayData.currentStatus) {
       case "not_clocked_in":
         return { canClockIn: true, canClockOut: false };
@@ -82,6 +99,33 @@ export const AttendancePageClient = ({
       default:
         return { canClockIn: false, canClockOut: false };
     }
+  }, [todayData]);
+
+  const overview = useMemo(() => {
+    const record = todayData?.record;
+    const geo = todayData?.latestGeoEvent;
+    return [
+      {
+        label: "Attendance status",
+        value: prettyCurrentStatus(todayData?.currentStatus ?? "not_clocked_in"),
+        hint: record?.is_locked ? "Record locked for edits" : "Live shift state",
+      },
+      {
+        label: "Worked today",
+        value: formatMinutes(record?.work_minutes),
+        hint: `Overtime ${formatMinutes(record?.overtime_minutes)}`,
+      },
+      {
+        label: "Shift start",
+        value: record?.shift_start_time ?? "-",
+        hint: record?.shift_end_time ? `Ends ${record.shift_end_time}` : "No shift assigned",
+      },
+      {
+        label: "Geo capture",
+        value: geo ? `${geo.latitude.toFixed(4)}, ${geo.longitude.toFixed(4)}` : "Pending",
+        hint: geo ? "Latest coordinates captured" : "Capture before clocking",
+      },
+    ];
   }, [todayData]);
 
   const handleClockActionComplete = useCallback(() => {
@@ -98,40 +142,64 @@ export const AttendancePageClient = ({
   }, []);
 
   return (
-    <div className="page-wrap space-y-8">
-      <Card>
-        <CardHeader className="space-y-2">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <CardTitle>Attendance</CardTitle>
-              <p className="text-sm text-muted-foreground">Track daily attendance, time status, and correction requests.</p>
-            </div>
-            {todayData ? <Badge variant="default">Today: {todayData.todayDate}</Badge> : null}
-          </div>
-        </CardHeader>
-      </Card>
+    <PageContainer>
+      <PageHeader
+        eyebrow="Attendance"
+        title="Attendance command center"
+        description="Track clock events, geo verification, and correction requests from one focused workspace."
+        actions={todayData ? (
+          <>
+            <Badge className="rounded-full border-blue-200 bg-blue-50 text-blue-700">
+              Today {todayData.todayDate}
+            </Badge>
+            <Button variant="secondary" className="rounded-full" onClick={() => setCorrectionDialogOpen(true)}>
+              Request correction
+            </Button>
+          </>
+        ) : undefined}
+      />
 
-      {loadingToday ? <LoadingState label="Loading today attendance..." /> : null}
+      {loadingToday ? <LoadingState label="Loading attendance command center" /> : null}
       {!loadingToday && todayError ? <ErrorState message={todayError} /> : null}
 
       {!loadingToday && !todayError && todayData ? (
         <>
-          <TodayAttendanceCard data={todayData} />
-
-          <ClockActions
-            employeeId={todayData.employeeId}
-            locked={todayData.record?.is_locked ?? false}
-            canClockIn={actionDisabledState.canClockIn}
-            canClockOut={actionDisabledState.canClockOut}
-            clockInAction={clockInAction}
-            clockOutAction={clockOutAction}
-            onCompleted={handleClockActionComplete}
+          <FeatureCallout
+            badge="Daily operations"
+            title="Run today’s shift with less friction"
+            description="Clock state, geo verification, and your current attendance signal are grouped together so the daily workflow stays fast and visible."
           />
 
-          <AttendanceHistoryTable
-            refreshKey={refreshKey}
-            onRequestCorrection={handleRequestCorrection}
-          />
+          <StatGrid>
+            {overview.map((item) => (
+              <StatCard key={item.label} label={item.label} value={item.value} hint={item.hint} />
+            ))}
+          </StatGrid>
+
+          <DashboardRail>
+            <TodayAttendanceCard data={todayData} />
+            <SurfacePanel
+              title="Clock actions"
+              description="Use the existing employee attendance mutation flow without leaving this route."
+            >
+              <ClockActions
+                employeeId={todayData.employeeId}
+                locked={todayData.record?.is_locked ?? false}
+                canClockIn={actionDisabledState.canClockIn}
+                canClockOut={actionDisabledState.canClockOut}
+                clockInAction={clockInAction}
+                clockOutAction={clockOutAction}
+                onCompleted={handleClockActionComplete}
+              />
+            </SurfacePanel>
+          </DashboardRail>
+
+          <SurfacePanel
+            title="Attendance history"
+            description="Filter and review recorded attendance entries. Use correction requests where needed."
+          >
+            <AttendanceHistoryTable refreshKey={refreshKey} onRequestCorrection={handleRequestCorrection} />
+          </SurfacePanel>
 
           <CorrectionRequestDialog
             open={correctionDialogOpen}
@@ -141,7 +209,7 @@ export const AttendancePageClient = ({
           />
         </>
       ) : null}
-    </div>
+    </PageContainer>
   );
 };
 

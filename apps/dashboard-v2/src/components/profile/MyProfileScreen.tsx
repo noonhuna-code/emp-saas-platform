@@ -5,6 +5,7 @@ import { fetchCurrentEmployeeId, peekCachedResult } from "@/lib/client/api";
 import { EmployeeProfileScreen } from "@/components/profile/EmployeeProfileScreen";
 import { LoadingState } from "@/components/states/LoadingState";
 import { ErrorState } from "@/components/states/ErrorState";
+import { PageContainer, PageHeader } from "@/components/dashboard-v2/PagePrimitives";
 
 export const MyProfileScreen = () => {
   const cachedEmployee = peekCachedResult<{ employeeId: string }>("/api/employees/me");
@@ -40,20 +41,29 @@ export const MyProfileScreen = () => {
 
   if (loading) {
     return (
-      <div className="page-wrap">
-        <LoadingState label="Loading profile..." />
-      </div>
+      <PageContainer>
+        <PageHeader
+          eyebrow="Profile"
+          title="My profile"
+          description="Review and update your employee profile, documents, family details, and skill inventory."
+        />
+        <LoadingState label="Loading profile workspace" />
+      </PageContainer>
     );
   }
 
   if (error || !employeeId) {
     return (
-      <div className="page-wrap">
+      <PageContainer>
+        <PageHeader
+          eyebrow="Profile"
+          title="My profile"
+          description="Review and update your employee profile, documents, family details, and skill inventory."
+        />
         <ErrorState message={error ?? "Employee profile unavailable"} />
-      </div>
+      </PageContainer>
     );
   }
 
   return <EmployeeProfileScreen employeeId={employeeId} />;
 };
-

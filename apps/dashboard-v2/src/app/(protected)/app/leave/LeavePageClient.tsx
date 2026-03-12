@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -7,7 +7,7 @@ import {
   fetchEmployeeMe,
   fetchLeaveBalances,
   fetchLeaveHistory,
-  fetchLeaveTypes
+  fetchLeaveTypes,
 } from "@/lib/client/api";
 import type { LeaveBalance, LeaveRequest, LeaveTypeOption } from "@/lib/types/leave";
 import { LeaveBalanceCard } from "@/components/leave/LeaveBalanceCard";
@@ -16,7 +16,17 @@ import { LeaveHistoryTable } from "@/components/leave/LeaveHistoryTable";
 import { LeaveStatusTimeline } from "@/components/leave/LeaveStatusTimeline";
 import { ErrorState } from "@/components/states/ErrorState";
 import { LoadingState } from "@/components/states/LoadingState";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  DashboardRail,
+  FeatureCallout,
+  PageContainer,
+  PageHeader,
+  StatCard,
+  StatGrid,
+  SurfacePanel,
+} from "@/components/dashboard-v2/PagePrimitives";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 export const LeavePageClient = () => {
   const [balances, setBalances] = useState<LeaveBalance[]>([]);
@@ -39,7 +49,7 @@ export const LeavePageClient = () => {
         fetchEmployeeMe(),
         fetchLeaveBalances(),
         fetchLeaveHistory({ page: historyPage, pageSize: historyPageSize }),
-        fetchLeaveTypes()
+        fetchLeaveTypes(),
       ]);
 
       if (meResult.ok && meResult.data?.employeeId) {
@@ -83,14 +93,14 @@ export const LeavePageClient = () => {
   const summary = useMemo(() => {
     const counts = { applied: 0, approved: 0, rejected: 0, cancelled: 0 };
     requests.forEach((req) => {
-      const status = (req.status ?? "").toLowerCase();
-      if (status === "approved") counts.approved += 1;
-      else if (status === "rejected") counts.rejected += 1;
-      else if (status === "cancelled") counts.cancelled += 1;
+      const current = (req.status ?? "").toLowerCase();
+      if (current === "approved") counts.approved += 1;
+      else if (current === "rejected") counts.rejected += 1;
+      else if (current === "cancelled") counts.cancelled += 1;
       else counts.applied += 1;
     });
-    const totalAnnual = balances.reduce((sum, b) => sum + (b.entitled_days ?? 0), 0);
-    const totalRemaining = balances.reduce((sum, b) => sum + (b.remaining_days ?? 0), 0);
+    const totalAnnual = balances.reduce((sum, balance) => sum + (balance.entitled_days ?? 0), 0);
+    const totalRemaining = balances.reduce((sum, balance) => sum + (balance.remaining_days ?? 0), 0);
     return { ...counts, totalAnnual, totalRemaining };
   }, [requests, balances]);
 
@@ -133,72 +143,68 @@ export const LeavePageClient = () => {
   }, [load]);
 
   return (
-    <div className="page-wrap space-y-8">
-      <Card>
-        <CardHeader className="space-y-2">
-          <CardTitle>Leave</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Apply for leave and track balances. Requests are validated server-side.
-          </p>
-        </CardHeader>
-      </Card>
+    <PageContainer>
+      <PageHeader
+        eyebrow="Leave & swaps"
+        title="Leave workspace"
+        description="Apply for leave, review balances, and follow approval progress without leaving the V2 shell."
+        actions={
+          <>
+            <Badge className="rounded-full border-blue-200 bg-blue-50 text-blue-700">
+              {leaveTypes.length} leave types
+            </Badge>
+            <Button variant="secondary" className="rounded-full" onClick={() => void load()}>
+              Refresh
+            </Button>
+          </>
+        }
+      />
 
-      {loading ? <LoadingState label="Loading leave data..." /> : null}
+      {loading ? <LoadingState label="Loading leave workspace" /> : null}
       {!loading && error ? <ErrorState message={error} /> : null}
 
       {!loading ? (
         <>
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Leave Summary</CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              <Card className="rounded-xl border-border shadow-sm">
-                <CardContent className="space-y-1 p-4">
-                  <div className="text-xs text-muted-foreground">Applied</div>
-                  <div className="text-2xl font-semibold">{summary.applied}</div>
-                </CardContent>
-              </Card>
-              <Card className="rounded-xl border-border shadow-sm">
-                <CardContent className="space-y-1 p-4">
-                  <div className="text-xs text-muted-foreground">Approved</div>
-                  <div className="text-2xl font-semibold">{summary.approved}</div>
-                </CardContent>
-              </Card>
-              <Card className="rounded-xl border-border shadow-sm">
-                <CardContent className="space-y-1 p-4">
-                  <div className="text-xs text-muted-foreground">Rejected / Cancelled</div>
-                  <div className="text-2xl font-semibold">{summary.rejected + summary.cancelled}</div>
-                </CardContent>
-              </Card>
-              <Card className="rounded-xl border-border shadow-sm">
-                <CardContent className="space-y-1 p-4">
-                  <div className="text-xs text-muted-foreground">Annual / Remaining</div>
-                  <div className="text-lg font-semibold">{summary.totalAnnual} / {summary.totalRemaining}</div>
-                </CardContent>
-              </Card>
-            </CardContent>
-          </Card>
+          <FeatureCallout
+            badge="Approvals"
+            title="Keep leave planning and approvals in one view"
+            description="Balances, request history, and approval stages are presented together so the leave workflow is readable without changing the underlying company-scoped contracts."
+          />
 
-          <LeaveBalanceCard balances={balances} />
-          <LeaveApplyForm
-            onSubmit={handleApply}
-            loading={submitting}
-            employeeId={employeeId}
-            balances={balances}
-            leaveTypes={leaveTypes}
-          />
-          <LeaveHistoryTable
-            requests={requests}
-            onCancel={handleCancel}
-            busy={submitting}
-            page={historyPage}
-            hasNext={historyHasNext}
-            onPageChange={setHistoryPage}
-          />
-          <LeaveStatusTimeline request={selectedRequest} />
+          <StatGrid>
+            <StatCard label="Applied" value={summary.applied} hint="Open or pending requests" />
+            <StatCard label="Approved" value={summary.approved} hint="Approved leave requests" />
+            <StatCard label="Annual entitlement" value={summary.totalAnnual} hint="Configured entitlement days" />
+            <StatCard label="Remaining" value={summary.totalRemaining} hint="Available balance" />
+          </StatGrid>
+
+          <DashboardRail>
+            <SurfacePanel title="Apply for leave" description="Submit a leave request using the existing employee and leave contracts.">
+              <LeaveApplyForm
+                onSubmit={handleApply}
+                loading={submitting}
+                employeeId={employeeId}
+                balances={balances}
+                leaveTypes={leaveTypes}
+              />
+            </SurfacePanel>
+            <LeaveBalanceCard balances={balances} />
+          </DashboardRail>
+
+          <DashboardRail>
+            <LeaveHistoryTable
+              requests={requests}
+              onCancel={handleCancel}
+              busy={submitting}
+              page={historyPage}
+              hasNext={historyHasNext}
+              onPageChange={setHistoryPage}
+            />
+            <LeaveStatusTimeline request={selectedRequest} />
+          </DashboardRail>
         </>
       ) : null}
-    </div>
+    </PageContainer>
   );
 };
+
