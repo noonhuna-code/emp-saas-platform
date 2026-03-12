@@ -1,6 +1,7 @@
-import type { ServiceContext, ServiceResult } from "../lib/types";
+﻿import type { EmployeeReportingLineSummary, OrganizationDepartmentSummary, OrganizationReportingSummary, OrganizationTeamSummary, OrgReportingRelationType, ServiceContext, ServiceResult } from "../lib/types";
 import { assertEmployeeScope, requirePermission } from "../lib/auth-wrapper";
 import { requirePlanFeature } from "../lib/entitlements";
+import { getOrganizationOverview } from "./org-chart.service";
 
 export type EmployeeListFilters = {
   departmentId?: string;
@@ -129,6 +130,11 @@ export type EmployeeProfile = {
   department: { id: string; name: string } | null;
   team: { id: string; name: string } | null;
   manager: { id: string; full_name: string } | null;
+  departmentHead: { id: string; full_name: string; employee_code?: string | null } | null;
+  teamLead: { id: string; full_name: string; employee_code?: string | null } | null;
+  primaryManager: { id: string; full_name: string; employee_code?: string | null } | null;
+  secondaryManagers: Array<{ id: string; full_name: string; employee_code?: string | null; relation_type: OrgReportingRelationType }>;
+  reportingLines: EmployeeReportingLineSummary[];
   personalDetails: EmployeePersonalDetails | null;
   sensitiveData: EmployeeSensitiveData | null;
   documents: EmployeeDocument[];
@@ -307,6 +313,117 @@ export const getEmployeeDetail = async (
   }
 };
 
+
+type HierarchyIdentity = {
+  id: string;
+  full_name: string;
+  employee_code?: string | null;
+};
+
+type ReportingLineRow = {
+  id: string;
+  company_id: string;
+  employee_id: string;
+  manager_employee_id: string;
+  relation_type: OrgReportingRelationType;
+  is_primary: boolean;
+  effective_from: string;
+  effective_to: string | null;
+  created_at: string;
+  created_by: string | null;
+};
+
+const getActiveReportingLines = (rows: ReportingLineRow[]): ReportingLineRow[] =>
+  rows.filter((row) => !row.effective_to || new Date(row.effective_to) >= new Date(new Date().toDateString()));
+
+const buildIdentitySummary = (
+  employee: { id: string; employee_code?: string | null; user_profile_id?: string | null },
+  namesByEmployeeId: Map<string, string>
+): HierarchyIdentity => ({
+  id: employee.id,
+  full_name: namesByEmployeeId.get(employee.id) ?? employee.employee_code ?? "Unknown",
+  employee_code: employee.employee_code ?? null,
+});
+
+const loadDepartmentRow = async (ctx: ServiceContext, departmentId: string | null) => {
+  if (!departmentId) {
+    return null as { id: string; name: string; head_employee_id?: string | null } | null;
+  }
+
+  const { data, error } = await ctx.supabase
+    .from("departments")
+    .select("id, name, head_employee_id")
+    .eq("id", departmentId)
+    .eq("company_id", ctx.companyId)
+    .is("is_deleted", false)
+    .maybeSingle();
+
+  if (!error) {
+    return (data as { id: string; name: string; head_employee_id?: string | null } | null) ?? null;
+  }
+
+  const fallback = await ctx.supabase
+    .from("departments")
+    .select("id, name")
+    .eq("id", departmentId)
+    .eq("company_id", ctx.companyId)
+    .is("is_deleted", false)
+    .maybeSingle();
+
+  if (fallback.error) {
+    return null;
+  }
+
+  return fallback.data ? { ...(fallback.data as { id: string; name: string }), head_employee_id: null } : null;
+};
+
+const loadReportingLinesForEmployee = async (ctx: ServiceContext, employeeId: string): Promise<ReportingLineRow[]> => {
+  const { data, error } = await ctx.supabase
+    .from("employee_reporting_lines")
+    .select(
+      "id, company_id, employee_id, manager_employee_id, relation_type, is_primary, effective_from, effective_to, created_at, created_by"
+    )
+    .eq("company_id", ctx.companyId)
+    .eq("employee_id", employeeId);
+
+  if (error) {
+    return [];
+  }
+
+  return getActiveReportingLines((data ?? []) as ReportingLineRow[]);
+};
+
+const loadHierarchyIdentityMap = async (ctx: ServiceContext, employeeIds: string[]): Promise<Map<string, HierarchyIdentity>> => {
+  if (!employeeIds.length) {
+    return new Map<string, HierarchyIdentity>();
+  }
+
+  const { data, error } = await ctx.supabase
+    .from("employees")
+    .select("id, employee_code, user_profile_id, user_profiles(full_name)")
+    .eq("company_id", ctx.companyId)
+    .is("is_deleted", false)
+    .in("id", employeeIds);
+
+  if (error) {
+    return new Map<string, HierarchyIdentity>();
+  }
+
+  const rows = (data ?? []) as Array<{
+    id: string;
+    employee_code?: string | null;
+    user_profile_id?: string | null;
+    user_profiles?: { full_name?: string | null }[] | { full_name?: string | null } | null;
+  }>;
+
+  const namesByEmployeeId = new Map<string, string>();
+  for (const row of rows) {
+    const profile = Array.isArray(row.user_profiles) ? row.user_profiles[0] : row.user_profiles;
+    namesByEmployeeId.set(row.id, profile?.full_name ?? row.employee_code ?? "Unknown");
+  }
+
+  return new Map(rows.map((row) => [row.id, buildIdentitySummary(row, namesByEmployeeId)]));
+};
 export const getEmployeeProfile = async (
   ctx: ServiceContext,
   employeeId: string
@@ -314,9 +431,8 @@ export const getEmployeeProfile = async (
   try {
     await requireEmployeeModuleEntitlement(ctx);
     await requireSelfOrManageEmployees(ctx, employeeId);
-    assertEmployeeScope(employeeId, ctx);
 
-    const { data: employee, error: employeeError } = await ctx.supabase
+    const { data: employee, error } = await ctx.supabase
       .from("employees")
       .select("*")
       .eq("id", employeeId)
@@ -324,110 +440,152 @@ export const getEmployeeProfile = async (
       .is("is_deleted", false)
       .maybeSingle();
 
-    if (employeeError) {
-      return { ok: false, error: employeeError.message };
+    if (error || !employee) {
+      return { ok: false, error: error?.message ?? "Employee not found" };
     }
 
-    if (!employee) {
-      return { ok: false, error: "Employee not found" };
+    const profileCompletenessPromise = readProfileCompleteness(ctx, employeeId);
+    const detailPromises = Promise.all([
+      ctx.supabase
+        .from("employee_personal_details")
+        .select("*")
+        .eq("employee_id", employeeId)
+        .eq("company_id", ctx.companyId)
+        .is("is_deleted", false)
+        .maybeSingle(),
+      ctx.supabase
+        .from("employee_sensitive_data")
+        .select("*")
+        .eq("employee_id", employeeId)
+        .eq("company_id", ctx.companyId)
+        .is("is_deleted", false)
+        .maybeSingle(),
+      ctx.supabase
+        .from("employee_documents")
+        .select("*")
+        .eq("employee_id", employeeId)
+        .eq("company_id", ctx.companyId)
+        .is("is_deleted", false)
+        .order("created_at", { ascending: false }),
+      ctx.supabase
+        .from("employee_family_members")
+        .select("*")
+        .eq("employee_id", employeeId)
+        .eq("company_id", ctx.companyId)
+        .is("is_deleted", false)
+        .order("created_at", { ascending: false }),
+      ctx.supabase
+        .from("employee_skills")
+        .select("*")
+        .eq("employee_id", employeeId)
+        .eq("company_id", ctx.companyId)
+        .is("is_deleted", false)
+        .order("created_at", { ascending: false })
+    ]);
+
+    const [
+      profileCompletenessScore,
+      [personalResult, sensitiveResult, documentsResult, familyResult, skillsResult],
+      userProfileResult,
+      department,
+      teamResult,
+      reportingLines
+    ] = await Promise.all([
+      profileCompletenessPromise,
+      detailPromises,
+      ctx.supabase
+        .from("user_profiles")
+        .select("id, full_name, avatar_url")
+        .eq("id", employee.user_profile_id)
+        .eq("company_id", ctx.companyId)
+        .is("is_deleted", false)
+        .maybeSingle(),
+      loadDepartmentRow(ctx, employee.department_id ?? null),
+      employee.team_id
+        ? ctx.supabase
+            .from("teams")
+            .select("id, name, team_lead_id")
+            .eq("id", employee.team_id)
+            .eq("company_id", ctx.companyId)
+            .is("is_deleted", false)
+            .maybeSingle()
+        : Promise.resolve({ data: null, error: null }),
+      loadReportingLinesForEmployee(ctx, employeeId)
+    ]);
+
+    const team = (teamResult as { data?: { id: string; name: string; team_lead_id?: string | null } | null }).data ?? null;
+    const hierarchyIds = new Set<string>();
+    if (employee.manager_id) hierarchyIds.add(employee.manager_id);
+    if (department?.head_employee_id) hierarchyIds.add(department.head_employee_id);
+    if (team?.team_lead_id) hierarchyIds.add(team.team_lead_id);
+    for (const line of reportingLines) {
+      hierarchyIds.add(line.manager_employee_id);
     }
 
-    const [profileCompletenessScore, personalResult, sensitiveResult, documentsResult, familyResult, skillsResult] =
-      await Promise.all([
-        readProfileCompleteness(ctx, employeeId),
-        ctx.supabase
-          .from("employee_personal_details")
-          .select("*")
-          .eq("employee_id", employeeId)
-          .eq("company_id", ctx.companyId)
-          .is("is_deleted", false)
-          .maybeSingle(),
-        ctx.supabase
-          .from("employee_sensitive_data")
-          .select("*")
-          .eq("employee_id", employeeId)
-          .eq("company_id", ctx.companyId)
-          .is("is_deleted", false)
-          .maybeSingle(),
-        ctx.supabase
-          .from("employee_documents")
-          .select("*")
-          .eq("employee_id", employeeId)
-          .eq("company_id", ctx.companyId)
-          .is("is_deleted", false)
-          .order("created_at", { ascending: false }),
-        ctx.supabase
-          .from("employee_family_members")
-          .select("*")
-          .eq("employee_id", employeeId)
-          .eq("company_id", ctx.companyId)
-          .is("is_deleted", false)
-          .order("created_at", { ascending: false }),
-        ctx.supabase
-          .from("employee_skills")
-          .select("*")
-          .eq("employee_id", employeeId)
-          .eq("company_id", ctx.companyId)
-          .is("is_deleted", false)
-          .order("created_at", { ascending: false })
-      ]);
+    const hierarchyIdentities = await loadHierarchyIdentityMap(ctx, Array.from(hierarchyIds));
 
-    const { data: userProfile } = await ctx.supabase
-      .from("user_profiles")
-      .select("id, full_name, avatar_url")
-      .eq("id", employee.user_profile_id)
-      .eq("company_id", ctx.companyId)
-      .is("is_deleted", false)
-      .maybeSingle();
+    const explicitPrimaryManager = reportingLines.find((line) => line.is_primary) ?? null;
+    const primaryManager = explicitPrimaryManager
+      ? hierarchyIdentities.get(explicitPrimaryManager.manager_employee_id) ?? null
+      : employee.manager_id
+        ? hierarchyIdentities.get(employee.manager_id) ?? null
+        : null;
 
-    const { data: department } = employee.department_id
-      ? await ctx.supabase
-          .from("departments")
-          .select("id, name")
-          .eq("id", employee.department_id)
-          .eq("company_id", ctx.companyId)
-          .is("is_deleted", false)
-          .maybeSingle()
-      : { data: null };
+    const secondaryManagers = reportingLines
+      .filter((line) => !line.is_primary)
+      .map((line) => {
+        const manager = hierarchyIdentities.get(line.manager_employee_id);
+        if (!manager) {
+          return null;
+        }
+        return {
+          ...manager,
+          relation_type: line.relation_type,
+        };
+      })
+      .filter((manager): manager is NonNullable<typeof manager> => Boolean(manager));
 
-    const { data: team } = employee.team_id
-      ? await ctx.supabase
-          .from("teams")
-          .select("id, name")
-          .eq("id", employee.team_id)
-          .eq("company_id", ctx.companyId)
-          .is("is_deleted", false)
-          .maybeSingle()
-      : { data: null };
+    const reportingLineSummaries: EmployeeReportingLineSummary[] = reportingLines.map((line) => ({
+      id: line.id,
+      company_id: line.company_id,
+      employee_id: line.employee_id,
+      manager_employee_id: line.manager_employee_id,
+      relation_type: line.relation_type,
+      is_primary: line.is_primary,
+      effective_from: line.effective_from,
+      effective_to: line.effective_to,
+      created_at: line.created_at,
+      created_by: line.created_by,
+      manager: hierarchyIdentities.get(line.manager_employee_id)
+        ? {
+            id: line.manager_employee_id,
+            full_name: hierarchyIdentities.get(line.manager_employee_id)!.full_name,
+            employee_code: hierarchyIdentities.get(line.manager_employee_id)!.employee_code ?? null,
+          }
+        : null,
+    }));
 
-    const { data: managerEmployee } = employee.manager_id
-      ? await ctx.supabase
-          .from("employees")
-          .select("id, user_profile_id")
-          .eq("id", employee.manager_id)
-          .eq("company_id", ctx.companyId)
-          .is("is_deleted", false)
-          .maybeSingle()
-      : { data: null };
-
-    const { data: managerProfile } = managerEmployee?.user_profile_id
-      ? await ctx.supabase
-          .from("user_profiles")
-          .select("id, full_name")
-          .eq("id", managerEmployee.user_profile_id)
-          .eq("company_id", ctx.companyId)
-          .is("is_deleted", false)
-          .maybeSingle()
-      : { data: null };
+    const managerSummary = primaryManager ? { id: primaryManager.id, full_name: primaryManager.full_name } : null;
 
     return {
       ok: true,
       data: {
         employee: employee as Record<string, unknown>,
-        userProfile: userProfile ? { id: userProfile.id, full_name: userProfile.full_name, avatar_url: userProfile.avatar_url } : null,
+        userProfile: userProfileResult.data
+          ? {
+              id: userProfileResult.data.id,
+              full_name: userProfileResult.data.full_name,
+              avatar_url: userProfileResult.data.avatar_url,
+            }
+          : null,
         department: department ? { id: department.id, name: department.name } : null,
         team: team ? { id: team.id, name: team.name } : null,
-        manager: managerProfile ? { id: managerProfile.id, full_name: managerProfile.full_name } : null,
+        manager: managerSummary,
+        departmentHead: department?.head_employee_id ? hierarchyIdentities.get(department.head_employee_id) ?? null : null,
+        teamLead: team?.team_lead_id ? hierarchyIdentities.get(team.team_lead_id) ?? null : null,
+        primaryManager,
+        secondaryManagers,
+        reportingLines: reportingLineSummaries,
         personalDetails: personalResult.data ? (personalResult.data as EmployeePersonalDetails) : null,
         sensitiveData: sensitiveResult.data ? (sensitiveResult.data as EmployeeSensitiveData) : null,
         documents: (documentsResult.data ?? []) as EmployeeDocument[],
@@ -832,6 +990,8 @@ export type EmployeeLookups = {
   departments: Array<{ id: string; name: string }>;
   teams: Array<{ id: string; name: string; department_id?: string | null }>;
   managers: Array<{ id: string; full_name: string }>;
+  departmentHeads: Array<{ id: string; full_name: string; department_id?: string | null }>;
+  teamLeads: Array<{ id: string; full_name: string; team_id?: string | null }>;
 };
 
 export const listEmployeeLookups = async (
@@ -841,51 +1001,184 @@ export const listEmployeeLookups = async (
     await requireEmployeeModuleEntitlement(ctx);
     requirePermission("manage_employees", ctx);
 
-    const [departments, teams, managers] = await Promise.all([
+    const [departmentsResult, teams, managers] = await Promise.all([
       ctx.supabase
         .from("departments")
-        .select("id, name")
+        .select("id, name, head_employee_id")
         .eq("company_id", ctx.companyId)
         .is("is_deleted", false)
         .order("name", { ascending: true }),
       ctx.supabase
         .from("teams")
-        .select("id, name, department_id")
+        .select("id, name, department_id, team_lead_id")
         .eq("company_id", ctx.companyId)
         .is("is_deleted", false)
         .order("name", { ascending: true }),
       ctx.supabase
         .from("employees")
-        .select("id, user_profile_id, user_profiles(full_name)")
+        .select("id, employee_code, user_profile_id, user_profiles(full_name)")
         .eq("company_id", ctx.companyId)
         .is("is_deleted", false)
         .order("created_at", { ascending: true })
     ]);
 
-    if (departments.error || teams.error || managers.error) {
+    let departmentsData = departmentsResult.data as Array<{ id: string; name: string; head_employee_id?: string | null }> | null;
+    if (departmentsResult.error) {
+      const fallbackDepartments = await ctx.supabase
+        .from("departments")
+        .select("id, name")
+        .eq("company_id", ctx.companyId)
+        .is("is_deleted", false)
+        .order("name", { ascending: true });
+      if (fallbackDepartments.error || teams.error || managers.error) {
+        return { ok: false, error: "Unable to load lookups" };
+      }
+      departmentsData = ((fallbackDepartments.data ?? []) as Array<{ id: string; name: string }>).map((department) => ({
+        ...department,
+        head_employee_id: null,
+      }));
+    }
+
+    if (teams.error || managers.error) {
       return { ok: false, error: "Unable to load lookups" };
     }
 
     const managerRows = (managers.data ?? []) as Array<{
       id: string;
+      employee_code?: string | null;
       user_profiles?: { full_name?: string | null }[] | { full_name?: string | null } | null;
     }>;
+
+    const fullNameByEmployeeId = new Map<string, string>();
+    for (const row of managerRows) {
+      const profile = Array.isArray(row.user_profiles) ? row.user_profiles[0] : row.user_profiles;
+      fullNameByEmployeeId.set(row.id, profile?.full_name ?? row.employee_code ?? "Unknown");
+    }
+
+    const teamRows = (teams.data ?? []) as Array<{ id: string; name: string; department_id?: string | null; team_lead_id?: string | null }>;
+    const departmentRows = departmentsData ?? [];
 
     return {
       ok: true,
       data: {
-        departments: (departments.data ?? []) as Array<{ id: string; name: string }>,
-        teams: (teams.data ?? []) as Array<{ id: string; name: string; department_id?: string | null }>,
-        managers: managerRows.map((row) => {
-          const profile = Array.isArray(row.user_profiles) ? row.user_profiles[0] : row.user_profiles;
-          return {
-            id: row.id,
-            full_name: profile?.full_name ?? "Unknown"
-          };
-        })
+        departments: departmentRows.map((department) => ({ id: department.id, name: department.name })),
+        teams: teamRows.map((team) => ({ id: team.id, name: team.name, department_id: team.department_id ?? null })),
+        managers: managerRows.map((row) => ({
+          id: row.id,
+          full_name: fullNameByEmployeeId.get(row.id) ?? "Unknown"
+        })),
+        departmentHeads: departmentRows
+          .filter((department) => Boolean(department.head_employee_id))
+          .map((department) => ({
+            id: department.head_employee_id!,
+            full_name: fullNameByEmployeeId.get(department.head_employee_id!) ?? "Unknown",
+            department_id: department.id,
+          })),
+        teamLeads: teamRows
+          .filter((team) => Boolean(team.team_lead_id))
+          .map((team) => ({
+            id: team.team_lead_id!,
+            full_name: fullNameByEmployeeId.get(team.team_lead_id!) ?? "Unknown",
+            team_id: team.id,
+          })),
       }
     };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "Unable to load lookups" };
+  }
+};
+
+export const listDepartmentSummaries = async (
+  ctx: ServiceContext
+): Promise<ServiceResult<OrganizationDepartmentSummary[]>> => {
+  const overview = await getOrganizationOverview(ctx);
+  if (!overview.ok || !overview.data) {
+    return { ok: false, error: overview.error ?? "Unable to load department summaries" };
+  }
+  return { ok: true, data: overview.data.departments };
+};
+
+export const listTeamSummaries = async (
+  ctx: ServiceContext,
+  departmentId?: string
+): Promise<ServiceResult<OrganizationTeamSummary[]>> => {
+  const overview = await getOrganizationOverview(ctx);
+  if (!overview.ok || !overview.data) {
+    return { ok: false, error: overview.error ?? "Unable to load team summaries" };
+  }
+  return {
+    ok: true,
+    data: departmentId
+      ? overview.data.teams.filter((team) => team.department_id === departmentId)
+      : overview.data.teams,
+  };
+};
+
+export const getEmployeeReportingSummary = async (
+  ctx: ServiceContext,
+  employeeId: string
+): Promise<ServiceResult<OrganizationReportingSummary | null>> => {
+  try {
+    await requireEmployeeModuleEntitlement(ctx);
+    await requireSelfOrManageEmployees(ctx, employeeId);
+
+    const overview = await getOrganizationOverview(ctx);
+    if (!overview.ok || !overview.data) {
+      return { ok: false, error: overview.error ?? "Unable to load reporting summary" };
+    }
+
+    return {
+      ok: true,
+      data: overview.data.reporting.find((summary) => summary.employee_id === employeeId) ?? null,
+    };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Unable to load reporting summary" };
+  }
+};
+
+export const listEmployeeSubordinates = async (
+  ctx: ServiceContext,
+  employeeId: string
+): Promise<ServiceResult<Array<{ id: string; full_name: string; employee_code?: string | null; relation_type: OrgReportingRelationType; is_primary: boolean }>>> => {
+  try {
+    await requireEmployeeModuleEntitlement(ctx);
+    await requireSelfOrManageEmployees(ctx, employeeId);
+
+    const overview = await getOrganizationOverview(ctx);
+    if (!overview.ok || !overview.data) {
+      return { ok: false, error: overview.error ?? "Unable to load subordinates" };
+    }
+
+    const subordinates = overview.data.reporting.flatMap((summary: OrganizationReportingSummary) => {
+      const matchesPrimary = summary.primary_manager?.id === employeeId;
+      const matchesSecondary = summary.secondary_managers.filter((manager: OrganizationReportingSummary['secondary_managers'][number]) => manager.id === employeeId);
+      if (!matchesPrimary && !matchesSecondary.length) {
+        return [];
+      }
+      const rows: Array<{ id: string; full_name: string; employee_code?: string | null; relation_type: OrgReportingRelationType; is_primary: boolean }> = [];
+      if (matchesPrimary) {
+        rows.push({
+          id: summary.employee_id,
+          full_name: summary.employee_name,
+          employee_code: summary.employee_code ?? null,
+          relation_type: "direct_manager",
+          is_primary: true,
+        });
+      }
+      for (const manager of matchesSecondary) {
+        rows.push({
+          id: summary.employee_id,
+          full_name: summary.employee_name,
+          employee_code: summary.employee_code ?? null,
+          relation_type: manager.relation_type,
+          is_primary: false,
+        });
+      }
+      return rows;
+    });
+
+    return { ok: true, data: subordinates };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Unable to load subordinates" };
   }
 };

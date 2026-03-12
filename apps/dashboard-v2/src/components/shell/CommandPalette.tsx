@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -17,7 +17,7 @@ const COMMANDS: CommandItem[] = [
   { label: "Open Attendance", href: "/app/attendance", section: "Workforce", personas: ["employee", "manager", "team_lead", "hr", "admin", "founder", "finance"] },
   { label: "Request Leave", href: "/app/leave", section: "Workforce", personas: ["employee", "manager", "team_lead", "hr", "admin", "founder", "finance"] },
   { label: "Open People", href: "/app/employees", section: "Workforce", personas: ["manager", "team_lead", "hr", "admin", "founder", "finance", "it"] },
-  { label: "Open Organization", href: "/app/org-chart", section: "Workforce", personas: ["manager", "team_lead", "hr", "admin", "founder", "finance", "it"] },
+  { label: "Open Organization", href: "/app/organization", section: "Workforce", personas: ["manager", "team_lead", "hr", "admin", "founder", "finance", "it"] },
   { label: "Open Payroll", href: "/app/payroll", section: "Operations", personas: ["hr", "finance", "admin", "founder"] },
   { label: "Open Projects", href: "/app/projects", section: "Operations", personas: ["manager", "team_lead", "admin", "founder"] },
   { label: "Open Chat", href: "/app/chat", section: "Collaboration", personas: ["employee", "manager", "team_lead", "hr", "admin", "founder", "finance", "it"] },
@@ -185,3 +185,4 @@ export const CommandPalette = ({ persona }: { persona: DashboardPersona }) => {
     </div>
   );
 };
+

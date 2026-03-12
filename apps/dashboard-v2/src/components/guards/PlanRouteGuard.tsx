@@ -92,3 +92,4 @@ export const PlanRouteGuard = ({ entitlements, children }: PlanRouteGuardProps) 
     </section>
   );
 };
+

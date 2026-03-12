@@ -53,7 +53,7 @@ const BLUEPRINTS: Record<DashboardPersona, Blueprint> = {
     ],
     actions: [
       { title: "Review workforce growth", description: "Headcount and hiring momentum", href: "/app/analytics", icon: ChartColumnBig },
-      { title: "Open org structure", description: "Departments, managers, and team leads", href: "/app/org-chart", icon: Users },
+      { title: "Open org structure", description: "Departments, managers, and team leads", href: "/app/organization", icon: Users },
       { title: "Inspect payroll", description: "Monthly payroll summary and cost", href: "/app/payroll", icon: ReceiptText },
       { title: "Monitor operations", description: "Approvals, alerts, and escalations", href: "/app/monitoring", icon: ShieldCheck }
     ],
@@ -178,7 +178,7 @@ const BLUEPRINTS: Record<DashboardPersona, Blueprint> = {
     actions: [
       { title: "Review team attendance", description: "See presence, lateness, and missing punches", href: "/app/attendance/team", icon: Clock3 },
       { title: "Open approvals", description: "Resolve leave and shift requests", href: "/app/approvals", icon: ClipboardList },
-      { title: "Check org map", description: "Managers, team leads, and reporting lines", href: "/app/org-chart", icon: Users },
+      { title: "Check org map", description: "Managers, team leads, and reporting lines", href: "/app/organization", icon: Users },
       { title: "Open projects", description: "Execution and staffing context", href: "/app/projects", icon: FolderKanban }
     ],
     workflows: [
@@ -492,4 +492,5 @@ export const RoleHomeFoundation = ({ persona }: { persona: DashboardPersona }) =
     </PageContainer>
   );
 };
+
 

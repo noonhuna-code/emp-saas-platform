@@ -1,0 +1,225 @@
+"use client";
+
+import { Badge } from "@/components/ui/badge";
+import type { OrganizationDepartmentSummary, OrganizationOverview, OrganizationReportingSummary, OrganizationTeamSummary } from "@emp/lib/types";
+import {
+  DashboardRail,
+  PageContainer,
+  PageHeader,
+  StatePanel,
+  StatCard,
+  StatGrid,
+  SurfacePanel,
+} from "@/components/dashboard-v2/PagePrimitives";
+
+const personLabel = (person?: { full_name: string; employee_code?: string | null } | null) => {
+  if (!person) return "Not assigned";
+  return person.employee_code ? `${person.full_name} (${person.employee_code})` : person.full_name;
+};
+
+const reportingMeta = (reporting: OrganizationReportingSummary[]) => {
+  const direct = reporting.filter((line) => line.primary_manager).length;
+  const dotted = reporting.reduce((total, line) => total + line.secondary_managers.length, 0);
+  const managed = reporting.filter((line) => line.subordinate_count > 0).length;
+
+  return { direct, dotted, managed };
+};
+
+const renderDepartmentCard = (department: OrganizationDepartmentSummary) => (
+  <div
+    key={department.id}
+    className="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4 dark:border-slate-800 dark:bg-slate-900/60"
+  >
+    <div className="flex items-start justify-between gap-3">
+      <div>
+        <div className="text-sm font-semibold text-slate-950 dark:text-slate-100">{department.name}</div>
+        <div className="mt-1 text-xs uppercase tracking-[0.18em] text-slate-500">{department.code ?? "No code"}</div>
+      </div>
+      <Badge className="rounded-full border-slate-200 bg-white/90 text-slate-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200">
+        {department.employee_count} people
+      </Badge>
+    </div>
+    <div className="mt-4 space-y-2 text-sm text-slate-600 dark:text-slate-400">
+      <div>Head: {personLabel(department.head)}</div>
+      <div>Teams: {department.team_count}</div>
+      <div>Parent: {department.parent_department_id ? "Nested department" : "Top-level department"}</div>
+    </div>
+  </div>
+);
+
+const renderTeamCard = (team: OrganizationTeamSummary) => (
+  <div
+    key={team.id}
+    className="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4 dark:border-slate-800 dark:bg-slate-900/60"
+  >
+    <div className="flex items-start justify-between gap-3">
+      <div>
+        <div className="text-sm font-semibold text-slate-950 dark:text-slate-100">{team.name}</div>
+        <div className="mt-1 text-xs uppercase tracking-[0.18em] text-slate-500">Team / Unit</div>
+      </div>
+      <Badge className="rounded-full border-slate-200 bg-white/90 text-slate-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200">
+        {team.employee_count} assigned
+      </Badge>
+    </div>
+    <div className="mt-4 text-sm text-slate-600 dark:text-slate-400">Lead: {personLabel(team.lead)}</div>
+  </div>
+);
+
+export function OrganizationOverviewScreen({
+  overview,
+  error,
+}: {
+  overview: OrganizationOverview | null;
+  error?: string | null;
+}) {
+  if (error) {
+    return (
+      <PageContainer>
+        <PageHeader
+          eyebrow="Organization"
+          title="Organization foundation"
+          description="The organization surface could not be loaded. The route foundation is in place, but the current request failed."
+        />
+        <StatePanel title="Unable to load organization data" description={error} />
+      </PageContainer>
+    );
+  }
+
+  if (!overview) {
+    return (
+      <PageContainer>
+        <PageHeader
+          eyebrow="Organization"
+          title="Organization foundation"
+          description="Use this surface to summarize departments, teams, and reporting relationships."
+        />
+        <StatePanel
+          title="No organization data yet"
+          description="Departments, teams, and reporting relationships will appear here once your workspace has been configured."
+        />
+      </PageContainer>
+    );
+  }
+
+  const { direct, dotted, managed } = reportingMeta(overview.reporting);
+
+  return (
+    <PageContainer>
+      <PageHeader
+        eyebrow="Organization"
+        title="Company structure and reporting"
+        description="Hierarchy-aware summary for departments, teams, heads, leads, and reporting lines. This is the V2 foundation for future org-aware approvals and org chart experiences."
+        actions={
+          <div className="flex flex-wrap gap-2">
+            <Badge className="rounded-full border-slate-200 bg-white/90 text-slate-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200">
+              {overview.departments.length} departments
+            </Badge>
+            <Badge className="rounded-full border-slate-200 bg-white/90 text-slate-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200">
+              {overview.teams.length} teams
+            </Badge>
+            <Badge className="rounded-full border-slate-200 bg-white/90 text-slate-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200">
+              {overview.employees.length} employees
+            </Badge>
+          </div>
+        }
+      />
+
+      <StatGrid>
+        <StatCard label="Departments" value={overview.departments.length} hint="Top-level and nested structures" />
+        <StatCard label="Teams / Units" value={overview.teams.length} hint="Execution-level operating units" />
+        <StatCard label="Primary reporting lines" value={direct} hint="Using active direct-manager relations" />
+        <StatCard label="Secondary reporting lines" value={dotted} hint="Dotted-line and specialist reviewers" />
+      </StatGrid>
+
+      <DashboardRail className="xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
+        <SurfacePanel
+          title="Department structure"
+          description="Department summaries, employee distribution, and department-head readiness."
+        >
+          {overview.departments.length > 0 ? (
+            <div className="grid gap-3 md:grid-cols-2">
+              {overview.departments.map(renderDepartmentCard)}
+            </div>
+          ) : (
+            <StatePanel
+              title="No departments configured"
+              description="Department nodes will appear here once departments are created."
+            />
+          )}
+        </SurfacePanel>
+
+        <SurfacePanel
+          title="Reporting readiness"
+          description="Current manager compatibility and future-safe reporting foundation."
+        >
+          <div className="space-y-3">
+            <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4 dark:border-slate-800 dark:bg-slate-900/60">
+              <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Primary manager coverage</div>
+              <div className="mt-2 text-2xl font-semibold tracking-tight text-slate-950 dark:text-slate-100">{direct}</div>
+              <div className="mt-1 text-sm text-slate-600 dark:text-slate-400">Employees with an active direct manager relationship.</div>
+            </div>
+            <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4 dark:border-slate-800 dark:bg-slate-900/60">
+              <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Secondary reporting</div>
+              <div className="mt-2 text-2xl font-semibold tracking-tight text-slate-950 dark:text-slate-100">{dotted}</div>
+              <div className="mt-1 text-sm text-slate-600 dark:text-slate-400">Dotted-line, HR, payroll, and other non-primary relationships.</div>
+            </div>
+            <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4 dark:border-slate-800 dark:bg-slate-900/60">
+              <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Manager visibility</div>
+              <div className="mt-2 text-2xl font-semibold tracking-tight text-slate-950 dark:text-slate-100">{managed}</div>
+              <div className="mt-1 text-sm text-slate-600 dark:text-slate-400">Employees currently managing at least one subordinate.</div>
+            </div>
+          </div>
+        </SurfacePanel>
+      </DashboardRail>
+
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <SurfacePanel title="Teams and units" description="Team lead coverage and subordinate-ready units.">
+          {overview.teams.length > 0 ? (
+            <div className="grid gap-3 md:grid-cols-2">
+              {overview.teams.map(renderTeamCard)}
+            </div>
+          ) : (
+            <StatePanel title="No teams configured" description="Create teams or units to structure department execution." />
+          )}
+        </SurfacePanel>
+
+        <SurfacePanel
+          title="Subordinate listing foundation"
+          description="This surface is ready for manager/team-lead aware subordinate listings and approval visibility."
+        >
+          <div className="space-y-3">
+            {overview.reporting
+              .filter((entry) => entry.subordinate_count > 0)
+              .slice(0, 8)
+              .map((entry) => (
+                <div
+                  key={entry.employee_id}
+                  className="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4 dark:border-slate-800 dark:bg-slate-900/60"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="text-sm font-semibold text-slate-950 dark:text-slate-100">
+                        {personLabel(entry.primary_manager)}
+                      </div>
+                      <div className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+                        {entry.subordinate_count} subordinate{entry.subordinate_count === 1 ? "" : "s"}
+                      </div>
+                    </div>
+                    <Badge className="rounded-full border-slate-200 bg-white/90 text-slate-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200">
+                      {entry.secondary_managers.length} secondary links
+                    </Badge>
+                  </div>
+                </div>
+              ))}
+            {overview.reporting.every((entry) => entry.subordinate_count === 0) ? (
+              <StatePanel
+                title="No subordinate listings yet"
+                description="Once managers and team leads have reports assigned, subordinate-ready summaries will appear here."
+              />
+            ) : null}
+          </div>
+        </SurfacePanel>
+      </div>
+    </PageContainer>
+  );
+}

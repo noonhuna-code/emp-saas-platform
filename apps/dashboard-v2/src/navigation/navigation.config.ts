@@ -67,7 +67,7 @@ export const TENANT_NAVIGATION_ITEMS: NavigationItem[] = [
     requiredFeatureKey: "feature.core_employee_management"
   }),
   item({
-    href: "/app/org-chart",
+    href: "/app/organization",
     label: "Organization",
     icon: "network",
     description: "Departments, teams, and reporting lines",
@@ -204,7 +204,7 @@ export const TENANT_NAVIGATION_GROUPS: NavigationGroup[] = [
   {
     id: "people",
     label: "People",
-    items: [byHref("/app/employees"), byHref("/app/org-chart")]
+    items: [byHref("/app/employees"), byHref("/app/organization")]
   },
   {
     id: "operations",
@@ -270,3 +270,4 @@ export const resolveVisibleNavigationGroups = (
 ) => groups
   .map((group) => ({ ...group, items: resolveVisibleNavigationItems(group.items, context) }))
   .filter((group) => group.items.length > 0);
+
