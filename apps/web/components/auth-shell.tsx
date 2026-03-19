@@ -42,11 +42,10 @@ export function AuthShell({
             </div>
 
             <div className="rounded-[2rem] border border-slate-200/80 bg-white/85 p-6 shadow-[0_18px_60px_rgba(15,23,42,0.06)]">
-              <h3 className="text-xl font-semibold text-slate-950">Built for controlled rollout</h3>
+              <h3 className="text-xl font-semibold text-slate-950">Built for company access</h3>
               <p className="mt-4 text-base leading-7 text-slate-600">
-                EMP access can support guided onboarding, invite-led workspace setup, and
-                role-aware entry points while keeping the experience consistent with the public
-                product site.
+                EMP access can support invites, guided onboarding, and company-specific entry
+                points while keeping the experience consistent with the main product site.
               </p>
               <div className="mt-5 flex flex-wrap gap-4">
                 <Link className="text-sm font-semibold text-slate-950 underline" href="/security">

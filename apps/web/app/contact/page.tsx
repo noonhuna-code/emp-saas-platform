@@ -141,20 +141,20 @@ export default function ContactPage() {
         <div className="container">
           <div className="grid gap-10 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:items-center">
             <div className="max-w-xl">
-              <p className="eyebrow">Conversion support</p>
+              <p className="eyebrow">Before you book</p>
               <h2 className="mt-4 text-balance text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
                 Make the first conversation feel informed before it starts.
               </h2>
               <p className="mt-5 text-lg leading-8 text-slate-600">
                 Buyers often arrive here after researching attendance, leave, payroll, security, or
-                product fit. This page should reassure them that EMP can support a serious product
+                product fit. This page should make it clear that EMP can support a real working
                 conversation, not just a thin form handoff.
               </p>
               <div className="mt-8 grid gap-3">
                 {[
-                  "Security and trust review stay visible before and after form submission.",
-                  "Demo expectations are clear enough for executives, HR, and operations leads.",
-                  "Commercial framing stays soft while still preparing buyers for rollout discussions."
+                  "Security review stays visible before and after form submission.",
+                  "Demo expectations are clear for executives, HR, and operations leads.",
+                  "Pricing stays directional while still preparing buyers for rollout discussions."
                 ].map((item) => (
                   <div
                     key={item}
@@ -217,23 +217,23 @@ export default function ContactPage() {
       <section className="section">
         <div className="container">
           <SectionHeading
-            eyebrow="Trust and readiness"
-            title="Give buyers a few final reasons to feel confident before they submit."
-            description="The goal is to improve conversion quality by reinforcing product depth, security posture, and rollout realism."
+            eyebrow="Why teams reach out"
+            title="Give buyers a few final reasons to feel comfortable before they submit."
+            description="The goal is to reinforce product depth, security review, and rollout realism before the first call."
           />
           <div className="mt-10 grid gap-5 lg:grid-cols-3">
             {[
               {
-                title: "Product-led conversation",
-                body: "The demo focuses on the workflows, role boundaries, and operating challenges that matter most to your business."
+                title: "Conversation built around your workflows",
+                body: "The demo focuses on the approvals, records, reporting lines, and operating issues that matter most to your business."
               },
               {
-                title: "Security-aware evaluation",
-                body: "Buyers can review permissions, governance, and trust messaging before or after the first call."
+                title: "Security review stays visible",
+                body: "Buyers can review permissions, governance, and trust details before or after the first call."
               },
               {
-                title: "Soft commercial framing",
-                body: "We keep pricing directional and rollout-aware so the conversation stays credible for enterprise buyers."
+                title: "Pricing stays practical",
+                body: "We keep pricing directional and rollout-aware so the conversation stays practical for growing teams and larger buyers."
               }
             ].map((item) => (
               <article
@@ -264,7 +264,7 @@ export default function ContactPage() {
       <CTASection
         eyebrow="Prefer a guided walkthrough"
         title="Use the demo to evaluate structure, approvals, workflows, and rollout fit in one conversation."
-        description="That makes it easier to judge whether EMP is the right operating system for your organization."
+        description="That makes it easier to judge whether EMP is the right fit for your organization."
         primary={{ href: "#request-demo", label: "Request demo" }}
         secondary={{ href: "/product", label: "Review product" }}
       />

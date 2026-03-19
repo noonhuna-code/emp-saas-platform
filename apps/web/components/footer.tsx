@@ -12,11 +12,10 @@ export function Footer() {
         >
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <p className="eyebrow">Founder-backed product</p>
+              <p className="eyebrow">Talk directly with the team</p>
               <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600">
-                EMP is built for teams evaluating employee records, approvals, payroll visibility,
-                and workforce control in one place, with direct access to the product team when
-                questions matter.
+                EMP is built for teams comparing employee records, approvals, payroll visibility,
+                and workforce analytics in one place, with a direct line when product questions come up.
               </p>
             </div>
             <div className="flex flex-col gap-3 lg:items-end">
@@ -51,7 +50,8 @@ export function Footer() {
         <div className="mt-10 grid gap-12 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
           <div className="max-w-xl">
             <div className="flex items-center gap-4">
-              <BrandLogo className="h-12 w-auto" />
+              <BrandLogo className="h-11 w-11" variant="mark" />
+              <span className="text-lg font-semibold tracking-tight text-slate-950">EMP</span>
             </div>
             <p className="mt-5 text-base leading-7 text-slate-600">
               EMP helps teams keep org hierarchy, reporting lines, leave approvals, attendance
@@ -64,8 +64,8 @@ export function Footer() {
                 {siteConfig.email}
               </a>
               <p className="mt-3 text-sm leading-7 text-slate-600">
-                Use the founder inbox for demo requests, product questions, rollout planning, and
-                direct conversations about how EMP fits your team.
+                Reach out for demos, product questions, rollout planning, or a direct conversation
+                about whether EMP fits your team.
               </p>
             </div>
           </div>

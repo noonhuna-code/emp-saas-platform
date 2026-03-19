@@ -60,7 +60,7 @@ export default function SignUpPage() {
             <span className="font-display italic font-normal text-teal-800">workspace request</span>.
           </>
         }
-        description="The signup flow works for invite-led onboarding, workspace requests, and guided rollout conversations."
+        description="The signup flow works for invites, workspace requests, and guided onboarding."
         bullets={[
           "Useful for invite-led or assisted onboarding",
           "Consistent with the EMP product experience",

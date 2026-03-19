@@ -67,9 +67,9 @@ export const siteConfig = {
     { href: "/docs", label: "Docs" }
   ],
   trustBadges: [
-    "Founder-led product",
+    "Built by the founder",
     "Security review available",
-    "Guided demos and onboarding"
+    "Guided demos"
   ]
 } as const;
 

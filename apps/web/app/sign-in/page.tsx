@@ -60,11 +60,11 @@ export default function SignInPage() {
             <span className="font-display italic font-normal text-teal-800">workspace access flow</span>.
           </>
         }
-        description="The sign-in flow supports employee access, admin entry, and role-aware workspace login in one consistent experience."
+        description="The sign-in flow works for employee, manager, and admin access without feeling separate from the main product experience."
         bullets={[
           "Suitable for employee, manager, and admin access",
           "Aligned with the public EMP product experience",
-          "Supports invite-led and managed workspace login"
+          "Supports invite-led and managed workspace access"
         ]}
       />
     </>

@@ -177,7 +177,7 @@ export default function ProductPage() {
           <SectionHeading
             eyebrow="Premium comparison"
             title="EMP is built for companies that have outgrown fragmented tools."
-            description="Most growing organizations end up with attendance in one place, leave in another, approvals in email, structure in slides, and reporting in spreadsheets. EMP replaces that fragmentation with a connected operating layer."
+            description="Most growing organizations end up with attendance in one place, leave in another, approvals in email, structure in slides, and reporting in spreadsheets. EMP keeps that work in one system with shared structure, approvals, and operating context."
           />
           <div className="mt-10 grid gap-6 lg:grid-cols-2">
             <div className="rounded-[2rem] border border-slate-200/80 bg-white/80 p-7 shadow-[0_20px_60px_rgba(15,23,42,0.05)]">

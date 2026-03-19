@@ -13,13 +13,14 @@ export function Navbar() {
       <div className="container">
         <nav className="surface relative rounded-full border border-white/60 bg-white/72 px-4 py-3 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur-xl sm:px-5">
           <div className="flex items-center justify-between gap-4">
-            <Link className="flex items-center gap-3" href="/">
+            <Link className="flex items-center gap-2.5" href="/">
               <BrandLogo
-                className="h-10 w-auto sm:h-11"
+                className="h-10 w-10 sm:h-11 sm:w-11"
                 priority
+                variant="mark"
               />
-              <span className="hidden text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 lg:block">
-                Employee operations and approvals
+              <span className="text-[15px] font-semibold tracking-tight text-slate-950 sm:text-base">
+                EMP
               </span>
             </Link>
 

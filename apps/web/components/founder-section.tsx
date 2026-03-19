@@ -1,6 +1,48 @@
 import Image from "next/image";
 
-export function FounderSection() {
+type FounderSectionProps = {
+  compact?: boolean;
+};
+
+export function FounderSection({ compact = false }: FounderSectionProps) {
+  if (compact) {
+    return (
+      <article className="rounded-[1.75rem] border border-slate-200/80 bg-white/82 p-6 shadow-[0_20px_60px_rgba(15,23,42,0.05)]">
+        <div className="flex items-center gap-4">
+          <div className="h-16 w-16 overflow-hidden rounded-[1.25rem] border border-slate-200 bg-slate-100">
+            <Image
+              alt="Umair, founder of EMP"
+              className="h-full w-full object-cover object-top"
+              height={160}
+              sizes="64px"
+              src="/founder/umair.png"
+              width={160}
+            />
+          </div>
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
+              Built by Umair
+            </p>
+            <a
+              className="mt-1 block text-base font-semibold text-slate-950 underline"
+              href="mailto:noonhuna@gmail.com"
+            >
+              noonhuna@gmail.com
+            </a>
+          </div>
+        </div>
+        <h2 className="mt-5 text-2xl font-semibold tracking-tight text-slate-950">
+          Built by Umair around the approvals and people workflows teams actually run.
+        </h2>
+        <p className="mt-4 text-base leading-7 text-slate-600">
+          EMP focuses on the work companies still chase manually: employee records, reporting
+          lines, leave approvals, attendance exceptions, payroll visibility, and admin controls
+          that stay clear as the organization grows.
+        </p>
+      </article>
+    );
+  }
+
   return (
     <section className="section">
       <div className="container">
@@ -19,10 +61,10 @@ export function FounderSection() {
           <div className="max-w-3xl">
             <p className="eyebrow">Founder-led product</p>
             <h2 className="mt-4 text-balance text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
-              Built by Umair for teams that need cleaner employee operations, approvals, and ownership.
+              Built by Umair for teams that need cleaner employee operations and clearer ownership.
             </h2>
             <p className="mt-5 text-lg leading-8 text-slate-600">
-              EMP is being shaped around the day-to-day work most companies still chase manually:
+              EMP focuses on the day-to-day work most companies still chase manually:
               employee records, reporting lines, leave approvals, attendance exceptions, payroll
               visibility, policy execution, and admin controls that stay readable as the team grows.
             </p>
