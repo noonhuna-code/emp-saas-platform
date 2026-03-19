@@ -19,7 +19,7 @@ const solutionLinks = getSeoClusterLinks([
 ]);
 
 export const metadata = buildMetadata({
-  title: "Contact and Book Demo",
+  title: "Book Demo",
   description:
     "Book an EMP demo, share your workforce structure and workflow challenges, and explore how the platform fits your organization.",
   path: "/contact",
@@ -78,7 +78,7 @@ export default function ContactPage() {
       />
 
       <PageHero
-        eyebrow="Contact / Book Demo"
+        eyebrow="Book demo"
         title={
           <>
             Talk through your workforce workflows with the team building{" "}
@@ -88,7 +88,7 @@ export default function ContactPage() {
         description="If you are replacing spreadsheets, disconnected HR tools, or improvised manager processes, this is the fastest way to see how EMP fits your operating model."
         breadcrumbs={[
           { label: "Home", href: "/" },
-          { label: "Contact / Book Demo" }
+          { label: "Book demo" }
         ]}
         actions={[
           { href: "#request-demo", label: "Request demo" },
@@ -147,8 +147,8 @@ export default function ContactPage() {
               </h2>
               <p className="mt-5 text-lg leading-8 text-slate-600">
                 Buyers often arrive here after researching attendance, leave, payroll, security, or
-                product fit. This page should make it clear that EMP can support a real working
-                conversation, not just a thin form handoff.
+                product fit. This page should make it easy to move from early research into a real
+                working conversation about structure, approvals, and rollout.
               </p>
               <div className="mt-8 grid gap-3">
                 {[
@@ -219,7 +219,7 @@ export default function ContactPage() {
           <SectionHeading
             eyebrow="Why teams reach out"
             title="Give buyers a few final reasons to feel comfortable before they submit."
-            description="The goal is to reinforce product depth, security review, and rollout realism before the first call."
+            description="This keeps the page grounded in product depth, security review, and rollout realism before the first call."
           />
           <div className="mt-10 grid gap-5 lg:grid-cols-3">
             {[

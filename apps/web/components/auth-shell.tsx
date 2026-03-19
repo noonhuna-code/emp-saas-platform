@@ -31,7 +31,7 @@ export function AuthShell({
             </div>
 
             <div className="rounded-[2rem] border border-slate-900/10 bg-slate-950 p-6 text-white shadow-[0_24px_80px_rgba(15,23,42,0.16)]">
-              <p className="eyebrow !border-white/15 !bg-white/8 !text-slate-200">Designed for real team access</p>
+              <p className="eyebrow !border-white/15 !bg-white/8 !text-slate-200">Built for company access</p>
               <div className="mt-5 grid gap-3">
                 {bullets.map((bullet) => (
                   <div key={bullet} className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200">
@@ -45,7 +45,7 @@ export function AuthShell({
               <h3 className="text-xl font-semibold text-slate-950">Built for company access</h3>
               <p className="mt-4 text-base leading-7 text-slate-600">
                 EMP access can support invites, guided onboarding, and company-specific entry
-                points while keeping the experience consistent with the main product site.
+                points while keeping the experience consistent with the main product.
               </p>
               <div className="mt-5 flex flex-wrap gap-4">
                 <Link className="text-sm font-semibold text-slate-950 underline" href="/security">

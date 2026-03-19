@@ -53,8 +53,8 @@ export function ContactForm() {
           </h2>
           <p className="mt-4 text-base leading-7 text-slate-700">
             Your request for {submitted.company} has been received. Our team can use this
-            information to prepare a more relevant product conversation and follow up with the right
-            next steps.
+            information to prepare a more relevant product conversation and follow up with the
+            right next step.
           </p>
           <button
             className="mt-6 inline-flex items-center rounded-full border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-950 transition hover:border-slate-950"

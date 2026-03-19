@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { CTASection } from "@/components/cta-section";
 import { FAQList } from "@/components/faq-list";
 import { JsonLd } from "@/components/json-ld";
@@ -25,13 +24,13 @@ export const metadata = buildMetadata({
 function SecurityAside() {
   return (
     <div className="rounded-[2rem] border border-slate-900/10 bg-slate-950 p-6 text-white shadow-[0_24px_80px_rgba(15,23,42,0.16)]">
-      <p className="eyebrow !border-white/15 !bg-white/8 !text-slate-200">Trust posture</p>
+      <p className="eyebrow !border-white/15 !bg-white/8 !text-slate-200">What buyers review</p>
       <div className="mt-5 grid gap-3">
         {[
-          "Role-aware access",
-          "Approval accountability",
-          "Operational auditability",
-          "Governance-conscious administration"
+          "Who can access employee records",
+          "How approval history stays reviewable",
+          "What admins can control centrally",
+          "How rollout and governance are handled"
         ].map((item) => (
           <div
             key={item}
@@ -67,14 +66,14 @@ export default function SecurityPage() {
         eyebrow="Security and trust"
         title={
           <>
-            Built for responsible workforce operations and stronger{" "}
+            Security for workforce operations that need{" "}
             <span className="font-display italic font-normal text-teal-800">
-              organizational control
+              clear operational control
             </span>
             .
           </>
         }
-        description="EMP is positioned for organizations that need sensitive workforce workflows to be handled with clear permissions, governance discipline, and practical operational accountability."
+        description="Review how EMP handles employee records, approval routing, admin controls, and workforce visibility with role-aware access and cleaner operational review paths."
         breadcrumbs={[
           { label: "Home", href: "/" },
           { label: "Security" }
@@ -90,19 +89,20 @@ export default function SecurityPage() {
         <div className="container">
           <div className="grid gap-10 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:items-center">
             <div className="max-w-xl">
-              <p className="eyebrow">Security UX</p>
+              <p className="eyebrow">Product proof</p>
               <h2 className="mt-4 text-balance text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
-                Trust should feel product-native, not bolted on.
+                Security should be visible where managers, HR, and admins actually work.
               </h2>
               <p className="mt-5 text-lg leading-8 text-slate-600">
-                Enterprise buyers want to see permissions, reviewability, and governance as part of
-                the product model itself, with operating controls visible where the work happens.
+                Buyers usually want to understand access, approvals, audit history, and admin
+                control without leaving the product story. EMP keeps those questions close to the
+                records, requests, and reporting structure teams already depend on.
               </p>
               <div className="mt-8 grid gap-3">
                 {[
-                  "Role boundaries stay easier to reason about during day-to-day workflows.",
-                  "Approval history remains closer to the records teams need to review.",
-                  "Security review can happen alongside product evaluation instead of after it."
+                  "Employee records, leave approvals, and attendance exceptions stay tied to role-based views.",
+                  "Approval history stays closer to the request instead of being rebuilt from chat and email.",
+                  "Admin settings, ownership paths, and governance decisions are easier to review in one system."
                 ].map((item) => (
                   <div
                     key={item}
@@ -116,40 +116,40 @@ export default function SecurityPage() {
             <PlatformSnapshot
               slotId="security-review-overview"
               eyebrow="Security review"
-              title="Permissions, auditability, and control in one view"
-              description="A security-focused product view that brings approval history, access boundaries, and governance context together."
-              sidebarTitle="Security review workspace"
+              title="Permissions, approval history, and admin controls in one workspace"
+              description="A security review view that keeps employee access, request history, and governance context visible in the same operating workspace."
+              sidebarTitle="Security workspace"
               sidebarSubtitle="Role-aware workforce operations"
               sidebarItems={[
-                "Approval audit history",
-                "Admin governance controls",
-                "Sensitive workflow visibility",
-                "Operational ownership boundaries"
+                "Role-aware employee access",
+                "Approval history and review trails",
+                "Admin settings and ownership rules",
+                "Sensitive workflow visibility"
               ]}
               metrics={[
-                { label: "Approval trail", value: "100%" },
+                { label: "Review trails", value: "100%" },
                 { label: "Role scopes", value: "12" },
                 { label: "Governed actions", value: "48" }
               ]}
-              activityTitle="Trust and review panel"
+              activityTitle="What the review usually focuses on"
               activityItems={[
                 {
                   title: "Role-based access review",
-                  meta: "Managers act within team scope while HR controls sensitive workflows",
+                  meta: "Managers stay inside team scope while HR and admins handle more sensitive actions",
                   status: "Scoped"
                 },
                 {
                   title: "Approval history visibility",
-                  meta: "Requests remain reviewable without reconstructing context from email",
+                  meta: "Requests stay reviewable without rebuilding context from email threads",
                   status: "Auditable"
                 },
                 {
                   title: "Governance changes",
-                  meta: "Admins keep settings and ownership boundaries easier to trace",
+                  meta: "Admins can review settings, ownership boundaries, and policy changes with clearer context",
                   status: "Controlled"
                 }
               ]}
-              footerNote="Use this section for security views, governance walkthroughs, or approval-history examples."
+              footerNote="A live walkthrough can focus on permissions, approval history, governance settings, and how those controls fit your operating model."
             />
           </div>
         </div>
@@ -158,125 +158,40 @@ export default function SecurityPage() {
       <section className="section">
         <div className="container">
           <SectionHeading
-            eyebrow="Security principles"
-            title="Trust starts with the product model, not a separate policy page."
-            description="EMP's product story emphasizes access boundaries, reviewability, governance, and privacy-minded handling of workforce information."
+            eyebrow="Security review"
+            title="The questions serious buyers usually need answered."
+            description="Keep the conversation practical: permissions, employee data access, approval history, admin controls, rollout ownership, and review expectations."
           />
-          <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-            {securityPrinciples.map((principle) => (
-              <article key={principle.title} className="surface rounded-[1.75rem] p-6">
-                <h2 className="text-xl font-semibold text-slate-950">{principle.title}</h2>
-                <p className="mt-4 text-base leading-7 text-slate-600">{principle.body}</p>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="section pt-0">
-        <div className="container">
-          <div className="rounded-[2rem] border border-slate-200/80 bg-white/85 p-7 shadow-[0_22px_80px_rgba(15,23,42,0.06)]">
-            <p className="eyebrow">Security review topics</p>
-            <h2 className="mt-4 text-balance text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
-              The kinds of conversations enterprise buyers usually want to have.
-            </h2>
-            <p className="mt-5 max-w-3xl text-lg leading-8 text-slate-600">
-              We avoid unsupported compliance claims here. Instead, this page frames the areas that
-              matter when teams evaluate a workforce platform with sensitive operating data.
-            </p>
-            <div className="mt-8 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-              {securityReviewTopics.map((topic) => (
-                <div
-                  key={topic}
-                  className="rounded-[1.25rem] border border-slate-200 bg-slate-50/90 px-4 py-4 text-sm font-medium text-slate-700"
-                >
-                  {topic}
-                </div>
+          <div className="mt-10 grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+            <div className="grid gap-5 md:grid-cols-2">
+              {securityPrinciples.map((principle) => (
+                <article key={principle.title} className="surface rounded-[1.75rem] p-6">
+                  <h2 className="text-xl font-semibold text-slate-950">{principle.title}</h2>
+                  <p className="mt-4 text-base leading-7 text-slate-600">{principle.body}</p>
+                </article>
               ))}
             </div>
-          </div>
-        </div>
-      </section>
 
-      <section className="section">
-        <div className="container">
-          <SectionHeading
-            eyebrow="Premium comparison"
-            title="Show how EMP handles trust-sensitive workflows more cleanly."
-            description="This makes the security story more operational and conversion-friendly for serious buyers."
-          />
-          <div className="mt-10 grid gap-6 lg:grid-cols-2">
-            <article className="rounded-[2rem] border border-slate-200/80 bg-white/85 p-7 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
-              <p className="eyebrow">Without structured control</p>
-              <ul className="mt-6 grid gap-3">
-                {[
-                  "Approvals happen in email or chat with limited review context.",
-                  "Sensitive workforce actions get routed through unclear ownership paths.",
-                  "Leadership asks for proof after changes are already hard to reconstruct."
-                ].map((item) => (
-                  <li key={item} className="rounded-2xl bg-slate-50 px-4 py-3 text-sm leading-7 text-slate-700">
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </article>
-
-            <article className="rounded-[2rem] border border-slate-900/10 bg-slate-950 p-7 text-white shadow-[0_24px_80px_rgba(15,23,42,0.16)]">
-              <p className="eyebrow !border-white/15 !bg-white/8 !text-slate-200">With EMP</p>
-              <div className="mt-6 grid gap-3">
-                {[
-                  "Role-based views keep responsibilities better contained.",
-                  "Requests, approvals, and changes stay closer to shared platform context.",
-                  "Governance-sensitive actions remain easier to review and discuss."
-                ].map((item) => (
+            <div className="rounded-[2rem] border border-slate-200/80 bg-white/85 p-7 shadow-[0_22px_80px_rgba(15,23,42,0.06)]">
+              <p className="eyebrow">Review topics</p>
+              <h2 className="mt-4 text-balance text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
+                The security conversation usually stays grounded in how the product behaves day to day.
+              </h2>
+              <p className="mt-5 text-base leading-8 text-slate-600">
+                We avoid unsupported compliance language here. The focus is on how employee data,
+                approvals, governance settings, and admin responsibilities are handled in practice.
+              </p>
+              <div className="mt-8 grid gap-3">
+                {securityReviewTopics.map((topic) => (
                   <div
-                    key={item}
-                    className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200"
+                    key={topic}
+                    className="rounded-[1.25rem] border border-slate-200 bg-slate-50/90 px-4 py-4 text-sm font-medium text-slate-700"
                   >
-                    {item}
+                    {topic}
                   </div>
                 ))}
               </div>
-            </article>
-          </div>
-        </div>
-      </section>
-
-      <section className="section">
-        <div className="container">
-          <div className="grid gap-6 lg:grid-cols-2">
-            <article className="rounded-[2rem] border border-slate-200/80 bg-white/85 p-7 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
-              <p className="eyebrow">Role-based access</p>
-              <h2 className="mt-4 text-3xl font-semibold tracking-tight text-slate-950">
-                Give each user the right authority level.
-              </h2>
-              <p className="mt-5 text-base leading-8 text-slate-600">
-                EMP is designed so user access can reflect role, function, reporting structure, and
-                operational responsibility. That keeps sensitive actions better contained and makes
-                day-to-day workflows easier to govern.
-              </p>
-            </article>
-
-            <article className="rounded-[2rem] border border-slate-200/80 bg-white/85 p-7 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
-              <p className="eyebrow">Privacy-minded operations</p>
-              <h2 className="mt-4 text-3xl font-semibold tracking-tight text-slate-950">
-                Present employee data as sensitive operating information.
-              </h2>
-              <p className="mt-5 text-base leading-8 text-slate-600">
-                The page now frames workforce data, approvals, and governance-sensitive records as
-                operational assets that deserve deliberate access and careful process design.
-              </p>
-              <div className="mt-6 flex flex-wrap gap-3">
-                {["Controlled access", "Reviewability", "Governance", "Responsible admin"].map((item) => (
-                  <span
-                    key={item}
-                    className="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-700"
-                  >
-                    {item}
-                  </span>
-                ))}
-              </div>
-            </article>
+            </div>
           </div>
         </div>
       </section>
@@ -294,43 +209,10 @@ export default function SecurityPage() {
         </div>
       </section>
 
-      <section className="section pt-0">
-        <div className="container">
-          <div className="rounded-[2rem] border border-slate-900/10 bg-slate-950 p-8 text-white shadow-[0_24px_80px_rgba(15,23,42,0.18)]">
-            <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_220px] lg:items-center">
-              <div>
-                <p className="eyebrow !border-white/15 !bg-white/8 !text-slate-200">Next step</p>
-                <h2 className="mt-4 text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
-                  Continue the security conversation with a live product walkthrough.
-                </h2>
-                <p className="mt-5 text-lg leading-8 text-slate-300">
-                  Buyers usually want to pressure-test permissions, governance, and rollout
-                  expectations against their own operating model before they move forward.
-                </p>
-              </div>
-              <div className="space-y-3">
-                <Link
-                  className="inline-flex w-full items-center justify-center rounded-full bg-white px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-slate-100"
-                  href="/contact"
-                >
-                  Book Demo
-                </Link>
-                <Link
-                  className="inline-flex w-full items-center justify-center rounded-full border border-white/20 bg-white/5 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
-                  href="/docs"
-                >
-                  Browse docs
-                </Link>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
       <CTASection
-        eyebrow="Continue the security conversation"
-        title="Use a demo or sales call to review permissions, governance, and rollout expectations."
-        description="We can tailor the conversation around your organization's operational complexity and trust requirements."
+        eyebrow="Review security in context"
+        title="Use a live walkthrough to pressure-test permissions, governance, and rollout expectations."
+        description="We can focus the conversation on employee records, approval routing, admin controls, and the operating complexity your team needs to manage safely."
         primary={{ href: "/contact", label: "Book Demo" }}
         secondary={{ href: "/docs", label: "Browse docs" }}
       />

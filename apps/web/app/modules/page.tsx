@@ -1,26 +1,16 @@
-import Link from "next/link";
 import { CTASection } from "@/components/cta-section";
 import { JsonLd } from "@/components/json-ld";
 import { PageHero } from "@/components/page-hero";
 import { PlatformSnapshot } from "@/components/platform-snapshot";
-import { RelatedSolutions } from "@/components/related-solutions";
 import { SectionHeading } from "@/components/section-heading";
-import { getSeoClusterLinks, modules } from "@/lib/content";
+import { modules } from "@/lib/content";
 import { buildMetadata } from "@/lib/seo";
 import { breadcrumbSchema, softwareApplicationSchema } from "@/lib/schema";
-
-const solutionLinks = getSeoClusterLinks([
-  "attendanceManagement",
-  "leaveManagement",
-  "payrollManagement",
-  "employeeDirectory",
-  "workforceAnalytics"
-]);
 
 export const metadata = buildMetadata({
   title: "Modules",
   description:
-    "Review EMP modules for attendance, leave, employee profiles, org structure, payroll support, projects, collaboration, approvals, analytics, knowledge, and governance.",
+    "Review EMP modules for attendance, leave, employee records, organization structure, payroll visibility, projects, collaboration, approval routing, analytics, knowledge, and governance.",
   path: "/modules",
   keywords: [
     "attendance software",
@@ -34,9 +24,9 @@ export const metadata = buildMetadata({
 function ModulesAside() {
   return (
     <div className="surface rounded-[2rem] p-6">
-      <p className="eyebrow">Connected modules</p>
+      <p className="eyebrow">Core modules</p>
       <div className="mt-5 grid gap-3 sm:grid-cols-2">
-        {["Attendance", "Leave", "Projects", "Approvals", "Analytics", "Knowledge"].map((item) => (
+        {["Employee Records", "Organization", "Attendance", "Leave", "Approval Routing", "Analytics"].map((item) => (
           <div
             key={item}
             className="rounded-2xl border border-slate-200 bg-white/85 px-4 py-3 text-sm font-semibold text-slate-700"
@@ -70,39 +60,68 @@ export default function ModulesPage() {
         eyebrow="Module breakdown"
         title={
           <>
-            Detailed modules built to work like one{" "}
-            <span className="font-display italic font-normal text-teal-800">company system</span>.
+            Modules built to work as one{" "}
+            <span className="font-display italic font-normal text-teal-800">connected product</span>.
           </>
         }
-        description="Each EMP module solves a specific operational problem while staying connected to the same company structure, roles, approvals, and reporting model."
+        description="EMP brings employee records, reporting lines, attendance, leave, payroll visibility, approvals, governance, and analytics into one module system tied to the same org structure."
         breadcrumbs={[
           { label: "Home", href: "/" },
           { label: "Modules" }
         ]}
-        actions={[
-          { href: "/contact", label: "Book Demo" },
-          { href: "/product", label: "Explore Product" }
-        ]}
+        actions={[{ href: "/contact", label: "Book Demo" }]}
         aside={<ModulesAside />}
       />
 
       <section className="section">
         <div className="container">
+          <SectionHeading
+            eyebrow="Module catalog"
+            title="A cleaner module catalog for the workflows teams run every day."
+            description="The catalog is built around real operating jobs: employee records, reporting lines, leave approvals, attendance review, payroll visibility, project ownership, approval routing, and admin controls."
+          />
+          <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+            {modules.map((module) => (
+              <article key={module.name} className="surface rounded-[1.75rem] p-6">
+                <h2 className="text-xl font-semibold text-slate-950">{module.name}</h2>
+                <p className="mt-4 text-base leading-7 text-slate-600">{module.value}</p>
+                <div className="mt-6">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                    Why teams need it
+                  </p>
+                  <p className="mt-3 text-sm leading-7 text-slate-600">{module.problem}</p>
+                </div>
+                <div className="mt-5 rounded-[1.5rem] border border-slate-200 bg-white p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                    Operational example
+                  </p>
+                  <p className="mt-3 text-sm leading-7 text-slate-600">{module.useCase}</p>
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="section">
+        <div className="container">
           <div className="grid gap-10 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:items-center">
             <div className="max-w-xl">
-              <p className="eyebrow">Module orchestration</p>
+              <p className="eyebrow">Why the modules work together</p>
               <h2 className="mt-4 text-balance text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
-                See how each module inherits the same operating foundation.
+                The value is not just the list of modules. It is the shared operating model behind them.
               </h2>
               <p className="mt-5 text-lg leading-8 text-slate-600">
-                Attendance, leave, approvals, analytics, and governance all inherit the same
-                company model, so teams gain depth without creating another disconnected stack.
+                Every module inherits the same org hierarchy, departments and teams, reporting
+                lines, approval routing, and employee records. That means requests follow the right
+                ownership path, payroll visibility stays closer to attendance and leave, and
+                leadership sees one operational picture instead of separate systems.
               </p>
               <div className="mt-8 grid gap-3">
                 {[
-                  "Core workflows stay aligned to one org structure and permissions model.",
-                  "Shared records reduce duplicate entry, reconciliation, and admin friction.",
-                  "Companies can start with one pain point and expand without rebuilding the foundation."
+                  "Employee records, attendance, leave, and reporting stay tied to one org structure.",
+                  "Requests and approvals inherit the same managers, teams, and policy boundaries.",
+                  "Leadership sees staffing pressure, unresolved exceptions, and operating trends from one view."
                 ].map((item) => (
                   <div
                     key={item}
@@ -115,156 +134,68 @@ export default function ModulesPage() {
             </div>
             <PlatformSnapshot
               slotId="modules-workspace-overview"
-              eyebrow="Module overview"
-              title="Shared context across every workflow"
-              description="A unified module view that shows how attendance, leave, approvals, and reporting work together."
+              eyebrow="Connected system view"
+              title="One shared model across every workflow"
+              description="Attendance, leave, approvals, payroll visibility, and analytics stay connected because the modules share the same operating structure."
               sidebarTitle="Module workspace"
-              sidebarSubtitle="Connected through one org model"
+              sidebarSubtitle="One org model across every module"
               sidebarItems={[
-                "Attendance and leave",
-                "Approvals and notifications",
-                "Payroll support and reporting",
-                "Admin settings and governance"
+                "Employee records and reporting lines",
+                "Attendance, leave, and approval routing",
+                "Payroll visibility and manager reviews",
+                "Governance settings and workforce analytics"
               ]}
               metrics={[
-                { label: "Core workflows", value: "11" },
-                { label: "Shared data model", value: "1" },
-                { label: "Approval touchpoints", value: "6" }
+                { label: "Core modules", value: "11" },
+                { label: "Shared org model", value: "1" },
+                { label: "Approval paths", value: "6" }
               ]}
-              activityTitle="How modules reinforce each other"
+              activityTitle="How the modules connect"
               activityItems={[
                 {
-                  title: "Attendance affects payroll support",
-                  meta: "Cleaner upstream records reduce downstream reconciliation",
+                  title: "Attendance flows into payroll visibility",
+                  meta: "Cleaner daily records reduce late reconciliation for finance and HR",
                   status: "Connected"
                 },
                 {
-                  title: "Leave affects team coverage",
-                  meta: "Managers see overlap and staffing impact before approval",
+                  title: "Leave approvals affect staffing",
+                  meta: "Managers see overlap and team pressure before approvals are finalized",
                   status: "Visible"
                 },
                 {
-                  title: "Analytics reflects live execution",
-                  meta: "Leadership sees activity from the same operating layer",
-                  status: "Actionable"
+                  title: "Leadership sees one picture",
+                  meta: "Analytics reflects live activity across records, requests, and approvals",
+                  status: "Shared view"
                 }
               ]}
-              footerNote="Use this area for module walkthroughs, product views, or category-specific workflow examples."
+              footerNote="Each module works on its own, but they create more value when they share the same structure and approval logic."
             />
           </div>
         </div>
       </section>
 
-      <section className="section">
-        <div className="container">
-          <SectionHeading
-            eyebrow="Module catalog"
-            title="From workforce basics to broader company coordination."
-            description="EMP covers the workflows that usually get split across HR tools, operations tools, chat threads, inboxes, and reporting spreadsheets."
-          />
-          <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-            {modules.map((module) => (
-              <article key={module.name} className="surface rounded-[1.75rem] p-6">
-                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-teal-700">
-                  {module.name}
-                </p>
-                <h2 className="mt-4 text-xl font-semibold text-slate-950">{module.value}</h2>
-                <div className="mt-6 rounded-[1.5rem] bg-slate-50 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-                    Problem solved
-                  </p>
-                  <p className="mt-3 text-sm leading-7 text-slate-600">{module.problem}</p>
-                </div>
-                <div className="mt-4 rounded-[1.5rem] border border-slate-200 bg-white p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-                    Example use case
-                  </p>
-                  <p className="mt-3 text-sm leading-7 text-slate-600">{module.useCase}</p>
-                </div>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="section">
-        <div className="container">
-          <SectionHeading
-            eyebrow="Premium comparison"
-            title="Why connected modules outperform a point-tool stack."
-            description="Enterprise buyers want the module story to explain why the platform is easier to govern, expand, and operate over time."
-          />
-          <div className="mt-10 grid gap-5 lg:grid-cols-3">
-            {[
-              {
-                title: "Shared context matters",
-                body: "The real advantage is not any single module. It is the fact that each one inherits the same structure, users, and ownership paths."
-              },
-              {
-                title: "Less duplicate work",
-                body: "When profiles, attendance, approvals, and reporting all refer to the same operating model, teams stop re-entering or reconciling the same facts."
-              },
-              {
-                title: "Cleaner expansion path",
-                body: "Companies can start with core workflows and expand into analytics, knowledge, collaboration, and governance without rebuilding the foundation."
-              }
-            ].map((item) => (
-              <article
-                key={item.title}
-                className="rounded-[1.75rem] border border-slate-200/80 bg-white/85 p-6 shadow-[0_18px_60px_rgba(15,23,42,0.05)]"
-              >
-                <h2 className="text-xl font-semibold text-slate-950">{item.title}</h2>
-                <p className="mt-4 text-base leading-7 text-slate-600">{item.body}</p>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <RelatedSolutions
-        eyebrow="High-intent entry points"
-        title="Connect module exploration to the SEO solution cluster."
-        description="Use these routes to catch buyer intent around specific software categories while still guiding visitors into a demo and broader product review."
-        links={solutionLinks}
-      />
-
       <section className="section pt-0">
         <div className="container">
           <div className="rounded-[2rem] border border-slate-900/10 bg-slate-950 p-8 text-white shadow-[0_24px_80px_rgba(15,23,42,0.18)]">
-            <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_220px] lg:items-center">
-              <div>
-                <p className="eyebrow !border-white/15 !bg-white/8 !text-slate-200">Buying flow</p>
-                <h2 className="mt-4 text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
-                  Start with your highest-friction workflow, then expand with confidence.
-                </h2>
-                <p className="mt-5 text-lg leading-8 text-slate-300">
-                  The module story should make it easy for a buyer to begin with attendance, leave,
-                  payroll support, or analytics, then see how a broader rollout creates more value.
-                </p>
-              </div>
-              <div className="space-y-3">
-                <Link
-                  className="inline-flex w-full items-center justify-center rounded-full bg-white px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-slate-100"
-                  href="/contact"
-                >
-                  Book Demo
-                </Link>
-                <Link
-                  className="inline-flex w-full items-center justify-center rounded-full border border-white/20 bg-white/5 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
-                  href="/product"
-                >
-                  Review product
-                </Link>
-              </div>
+            <div className="max-w-3xl">
+              <p className="eyebrow !border-white/15 !bg-white/8 !text-slate-200">Next step</p>
+              <h2 className="mt-4 text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
+                Start with the module creating the most friction today, then expand from a stable foundation.
+              </h2>
+              <p className="mt-5 text-lg leading-8 text-slate-300">
+                A demo can focus on the workflow you care about first, then show how employee
+                records, approvals, payroll visibility, admin controls, and analytics connect as the
+                rollout grows.
+              </p>
             </div>
           </div>
         </div>
       </section>
 
       <CTASection
-        eyebrow="Choose your starting point"
-        title="See which EMP modules matter most for your current operating stage."
-        description="We can start with the workflows creating the most friction today and expand the platform footprint as your teams mature."
+        eyebrow="See the modules in context"
+        title="Walk through the EMP modules that matter most to your team."
+        description="We can start with the workflow creating the most friction today and show how the rest of the system connects around it."
         primary={{ href: "/contact", label: "Book Demo" }}
         secondary={{ href: "/pricing", label: "Review pricing approach" }}
       />

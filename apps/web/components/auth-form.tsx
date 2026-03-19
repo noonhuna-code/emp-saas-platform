@@ -25,8 +25,8 @@ export function AuthForm({ mode }: AuthFormProps) {
           </h2>
           <p className="mt-4 text-base leading-7 text-slate-700">
             {isSignIn
-              ? "You can continue into the EMP workspace experience from here."
-              : "Your workspace request details have been captured for the next step in onboarding."}
+              ? "You can continue into the EMP workspace from here."
+              : "Your workspace request has been received and the next onboarding step can be prepared."}
           </p>
           <div className="mt-6 flex flex-wrap gap-4">
             <button
@@ -54,7 +54,7 @@ export function AuthForm({ mode }: AuthFormProps) {
             <p className="mt-3 text-base leading-7 text-slate-600">
               {isSignIn
                 ? "Use your work credentials to access the EMP workspace."
-                : "Request account access and begin a guided EMP workspace setup."}
+                : "Request account access to begin a guided EMP workspace setup."}
             </p>
           </div>
 
@@ -132,7 +132,7 @@ export function AuthForm({ mode }: AuthFormProps) {
               {isSignIn ? (
                 <span className="text-slate-500">Secure workspace access</span>
               ) : (
-                <span className="text-slate-500">Guided signup experience</span>
+                <span className="text-slate-500">Guided workspace setup</span>
               )}
             </div>
 

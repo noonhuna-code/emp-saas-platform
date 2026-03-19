@@ -29,6 +29,8 @@ export type PricingTier = {
   description: string;
   features: string[];
   cta: ActionLink;
+  highlight?: string;
+  bestFor?: string;
   featured?: boolean;
 };
 
@@ -102,69 +104,69 @@ export const operatingCoverage = [
 export const modules: ModuleItem[] = [
   {
     name: "Attendance",
-    value: "Track daily presence with fewer blind spots and less manual reconciliation.",
-    problem: "Teams struggle when attendance lives in separate sheets, devices, and supervisor messages.",
-    useCase: "Regional managers review late arrivals, missing punches, and shift coverage before daily operations begin."
+    value: "Review daily presence, missing punches, shift changes, and attendance exceptions in one place.",
+    problem: "Attendance turns noisy when devices, spreadsheets, and supervisor messages all tell a slightly different story.",
+    useCase: "Regional managers review late arrivals and missing punches before staffing calls and payroll checks begin."
   },
   {
     name: "Leave",
-    value: "Standardize leave requests, approvals, balances, and policy visibility across teams.",
-    problem: "Leave handling becomes inconsistent when policies are interpreted manually by each department.",
-    useCase: "HR and managers approve leave with immediate visibility into overlapping absences and remaining balances."
+    value: "Handle leave requests, balances, overlap checks, and policy execution with cleaner manager reviews.",
+    problem: "Leave handling gets inconsistent when each department interprets policy through email, chat, and manual notes.",
+    useCase: "HR and managers approve leave with visibility into overlapping absences, remaining balances, and team coverage."
   },
   {
-    name: "Employee Profiles",
-    value: "Maintain a structured source of truth for each employee, role, reporting line, and employment context.",
-    problem: "Profile data gets duplicated across HR files, chat threads, and disconnected records.",
-    useCase: "An operations lead can review tenure, team, manager, shift, and contact data from one live profile."
+    name: "Employee Records",
+    value: "Maintain a clean source of truth for role, reporting line, department, and employment context.",
+    problem: "Employee details get duplicated when HR files, chat threads, and manager notes all become unofficial record systems.",
+    useCase: "An operations lead reviews role history, team assignment, manager, shift, and contact data from one live record."
   },
   {
-    name: "Org Structure",
-    value: "Model departments, sub-departments, teams, and reporting hierarchy in a way the whole company can use.",
-    problem: "Org design becomes opaque when it is documented in slides but not reflected in day-to-day systems.",
-    useCase: "A growing company creates new business units and immediately routes approvals, visibility, and ownership correctly."
+    name: "Organization",
+    value: "Model departments, teams, and reporting lines in a way the whole company can actually use.",
+    problem: "Org design becomes hard to trust when it lives in slides while day-to-day approvals and records follow different ownership paths.",
+    useCase: "A growing company creates new teams and immediately routes visibility, approvals, and responsibility to the right owners."
   },
   {
-    name: "Payroll",
-    value: "Support payroll preparation with cleaner workforce records and policy-aware operational data.",
-    problem: "Payroll reviews slow down when attendance, leave, exceptions, and employee records have to be stitched together late.",
-    useCase: "Finance and HR export verified payroll inputs after exception handling is completed by department managers."
+    name: "Payroll Visibility",
+    value: "Give finance and HR cleaner upstream context before payroll reviews and corrections begin.",
+    problem: "Payroll review slows down when attendance, leave, exceptions, and employee records all need late manual reconciliation.",
+    useCase: "Finance and HR review verified payroll inputs after department managers finish exception handling."
   },
   {
     name: "Projects",
-    value: "Connect projects and operating tasks to real teams, owners, and accountability paths.",
-    problem: "Work execution falls apart when project tools are detached from who actually owns the work in the company structure.",
-    useCase: "Department heads manage cross-functional rollout work while keeping accountability attached to the org chart."
+    value: "Keep project ownership tied to the real teams, managers, and reporting lines doing the work.",
+    problem: "Project tracking breaks down when work ownership sits outside the actual company structure.",
+    useCase: "Department heads run cross-functional rollout work while keeping ownership tied to the same org hierarchy."
   },
   {
-    name: "Chat / Collaboration",
-    value: "Keep work conversations close to the people, approvals, and records they affect.",
-    problem: "Context gets lost when critical operational decisions happen in external chat threads with no system record.",
-    useCase: "A team lead resolves a shift issue directly from the employee record and approval context."
+    name: "Collaboration",
+    value: "Keep work conversations closer to the people, approvals, and records they affect.",
+    problem: "Context gets lost when critical operational decisions live in chat threads with no connection to the underlying record or request.",
+    useCase: "A team lead resolves a shift issue with the employee record and approval context already in view."
   },
   {
-    name: "Notifications / Approvals",
-    value: "Route decisions to the right person with visibility into what changed, why it matters, and what happens next.",
-    problem: "Manual follow-up creates delays when requests depend on unclear ownership or hidden exceptions.",
-    useCase: "Managers receive a clean inbox of approvals for leave, attendance exceptions, and structural changes."
+    name: "Approval Routing",
+    value: "Route leave, attendance, profile, and structural requests to the right owner with the right context.",
+    problem: "Manual follow-up creates delays when ownership is unclear or exceptions are buried in messages.",
+    useCase: "Managers receive a clean queue for leave approvals, attendance exceptions, and structural changes."
   },
   {
     name: "Analytics",
-    value: "Give leaders a live operating view of workforce structure, activity, gaps, and exceptions.",
-    problem: "Executives often see people data too late because reporting depends on manual consolidation.",
+    value: "Give leaders a live view of workforce activity, staffing pressure, gaps, and exceptions.",
+    problem: "Executives usually see people data too late because reporting depends on manual consolidation across systems.",
     useCase: "Leadership reviews staffing patterns, approval bottlenecks, attendance trends, and policy exceptions in one place."
   },
   {
-    name: "Knowledge / SOPs",
-    value: "Store policies, instructions, and operating playbooks where teams can actually use them.",
-    problem: "Important SOPs become shelfware when knowledge lives in static files disconnected from daily workflows.",
-    useCase: "Managers attach SOP guidance to approvals and team workflows to reduce policy drift."
+    name: "Knowledge Base",
+    value: "Keep policies, SOPs, and operating guidance closer to the workflows teams actually run.",
+    problem: "Important process guidance becomes shelfware when it lives in static files disconnected from daily approvals and requests.",
+    useCase: "Managers attach policy guidance to approvals and team workflows to reduce policy drift."
   },
   {
-    name: "Governance / Settings",
-    value: "Control how the system works across teams, roles, policies, and operational guardrails.",
-    problem: "Growth introduces risk when permissions, rules, and ownership are improvised instead of governed centrally.",
-    useCase: "Admins define policy logic, department-level settings, and role-based permissions without losing flexibility."
+    name: "Governance",
+    value: "Control permissions, settings, policy boundaries, and operational guardrails from one admin layer.",
+    problem: "Growth introduces risk when permissions, rules, and ownership are improvised instead of managed centrally.",
+    useCase: "Admins define policy logic, department-level settings, and permissions without losing flexibility."
   }
 ];
 
@@ -332,6 +334,8 @@ export const pricingTiers: PricingTier[] = [
     audience: "For smaller teams replacing spreadsheets and ad hoc workflows",
     description:
       "A guided starting point for companies that need structured people operations, cleaner approvals, and a practical first rollout.",
+    highlight: "Best when the team is replacing manual records, email approvals, and first-stage HR admin work.",
+    bestFor: "Early operating structure",
     features: [
       "Core org structure and employee records",
       "Attendance and leave workflows",
@@ -348,6 +352,8 @@ export const pricingTiers: PricingTier[] = [
     audience: "For multi-team organizations that need deeper operating coordination",
     description:
       "Adds stronger cross-functional visibility, collaboration, analytics, and control for growing organizations.",
+    highlight: "Best when departments, managers, and admins all need shared visibility across approvals and workforce activity.",
+    bestFor: "Cross-team coordination",
     features: [
       "Everything in Starter",
       "Projects, collaboration, and shared inbox flows",
@@ -364,6 +370,8 @@ export const pricingTiers: PricingTier[] = [
     cadence: "custom deployment",
     audience: "For operationally complex organizations with advanced governance needs",
     description: "Best for larger teams that need rollout planning, deeper control, and tailored deployment support.",
+    highlight: "Best when governance, rollout support, permissions, and operational complexity need a more tailored commercial path.",
+    bestFor: "Complex rollout and governance",
     features: [
       "Everything in Growth",
       "Enterprise rollout planning",
@@ -411,6 +419,70 @@ export const comparisonTable = [
     starter: "Standard",
     growth: "Guided",
     enterprise: "Tailored"
+  }
+] as const;
+
+export const pricingPersonas = [
+  {
+    id: "starter",
+    label: "Getting started",
+    title: "For teams replacing spreadsheets and lightweight HR admin work",
+    description:
+      "Choose this view if the main goal is to put employee records, attendance, leave approvals, and basic admin controls on a cleaner foundation.",
+    recommendedPlan: "Starter"
+  },
+  {
+    id: "growth",
+    label: "Scaling teams",
+    title: "For companies needing stronger coordination across departments and managers",
+    description:
+      "Choose this view if approvals, reporting, project ownership, analytics, and shared visibility matter across multiple teams.",
+    recommendedPlan: "Growth"
+  },
+  {
+    id: "enterprise",
+    label: "Complex rollout",
+    title: "For organizations with deeper governance, rollout, and support expectations",
+    description:
+      "Choose this view if permissions, implementation complexity, operating scope, and deployment planning need a more tailored commercial conversation.",
+    recommendedPlan: "Enterprise"
+  }
+] as const;
+
+export const pricingComparisonGroups = [
+  {
+    id: "operations",
+    label: "Operations",
+    rows: [
+      "Departments, teams, and reporting structure",
+      "Attendance and leave management",
+      "Projects and collaboration"
+    ]
+  },
+  {
+    id: "visibility",
+    label: "Visibility",
+    rows: ["Analytics and executive insights", "Knowledge / SOPs"]
+  },
+  {
+    id: "rollout",
+    label: "Rollout",
+    rows: ["Deployment and implementation support"]
+  }
+] as const;
+
+export const pricingCommercialGuidance = [
+  {
+    title: "When Starter usually fits",
+    body: "Starter is usually the right entry point when the main need is to replace spreadsheets, tighten employee records, and give managers a cleaner path for attendance and leave approvals."
+  },
+  {
+    title: "When Growth usually fits",
+    body: "Growth is usually the right choice when multiple departments need shared approval routing, clearer reporting, project ownership, and broader workforce analytics."
+  },
+  {
+    title: "When Enterprise usually fits",
+    body: "Enterprise is usually the better path when rollout support, governance settings, permissions, and deployment complexity need a more tailored commercial conversation."
   }
 ] as const;
 
@@ -463,16 +535,16 @@ export const securityPrinciples = [
     body: "Permissions can follow role, team, and operational responsibility so sensitive workforce actions do not become broadly exposed."
   },
   {
-    title: "Audit-friendly operations",
-    body: "Requests, approvals, changes, and governance-sensitive actions are designed to be easier to review and trace."
+    title: "Review history where work happens",
+    body: "Requests, approvals, record changes, and governance-sensitive actions stay easier to review when history remains attached to the workflow itself."
   },
   {
     title: "Structured governance",
-    body: "Admin settings, hierarchy, policy logic, and approval boundaries stay part of the operating model instead of living off-platform."
+    body: "Admin settings, hierarchy, policy logic, and approval boundaries stay part of the operating model instead of being improvised across separate tools."
   },
   {
     title: "Privacy-minded design",
-    body: "EMP is positioned for organizations handling employee data responsibly, with an emphasis on controlled access and practical operational guardrails."
+    body: "EMP is positioned for organizations treating employee records, approvals, and workforce data as sensitive operational information that needs narrower exposure."
   }
 ] as const;
 
@@ -501,11 +573,11 @@ export const securityFaqs: FAQItem[] = [
 
 export const securityReviewTopics = [
   "Role-based permissions and approval boundaries",
-  "Operational auditability and request history",
-  "Sensitive workforce data visibility controls",
+  "Who can view or change employee records",
+  "Attendance, leave, and approval history review",
   "Governance settings and admin responsibility",
   "Deployment expectations and rollout planning",
-  "Privacy-minded handling of employee information"
+  "Privacy-minded handling of workforce information"
 ] as const;
 
 export const docsCategories: DocsCategory[] = [
@@ -632,7 +704,7 @@ export const contactFaqs: FAQItem[] = [
   {
     question: "Is the contact form connected to a backend?",
     answer:
-      "This implementation uses a frontend success flow so the site stays portable. It is ready to connect to your preferred CRM or form backend later."
+      "Once you submit the form, the EMP team can use your details to prepare a more relevant demo conversation and follow up with the right next step."
   }
 ];
 

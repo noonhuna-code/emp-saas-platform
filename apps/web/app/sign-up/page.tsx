@@ -41,7 +41,7 @@ export default function SignUpPage() {
         title={
           <>
             Request access through a guided{" "}
-            <span className="font-display italic font-normal text-teal-800">signup flow</span>.
+            <span className="font-display italic font-normal text-teal-800">workspace signup</span>.
           </>
         }
         description="Use this page for account requests, invite-based onboarding, or guided workspace setup."
@@ -60,11 +60,11 @@ export default function SignUpPage() {
             <span className="font-display italic font-normal text-teal-800">workspace request</span>.
           </>
         }
-        description="The signup flow works for invites, workspace requests, and guided onboarding."
+        description="EMP signup works for invites, workspace requests, and guided onboarding for new teams."
         bullets={[
           "Useful for invite-led or assisted onboarding",
-          "Consistent with the EMP product experience",
-          "Suitable for guided workspace setup"
+          "Fits guided workspace setup for new teams",
+          "Keeps setup aligned with the EMP product experience"
         ]}
       />
     </>

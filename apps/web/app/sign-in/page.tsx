@@ -44,7 +44,7 @@ export default function SignInPage() {
             <span className="font-display italic font-normal text-teal-800">EMP workspace</span>.
           </>
         }
-        description="Use this page for employee, manager, HR, or admin access to the EMP workspace."
+        description="Use your work account to access EMP for employee operations, approvals, records, and admin workflows."
         breadcrumbs={[
           { label: "Home", href: "/" },
           { label: "Sign in" }
@@ -56,15 +56,15 @@ export default function SignInPage() {
         eyebrow="Workspace access"
         title={
           <>
-            Sign in through a controlled{" "}
+            Sign in through a secure{" "}
             <span className="font-display italic font-normal text-teal-800">workspace access flow</span>.
           </>
         }
-        description="The sign-in flow works for employee, manager, and admin access without feeling separate from the main product experience."
+        description="EMP sign-in is designed for employees, managers, HR, and admins working from the same company workspace."
         bullets={[
-          "Suitable for employee, manager, and admin access",
-          "Aligned with the public EMP product experience",
-          "Supports invite-led and managed workspace access"
+          "Supports employee, manager, HR, and admin access",
+          "Works for managed company workspaces",
+          "Keeps entry consistent with the EMP product experience"
         ]}
       />
     </>
