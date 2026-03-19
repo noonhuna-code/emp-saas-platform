@@ -1,6 +1,7 @@
 ﻿import {
   OrganizationDepartmentSummary,
   OrganizationEmployeeSummary,
+  OrganizationFoundationSummary,
   OrganizationOverview,
   OrganizationReportingSummary,
   OrganizationTeamSummary,
@@ -11,6 +12,7 @@
 } from '../lib/types';
 import { requirePermission } from '../lib/auth-wrapper';
 import { requirePlanFeature } from '../lib/entitlements';
+import { getOrganizationFoundationSummary } from './organization-foundation.service';
 
 type ProfileRow = { id: string; full_name: string | null };
 type EmployeeRow = {
@@ -48,7 +50,14 @@ type ReportingLineRow = {
     | 'team_lead'
     | 'hr_manager'
     | 'payroll_reviewer'
-    | 'project_manager';
+    | 'project_manager'
+    | 'secondary_manager'
+    | 'acting_manager'
+    | 'delegate_approver'
+    | 'skip_level_manager'
+    | 'functional_manager'
+    | 'approval_manager'
+    | 'matrix_manager';
   is_primary: boolean;
   effective_from: string;
   effective_to: string | null;
@@ -498,6 +507,12 @@ export async function getOrganizationOverview(
       });
     }
 
+    let foundation: OrganizationFoundationSummary | null = null;
+    const foundationResult = await getOrganizationFoundationSummary(ctx);
+    if (foundationResult.ok && foundationResult.data) {
+      foundation = foundationResult.data;
+    }
+
     const overview: OrganizationOverview = {
       company_id: ctx.companyId,
       departments,
@@ -506,6 +521,7 @@ export async function getOrganizationOverview(
         .map((employee) => employeeSummaryById.get(employee.id))
         .filter((employee): employee is OrganizationEmployeeSummary => Boolean(employee)),
       reporting: reportingSummaries,
+      foundation,
       tree: {
         company_id: ctx.companyId,
         nodes,

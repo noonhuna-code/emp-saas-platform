@@ -102,6 +102,7 @@ export function OrganizationOverviewScreen({
   }
 
   const { direct, dotted, managed } = reportingMeta(overview.reporting);
+  const foundation = overview.foundation ?? null;
 
   return (
     <PageContainer>
@@ -130,6 +131,15 @@ export function OrganizationOverviewScreen({
         <StatCard label="Primary reporting lines" value={direct} hint="Using active direct-manager relations" />
         <StatCard label="Secondary reporting lines" value={dotted} hint="Dotted-line and specialist reviewers" />
       </StatGrid>
+
+      {foundation ? (
+        <StatGrid>
+          <StatCard label="Org units" value={foundation.org_unit_count} hint="Generic enterprise structure nodes" />
+          <StatCard label="Role families" value={foundation.role_family_count} hint="Reusable enterprise role-family catalog" />
+          <StatCard label="Positions" value={foundation.position_count} hint="Position planning foundation" />
+          <StatCard label="Delegations / routing" value={foundation.approval_delegation_count + foundation.approval_routing_rule_count} hint="Approval delegation and routing foundations" />
+        </StatGrid>
+      ) : null}
 
       <DashboardRail className="xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
         <SurfacePanel
@@ -220,6 +230,55 @@ export function OrganizationOverviewScreen({
           </div>
         </SurfacePanel>
       </div>
+
+      {foundation ? (
+        <DashboardRail className="xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.9fr)]">
+          <SurfacePanel
+            title="Enterprise foundation"
+            description="Phase 1 enterprise hierarchy foundation layered on top of the current department and team model."
+          >
+            <div className="grid gap-3 md:grid-cols-2">
+              {foundation.unit_category_counts.map((entry) => (
+                <div
+                  key={entry.category}
+                  className="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4 dark:border-slate-800 dark:bg-slate-900/60"
+                >
+                  <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{entry.category}</div>
+                  <div className="mt-2 text-2xl font-semibold tracking-tight text-slate-950 dark:text-slate-100">{entry.count}</div>
+                  <div className="mt-1 text-sm text-slate-600 dark:text-slate-400">Mapped enterprise unit records</div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-4 rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4 text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-400">
+              Legacy mapped units: {foundation.mapped_legacy_unit_count}. Active position assignments: {foundation.active_assignment_count}. Supported reporting relations: {foundation.supported_relation_types.length}.
+            </div>
+          </SurfacePanel>
+
+          <SurfacePanel
+            title="Role-family coverage"
+            description="Seeded enterprise role families ready for positions, approvals, and multi-structure planning."
+          >
+            <div className="space-y-3">
+              {foundation.role_families.slice(0, 10).map((family) => (
+                <div
+                  key={family.id}
+                  className="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4 dark:border-slate-800 dark:bg-slate-900/60"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="text-sm font-semibold text-slate-950 dark:text-slate-100">{family.name}</div>
+                      <div className="mt-1 text-xs uppercase tracking-[0.18em] text-slate-500">{family.key}</div>
+                    </div>
+                    <Badge className="rounded-full border-slate-200 bg-white/90 text-slate-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200">
+                      {family.role_count} roles
+                    </Badge>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </SurfacePanel>
+        </DashboardRail>
+      ) : null}
     </PageContainer>
   );
 }

@@ -36,7 +36,50 @@ export type OrgReportingRelationType =
   | "team_lead"
   | "hr_manager"
   | "payroll_reviewer"
-  | "project_manager";
+  | "project_manager"
+  | "secondary_manager"
+  | "acting_manager"
+  | "delegate_approver"
+  | "skip_level_manager"
+  | "functional_manager"
+  | "approval_manager"
+  | "matrix_manager";
+
+export type OrgUnitCategory =
+  | "ownership"
+  | "business"
+  | "geography"
+  | "functional"
+  | "workspace"
+  | "temporary";
+
+export type OrganizationFoundationCategoryCount = {
+  category: OrgUnitCategory;
+  count: number;
+};
+
+export type OrganizationFoundationRoleFamily = {
+  id: string;
+  key: string;
+  name: string;
+  role_count: number;
+  is_system_family: boolean;
+};
+
+export type OrganizationFoundationSummary = {
+  company_id: string;
+  org_unit_count: number;
+  mapped_legacy_unit_count: number;
+  role_family_count: number;
+  job_role_count: number;
+  position_count: number;
+  active_assignment_count: number;
+  approval_delegation_count: number;
+  approval_routing_rule_count: number;
+  unit_category_counts: OrganizationFoundationCategoryCount[];
+  role_families: OrganizationFoundationRoleFamily[];
+  supported_relation_types: OrgReportingRelationType[];
+};
 
 export type EmployeeReportingLineSummary = {
   id: string;
@@ -149,5 +192,6 @@ export type OrganizationOverview = {
   employees: OrganizationEmployeeSummary[];
   reporting: OrganizationReportingSummary[];
   tree: OrganizationTreePayload;
+  foundation?: OrganizationFoundationSummary | null;
 };
 

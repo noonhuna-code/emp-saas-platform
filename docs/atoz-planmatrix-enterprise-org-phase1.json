@@ -1,0 +1,119 @@
+{
+  "artifact": "AtoZ / PlanMatrix Companion",
+  "version": "phase1-enterprise-org-foundation",
+  "generated_on": "2026-03-19",
+  "status": "implemented-in-repo",
+  "notes": [
+    "No workbook or existing AtoZ/PlanMatrix source file was present in the repository during this implementation pass.",
+    "This normalized companion artifact is the source-of-truth substitute for future workbook export or manual spreadsheet sync."
+  ],
+  "capabilities": [
+    {
+      "area": "Ownership hierarchy",
+      "capability": "Founder, board, chairman, CEO, executive structures",
+      "phase1_status": "implemented_foundation",
+      "implementation": [
+        "System job role families and job roles seeded for executive structure",
+        "Org units support ownership and business categories"
+      ]
+    },
+    {
+      "area": "Business structure",
+      "capability": "Holding company, company, subsidiary, brand, business unit, legal entity",
+      "phase1_status": "implemented_foundation",
+      "implementation": [
+        "Org unit type catalog seeded for business and ownership structures",
+        "Generic org units and cross-links added"
+      ]
+    },
+    {
+      "area": "Geography and offices",
+      "capability": "Country to floor, city-office support, remote teams",
+      "phase1_status": "implemented_foundation",
+      "implementation": [
+        "Geography org unit types seeded",
+        "Branches backfilled into org units",
+        "Office/site/building/floor/remote team node types available"
+      ]
+    },
+    {
+      "area": "Functional structure",
+      "capability": "Division, department, sub-department, team, pod, desk, shift group, temporary project structures",
+      "phase1_status": "implemented_foundation",
+      "implementation": [
+        "Functional/workspace/temporary org unit types seeded",
+        "Existing departments and teams backfilled into org units"
+      ]
+    },
+    {
+      "area": "People and reporting",
+      "capability": "Primary, dotted-line, secondary, acting, delegate, skip-level, matrix reporting",
+      "phase1_status": "implemented_foundation",
+      "implementation": [
+        "employee_reporting_lines relation types expanded",
+        "Position relationships added for position-based hierarchy modeling"
+      ]
+    },
+    {
+      "area": "Positions",
+      "capability": "Positions separate from people and roles",
+      "phase1_status": "implemented_foundation",
+      "implementation": [
+        "org_positions table added",
+        "employee_position_assignments table added",
+        "Position relationship graph added"
+      ]
+    },
+    {
+      "area": "Approvals and delegation",
+      "capability": "Delegate approver and approval routing by structure",
+      "phase1_status": "implemented_foundation",
+      "implementation": [
+        "approval_delegations table added",
+        "approval_routing_rules table added",
+        "Permissions seeded for routing and delegation management"
+      ]
+    },
+    {
+      "area": "Admin controls",
+      "capability": "Enterprise org admin permissions",
+      "phase1_status": "implemented_foundation",
+      "implementation": [
+        "manage_org_structure",
+        "manage_positions",
+        "manage_reporting_lines",
+        "manage_delegations",
+        "manage_approval_routing"
+      ]
+    }
+  ],
+  "role_families": [
+    "governance_executive",
+    "strategy",
+    "finance_accounts_treasury_tax",
+    "hr_payroll_talent_ld",
+    "admin_office_assets",
+    "it_helpdesk_infrastructure_iam",
+    "security_infosec_physical",
+    "legal_compliance_audit_risk",
+    "product_project_program_pmo_delivery",
+    "engineering_qa_architecture_devops_support",
+    "data_bi_reporting_research_planning",
+    "operations_service_delivery_field_ops",
+    "customer_support_contact_center_escalations_retention",
+    "sales_channel_retail_enterprise_partner",
+    "marketing_content_brand_growth_comms",
+    "procurement_supply_chain_vendor_inventory",
+    "facilities_logistics_transport",
+    "telecom_network_noc_technical_ops"
+  ],
+  "next_export_fields": [
+    "capability",
+    "phase1_status",
+    "schema_object",
+    "api_surface",
+    "ui_surface",
+    "validation_status",
+    "next_phase"
+  ]
+}
