@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { CTASection } from "@/components/cta-section";
 import { FAQList } from "@/components/faq-list";
+import { FounderSection } from "@/components/founder-section";
 import { HeroVisual } from "@/components/hero-visual";
 import { JsonLd } from "@/components/json-ld";
 import { PlatformSnapshot } from "@/components/platform-snapshot";
@@ -31,7 +32,7 @@ const solutionLinks = getSeoClusterLinks([
 export const metadata = buildMetadata({
   title: "EMP Workforce OS",
   description:
-    "EMP is a premium Workforce OS for modern organizations that need company structure, approvals, attendance, leave, collaboration, payroll support, and leadership insight in one system.",
+    "EMP helps teams manage employee records, reporting lines, leave approvals, attendance exceptions, payroll visibility, approvals, and workforce analytics in one system.",
   path: "/",
   keywords: [
     "workforce os",
@@ -43,6 +44,15 @@ export const metadata = buildMetadata({
 });
 
 export default function HomePage() {
+  const proofSectorNotes = {
+    "Multi-site operations": "Useful when headcount, attendance, and approvals need to stay aligned across locations.",
+    "Services teams": "Useful when people allocation, leave coverage, and manager ownership affect daily delivery.",
+    "Field operations": "Useful when supervisors need fast visibility into attendance exceptions and shift pressure.",
+    "Corporate departments": "Useful when approvals, reporting lines, and admin controls need to stay consistent.",
+    "Retail groups": "Useful when store teams need cleaner staffing visibility and fewer manual escalations.",
+    "Growing back-office teams": "Useful when HR, finance, and operations need shared context instead of separate spreadsheets."
+  } as const;
+
   return (
     <>
       <JsonLd
@@ -65,16 +75,16 @@ export default function HomePage() {
             <div className="max-w-3xl">
               <p className="eyebrow">Workforce OS for modern organizations</p>
               <h1 className="mt-5 text-balance text-4xl font-semibold tracking-tight text-slate-950 sm:text-5xl lg:text-6xl xl:text-7xl">
-                Replace fragmented HR and operations tooling with one{" "}
+                Run employee operations, approvals, and workforce visibility from one{" "}
                 <span className="font-display italic font-normal text-teal-800">
-                  premium operating system
+                  structured system
                 </span>
-                .
+                built for real teams.
               </h1>
               <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-600 sm:text-xl">
-                EMP gives leadership, HR, finance, and managers one connected platform for company
-                structure, workforce workflows, approvals, collaboration, payroll readiness, and
-                executive insight.
+                EMP helps HR, managers, operations, and leadership stay on the same page for
+                employee records, reporting lines, leave approvals, attendance exceptions, payroll
+                visibility, admin controls, and workforce analytics.
               </p>
               <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:flex-wrap">
                 <Link
@@ -98,9 +108,9 @@ export default function HomePage() {
               </div>
               <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {[
-                  "Built for multi-team organizations",
-                  "Designed around hierarchy and approvals",
-                  "Structured for executive visibility"
+                  "Built around reporting lines and approvals",
+                  "Clearer employee records and admin controls",
+                  "Useful for HR, managers, finance, and leadership"
                 ].map((item) => (
                   <div
                     key={item}
@@ -140,7 +150,7 @@ export default function HomePage() {
               slotId="homepage-platform-overview"
               eyebrow="Platform overview"
               title="One command layer for workforce execution"
-              description="See how approvals, staffing pressure, payroll readiness, and team context can live in one operating workspace."
+              description="See how approvals, staffing pressure, payroll visibility, and reporting context can live in one operating workspace."
               sidebarTitle="Northstar Group"
               sidebarSubtitle="Regional operations workspace"
               sidebarItems={[
@@ -172,22 +182,23 @@ export default function HomePage() {
                   status: "Managers"
                 }
               ]}
-              footerNote="Use this section to show leadership views, live workflows, or a tailored product walkthrough."
+              footerNote="Leadership, HR, and operations can review the same live context without leaving the product."
             />
             <div>
               <p className="eyebrow">Designed for serious operators</p>
               <h2 className="mt-4 text-balance text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
-                A structured operating model creates a more credible product story.
+                Built for teams that need one reliable view of people operations.
               </h2>
               <p className="mt-5 text-lg leading-8 text-slate-600">
-                EMP gives leadership, HR, finance, and managers one system for the workflows that
-                usually get scattered across spreadsheets, inboxes, and disconnected tools.
+                EMP brings together the workflows that usually get scattered across inboxes,
+                spreadsheets, and lightweight point tools, then ties them back to the actual team
+                structure of the business.
               </p>
               <div className="mt-8 grid gap-3">
                 {[
-                  "Leadership gets a live command view across teams, approvals, and workforce pressure.",
-                  "Managers can move from exceptions to action without losing operating context.",
-                  "HR and finance stay closer to the records that shape payroll, policy, and reporting."
+                  "Leadership can see workforce pressure, approval delays, and org changes without waiting for a stitched report.",
+                  "Managers can move from attendance exceptions or leave requests straight into action with the right context.",
+                  "HR and finance stay closer to the employee records, approvals, and policy issues that shape payroll readiness."
                 ].map((item) => (
                   <div
                     key={item}
@@ -206,8 +217,8 @@ export default function HomePage() {
         <div className="container">
           <SectionHeading
             eyebrow="Premium comparison"
-            title="Why EMP converts better than a fragmented workforce stack."
-            description="A clear side-by-side comparison makes the product positioning sharper for enterprise buyers and founders evaluating operating risk."
+            title="Why EMP works better than patching workforce operations together."
+            description="The difference is clearer when buyers can compare a scattered operating setup against one shared system for records, approvals, and workforce visibility."
           />
           <div className="mt-10 grid gap-6 lg:grid-cols-2">
             <div className="rounded-[2rem] border border-slate-200/80 bg-white/82 p-7 shadow-[0_20px_60px_rgba(15,23,42,0.05)]">
@@ -243,8 +254,8 @@ export default function HomePage() {
         <div className="container">
           <SectionHeading
             eyebrow="Platform coverage"
-            title="Built to cover the workforce and company workflows that usually get split apart."
-            description="The EMP story is strongest when buyers can immediately see that the platform spans both people operations and broader company coordination."
+            title="The platform covers the workforce workflows that usually get split apart."
+            description="The strongest product story is simple: the same system holds the employee record, approval chain, team structure, and operating context the business depends on."
           />
           <div className="mt-10 rounded-[2rem] border border-slate-200/80 bg-white/82 p-6 shadow-[0_22px_80px_rgba(15,23,42,0.06)] backdrop-blur sm:p-8">
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -268,12 +279,13 @@ export default function HomePage() {
               <div className="max-w-2xl">
                 <p className="eyebrow">Directional pricing</p>
                 <h2 className="mt-4 text-balance text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
-                  Public pricing gives buyers a clear starting point without forcing checkout too early.
+                  Pricing gives buyers a clear starting point without forcing a checkout flow too early.
                 </h2>
                 <p className="mt-4 text-base leading-7 text-slate-600">
-                  Use Starter, Growth, and Enterprise guidance to assess fit, then tailor commercial
-                  details around rollout scope, governance, and support expectations. Most buyers start
-                  with a guided demo, with an optional 14-day trial available for qualified teams.
+                  Start with Starter, Growth, or Enterprise, then shape the conversation around
+                  rollout scope, governance, support expectations, and the modules your team actually
+                  needs. Most buyers begin with a guided demo, with an optional 14-day trial for
+                  qualified teams.
                 </p>
               </div>
               <Link
@@ -329,11 +341,12 @@ export default function HomePage() {
             <div className="max-w-xl">
               <p className="eyebrow">Operational flow</p>
               <h2 className="mt-4 text-balance text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
-                A cleaner buying story from structure to execution.
+                A cleaner path from org structure to everyday execution.
               </h2>
               <p className="mt-5 text-lg leading-8 text-slate-600">
-                EMP starts with how the company is actually shaped, then uses that model to route
-                requests, show accountability, and give leadership a live view of workforce motion.
+                EMP starts with how the company is actually structured, then uses that model to route
+                approvals, show accountability, and give leadership a more reliable view of workforce
+                activity.
               </p>
             </div>
             <div className="space-y-4">
@@ -361,22 +374,21 @@ export default function HomePage() {
           <div className="grid gap-10 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:items-center">
             <div className="rounded-[2rem] border border-slate-200/80 bg-slate-950 p-8 text-white shadow-[0_30px_120px_rgba(15,23,42,0.18)]">
               <p className="eyebrow !border-white/15 !bg-white/8 !text-slate-200">
-                Enterprise proof points
+                Where EMP fits best
               </p>
               <h2 className="mt-4 text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
-                Built for organizations replacing spreadsheet-led coordination.
+                Built for organizations moving beyond spreadsheet-led coordination.
               </h2>
               <p className="mt-5 text-lg leading-8 text-slate-300">
-                EMP is especially relevant for companies that are growing across departments,
-                teams, sites, or functions and need a cleaner operating layer than a patchwork of
-                point tools can offer.
+                EMP is most useful for companies growing across departments, sites, teams, or
+                functions and needing clearer ownership across workforce operations.
               </p>
               <div className="mt-8 grid gap-4 sm:grid-cols-2">
                 {proofSectors.map((sector) => (
                   <div key={sector} className="rounded-[1.5rem] border border-white/10 bg-white/5 p-5">
                     <p className="text-sm font-semibold text-white">{sector}</p>
                     <p className="mt-2 text-sm leading-7 text-slate-300">
-                      Strong fit when managers, HR, and leadership all need shared operational context.
+                      {proofSectorNotes[sector]}
                     </p>
                   </div>
                 ))}
@@ -399,10 +411,12 @@ export default function HomePage() {
         </div>
       </section>
 
+      <FounderSection />
+
       <RelatedSolutions
         eyebrow="Start with your use case"
-        title="Move from high-intent search pages into a live product conversation."
-        description="The SEO cluster stays active, but these pages now route buyers more cleanly into product evaluation, security review, and demo conversion."
+        title="Move from high-intent search pages into a product conversation that feels connected."
+        description="These solution pages stay useful for search, while guiding buyers into product evaluation, security review, and demo conversations with less friction."
         links={solutionLinks}
       />
 
@@ -412,7 +426,7 @@ export default function HomePage() {
             <SectionHeading
               eyebrow="FAQ preview"
               title="Questions teams usually ask before they book a first conversation."
-              description="Clear positioning matters when a platform spans both people operations and company execution."
+              description="These answers help clarify where EMP fits before a buyer commits to a live walkthrough."
             />
             <Link className="text-sm font-semibold text-slate-950 underline" href="/docs">
               Explore docs and help
@@ -426,8 +440,8 @@ export default function HomePage() {
 
       <CTASection
         eyebrow="See EMP in action"
-        title="Bring company structure, workforce workflows, and leadership visibility into one serious system."
-        description="If you are replacing spreadsheets, fragmented HR tools, or improvised manager workflows, EMP gives you a cleaner operating foundation."
+        title="Bring employee records, approvals, and workforce visibility into one system your team can actually run."
+        description="If you are replacing spreadsheets, disconnected HR tools, or improvised manager workflows, EMP gives you a clearer operating foundation."
         primary={{ href: "/contact", label: "Book Demo" }}
         secondary={{ href: "/pricing", label: "Review pricing approach" }}
       />

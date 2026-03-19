@@ -1,0 +1,19 @@
+<svg width="360" height="92" viewBox="0 0 360 92" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="8" y="8" width="76" height="76" rx="24" fill="url(#bg)" />
+  <rect x="8.5" y="8.5" width="75" height="75" rx="23.5" stroke="rgba(255,255,255,0.16)" />
+  <path d="M31 28V64" stroke="#F8FAFC" stroke-width="4.5" stroke-linecap="round" />
+  <path d="M31 33H55" stroke="#A7F3D0" stroke-width="4.5" stroke-linecap="round" />
+  <path d="M31 46H60" stroke="#F8FAFC" stroke-width="4.5" stroke-linecap="round" />
+  <path d="M31 59H51" stroke="#FBBF24" stroke-width="4.5" stroke-linecap="round" />
+  <circle cx="59" cy="33" r="4.75" fill="#A7F3D0" />
+  <circle cx="65" cy="46" r="4.75" fill="#F8FAFC" />
+  <circle cx="55" cy="59" r="4.75" fill="#FBBF24" />
+  <text x="104" y="40" fill="#0F172A" font-family="Manrope, Inter, Arial, sans-serif" font-size="27" font-weight="700" letter-spacing="0.08em">EMP</text>
+  <text x="104" y="64" fill="#475569" font-family="Manrope, Inter, Arial, sans-serif" font-size="14" font-weight="600" letter-spacing="0.14em">EMPLOYEE OPERATIONS AND APPROVALS</text>
+  <defs>
+    <linearGradient id="bg" x1="18" y1="12" x2="82" y2="88" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0F172A" />
+      <stop offset="1" stop-color="#111827" />
+    </linearGradient>
+  </defs>
+</svg>

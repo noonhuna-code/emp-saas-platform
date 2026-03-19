@@ -59,7 +59,7 @@ export function HeroVisual() {
             ))}
           </div>
           <p className="mt-4 text-xs font-medium uppercase tracking-[0.16em] text-slate-500">
-            Illustrative view of the EMP operating layer
+            Example leadership view across approvals, staffing pressure, and operating risk
           </p>
         </div>
       </div>

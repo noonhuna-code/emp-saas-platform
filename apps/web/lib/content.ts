@@ -40,20 +40,20 @@ export type DocsCategory = {
 
 export const valueStrip = [
   {
-    title: "One company model",
-    body: "EMP connects people, teams, approvals, attendance, leave, payroll support, and reporting to the same org structure."
+    title: "One employee record system",
+    body: "EMP keeps employee records, teams, reporting lines, approvals, attendance, leave, and payroll visibility tied to the same company structure."
   },
   {
-    title: "Role-aware workflows",
-    body: "Founders, HR, managers, team leads, and employees each get the right view, controls, and daily actions."
+    title: "Approval ownership that stays clear",
+    body: "HR, managers, team leads, and admins can act from the right approval queue without relying on side chats or private spreadsheets."
   },
   {
-    title: "Operational clarity",
-    body: "Track daily execution, exceptions, approvals, and workforce movement without stitching together separate tools."
+    title: "Daily exceptions in one place",
+    body: "Attendance exceptions, leave overlaps, profile changes, and manager actions stay visible in one operating view."
   },
   {
     title: "Leadership visibility",
-    body: "Move from delayed spreadsheets to a live operating view of structure, staffing, activity, and bottlenecks."
+    body: "Leadership gets a clearer read on staffing pressure, policy execution, team ownership, and unresolved workforce issues."
   }
 ] as const;
 
@@ -171,83 +171,83 @@ export const modules: ModuleItem[] = [
 export const roleBenefits: RoleBenefit[] = [
   {
     role: "Founder / CEO",
-    summary: "See the company as an operating system, not a collection of disconnected HR reports.",
-    details: "Track structure, headcount movement, approvals, exceptions, and execution signals from a single leadership view."
+    summary: "See how the company is running without waiting on stitched spreadsheets and status updates.",
+    details: "Track reporting lines, approvals, workforce pressure, unresolved exceptions, and team ownership from one leadership view."
   },
   {
     role: "HR teams",
-    summary: "Move from administrative follow-up to structured workforce control.",
-    details: "Standardize records, policy execution, approvals, leave handling, and payroll support without chasing people across tools."
+    summary: "Run employee operations from a system that holds records, policy steps, and approvals together.",
+    details: "Standardize employee records, leave approvals, attendance review, policy execution, and payroll support without chasing updates across tools."
   },
   {
     role: "Operations leaders",
-    summary: "Run daily operations with better ownership, cleaner routing, and less hidden work.",
-    details: "Connect attendance, shift coverage, projects, and exceptions directly to teams and reporting lines."
+    summary: "Handle workforce pressure with better routing, cleaner ownership, and less hidden work.",
+    details: "Connect attendance, shift coverage, approvals, projects, and exceptions directly to teams and reporting lines."
   },
   {
     role: "Managers and team leads",
-    summary: "Act faster because requests, records, people, and next steps live together.",
-    details: "Handle approvals, view team capacity, manage exceptions, and follow execution without relying on parallel spreadsheets."
+    summary: "Act faster because requests, records, and next steps live in the same place.",
+    details: "Approve leave, review attendance exceptions, check team capacity, and resolve people issues without maintaining parallel spreadsheets."
   },
   {
     role: "Employees",
-    summary: "Get a clearer daily workspace with the right requests, records, and communication flows.",
-    details: "Access leave, attendance, profile information, approvals, and important updates from a structured employee experience."
+    summary: "Get a clearer employee experience for requests, records, and daily updates.",
+    details: "Access leave, attendance, profile information, approvals, and key updates from one structured workspace."
   }
 ];
 
 export const workflowSteps = [
   {
     step: "01",
-    title: "Map the company once",
-    body: "Start with departments, sub-departments, teams, roles, reporting lines, and policy boundaries."
+    title: "Set up the company structure once",
+    body: "Map departments, teams, reporting lines, approvers, and policy boundaries in a way the whole business can use."
   },
   {
     step: "02",
     title: "Run daily workforce operations",
-    body: "Manage attendance, leave, shifts, profile updates, projects, and communication from the same operating context."
+    body: "Manage attendance, leave, employee record updates, shifts, and team actions from the same operating context."
   },
   {
     step: "03",
     title: "Route approvals and exceptions",
-    body: "Push the right actions to the right managers, HR leads, or operators with clear history and ownership."
+    body: "Send the right actions to the right manager, HR owner, or admin with clear history and accountability."
   },
   {
     step: "04",
-    title: "Turn activity into insight",
-    body: "Give leadership a live view of staffing, movement, delays, and operational pressure points."
+    title: "Turn operating activity into visibility",
+    body: "Give leadership a live view of staffing pressure, approval delays, policy issues, and team movement."
   }
 ] as const;
 
 export const proofSectors = [
   "Multi-site operations",
-  "Services businesses",
-  "Field teams",
+  "Services teams",
+  "Field operations",
   "Corporate departments",
   "Retail groups",
-  "Scaling back-office teams"
+  "Growing back-office teams"
 ] as const;
 
 export const homeFaqs: FAQItem[] = [
   {
     question: "Is EMP primarily HR software?",
     answer:
-      "EMP includes core HR and workforce workflows, but the product is positioned as a Workforce OS. It connects structure, approvals, operations, collaboration, and insight instead of treating people data as a standalone admin function."
+      "EMP includes core HR and workforce workflows, but it is broader than a basic HR tool. It brings employee records, reporting lines, approvals, attendance, leave, payroll visibility, and workforce analytics into one system."
   },
   {
     question: "Who is EMP built for?",
     answer:
-      "EMP is designed for growing organizations that need more structure than spreadsheets and more operational coherence than disconnected point tools. It fits founders, operations leaders, HR teams, managers, and multi-team organizations."
+      "EMP is built for organizations that need more control than spreadsheets can offer and more operational clarity than disconnected point tools provide. It is especially relevant for founders, HR teams, operations leaders, and managers."
   },
   {
     question: "Can EMP support multiple roles with different permissions?",
     answer:
-      "Yes. The platform story is built around role-aware access for leadership, HR, department heads, managers, team leads, and employees so each user sees the right controls and context."
+      "Yes. EMP is designed around role-aware access for leadership, HR, department heads, managers, team leads, and employees so each person sees the right controls and context."
   },
   {
-    question: "Why frame EMP as a Company OS?",
+    question: "Why describe EMP as a Workforce OS or Company OS?",
     answer:
-      "Because the core value is not one feature area. EMP aligns company structure, people operations, requests, approvals, collaboration, and reporting into one operating layer."
+      "Because the core value is not one isolated module. EMP aligns company structure, people operations, requests, approvals, workforce visibility, and team coordination in one operating system."
   }
 ];
 
@@ -268,20 +268,20 @@ export const productPillars = [
 
 export const comparisonPoints = [
   {
-    fragmented: "Separate tools for attendance, leave, approvals, chat, and reporting",
-    emp: "One platform with shared context across people, operations, and decisions"
+    fragmented: "Attendance, leave, employee records, approvals, and reporting live in separate tools",
+    emp: "EMP keeps employee operations, approvals, and reporting tied to the same structure and ownership model"
   },
   {
-    fragmented: "Managers re-enter or reconcile the same information in multiple places",
-    emp: "Requests, records, and reporting inherit the same org structure and ownership model"
+    fragmented: "Managers re-enter the same details across chat, inbox threads, and spreadsheets",
+    emp: "Requests, records, and escalations inherit the same reporting lines, approvers, and team context"
   },
   {
-    fragmented: "Leadership receives delayed summaries after manual consolidation",
-    emp: "Executives get a live operating view with fewer blind spots and cleaner escalation paths"
+    fragmented: "Leadership sees workforce issues after manual consolidation and delayed summaries",
+    emp: "Leadership gets a live operating view with cleaner escalation paths and fewer blind spots"
   },
   {
-    fragmented: "Policies drift because execution happens outside the system",
-    emp: "Governance, approvals, SOPs, and daily workflows stay connected"
+    fragmented: "Policies drift because approvals and exception handling happen outside the system",
+    emp: "Governance, approvals, admin controls, and daily workflows stay connected in the same product"
   }
 ] as const;
 

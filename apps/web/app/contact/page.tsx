@@ -37,12 +37,12 @@ function ContactAside() {
       <p className="eyebrow">Alternate contact</p>
       <div className="mt-5 space-y-4">
         <div className="rounded-[1.5rem] border border-slate-200 bg-white/85 p-5">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">Email</p>
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">Founder inbox</p>
           <a className="mt-3 block text-lg font-semibold text-slate-950 underline" href={`mailto:${siteConfig.email}`}>
             {siteConfig.email}
           </a>
           <p className="mt-3 text-sm leading-7 text-slate-600">
-            Use the shared inbox for demo requests, buying questions, and rollout planning conversations.
+            Reach Umair directly for demo requests, buying questions, and rollout planning conversations.
           </p>
         </div>
         <div className="rounded-[1.5rem] border border-slate-200 bg-white/85 p-5">
@@ -81,7 +81,7 @@ export default function ContactPage() {
         eyebrow="Contact / Book Demo"
         title={
           <>
-            Talk through your workforce workflows with the team behind{" "}
+            Talk through your workforce workflows with the team building{" "}
             <span className="font-display italic font-normal text-teal-800">EMP</span>.
           </>
         }
@@ -147,7 +147,7 @@ export default function ContactPage() {
               </h2>
               <p className="mt-5 text-lg leading-8 text-slate-600">
                 Buyers often arrive here after researching attendance, leave, payroll, security, or
-                product fit. This page should reassure them that EMP is ready for a serious buying
+                product fit. This page should reassure them that EMP can support a serious product
                 conversation, not just a thin form handoff.
               </p>
               <div className="mt-8 grid gap-3">
@@ -201,7 +201,7 @@ export default function ContactPage() {
                   status: "Next step"
                 }
               ]}
-              footerNote="Use this section for demo views, product highlights, or tailored solution visuals."
+              footerNote="A guided walkthrough should connect your org structure, approvals, and rollout questions to the product."
             />
           </div>
         </div>

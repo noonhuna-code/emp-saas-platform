@@ -1,5 +1,6 @@
 "use client";
 
+import { BrandLogo } from "@/components/brand-logo";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { siteConfig } from "@/lib/site";
@@ -13,14 +14,12 @@ export function Navbar() {
         <nav className="surface relative rounded-full border border-white/60 bg-white/72 px-4 py-3 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur-xl sm:px-5">
           <div className="flex items-center justify-between gap-4">
             <Link className="flex items-center gap-3" href="/">
-              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-950 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(15,23,42,0.2)]">
-                E
-              </span>
-              <span>
-                <span className="block text-sm font-semibold tracking-tight text-slate-950">
-                  {siteConfig.shortName}
-                </span>
-                <span className="block text-xs text-slate-500">Workforce OS / Company OS</span>
+              <BrandLogo
+                className="h-10 w-auto sm:h-11"
+                priority
+              />
+              <span className="hidden text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 lg:block">
+                Employee operations and approvals
               </span>
             </Link>
 

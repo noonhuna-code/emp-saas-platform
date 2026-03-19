@@ -1,12 +1,12 @@
 export const siteConfig = {
   name: "EMP Workforce OS",
   shortName: "EMP",
-  title: "Workforce OS for modern teams",
+  title: "Employee operations and approvals",
   description:
-    "EMP is a connected Workforce OS for companies that need structure, approvals, attendance, leave, payroll visibility, collaboration, and executive insight in one place.",
+    "EMP helps teams manage employee records, reporting lines, leave approvals, attendance exceptions, payroll visibility, admin controls, and workforce analytics in one place.",
   url: process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.empworkforceos.com",
   ogImage: "/opengraph-image",
-  email: "contact@empworkforceos.com",
+  email: "noonhuna@gmail.com",
   nav: [
     { href: "/product", label: "Product" },
     { href: "/modules", label: "Modules" },
@@ -67,9 +67,9 @@ export const siteConfig = {
     { href: "/docs", label: "Docs" }
   ],
   trustBadges: [
-    "Launch-ready legal structure",
-    "Analytics placeholder integration points",
-    "CRM-ready demo flow"
+    "Founder-led product",
+    "Security review available",
+    "Guided demos and onboarding"
   ]
 } as const;
 

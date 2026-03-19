@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   ...buildMetadata({
   title: "Sign In",
   description:
-    "Access the EMP workspace through a polished sign-in experience for employees, managers, and administrators.",
+    "Access the EMP workspace for employee operations, approvals, and admin workflows.",
   path: "/sign-in",
   keywords: ["sign in", "workspace access", "employee portal login", "enterprise auth ui"]
   }),
@@ -40,7 +40,7 @@ export default function SignInPage() {
         eyebrow="Sign in"
         title={
           <>
-            A polished entry point into the{" "}
+            Sign in to the{" "}
             <span className="font-display italic font-normal text-teal-800">EMP workspace</span>.
           </>
         }
@@ -56,15 +56,15 @@ export default function SignInPage() {
         eyebrow="Workspace access"
         title={
           <>
-            Sign in through a polished{" "}
+            Sign in through a controlled{" "}
             <span className="font-display italic font-normal text-teal-800">workspace access flow</span>.
           </>
         }
-        description="The UI supports employee access, admin entry, and invite-based workspace login in one consistent experience."
+        description="The sign-in flow supports employee access, admin entry, and role-aware workspace login in one consistent experience."
         bullets={[
-          "Suitable for employee and admin access",
-          "Consistent with the public product experience",
-          "Ready for invite-based or managed workspace login"
+          "Suitable for employee, manager, and admin access",
+          "Aligned with the public EMP product experience",
+          "Supports invite-led and managed workspace login"
         ]}
       />
     </>

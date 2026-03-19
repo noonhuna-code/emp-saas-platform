@@ -1,3 +1,4 @@
+import { BrandLogo } from "@/components/brand-logo";
 import Link from "next/link";
 import { siteConfig } from "@/lib/site";
 
@@ -11,10 +12,11 @@ export function Footer() {
         >
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <p className="eyebrow">Enterprise buying flow</p>
+              <p className="eyebrow">Founder-backed product</p>
               <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600">
-                Product, pricing, security, legal, and contact paths are aligned so buyers can move
-                from research into a confident product conversation without friction.
+                EMP is built for teams evaluating employee records, approvals, payroll visibility,
+                and workforce control in one place, with direct access to the product team when
+                questions matter.
               </p>
             </div>
             <div className="flex flex-col gap-3 lg:items-end">
@@ -48,29 +50,22 @@ export function Footer() {
 
         <div className="mt-10 grid gap-12 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
           <div className="max-w-xl">
-            <div className="flex items-center gap-3">
-              <span className="flex h-11 w-11 items-center justify-center rounded-full bg-slate-950 text-sm font-semibold text-white">
-                E
-              </span>
-              <div>
-                <p className="text-base font-semibold text-slate-950">{siteConfig.name}</p>
-                <p className="text-sm text-slate-500">Workforce OS for modern organizations</p>
-              </div>
+            <div className="flex items-center gap-4">
+              <BrandLogo className="h-12 w-auto" />
             </div>
             <p className="mt-5 text-base leading-7 text-slate-600">
-              EMP helps growing companies replace fragmented HR and operational workflows with a
-              more structured system for people, approvals, collaboration, and executive insight.
+              EMP helps teams keep org hierarchy, reporting lines, leave approvals, attendance
+              exceptions, employee records, payroll visibility, and admin controls in one calmer
+              workspace.
             </p>
             <div className="mt-6 rounded-[1.5rem] border border-slate-200 bg-white/80 p-5">
-              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
-                Support and sales
-              </p>
+              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">Built by Umair</p>
               <a className="mt-3 block text-base font-semibold text-slate-950 underline" href={`mailto:${siteConfig.email}`}>
                 {siteConfig.email}
               </a>
               <p className="mt-3 text-sm leading-7 text-slate-600">
-                Use the shared inbox for demo requests, buying questions, implementation planning,
-                and launch support handoff.
+                Use the founder inbox for demo requests, product questions, rollout planning, and
+                direct conversations about how EMP fits your team.
               </p>
             </div>
           </div>

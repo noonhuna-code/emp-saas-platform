@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   ...buildMetadata({
   title: "Sign Up",
   description:
-    "Create EMP workspace access with a polished signup experience for guided onboarding and account requests.",
+    "Request EMP workspace access for guided onboarding and account setup.",
   path: "/sign-up",
   keywords: ["sign up", "create account", "workspace onboarding", "enterprise signup ui"]
   }),
@@ -40,11 +40,11 @@ export default function SignUpPage() {
         eyebrow="Sign up"
         title={
           <>
-            Create access with a premium, guided{" "}
+            Request access through a guided{" "}
             <span className="font-display italic font-normal text-teal-800">signup flow</span>.
           </>
         }
-        description="Use this page for account requests, invite-based onboarding, or sales-assisted workspace setup."
+        description="Use this page for account requests, invite-based onboarding, or guided workspace setup."
         breadcrumbs={[
           { label: "Home", href: "/" },
           { label: "Sign up" }
@@ -56,14 +56,14 @@ export default function SignUpPage() {
         eyebrow="Account creation"
         title={
           <>
-            Start account setup with a polished{" "}
+            Start account setup with a guided{" "}
             <span className="font-display italic font-normal text-teal-800">workspace request</span>.
           </>
         }
-        description="The signup UI works well for invite flows, workspace requests, or guided onboarding while the full access model is finalized."
+        description="The signup flow works for invite-led onboarding, workspace requests, and guided rollout conversations."
         bullets={[
-          "Strong first impression for public traffic",
-          "Reusable for invite-based or sales-assisted onboarding",
+          "Useful for invite-led or assisted onboarding",
+          "Consistent with the EMP product experience",
           "Suitable for guided workspace setup"
         ]}
       />
