@@ -222,7 +222,7 @@ export function ContactForm() {
               />
             </label>
 
-            <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
               <p className="max-w-md text-sm leading-6 text-slate-500">
                 Share enough context for the team to tailor the conversation around your operating
                 model, rollout timing, and priorities.
@@ -230,7 +230,7 @@ export function ContactForm() {
               <button
                 data-analytics-action="submit-demo-request"
                 data-analytics-location="contact-form"
-                className="inline-flex items-center rounded-full bg-slate-950 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400"
+                className="inline-flex w-full items-center justify-center rounded-full bg-slate-950 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400 sm:w-auto"
                 disabled={isPending}
                 type="submit"
               >

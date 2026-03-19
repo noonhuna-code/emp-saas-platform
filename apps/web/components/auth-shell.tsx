@@ -20,7 +20,7 @@ export function AuthShell({
   return (
     <section className="section pt-6">
       <div className="container">
-        <div className="grid gap-8 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:items-start">
+        <div className="grid gap-8 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] xl:items-start">
           <div className="space-y-6">
             <div className="max-w-xl">
               <p className="eyebrow">{eyebrow}</p>

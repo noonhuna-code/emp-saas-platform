@@ -7,6 +7,12 @@ export const siteConfig = {
   url: process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.empworkforceos.com",
   ogImage: "/opengraph-image",
   email: "noonhuna@gmail.com",
+  founder: {
+    name: "Umair",
+    title: "Founder, EMP",
+    email: "noonhuna@gmail.com",
+    image: "/founder/umair.png"
+  },
   nav: [
     { href: "/product", label: "Product" },
     { href: "/modules", label: "Modules" },
@@ -67,7 +73,7 @@ export const siteConfig = {
     { href: "/docs", label: "Docs" }
   ],
   trustBadges: [
-    "Built by the founder",
+    "Founder-led support",
     "Security review available",
     "Guided demos"
   ]

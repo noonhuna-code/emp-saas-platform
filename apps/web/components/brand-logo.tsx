@@ -33,6 +33,7 @@ export function BrandLogo({
       height={asset.height}
       priority={priority}
       src={asset.src}
+      unoptimized
       width={asset.width}
     />
   );

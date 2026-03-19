@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { siteConfig } from "@/lib/site";
 
 type FounderSectionProps = {
   compact?: boolean;
@@ -11,28 +12,28 @@ export function FounderSection({ compact = false }: FounderSectionProps) {
         <div className="flex items-center gap-4">
           <div className="h-16 w-16 overflow-hidden rounded-[1.25rem] border border-slate-200 bg-slate-100">
             <Image
-              alt="Umair, founder of EMP"
+              alt={`${siteConfig.founder.name}, founder of EMP`}
               className="h-full w-full object-cover object-top"
               height={160}
               sizes="64px"
-              src="/founder/umair.png"
+              src={siteConfig.founder.image}
               width={160}
             />
           </div>
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
-              Built by Umair
+              Built by {siteConfig.founder.name}
             </p>
             <a
               className="mt-1 block text-base font-semibold text-slate-950 underline"
-              href="mailto:noonhuna@gmail.com"
+              href={`mailto:${siteConfig.founder.email}`}
             >
-              noonhuna@gmail.com
+              {siteConfig.founder.email}
             </a>
           </div>
         </div>
         <h2 className="mt-5 text-2xl font-semibold tracking-tight text-slate-950">
-          Built by Umair around the approvals and people workflows teams actually run.
+          Built by {siteConfig.founder.name} around the approvals and people workflows teams actually run.
         </h2>
         <p className="mt-4 text-base leading-7 text-slate-600">
           EMP focuses on the work companies still chase manually: employee records, reporting
@@ -49,11 +50,11 @@ export function FounderSection({ compact = false }: FounderSectionProps) {
         <div className="grid gap-8 rounded-[2rem] border border-slate-200/80 bg-white/85 p-6 shadow-[0_24px_80px_rgba(15,23,42,0.06)] lg:grid-cols-[280px_minmax(0,1fr)] lg:items-center lg:p-8">
           <div className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-slate-100">
             <Image
-              alt="Umair, founder of EMP"
+              alt={`${siteConfig.founder.name}, founder of EMP`}
               className="h-full w-full object-cover"
               height={900}
               sizes="(min-width: 1024px) 280px, 100vw"
-              src="/founder/umair.png"
+              src={siteConfig.founder.image}
               width={700}
             />
           </div>
@@ -84,13 +85,13 @@ export function FounderSection({ compact = false }: FounderSectionProps) {
             </div>
             <div className="mt-6 flex flex-wrap items-center gap-4">
               <span className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
-                Built by Umair
+                {siteConfig.founder.title}
               </span>
               <a
                 className="text-base font-semibold text-slate-950 underline"
-                href="mailto:noonhuna@gmail.com"
+                href={`mailto:${siteConfig.founder.email}`}
               >
-                noonhuna@gmail.com
+                {siteConfig.founder.email}
               </a>
             </div>
           </div>

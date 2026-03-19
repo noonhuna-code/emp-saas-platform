@@ -30,6 +30,7 @@ export function HeroVisual() {
             priority
             sizes="(min-width: 1024px) 520px, 100vw"
             src="/screenshots/homepage-hero-visual.svg"
+            unoptimized
             width={1600}
           />
         </div>

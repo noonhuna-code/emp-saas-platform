@@ -108,7 +108,7 @@ summary::-webkit-details-marker {
   margin-inline: auto;
   width: 100%;
   max-width: 82rem;
-  padding-inline: 1.25rem;
+  padding-inline: 1rem;
 }
 
 .section {
@@ -224,6 +224,12 @@ summary::-webkit-details-marker {
 }
 
 @media (min-width: 640px) {
+  .container {
+    padding-inline: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
   .container {
     padding-inline: 2rem;
   }

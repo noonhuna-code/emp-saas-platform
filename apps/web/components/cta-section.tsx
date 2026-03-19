@@ -23,7 +23,7 @@ export function CTASection({
           <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent" />
           <div className="absolute -right-20 top-1/2 h-56 w-56 -translate-y-1/2 rounded-full bg-teal-400/10 blur-3xl" />
           <div className="absolute -left-10 top-10 h-40 w-40 rounded-full bg-amber-300/10 blur-3xl" />
-          <div className="relative grid gap-8 lg:grid-cols-[minmax(0,1fr)_260px] lg:items-end">
+          <div className="relative grid gap-8 xl:grid-cols-[minmax(0,1fr)_260px] xl:items-end">
             <div className="max-w-3xl">
               <p className="eyebrow !border-white/15 !bg-white/8 !text-slate-200">{eyebrow}</p>
               <h2 className="mt-4 text-balance text-3xl font-semibold tracking-tight sm:text-4xl lg:text-[2.8rem]">
@@ -62,7 +62,7 @@ export function CTASection({
               </div>
             </div>
 
-            <div className="rounded-[1.75rem] border border-white/10 bg-white/5 p-5 shadow-[0_18px_60px_rgba(15,23,42,0.12)]">
+            <div className="rounded-[1.75rem] border border-white/10 bg-white/5 p-5 shadow-[0_18px_60px_rgba(15,23,42,0.12)] xl:self-stretch">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
                 Next step
               </p>

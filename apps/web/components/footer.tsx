@@ -47,7 +47,7 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="mt-10 grid gap-12 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+        <div className="mt-10 grid gap-10 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] xl:gap-12">
           <div className="max-w-xl">
             <div className="flex items-center gap-4">
               <BrandLogo className="h-11 w-11" variant="mark" />
@@ -59,18 +59,18 @@ export function Footer() {
               workspace.
             </p>
             <div className="mt-6 rounded-[1.5rem] border border-slate-200 bg-white/80 p-5">
-              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">Built by Umair</p>
-              <a className="mt-3 block text-base font-semibold text-slate-950 underline" href={`mailto:${siteConfig.email}`}>
-                {siteConfig.email}
+              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">{siteConfig.founder.title}</p>
+              <a className="mt-3 block text-base font-semibold text-slate-950 underline" href={`mailto:${siteConfig.founder.email}`}>
+                {siteConfig.founder.email}
               </a>
               <p className="mt-3 text-sm leading-7 text-slate-600">
-                Reach out for demos, product questions, rollout planning, or a direct conversation
-                about whether EMP fits your team.
+                Reach out directly for demos, rollout planning, or product questions about how EMP
+                fits your company structure and approval model.
               </p>
             </div>
           </div>
 
-          <div className="grid gap-8 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-5">
+          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
             {siteConfig.footerNav.map((group) => (
               <div key={group.title}>
                 <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
@@ -101,8 +101,8 @@ export function Footer() {
                 {link.label}
               </Link>
             ))}
-            <a className="transition hover:text-slate-950" href={`mailto:${siteConfig.email}`}>
-              {siteConfig.email}
+            <a className="transition hover:text-slate-950" href={`mailto:${siteConfig.founder.email}`}>
+              {siteConfig.founder.email}
             </a>
           </div>
         </div>

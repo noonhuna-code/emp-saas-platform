@@ -85,7 +85,7 @@ export function PlatformSnapshot({
           </p>
         </div>
 
-        <div className="mt-4 grid gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
+        <div className="mt-4 grid gap-4 xl:grid-cols-[280px_minmax(0,1fr)]">
           <div className="rounded-[1.6rem] border border-slate-900/10 bg-slate-950 p-5 text-white shadow-[0_25px_80px_rgba(15,23,42,0.24)]">
             <p className="eyebrow !border-white/15 !bg-white/8 !text-slate-200">{eyebrow}</p>
             <h3 className="mt-4 text-2xl font-semibold tracking-tight">{title}</h3>
@@ -107,7 +107,7 @@ export function PlatformSnapshot({
           </div>
 
           <div className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {metrics.map((metric) => (
                 <div
                   key={metric.label}
@@ -124,12 +124,12 @@ export function PlatformSnapshot({
             </div>
 
             <div className="rounded-[1.7rem] border border-slate-200/80 bg-white/90 p-5 shadow-[0_20px_60px_rgba(15,23,42,0.07)]">
-              <div className="flex items-center justify-between gap-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-sm font-semibold text-slate-950">{activityTitle}</p>
                   <p className="mt-1 text-sm text-slate-500">Connected workspace view</p>
                 </div>
-                <span className="rounded-full bg-slate-950 px-3 py-1 text-xs font-semibold text-white">
+                <span className="w-fit rounded-full bg-slate-950 px-3 py-1 text-xs font-semibold text-white">
                   Enterprise-ready
                 </span>
               </div>
@@ -141,6 +141,7 @@ export function PlatformSnapshot({
                     height={1000}
                     sizes="(min-width: 1280px) 720px, (min-width: 1024px) 55vw, 100vw"
                     src={screenshot.src}
+                    unoptimized
                     width={1600}
                   />
                 </div>
@@ -149,17 +150,17 @@ export function PlatformSnapshot({
                 {activityItems.map((item) => (
                   <div
                     key={item.title}
-                    className="flex items-center justify-between gap-4 rounded-[1.25rem] border border-slate-200 bg-slate-50/90 px-4 py-4"
-                  >
-                    <div>
-                      <p className="text-sm font-semibold text-slate-950">{item.title}</p>
-                      <p className="mt-1 text-sm text-slate-600">{item.meta}</p>
-                    </div>
-                    <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-700 shadow-[0_8px_24px_rgba(15,23,42,0.08)]">
+                  className="flex flex-col gap-3 rounded-[1.25rem] border border-slate-200 bg-slate-50/90 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
+                >
+                  <div>
+                    <p className="text-sm font-semibold text-slate-950">{item.title}</p>
+                    <p className="mt-1 text-sm text-slate-600">{item.meta}</p>
+                  </div>
+                    <span className="w-fit rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-700 shadow-[0_8px_24px_rgba(15,23,42,0.08)]">
                       {item.status}
                     </span>
-                  </div>
-                ))}
+                </div>
+              ))}
               </div>
             </div>
 

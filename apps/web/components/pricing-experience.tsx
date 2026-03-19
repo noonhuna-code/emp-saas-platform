@@ -63,7 +63,7 @@ export function PricingExperience({
     <section className="section">
       <div className="container">
         <div className="rounded-[2.2rem] border border-slate-200/80 bg-white/82 p-6 shadow-[0_24px_90px_rgba(15,23,42,0.08)] backdrop-blur sm:p-8">
-          <div className="grid gap-8 lg:grid-cols-[minmax(0,0.88fr)_minmax(0,1.12fr)] lg:items-end">
+          <div className="grid gap-8 xl:grid-cols-[minmax(0,0.88fr)_minmax(0,1.12fr)] xl:items-end">
             <div className="max-w-xl">
               <p className="eyebrow">Pricing experience</p>
               <h2 className="mt-4 text-balance text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
@@ -127,7 +127,7 @@ export function PricingExperience({
             </div>
           </div>
 
-          <div className="mt-8 grid gap-5 lg:grid-cols-3">
+          <div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
             {tiers.map((tier) => {
               const isPersonaRecommended = tier.name === activePersona?.recommendedPlan;
               const isFeatured = tier.featured || isPersonaRecommended;
@@ -213,7 +213,7 @@ export function PricingExperience({
                   </ul>
 
                   <Link
-                    className={`mt-7 inline-flex items-center rounded-full px-5 py-3 text-sm font-semibold transition ${
+                    className={`mt-7 inline-flex w-full items-center justify-center rounded-full px-5 py-3 text-sm font-semibold transition sm:w-auto ${
                       isFeatured
                         ? "bg-white text-slate-950 hover:bg-slate-100"
                         : "bg-slate-950 text-white hover:bg-slate-800"
@@ -228,7 +228,7 @@ export function PricingExperience({
           </div>
 
           <div className="mt-10 rounded-[1.9rem] border border-slate-200 bg-white/88 p-5 shadow-[0_18px_60px_rgba(15,23,42,0.05)]">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
               <div>
                 <p className="eyebrow">Decision support</p>
                 <h3 className="mt-3 text-2xl font-semibold tracking-tight text-slate-950">

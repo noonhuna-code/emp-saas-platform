@@ -38,11 +38,11 @@ function ContactAside() {
       <div className="mt-5 space-y-4">
         <div className="rounded-[1.5rem] border border-slate-200 bg-white/85 p-5">
           <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">Founder inbox</p>
-          <a className="mt-3 block text-lg font-semibold text-slate-950 underline" href={`mailto:${siteConfig.email}`}>
-            {siteConfig.email}
+          <a className="mt-3 block text-lg font-semibold text-slate-950 underline" href={`mailto:${siteConfig.founder.email}`}>
+            {siteConfig.founder.email}
           </a>
           <p className="mt-3 text-sm leading-7 text-slate-600">
-            Reach Umair directly for demo requests, buying questions, and rollout planning conversations.
+            Reach {siteConfig.founder.name} directly for demo requests, buying questions, and rollout planning conversations.
           </p>
         </div>
         <div className="rounded-[1.5rem] border border-slate-200 bg-white/85 p-5">

@@ -33,7 +33,7 @@ export function PageHero({
             <Breadcrumbs items={breadcrumbs} />
           </div>
         ) : null}
-        <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_460px] lg:items-center xl:gap-14">
+        <div className="grid gap-8 lg:gap-10 xl:grid-cols-[minmax(0,1fr)_460px] xl:items-center xl:gap-14">
           <div className="max-w-3xl">
             <p className="eyebrow">{eyebrow}</p>
             <h1 className="mt-4 text-balance text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl lg:text-5xl xl:text-6xl">
@@ -61,12 +61,12 @@ export function PageHero({
                 ))}
               </div>
             ) : null}
-            <div className="mt-5 flex flex-wrap gap-2">
+            <div className="mt-5 flex flex-wrap gap-2 gap-y-3">
               {["Premium product walkthrough", "Security-aware evaluation", "Soft pricing discussion"].map(
                 (item) => (
                   <span
                     key={item}
-                    className="rounded-full border border-slate-200 bg-white/85 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-600 shadow-[0_8px_24px_rgba(15,23,42,0.04)]"
+                    className="rounded-full border border-slate-200 bg-white/85 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-600 shadow-[0_8px_24px_rgba(15,23,42,0.04)] sm:text-[11px] sm:tracking-[0.18em]"
                   >
                     {item}
                   </span>
@@ -74,7 +74,7 @@ export function PageHero({
               )}
             </div>
           </div>
-          {aside ? <div className="lg:max-w-[460px] lg:justify-self-end">{aside}</div> : null}
+          {aside ? <div className="xl:max-w-[460px] xl:justify-self-end">{aside}</div> : null}
         </div>
       </div>
     </section>
