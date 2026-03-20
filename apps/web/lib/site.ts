@@ -18,8 +18,7 @@ export const siteConfig = {
     { href: "/modules", label: "Modules" },
     { href: "/pricing", label: "Pricing" },
     { href: "/security", label: "Security" },
-    { href: "/docs", label: "Docs" },
-    { href: "/contact", label: "Book Demo" }
+    { href: "/docs", label: "Docs" }
   ],
   footerNav: [
     {

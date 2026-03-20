@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { CTASection } from "@/components/cta-section";
 import { FAQList } from "@/components/faq-list";
@@ -20,6 +21,7 @@ import {
 } from "@/lib/content";
 import { buildMetadata } from "@/lib/seo";
 import { faqSchema, organizationSchema, softwareApplicationSchema, websiteSchema } from "@/lib/schema";
+import { siteConfig } from "@/lib/site";
 
 const solutionLinks = getSeoClusterLinks([
   "employeeManagement",
@@ -105,6 +107,26 @@ export default function HomePage() {
                 >
                   Review security posture
                 </Link>
+              </div>
+              <div className="mt-6 inline-flex max-w-full items-center gap-3 rounded-full border border-slate-200/80 bg-white/82 px-3 py-2 shadow-[0_12px_36px_rgba(15,23,42,0.05)] backdrop-blur">
+                <div className="h-11 w-11 overflow-hidden rounded-full border border-slate-200 bg-slate-100">
+                  <Image
+                    alt={`${siteConfig.founder.name}, founder of EMP`}
+                    className="h-full w-full object-cover object-top"
+                    height={88}
+                    sizes="44px"
+                    src={siteConfig.founder.image}
+                    width={88}
+                  />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                    Built by {siteConfig.founder.name}
+                  </p>
+                  <p className="truncate text-sm font-medium text-slate-700">
+                    Founder-led product decisions with direct demo access.
+                  </p>
+                </div>
               </div>
               <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {[

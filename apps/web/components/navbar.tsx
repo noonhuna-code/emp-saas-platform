@@ -25,7 +25,7 @@ export function Navbar() {
             </Link>
 
             <div className="hidden items-center gap-2 md:flex">
-              {siteConfig.nav.slice(0, -1).map((item) => {
+              {siteConfig.nav.map((item) => {
                 const isActive = pathname === item.href;
 
                 return (

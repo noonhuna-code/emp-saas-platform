@@ -62,7 +62,7 @@ export function FounderSection({ compact = false }: FounderSectionProps) {
           <div className="max-w-3xl">
             <p className="eyebrow">Founder-led product</p>
             <h2 className="mt-4 text-balance text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
-              Built by Umair for teams that need cleaner employee operations and clearer ownership.
+              Built by {siteConfig.founder.name} for teams that need cleaner employee operations and clearer ownership.
             </h2>
             <p className="mt-5 text-lg leading-8 text-slate-600">
               EMP focuses on the day-to-day work most companies still chase manually:

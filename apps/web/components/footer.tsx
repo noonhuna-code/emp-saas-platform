@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { BrandLogo } from "@/components/brand-logo";
 import Link from "next/link";
 import { siteConfig } from "@/lib/site";
@@ -59,11 +60,25 @@ export function Footer() {
               workspace.
             </p>
             <div className="mt-6 rounded-[1.5rem] border border-slate-200 bg-white/80 p-5">
-              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">{siteConfig.founder.title}</p>
-              <a className="mt-3 block text-base font-semibold text-slate-950 underline" href={`mailto:${siteConfig.founder.email}`}>
-                {siteConfig.founder.email}
-              </a>
-              <p className="mt-3 text-sm leading-7 text-slate-600">
+              <div className="flex items-center gap-4">
+                <div className="h-14 w-14 overflow-hidden rounded-[1rem] border border-slate-200 bg-slate-100">
+                  <Image
+                    alt={`${siteConfig.founder.name}, founder of EMP`}
+                    className="h-full w-full object-cover object-top"
+                    height={112}
+                    sizes="56px"
+                    src={siteConfig.founder.image}
+                    width={112}
+                  />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">{siteConfig.founder.title}</p>
+                  <a className="mt-2 block text-base font-semibold text-slate-950 underline" href={`mailto:${siteConfig.founder.email}`}>
+                    {siteConfig.founder.email}
+                  </a>
+                </div>
+              </div>
+              <p className="mt-4 text-sm leading-7 text-slate-600">
                 Reach out directly for demos, rollout planning, or product questions about how EMP
                 fits your company structure and approval model.
               </p>
