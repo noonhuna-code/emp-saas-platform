@@ -82,6 +82,9 @@ export function Footer() {
                 Reach out directly for demos, rollout planning, or product questions about how EMP
                 fits your company structure and approval model.
               </p>
+              <Link className="mt-4 inline-flex text-sm font-semibold text-slate-950 underline" href="/company">
+                Read why EMP exists
+              </Link>
             </div>
           </div>
 

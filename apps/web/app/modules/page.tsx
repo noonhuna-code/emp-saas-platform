@@ -69,7 +69,7 @@ export default function ModulesPage() {
           { label: "Home", href: "/" },
           { label: "Modules" }
         ]}
-        actions={[{ href: "/contact", label: "Book Demo" }]}
+        actions={[{ href: "/demo", label: "Book Demo" }]}
         aside={<ModulesAside />}
       />
 
@@ -196,7 +196,7 @@ export default function ModulesPage() {
         eyebrow="See the modules in context"
         title="Walk through the EMP modules that matter most to your team."
         description="We can start with the workflow creating the most friction today and show how the rest of the system connects around it."
-        primary={{ href: "/contact", label: "Book Demo" }}
+        primary={{ href: "/demo", label: "Book Demo" }}
         secondary={{ href: "/pricing", label: "Review pricing approach" }}
       />
     </>

@@ -22,11 +22,11 @@ type DemoPageScreenProps = {
 function DemoAside() {
   return (
     <div className="surface rounded-[2rem] p-6">
-      <p className="eyebrow">Alternate contact</p>
+      <p className="eyebrow">How the evaluation works</p>
       <div className="mt-5 space-y-4">
         <div className="rounded-[1.5rem] border border-slate-200 bg-white/85 p-5">
           <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
-            Founder inbox
+            Founder-led contact
           </p>
           <a
             className="mt-3 block text-lg font-semibold text-slate-950 underline"
@@ -41,11 +41,20 @@ function DemoAside() {
         </div>
         <div className="rounded-[1.5rem] border border-slate-200 bg-white/85 p-5">
           <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
-            What to expect
+            Session format
           </p>
           <p className="mt-3 text-sm leading-7 text-slate-600">
             Expect a practical 30 to 45 minute conversation focused on your structure, workflows,
             approval paths, and the systems you want to replace.
+          </p>
+        </div>
+        <div className="rounded-[1.5rem] border border-slate-200 bg-white/85 p-5">
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
+            Commercial posture
+          </p>
+          <p className="mt-3 text-sm leading-7 text-slate-600">
+            Pricing stays directional on the public site, then gets refined against rollout scope,
+            governance needs, and implementation support.
           </p>
         </div>
       </div>
@@ -111,7 +120,7 @@ export function DemoPageScreen({ mode }: DemoPageScreenProps) {
               </div>
 
               <div className="rounded-[2rem] border border-slate-900/10 bg-slate-950 p-6 text-white shadow-[0_24px_80px_rgba(15,23,42,0.16)]">
-                <h2 className="text-2xl font-semibold tracking-tight">What happens next?</h2>
+                <h2 className="text-2xl font-semibold tracking-tight">How the conversation usually runs</h2>
                 <div className="mt-5 grid gap-3">
                   {[
                     "We review your current structure and highest-friction workflows.",

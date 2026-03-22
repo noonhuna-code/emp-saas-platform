@@ -12,6 +12,7 @@ import {
   pricingDrivers,
   pricingFaqs,
   pricingPersonas,
+  pricingTruthNotes,
   pricingTiers
 } from "@/lib/content";
 import { buildMetadata } from "@/lib/seo";
@@ -84,7 +85,7 @@ export default function PricingPage() {
           { label: "Pricing" }
         ]}
         actions={[
-          { href: "/contact", label: "Book Demo" },
+          { href: "/demo", label: "Book Demo" },
           { href: "/product", label: "Review Product" }
         ]}
         aside={<PricingAside />}
@@ -165,6 +166,33 @@ export default function PricingPage() {
         personas={pricingPersonas}
         tiers={pricingTiers}
       />
+
+      <section className="section pt-0">
+        <div className="container">
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-start">
+            <div className="rounded-[2rem] border border-slate-900/10 bg-slate-950 p-8 text-white shadow-[0_28px_100px_rgba(15,23,42,0.18)]">
+              <p className="eyebrow !border-white/15 !bg-white/8 !text-slate-200">Pricing truth</p>
+              <h2 className="mt-4 text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
+                Public pricing should help buyers qualify fit, not pretend rollout complexity does not exist.
+              </h2>
+              <p className="mt-5 text-lg leading-8 text-slate-300">
+                We keep the commercial story visible enough to be useful, then move into a guided
+                conversation when deployment scope, governance needs, and implementation support matter.
+              </p>
+            </div>
+            <div className="grid gap-4">
+              {pricingTruthNotes.map((item) => (
+                <article
+                  key={item}
+                  className="rounded-[1.6rem] border border-slate-200 bg-white/88 p-5 shadow-[0_12px_35px_rgba(15,23,42,0.05)]"
+                >
+                  <p className="text-sm leading-7 text-slate-700">{item}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
 
       <section className="section pt-0">
         <div className="container">
@@ -256,7 +284,7 @@ export default function PricingPage() {
         eyebrow="Need a tailored commercial view"
         title="Use a guided demo to pressure-test pricing against your rollout scope."
         description="We can walk through team size, admin complexity, governance needs, and the operating workflows you want EMP to replace."
-        primary={{ href: "/contact", label: "Book Demo" }}
+        primary={{ href: "/demo", label: "Book Demo" }}
         secondary={{ href: "/product", label: "Review product" }}
       />
     </>

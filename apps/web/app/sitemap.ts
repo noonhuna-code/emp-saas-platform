@@ -5,6 +5,7 @@ const routes = [
   "/",
   "/product",
   "/modules",
+  "/company",
   "/integrations",
   "/pricing",
   "/security",

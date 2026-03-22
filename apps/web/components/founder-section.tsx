@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { siteConfig } from "@/lib/site";
 
 type FounderSectionProps = {
@@ -40,6 +41,11 @@ export function FounderSection({ compact = false }: FounderSectionProps) {
           lines, leave approvals, attendance exceptions, payroll visibility, and admin controls
           that stay clear as the organization grows.
         </p>
+        <div className="mt-5">
+          <Link className="text-sm font-semibold text-slate-950 underline" href="/company">
+            Read the company note
+          </Link>
+        </div>
       </article>
     );
   }
@@ -93,6 +99,9 @@ export function FounderSection({ compact = false }: FounderSectionProps) {
               >
                 {siteConfig.founder.email}
               </a>
+              <Link className="text-base font-semibold text-slate-950 underline" href="/company">
+                Company note
+              </Link>
             </div>
           </div>
         </div>

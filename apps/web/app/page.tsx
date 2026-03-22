@@ -6,6 +6,7 @@ import { FounderSection } from "@/components/founder-section";
 import { HeroVisual } from "@/components/hero-visual";
 import { IntegrationGrid } from "@/components/integration-grid";
 import { JsonLd } from "@/components/json-ld";
+import { OperatingSystemMap } from "@/components/operating-system-map";
 import { PlatformSnapshot } from "@/components/platform-snapshot";
 import { RelatedSolutions } from "@/components/related-solutions";
 import { SectionHeading } from "@/components/section-heading";
@@ -17,10 +18,12 @@ import {
   implementationJourney,
   integrationCategories,
   operatingCoverage,
+  operatingModelLayers,
   pricingTiers,
   proofSectors,
   roleBenefits,
   supportCards,
+  trustSignals,
   valueStrip,
   workflowSteps
 } from "@/lib/content";
@@ -308,15 +311,31 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="section">
+      <OperatingSystemMap
+        description="EMP works best when company structure, approvals, day-to-day workforce workflows, and leadership visibility all follow the same operating model instead of being rebuilt in separate tools."
+        layers={operatingModelLayers}
+        eyebrow="How EMP works together"
+        title="Start with the company structure, then let every workflow inherit the same system."
+      />
+
+      <section className="section pt-0">
         <div className="container">
-          <SectionHeading
-            eyebrow="Platform coverage"
-            title="The same platform holds the workflows that usually get separated."
-            description="Employee records, approval routing, attendance review, leave management, payroll visibility, and workforce analytics can all stay tied to the same structure."
-          />
-          <div className="mt-10 rounded-[2rem] border border-slate-200/80 bg-white/82 p-6 shadow-[0_22px_80px_rgba(15,23,42,0.06)] backdrop-blur sm:p-8">
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="rounded-[2rem] border border-slate-200/80 bg-white/82 p-6 shadow-[0_22px_80px_rgba(15,23,42,0.06)] backdrop-blur sm:p-8">
+            <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+              <div className="max-w-2xl">
+                <p className="eyebrow">Platform coverage</p>
+                <h2 className="mt-4 text-balance text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
+                  The workflows buyers usually compare can still stay tied to one operating layer.
+                </h2>
+              </div>
+              <Link
+                className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-950 transition hover:border-slate-950 lg:self-start"
+                href="/modules"
+              >
+                Review modules
+              </Link>
+            </div>
+            <div className="mt-8 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               {operatingCoverage.map((item) => (
                 <div
                   key={item}
@@ -484,6 +503,50 @@ export default function HomePage() {
                   <h2 className="text-lg font-semibold text-slate-950">{role.role}</h2>
                   <p className="mt-4 text-sm font-medium leading-7 text-slate-800">{role.summary}</p>
                   <p className="mt-3 text-sm leading-7 text-slate-600">{role.details}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="section pt-0">
+        <div className="container">
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-start">
+            <div className="rounded-[2rem] border border-slate-900/10 bg-slate-950 p-8 text-white shadow-[0_30px_120px_rgba(15,23,42,0.18)]">
+              <p className="eyebrow !border-white/15 !bg-white/8 !text-slate-200">
+                Trust and buying posture
+              </p>
+              <h2 className="mt-4 text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
+                The public site should feel like the same calm operating standard as the product.
+              </h2>
+              <p className="mt-5 text-lg leading-8 text-slate-300">
+                That means clear pricing expectations, direct founder access when buyers need it,
+                and a product story grounded in records, approvals, governance, and rollout reality.
+              </p>
+              <div className="mt-8 flex flex-wrap gap-3">
+                <Link
+                  className="inline-flex items-center rounded-full bg-white px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-slate-100"
+                  href="/company"
+                >
+                  Read the company note
+                </Link>
+                <Link
+                  className="inline-flex items-center rounded-full border border-white/15 bg-white/5 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
+                  href="/pricing"
+                >
+                  Review pricing approach
+                </Link>
+              </div>
+            </div>
+            <div className="grid gap-5 md:grid-cols-3">
+              {trustSignals.map((signal) => (
+                <article
+                  key={signal.title}
+                  className="rounded-[1.75rem] border border-slate-200/80 bg-white/85 p-6 shadow-[0_18px_60px_rgba(15,23,42,0.05)]"
+                >
+                  <h2 className="text-xl font-semibold text-slate-950">{signal.title}</h2>
+                  <p className="mt-4 text-base leading-7 text-slate-600">{signal.body}</p>
                 </article>
               ))}
             </div>

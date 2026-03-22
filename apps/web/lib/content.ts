@@ -52,6 +52,17 @@ export type IntegrationWorkflow = {
   body: string;
 };
 
+export type ArchitectureLayer = {
+  title: string;
+  summary: string;
+  points: string[];
+};
+
+export type TrustSignal = {
+  title: string;
+  body: string;
+};
+
 export const valueStrip = [
   {
     title: "One employee record system",
@@ -76,6 +87,51 @@ export const homepageProofStrip = [
   "Attendance exceptions and leave approvals in one flow",
   "Payroll visibility with cleaner upstream context",
   "Admin control, governance, and workforce reporting"
+] as const;
+
+export const operatingModelLayers: ArchitectureLayer[] = [
+  {
+    title: "Structure",
+    summary: "Keep the company model readable before workflows start to sprawl.",
+    points: [
+      "Employee records and reporting lines",
+      "Departments, teams, and ownership paths",
+      "Role-aware access and admin control"
+    ]
+  },
+  {
+    title: "Workflows",
+    summary: "Run operational requests where the right owners can actually act.",
+    points: [
+      "Attendance exceptions and leave workflows",
+      "Approval routing with clearer responsibility",
+      "Manager, HR, and admin queues in one place"
+    ]
+  },
+  {
+    title: "Visibility",
+    summary: "Give leaders and operators a cleaner read on what needs attention.",
+    points: [
+      "Payroll visibility with upstream context",
+      "Leadership reporting and review trails",
+      "Operational signals without stitched spreadsheets"
+    ]
+  }
+] as const;
+
+export const trustSignals: TrustSignal[] = [
+  {
+    title: "Founder-led evaluation",
+    body: "Buyers can reach the team directly for product questions, rollout fit, and commercial context."
+  },
+  {
+    title: "Soft public pricing",
+    body: "Starter, Growth, and Enterprise stay visible publicly without forcing fake self-serve checkout."
+  },
+  {
+    title: "Operational product proof",
+    body: "The public site stays tied to workforce structure, approvals, governance, and day-to-day control."
+  }
 ] as const;
 
 export const featuredModules = [
@@ -334,7 +390,7 @@ export const internalLinkCards = [
   {
     title: "Book a live walkthrough",
     body: "Start a product conversation with the workflows, team structure, and rollout questions that matter most to your business.",
-    href: "/contact",
+    href: "/demo",
     label: "Book demo"
   },
   {
@@ -412,6 +468,28 @@ export const integrationSupportPoints = [
   }
 ] as const;
 
+export const companyPrinciples = [
+  {
+    title: "Built for operational clarity",
+    body: "EMP is shaped around the work companies still chase manually: employee records, reporting lines, approvals, attendance exceptions, leave workflows, payroll visibility, and admin controls."
+  },
+  {
+    title: "Founder-led, not founder-heavy",
+    body: "Founder presence is there to make evaluation feel accountable and direct, not to turn the site into a personal brand page."
+  },
+  {
+    title: "Calm software for serious teams",
+    body: "The product story is intentionally structured around ownership, governance, and visibility instead of generic HR language."
+  }
+] as const;
+
+export const pricingTruthNotes = [
+  "Public website ladder: Starter, Growth, and Enterprise.",
+  "Guided demo first, then an optional 14-day trial for qualified teams.",
+  "Starter and Growth use directional per-user guidance; Enterprise stays commercial conversation led.",
+  "Final commercials can move with rollout scope, governance needs, implementation support, and deployment complexity."
+] as const;
+
 export const pricingTiers: PricingTier[] = [
   {
     name: "Starter",
@@ -429,7 +507,7 @@ export const pricingTiers: PricingTier[] = [
       "Manager and HR dashboards",
       "Email-based support"
     ],
-    cta: { href: "/contact", label: "Talk through Starter" }
+    cta: { href: "/demo", label: "Review Starter fit" }
   },
   {
     name: "Growth",
@@ -447,7 +525,7 @@ export const pricingTiers: PricingTier[] = [
       "Analytics and executive reporting",
       "Knowledge / SOPs and admin controls"
     ],
-    cta: { href: "/contact", label: "Talk through Growth" },
+    cta: { href: "/demo", label: "Review Growth fit" },
     featured: true
   },
   {
@@ -465,7 +543,7 @@ export const pricingTiers: PricingTier[] = [
       "Priority implementation guidance",
       "Commercial and deployment flexibility"
     ],
-    cta: { href: "/contact", label: "Talk to sales" }
+    cta: { href: "/demo", label: "Talk through Enterprise" }
   }
 ];
 
@@ -1016,7 +1094,7 @@ export const seoClusterPages: Record<SeoClusterPageKey, SeoClusterPage> = {
       title: "Evaluate EMP as employee management software with the operating depth serious teams need.",
       description:
         "Use a live demo to review your structure, workforce workflows, approvals, and rollout priorities in one conversation.",
-      primary: { href: "/contact", label: "Book Demo" },
+      primary: { href: "/demo", label: "Book Demo" },
       secondary: { href: "/pricing", label: "Review pricing approach" }
     }
   },
@@ -1124,7 +1202,7 @@ export const seoClusterPages: Record<SeoClusterPageKey, SeoClusterPage> = {
       title: "See how EMP handles attendance with more structure and less manual follow-up.",
       description:
         "A guided demo can map your attendance exceptions, manager review flow, and rollout priorities before you commit to a broader workforce platform change.",
-      primary: { href: "/contact", label: "Book Demo" },
+      primary: { href: "/demo", label: "Book Demo" },
       secondary: { href: "/pricing", label: "Review pricing approach" }
     }
   },
@@ -1232,7 +1310,7 @@ export const seoClusterPages: Record<SeoClusterPageKey, SeoClusterPage> = {
       title: "Pressure-test EMP against your leave rules, approval chains, and staffing constraints.",
       description:
         "Use a live conversation to review balances, overlap visibility, escalation flow, and the wider workforce workflows that leave management depends on.",
-      primary: { href: "/contact", label: "Book Demo" },
+      primary: { href: "/demo", label: "Book Demo" },
       secondary: { href: "/pricing", label: "Review pricing approach" }
     }
   },
@@ -1340,7 +1418,7 @@ export const seoClusterPages: Record<SeoClusterPageKey, SeoClusterPage> = {
       title: "Review how EMP can improve payroll readiness without adding more disconnected tooling.",
       description:
         "A live demo can focus on exception handling, cross-team ownership, data quality, and the rollout scope that makes sense for your organization.",
-      primary: { href: "/contact", label: "Book Demo" },
+      primary: { href: "/demo", label: "Book Demo" },
       secondary: { href: "/pricing", label: "Review pricing approach" }
     }
   },
@@ -1448,7 +1526,7 @@ export const seoClusterPages: Record<SeoClusterPageKey, SeoClusterPage> = {
       title: "See how EMP gives teams a structured employee directory with real organizational depth.",
       description:
         "A live walkthrough can focus on reporting lines, employee record governance, downstream workflow impact, and how directory clarity supports broader rollout goals.",
-      primary: { href: "/contact", label: "Book Demo" },
+      primary: { href: "/demo", label: "Book Demo" },
       secondary: { href: "/pricing", label: "Review pricing approach" }
     }
   },
@@ -1556,7 +1634,7 @@ export const seoClusterPages: Record<SeoClusterPageKey, SeoClusterPage> = {
       title: "Review how EMP can turn daily workforce activity into leadership-level operating insight.",
       description:
         "A guided demo can focus on the metrics, bottlenecks, reporting questions, and rollout scope that matter most to your leadership team.",
-      primary: { href: "/contact", label: "Book Demo" },
+      primary: { href: "/demo", label: "Book Demo" },
       secondary: { href: "/pricing", label: "Review pricing approach" }
     }
   }

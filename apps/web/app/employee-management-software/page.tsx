@@ -73,7 +73,7 @@ export default function EmployeeManagementSoftwarePage() {
           { label: "Employee Management Software" }
         ]}
         actions={[
-          { href: "/contact", label: "Book Demo" },
+          { href: "/demo", label: "Book Demo" },
           { href: "/pricing", label: "Review pricing approach" }
         ]}
         aside={<CategoryAside />}

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { CTASection } from "@/components/cta-section";
 import { JsonLd } from "@/components/json-ld";
+import { OperatingSystemMap } from "@/components/operating-system-map";
 import { PageHero } from "@/components/page-hero";
 import { PlatformSnapshot } from "@/components/platform-snapshot";
 import { RelatedSolutions } from "@/components/related-solutions";
@@ -9,6 +10,7 @@ import {
   comparisonPoints,
   getSeoClusterLinks,
   internalLinkCards,
+  operatingModelLayers,
   productPillars,
   roleBenefits,
   workflowSteps
@@ -97,7 +99,7 @@ export default function ProductPage() {
           { label: "Product" }
         ]}
         actions={[
-          { href: "/contact", label: "Book Demo" },
+          { href: "/demo", label: "Book Demo" },
           { href: "/security", label: "Review security" }
         ]}
         aside={<ArchitectureAside />}
@@ -209,51 +211,58 @@ export default function ProductPage() {
         </div>
       </section>
 
-      <section className="section">
+      <OperatingSystemMap
+        description="The product makes the most sense when buyers can see how company structure, daily requests, and leadership visibility belong to the same operating model."
+        layers={operatingModelLayers}
+        eyebrow="System design"
+        title="A workforce platform where structure, workflows, and visibility stay connected."
+      />
+
+      <section className="section pt-0">
         <div className="container">
           <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
             <div className="max-w-xl">
               <p className="eyebrow">Feature architecture</p>
               <h2 className="mt-4 text-balance text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
-                One system, multiple operating layers.
+                Core pillars for teams that want more than a bundle of HR modules.
               </h2>
               <p className="mt-5 text-lg leading-8 text-slate-600">
                 EMP is structured so foundational company data can power daily workflows, while
                 governance and analytics stay close to the work instead of arriving as an afterthought.
               </p>
+              <div className="mt-8 grid gap-3">
+                {productPillars.map((pillar) => (
+                  <article
+                    key={pillar.title}
+                    className="rounded-[1.45rem] border border-slate-200 bg-white/88 p-5 shadow-[0_12px_35px_rgba(15,23,42,0.05)]"
+                  >
+                    <h3 className="text-lg font-semibold text-slate-950">{pillar.title}</h3>
+                    <p className="mt-3 text-sm leading-7 text-slate-600">{pillar.body}</p>
+                  </article>
+                ))}
+              </div>
             </div>
-            <div className="grid gap-5">
-              {productPillars.map((pillar) => (
-                <article key={pillar.title} className="surface rounded-[1.75rem] p-6">
-                  <h3 className="text-xl font-semibold text-slate-950">{pillar.title}</h3>
-                  <p className="mt-3 text-base leading-7 text-slate-600">{pillar.body}</p>
-                </article>
-              ))}
+            <div>
+              <SectionHeading
+                eyebrow="Operating model"
+                title="A workflow narrative that starts with structure and ends with leadership clarity."
+                description="EMP is strongest when the company wants operating discipline, not just record keeping."
+              />
+              <div className="mt-10 grid gap-5 md:grid-cols-2">
+                {workflowSteps.map((step) => (
+                  <article
+                    key={step.step}
+                    className="rounded-[1.75rem] border border-slate-200/80 bg-white/85 p-6 shadow-[0_18px_60px_rgba(15,23,42,0.05)]"
+                  >
+                    <div className="text-sm font-semibold uppercase tracking-[0.24em] text-teal-700">
+                      Step {step.step}
+                    </div>
+                    <h3 className="mt-4 text-xl font-semibold text-slate-950">{step.title}</h3>
+                    <p className="mt-3 text-base leading-7 text-slate-600">{step.body}</p>
+                  </article>
+                ))}
+              </div>
             </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="section">
-        <div className="container">
-          <SectionHeading
-            eyebrow="Operating model"
-            title="A workflow narrative that starts with structure and ends with leadership clarity."
-            description="EMP is strongest when the company wants operating discipline, not just record keeping."
-          />
-          <div className="mt-10 grid gap-5 md:grid-cols-2">
-            {workflowSteps.map((step) => (
-              <article
-                key={step.step}
-                className="rounded-[1.75rem] border border-slate-200/80 bg-white/85 p-6 shadow-[0_18px_60px_rgba(15,23,42,0.05)]"
-              >
-                <div className="text-sm font-semibold uppercase tracking-[0.24em] text-teal-700">
-                  Step {step.step}
-                </div>
-                <h3 className="mt-4 text-xl font-semibold text-slate-950">{step.title}</h3>
-                <p className="mt-3 text-base leading-7 text-slate-600">{step.body}</p>
-              </article>
-            ))}
           </div>
         </div>
       </section>
@@ -312,7 +321,7 @@ export default function ProductPage() {
         eyebrow="See the connected system"
         title="Walk through how EMP replaces fragmented workforce processes with one operating platform."
         description="A guided demo is the fastest way to see how structure, workflows, permissions, and reporting fit together."
-        primary={{ href: "/contact", label: "Book Demo" }}
+        primary={{ href: "/demo", label: "Book Demo" }}
         secondary={{ href: "/pricing", label: "Review pricing approach" }}
       />
     </>

@@ -61,7 +61,7 @@ export function SolutionPage({ page }: SolutionPageProps) {
           { label: page.shortTitle }
         ]}
         actions={[
-          { href: "/contact", label: "Book Demo" },
+          { href: "/demo", label: "Book Demo" },
           { href: "/employee-management-software", label: "See full platform" }
         ]}
         aside={<CategoryFitAside items={page.categoryFit} />}

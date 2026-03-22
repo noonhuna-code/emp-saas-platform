@@ -42,12 +42,12 @@ export const siteConfig = {
       ]
     },
     {
-      title: "Support",
+      title: "Company",
       links: [
+        { href: "/company", label: "Why EMP exists" },
         { href: "/demo", label: "Book demo" },
         { href: "/contact", label: "Contact" },
-        { href: "/docs", label: "Docs and help" },
-        { href: "/security", label: "Security" }
+        { href: "/docs", label: "Docs and help" }
       ]
     },
     {
@@ -68,15 +68,16 @@ export const siteConfig = {
     }
   ],
   footerMetaLinks: [
+    { href: "/company", label: "Company" },
     { href: "/privacy-policy", label: "Privacy" },
     { href: "/terms-of-service", label: "Terms" },
     { href: "/security", label: "Security" },
     { href: "/docs", label: "Docs" }
   ],
   trustBadges: [
-    "Founder-led support",
-    "Security review available",
-    "Guided demos"
+    "Founder-led product",
+    "Guided rollout reviews",
+    "Security conversations available"
   ]
 } as const;
 
