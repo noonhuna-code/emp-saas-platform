@@ -33,7 +33,7 @@ export function Footer() {
               <div className="flex flex-wrap gap-3">
                 <Link
                   className="inline-flex items-center rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
-                  href="/contact"
+                  href="/demo"
                 >
                   Book demo
                 </Link>

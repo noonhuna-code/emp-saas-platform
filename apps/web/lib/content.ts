@@ -40,6 +40,18 @@ export type DocsCategory = {
   articles: string[];
 };
 
+export type IntegrationCategory = {
+  title: string;
+  summary: string;
+  items: string[];
+  outcome: string;
+};
+
+export type IntegrationWorkflow = {
+  title: string;
+  body: string;
+};
+
 export const valueStrip = [
   {
     title: "One employee record system",
@@ -57,6 +69,13 @@ export const valueStrip = [
     title: "Leadership visibility",
     body: "Leadership gets a clearer read on staffing pressure, policy execution, team ownership, and unresolved workforce issues."
   }
+] as const;
+
+export const homepageProofStrip = [
+  "Structured employee records and reporting lines",
+  "Attendance exceptions and leave approvals in one flow",
+  "Payroll visibility with cleaner upstream context",
+  "Admin control, governance, and workforce reporting"
 ] as const;
 
 export const featuredModules = [
@@ -307,10 +326,10 @@ export const internalLinkCards = [
     label: "View security"
   },
   {
-    title: "Preview product education",
-    body: "Browse help center categories, implementation guidance, and support readiness.",
-    href: "/docs",
-    label: "Open docs"
+    title: "Review integrations",
+    body: "See how EMP fits with messaging, identity, work tracking, exports, and internal automation workflows.",
+    href: "/integrations",
+    label: "View integrations"
   },
   {
     title: "Book a live walkthrough",
@@ -323,6 +342,73 @@ export const internalLinkCards = [
     body: "Review a focused landing page for teams comparing EMP against generic employee management software.",
     href: "/employee-management-software",
     label: "Open guide"
+  }
+] as const;
+
+export const integrationCategories: IntegrationCategory[] = [
+  {
+    title: "Communication",
+    summary: "Keep approval notifications, escalation prompts, and workflow updates visible where teams already coordinate.",
+    items: ["Slack", "Microsoft Teams", "Email digests", "Approval alerts"],
+    outcome: "Reduce approval lag by sending the right prompts to the right teams without losing the system of record."
+  },
+  {
+    title: "Identity and access",
+    summary: "Support cleaner access management and onboarding across the tools employees already use to sign in and work.",
+    items: ["Google Workspace", "Microsoft 365", "SSO roadmap", "Role-aware access"],
+    outcome: "Keep account setup, ownership changes, and permission reviews closer to your workforce structure."
+  },
+  {
+    title: "Work tracking",
+    summary: "Connect operational follow-up to the systems project and program teams already use to move work forward.",
+    items: ["Linear", "Jira", "Implementation checklists", "Escalation tasks"],
+    outcome: "Turn approvals, org updates, and rollout work into visible next steps without losing accountability."
+  },
+  {
+    title: "Data export and reporting",
+    summary: "Prepare cleaner outputs for payroll support, finance review, BI workflows, and operational reporting.",
+    items: ["CSV exports", "Payroll-ready exports", "Reporting extracts", "Structured summaries"],
+    outcome: "Give downstream teams cleaner data without rebuilding context from scattered spreadsheets."
+  },
+  {
+    title: "Automation and APIs",
+    summary: "Extend EMP through API access, webhooks, and event-driven handoffs without forcing teams into brittle manual work.",
+    items: ["Webhooks", "API access", "Event triggers", "Internal tooling support"],
+    outcome: "Connect EMP to internal systems while keeping the product as the source of workflow and ownership truth."
+  }
+] as const;
+
+export const integrationWorkflows: IntegrationWorkflow[] = [
+  {
+    title: "Send approval prompts into Slack or Teams",
+    body: "Notify the right manager when leave, attendance, or profile actions are waiting so approvals move faster without relying on private follow-up."
+  },
+  {
+    title: "Push rollout work into Linear or Jira",
+    body: "Turn org setup, onboarding tasks, and admin follow-up into tracked implementation work for the teams running the rollout."
+  },
+  {
+    title: "Export payroll-ready context for downstream review",
+    body: "Send verified attendance, leave, and employee context into payroll or finance review flows with fewer manual corrections."
+  },
+  {
+    title: "Trigger internal admin workflows from workforce events",
+    body: "Use org changes, approvals, or ownership updates to drive internal tasks and operational checkpoints in connected tools."
+  }
+] as const;
+
+export const integrationSupportPoints = [
+  {
+    title: "Implementation-aware planning",
+    body: "We review what should connect on day one versus what can wait until the core workforce model is running well."
+  },
+  {
+    title: "Clear data ownership",
+    body: "The goal is to keep EMP as the source of truth for structure, records, and approvals while connected systems consume the right outputs."
+  },
+  {
+    title: "Practical rollout scope",
+    body: "Buyers can use a demo to pressure-test how far to go with integrations, exports, automation, and downstream tooling."
   }
 ] as const;
 
