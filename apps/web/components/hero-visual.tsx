@@ -51,8 +51,8 @@ export function HeroVisual() {
             <div className="mt-4 grid gap-3 sm:grid-cols-3">
               {[
                 ["Staffing pressure", "2 teams need coverage planning"],
-                ["Policy watch", "Leave overlap rising in Support"],
-                ["Action queue", "13 priority reviews before payroll"]
+                ["Project flow", "Cross-team rollout owners stay tied to real departments"],
+                ["Action queue", "13 priority reviews before payroll and approvals"]
               ].map(([title, body]) => (
                 <div key={title} className="rounded-2xl border border-slate-200 bg-slate-50/90 p-4">
                   <p className="text-sm font-semibold text-slate-950">{title}</p>
@@ -72,8 +72,8 @@ export function HeroVisual() {
             <div className="mt-4 grid gap-3">
               {[
                 "Records and requests stay in one operating layer",
-                "Pricing stays soft and rollout-aware",
-                "Founder access is visible without overpowering the site"
+                "Projects and collaboration stay close to approvals",
+                "Pricing stays soft and rollout-aware"
               ].map((item) => (
                 <div
                   key={item}

@@ -30,7 +30,8 @@ function SecurityAside() {
           "Who can access employee records",
           "How approval history stays reviewable",
           "What admins can control centrally",
-          "How rollout and governance are handled"
+          "How rollout and governance are handled",
+          "How approvals, collaboration, and audit context stay reviewable"
         ].map((item) => (
           <div
             key={item}
@@ -85,7 +86,7 @@ export default function SecurityPage() {
         aside={<SecurityAside />}
       />
 
-      <section className="section">
+      <section className="section pt-0">
         <div className="container">
           <div className="grid gap-10 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:items-center">
             <div className="max-w-xl">
@@ -101,7 +102,7 @@ export default function SecurityPage() {
               <div className="mt-8 grid gap-3">
                 {[
                   "Employee records, leave approvals, and attendance exceptions stay tied to role-based views.",
-                  "Approval history stays closer to the request instead of being rebuilt from chat and email.",
+                  "Approval history and collaboration context stay closer to the request instead of being rebuilt from chat and email.",
                   "Admin settings, ownership paths, and governance decisions are easier to review in one system."
                 ].map((item) => (
                   <div
@@ -122,7 +123,7 @@ export default function SecurityPage() {
               sidebarSubtitle="Role-aware workforce operations"
               sidebarItems={[
                 "Role-aware employee access",
-                "Approval history and review trails",
+                "Approval history, collaboration context, and review trails",
                 "Admin settings and ownership rules",
                 "Sensitive workflow visibility"
               ]}
@@ -179,7 +180,7 @@ export default function SecurityPage() {
               </h2>
               <p className="mt-5 text-base leading-8 text-slate-600">
                 We avoid unsupported compliance language here. The focus is on how employee data,
-                approvals, governance settings, and admin responsibilities are handled in practice.
+                approvals, governance settings, collaboration context, and admin responsibilities are handled in practice.
               </p>
               <div className="mt-8 grid gap-3">
                 {securityReviewTopics.map((topic) => (

@@ -26,7 +26,7 @@ function DemoAside() {
       <div className="mt-5 space-y-4">
         <div className="rounded-[1.5rem] border border-slate-200 bg-white/85 p-5">
           <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
-            Founder-led contact
+            Direct product contact
           </p>
           <a
             className="mt-3 block text-lg font-semibold text-slate-950 underline"
@@ -35,8 +35,8 @@ function DemoAside() {
             {siteConfig.founder.email}
           </a>
           <p className="mt-3 text-sm leading-7 text-slate-600">
-            Reach {siteConfig.founder.name} directly for demo requests, buying questions, and rollout
-            planning conversations.
+            Reach the EMP team directly for demo requests, buying questions, and rollout
+            planning conversations, with founder access available when needed.
           </p>
         </div>
         <div className="rounded-[1.5rem] border border-slate-200 bg-white/85 p-5">

@@ -1,8 +1,6 @@
-import Image from "next/image";
 import Link from "next/link";
 import { CTASection } from "@/components/cta-section";
 import { FAQList } from "@/components/faq-list";
-import { FounderSection } from "@/components/founder-section";
 import { HeroVisual } from "@/components/hero-visual";
 import { IntegrationGrid } from "@/components/integration-grid";
 import { JsonLd } from "@/components/json-ld";
@@ -12,6 +10,7 @@ import { RelatedSolutions } from "@/components/related-solutions";
 import { SectionHeading } from "@/components/section-heading";
 import {
   comparisonPoints,
+  featuredModules,
   getSeoClusterLinks,
   homeFaqs,
   homepageProofStrip,
@@ -29,7 +28,6 @@ import {
 } from "@/lib/content";
 import { buildMetadata } from "@/lib/seo";
 import { faqSchema, organizationSchema, softwareApplicationSchema, websiteSchema } from "@/lib/schema";
-import { siteConfig } from "@/lib/site";
 
 const solutionLinks = getSeoClusterLinks([
   "employeeManagement",
@@ -78,7 +76,7 @@ export default function HomePage() {
         ]}
       />
 
-      <section className="section relative overflow-hidden pt-10 sm:pt-14">
+      <section className="section relative overflow-hidden pt-16 sm:pt-20 lg:pt-24">
         <div className="absolute inset-x-0 top-0 -z-10 h-[32rem] bg-[radial-gradient(circle_at_top,rgba(13,148,136,0.16),transparent_42%)]" />
         <div className="container">
           <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_520px] lg:items-center">
@@ -116,31 +114,33 @@ export default function HomePage() {
                   Review security posture
                 </Link>
               </div>
-              <div className="mt-6 inline-flex max-w-full items-center gap-3 rounded-full border border-slate-200/80 bg-white/82 px-3 py-2 shadow-[0_12px_36px_rgba(15,23,42,0.05)] backdrop-blur">
-                <div className="h-11 w-11 overflow-hidden rounded-full border border-slate-200 bg-slate-100">
-                  <Image
-                    alt={`${siteConfig.founder.name}, founder of EMP`}
-                    className="h-full w-full object-cover object-top"
-                    height={88}
-                    sizes="44px"
-                    src={siteConfig.founder.image}
-                    width={88}
-                  />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-                    Built by {siteConfig.founder.name}
-                  </p>
-                  <p className="truncate text-sm font-medium text-slate-700">
-                    Founder-led product decisions with direct demo access.
-                  </p>
+              <div className="mt-8 rounded-[1.6rem] border border-slate-200/80 bg-white/84 p-4 shadow-[0_18px_60px_rgba(15,23,42,0.06)] backdrop-blur">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                      Buying posture
+                    </p>
+                    <p className="mt-2 text-sm leading-7 text-slate-700">
+                      Guided demos, public pricing guidance, and direct product answers without pretending the buying motion is self-serve.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {["Guided evaluation", "Soft public pricing", "Security review available"].map((item) => (
+                      <span
+                        key={item}
+                        className="rounded-full border border-slate-200 bg-slate-50/90 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-600"
+                      >
+                        {item}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               </div>
-              <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {[
                   "Built around reporting lines and approvals",
-                  "Employee records and admin controls stay in one place",
-                  "Made for HR, managers, finance, and leadership"
+                  "Employee records, projects, and collaboration stay connected",
+                  "Made for HR, operations, finance, and leadership"
                 ].map((item) => (
                   <div
                     key={item}
@@ -320,6 +320,27 @@ export default function HomePage() {
 
       <section className="section pt-0">
         <div className="container">
+          <SectionHeading
+            eyebrow="Work beyond HR admin"
+            title="Projects, collaboration, and follow-through belong inside the same operating system."
+            description="Repo truth already supports project management, task comments, chat direction, notifications, and knowledge workflows. The public story should show that EMP is built for execution as well as records."
+          />
+          <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+            {featuredModules.slice(2, 6).map((item) => (
+              <article
+                key={item.title}
+                className="rounded-[1.75rem] border border-slate-200/80 bg-white/85 p-6 shadow-[0_18px_60px_rgba(15,23,42,0.05)]"
+              >
+                <h2 className="text-xl font-semibold text-slate-950">{item.title}</h2>
+                <p className="mt-4 text-base leading-7 text-slate-600">{item.body}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="section pt-0">
+        <div className="container">
           <div className="rounded-[2rem] border border-slate-200/80 bg-white/82 p-6 shadow-[0_22px_80px_rgba(15,23,42,0.06)] backdrop-blur sm:p-8">
             <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
               <div className="max-w-2xl">
@@ -494,7 +515,23 @@ export default function HomePage() {
             </div>
 
             <div className="grid gap-5">
-              <FounderSection compact />
+              <article className="rounded-[1.75rem] border border-slate-200/80 bg-white/85 p-6 shadow-[0_20px_60px_rgba(15,23,42,0.05)]">
+                <p className="eyebrow">Company trust</p>
+                <h2 className="mt-4 text-2xl font-semibold tracking-tight text-slate-950">
+                  EMP should read like a real software company before any proof assets arrive.
+                </h2>
+                <p className="mt-4 text-base leading-7 text-slate-600">
+                  That means a product-led story, honest pricing posture, concrete security review paths, and founder access that stays accountable without taking over the brand.
+                </p>
+                <div className="mt-5 flex flex-wrap gap-3">
+                  <Link className="text-sm font-semibold text-slate-950 underline" href="/company">
+                    Read the company note
+                  </Link>
+                  <Link className="text-sm font-semibold text-slate-950 underline" href="/demo">
+                    Book a guided walkthrough
+                  </Link>
+                </div>
+              </article>
               {roleBenefits.slice(1, 3).map((role) => (
                 <article
                   key={role.role}

@@ -91,7 +91,7 @@ export default function PricingPage() {
         aside={<PricingAside />}
       />
 
-      <section className="section">
+      <section className="section pt-0">
         <div className="container">
           <div className="grid gap-10 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-center">
             <div className="max-w-xl">

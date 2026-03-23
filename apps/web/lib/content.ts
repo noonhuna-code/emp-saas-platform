@@ -85,8 +85,8 @@ export const valueStrip = [
 export const homepageProofStrip = [
   "Structured employee records and reporting lines",
   "Attendance exceptions and leave approvals in one flow",
-  "Payroll visibility with cleaner upstream context",
-  "Admin control, governance, and workforce reporting"
+  "Projects, collaboration, and approvals tied to the same ownership model",
+  "Payroll visibility, governance, and leadership reporting"
 ] as const;
 
 export const operatingModelLayers: ArchitectureLayer[] = [
@@ -104,8 +104,8 @@ export const operatingModelLayers: ArchitectureLayer[] = [
     summary: "Run operational requests where the right owners can actually act.",
     points: [
       "Attendance exceptions and leave workflows",
-      "Approval routing with clearer responsibility",
-      "Manager, HR, and admin queues in one place"
+      "Approval routing, project follow-through, and collaboration context",
+      "Manager, HR, operations, and admin queues in one place"
     ]
   },
   {
@@ -113,7 +113,7 @@ export const operatingModelLayers: ArchitectureLayer[] = [
     summary: "Give leaders and operators a cleaner read on what needs attention.",
     points: [
       "Payroll visibility with upstream context",
-      "Leadership reporting and review trails",
+      "Leadership reporting, collaboration signals, and review trails",
       "Operational signals without stitched spreadsheets"
     ]
   }
@@ -121,16 +121,16 @@ export const operatingModelLayers: ArchitectureLayer[] = [
 
 export const trustSignals: TrustSignal[] = [
   {
-    title: "Founder-led evaluation",
-    body: "Buyers can reach the team directly for product questions, rollout fit, and commercial context."
+    title: "Commercially clear by design",
+    body: "Starter, Growth, and Enterprise stay public enough to be useful while rollout scope and implementation support stay grounded in a guided conversation."
   },
   {
-    title: "Soft public pricing",
-    body: "Starter, Growth, and Enterprise stay visible publicly without forcing fake self-serve checkout."
+    title: "Operational trust before brand theater",
+    body: "The site is anchored in product scope, approvals, governance, and visibility instead of inflated proof or unsupported claims."
   },
   {
-    title: "Operational product proof",
-    body: "The public site stays tied to workforce structure, approvals, governance, and day-to-day control."
+    title: "Founder accountability, company-first",
+    body: "Founder access is available when buyers need it, but the company story stays focused on product maturity, rollout realism, and operating discipline."
   }
 ] as const;
 
@@ -335,11 +335,11 @@ export const productPillars = [
   },
   {
     title: "Connected daily execution",
-    body: "Attendance, leave, shift changes, projects, chat, approvals, and notifications stay tied to the same people and structure."
+    body: "Attendance, leave, shift changes, projects, collaboration, approvals, and notifications stay tied to the same people and structure."
   },
   {
     title: "Control and visibility",
-    body: "Admins define governance while leadership and managers get clean views into what needs attention and how the organization is moving."
+    body: "Admins define governance while leadership, managers, and operators get clean views into what needs attention and how work is moving."
   }
 ] as const;
 
@@ -474,8 +474,8 @@ export const companyPrinciples = [
     body: "EMP is shaped around the work companies still chase manually: employee records, reporting lines, approvals, attendance exceptions, leave workflows, payroll visibility, and admin controls."
   },
   {
-    title: "Founder-led, not founder-heavy",
-    body: "Founder presence is there to make evaluation feel accountable and direct, not to turn the site into a personal brand page."
+    title: "Company-first trust",
+    body: "Founder presence is there to make evaluation feel accountable and direct, not to turn the product story into a personal brand page."
   },
   {
     title: "Calm software for serious teams",
@@ -695,16 +695,16 @@ export const pricingDrivers = [
 
 export const securityPrinciples = [
   {
-    title: "Access with context",
+    title: "Access with operational context",
     body: "Permissions can follow role, team, and operational responsibility so sensitive workforce actions do not become broadly exposed."
   },
   {
     title: "Review history where work happens",
-    body: "Requests, approvals, record changes, and governance-sensitive actions stay easier to review when history remains attached to the workflow itself."
+    body: "Requests, approvals, record changes, collaboration actions, and governance-sensitive decisions stay easier to review when history remains attached to the workflow itself."
   },
   {
     title: "Structured governance",
-    body: "Admin settings, hierarchy, policy logic, and approval boundaries stay part of the operating model instead of being improvised across separate tools."
+    body: "Admin settings, hierarchy, policy logic, approval boundaries, and visibility rules stay part of the operating model instead of being improvised across separate tools."
   },
   {
     title: "Privacy-minded design",

@@ -23,25 +23,26 @@ export function FounderSection({ compact = false }: FounderSectionProps) {
           </div>
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
-              Built by {siteConfig.founder.name}
+              Founder note
             </p>
-            <a
-              className="mt-1 block text-base font-semibold text-slate-950 underline"
-              href={`mailto:${siteConfig.founder.email}`}
-            >
-              {siteConfig.founder.email}
-            </a>
+            <p className="mt-1 text-base font-semibold text-slate-950">{siteConfig.founder.title}</p>
           </div>
         </div>
         <h2 className="mt-5 text-2xl font-semibold tracking-tight text-slate-950">
-          Built by {siteConfig.founder.name} around the approvals and people workflows teams actually run.
+          Founder access stays available, but the product story stays company-first.
         </h2>
         <p className="mt-4 text-base leading-7 text-slate-600">
-          EMP focuses on the work companies still chase manually: employee records, reporting
-          lines, leave approvals, attendance exceptions, payroll visibility, and admin controls
+          EMP focuses on the work companies still chase manually: employee records, reporting lines,
+          approvals, attendance exceptions, payroll visibility, collaboration, and admin controls
           that stay clear as the organization grows.
         </p>
-        <div className="mt-5">
+        <div className="mt-5 flex flex-wrap items-center gap-4">
+          <a
+            className="text-sm font-semibold text-slate-950 underline"
+            href={`mailto:${siteConfig.founder.email}`}
+          >
+            {siteConfig.founder.email}
+          </a>
           <Link className="text-sm font-semibold text-slate-950 underline" href="/company">
             Read the company note
           </Link>
@@ -66,20 +67,20 @@ export function FounderSection({ compact = false }: FounderSectionProps) {
           </div>
 
           <div className="max-w-3xl">
-            <p className="eyebrow">Founder-led product</p>
+            <p className="eyebrow">Company and founder note</p>
             <h2 className="mt-4 text-balance text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
-              Built by {siteConfig.founder.name} for teams that need cleaner employee operations and clearer ownership.
+              A founder-led product with a company-first trust posture.
             </h2>
             <p className="mt-5 text-lg leading-8 text-slate-600">
-              EMP focuses on the day-to-day work most companies still chase manually:
-              employee records, reporting lines, leave approvals, attendance exceptions, payroll
-              visibility, policy execution, and admin controls that stay readable as the team grows.
+              EMP focuses on the day-to-day work most companies still chase manually: employee
+              records, reporting lines, approvals, attendance exceptions, payroll visibility,
+              projects, collaboration, policy execution, and admin controls that stay readable as the team grows.
             </p>
             <div className="mt-6 grid gap-3 sm:grid-cols-3">
               {[
-                "Founder-led product decisions",
+                "Founder accountability stays visible",
                 "Direct product and rollout conversations",
-                "Built around real approvals and people workflows"
+                "Built around real approvals and workforce workflows"
               ].map((item) => (
                 <div
                   key={item}

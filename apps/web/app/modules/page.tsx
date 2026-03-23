@@ -26,7 +26,7 @@ function ModulesAside() {
     <div className="surface rounded-[2rem] p-6">
       <p className="eyebrow">Core modules</p>
       <div className="mt-5 grid gap-3 sm:grid-cols-2">
-        {["Employee Records", "Organization", "Attendance", "Leave", "Approval Routing", "Analytics"].map((item) => (
+        {["Employee Records", "Organization", "Attendance", "Leave", "Projects", "Collaboration"].map((item) => (
           <div
             key={item}
             className="rounded-2xl border border-slate-200 bg-white/85 px-4 py-3 text-sm font-semibold text-slate-700"
@@ -73,12 +73,12 @@ export default function ModulesPage() {
         aside={<ModulesAside />}
       />
 
-      <section className="section">
+      <section className="section pt-0">
         <div className="container">
           <SectionHeading
             eyebrow="Module catalog"
             title="A cleaner module catalog for the workflows teams run every day."
-            description="The catalog is built around real operating jobs: employee records, reporting lines, leave approvals, attendance review, payroll visibility, project ownership, approval routing, and admin controls."
+            description="The catalog is built around real operating jobs: employee records, reporting lines, leave approvals, attendance review, payroll visibility, project ownership, collaboration, approval routing, and admin controls."
           />
           <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
             {modules.map((module) => (
@@ -120,7 +120,7 @@ export default function ModulesPage() {
               <div className="mt-8 grid gap-3">
                 {[
                   "Employee records, attendance, leave, and reporting stay tied to one org structure.",
-                  "Requests and approvals inherit the same managers, teams, and policy boundaries.",
+                  "Requests, projects, and collaboration inherit the same managers, teams, and policy boundaries.",
                   "Leadership sees staffing pressure, unresolved exceptions, and operating trends from one view."
                 ].map((item) => (
                   <div
@@ -141,8 +141,8 @@ export default function ModulesPage() {
               sidebarSubtitle="One org model across every module"
               sidebarItems={[
                 "Employee records and reporting lines",
-                "Attendance, leave, and approval routing",
-                "Payroll visibility and manager reviews",
+                "Attendance, leave, approval routing, and collaboration",
+                "Payroll visibility, project ownership, and manager reviews",
                 "Governance settings and workforce analytics"
               ]}
               metrics={[
@@ -161,6 +161,11 @@ export default function ModulesPage() {
                   title: "Leave approvals affect staffing",
                   meta: "Managers see overlap and team pressure before approvals are finalized",
                   status: "Visible"
+                },
+                {
+                  title: "Projects stay tied to real teams",
+                  meta: "Cross-functional work keeps ownership, comments, and visibility attached to the operating model",
+                  status: "Coordinated"
                 },
                 {
                   title: "Leadership sees one picture",

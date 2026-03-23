@@ -8,6 +8,7 @@ import { RelatedSolutions } from "@/components/related-solutions";
 import { SectionHeading } from "@/components/section-heading";
 import {
   comparisonPoints,
+  featuredModules,
   getSeoClusterLinks,
   internalLinkCards,
   operatingModelLayers,
@@ -105,7 +106,7 @@ export default function ProductPage() {
         aside={<ArchitectureAside />}
       />
 
-      <section className="section">
+      <section className="section pt-0">
         <div className="container">
           <div className="grid gap-10 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:items-center">
             <div className="max-w-xl">
@@ -120,7 +121,7 @@ export default function ProductPage() {
               <div className="mt-8 grid gap-3">
                 {[
                   "The same company structure powers execution, permissions, and reporting.",
-                  "Operational workflows stay closer to ownership, approvals, and policy context.",
+                  "Operational workflows, projects, and collaboration stay closer to ownership, approvals, and policy context.",
                   "Leadership sees cross-functional bottlenecks without stitched-together reporting."
                 ].map((item) => (
                   <div
@@ -141,7 +142,7 @@ export default function ProductPage() {
               sidebarSubtitle="Multi-team workforce control"
               sidebarItems={[
                 "Departments and reporting lines",
-                "Live approvals and inbox ownership",
+                "Live approvals, projects, and inbox ownership",
                 "Attendance, leave, and payroll visibility",
                 "Governance-friendly audit history"
               ]}
@@ -161,6 +162,11 @@ export default function ProductPage() {
                   title: "Leave overlap signal",
                   meta: "HR spots staffing pressure before approvals finalize",
                   status: "Shared context"
+                },
+                {
+                  title: "Cross-team rollout work",
+                  meta: "Projects and collaboration stay tied to the same org model and approvals",
+                  status: "Follow-through"
                 },
                 {
                   title: "Executive summary view",
@@ -217,6 +223,27 @@ export default function ProductPage() {
         eyebrow="System design"
         title="A workforce platform where structure, workflows, and visibility stay connected."
       />
+
+      <section className="section pt-0">
+        <div className="container">
+          <SectionHeading
+            eyebrow="Connected execution"
+            title="The product story should make projects, collaboration, and operating follow-through visible."
+            description="EMP is broader than records and requests. It also supports the project work, collaboration context, and shared execution layer that operators need after approvals are made."
+          />
+          <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+            {featuredModules.slice(2, 6).map((module) => (
+              <article
+                key={module.title}
+                className="rounded-[1.75rem] border border-slate-200/80 bg-white/85 p-6 shadow-[0_18px_60px_rgba(15,23,42,0.05)]"
+              >
+                <h3 className="text-xl font-semibold text-slate-950">{module.title}</h3>
+                <p className="mt-4 text-base leading-7 text-slate-600">{module.body}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
 
       <section className="section pt-0">
         <div className="container">

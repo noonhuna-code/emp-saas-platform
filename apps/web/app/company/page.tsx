@@ -66,7 +66,7 @@ export default function CompanyPage() {
         eyebrow="Company"
         title={
           <>
-            EMP is being built as a calmer, more operationally credible{" "}
+            EMP is built as a calmer, more operationally credible{" "}
             <span className="font-display italic font-normal text-teal-800">
               workforce platform
             </span>

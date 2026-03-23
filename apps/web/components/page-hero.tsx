@@ -24,7 +24,7 @@ export function PageHero({
   aside
 }: PageHeroProps) {
   return (
-    <section className="section relative overflow-hidden">
+    <section className="relative overflow-hidden pb-10 pt-16 sm:pb-12 sm:pt-20 lg:pb-14 lg:pt-24">
       <div className="absolute inset-x-0 top-0 -z-10 h-96 bg-[radial-gradient(circle_at_top,rgba(14,116,144,0.12),transparent_55%)]" />
       <div className="absolute inset-x-0 top-12 -z-10 h-72 bg-[linear-gradient(90deg,rgba(255,255,255,0.46),transparent_18%,transparent_82%,rgba(255,255,255,0.18))]" />
       <div className="container">
@@ -62,7 +62,7 @@ export function PageHero({
               </div>
             ) : null}
             <div className="mt-6 grid gap-3 sm:grid-cols-3">
-              {["Operational product walkthrough", "Pricing grounded in rollout scope", "Security and governance review"].map(
+              {["Operational product walkthrough", "Pricing grounded in rollout scope", "Trust and governance review"].map(
                 (item) => (
                   <span
                     key={item}

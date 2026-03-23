@@ -13,10 +13,10 @@ export function Footer() {
         >
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <p className="eyebrow">Talk directly with the team</p>
+              <p className="eyebrow">Plan the next step with the EMP team</p>
               <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600">
                 EMP is built for teams comparing employee records, approvals, payroll visibility,
-                and workforce analytics in one place, with a direct line when product questions come up.
+                projects, collaboration, and workforce analytics in one place, with a direct line when product questions come up.
               </p>
             </div>
             <div className="flex flex-col gap-3 lg:items-end">
@@ -56,8 +56,7 @@ export function Footer() {
             </div>
             <p className="mt-5 text-base leading-7 text-slate-600">
               EMP helps teams keep org hierarchy, reporting lines, leave approvals, attendance
-              exceptions, employee records, payroll visibility, and admin controls in one calmer
-              workspace.
+              exceptions, employee records, project coordination, payroll visibility, and admin controls in one calmer workspace.
             </p>
             <div className="mt-6 rounded-[1.5rem] border border-slate-200 bg-white/80 p-5">
               <div className="flex items-center gap-4">
@@ -72,7 +71,8 @@ export function Footer() {
                   />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">{siteConfig.founder.title}</p>
+                  <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">Founder note</p>
+                  <p className="mt-1 text-sm font-medium text-slate-700">{siteConfig.founder.title}</p>
                   <a className="mt-2 block text-base font-semibold text-slate-950 underline" href={`mailto:${siteConfig.founder.email}`}>
                     {siteConfig.founder.email}
                   </a>
@@ -80,7 +80,7 @@ export function Footer() {
               </div>
               <p className="mt-4 text-sm leading-7 text-slate-600">
                 Reach out directly for demos, rollout planning, or product questions about how EMP
-                fits your company structure and approval model.
+                fits your company structure, approval model, and operating workflows.
               </p>
               <Link className="mt-4 inline-flex text-sm font-semibold text-slate-950 underline" href="/company">
                 Read why EMP exists
