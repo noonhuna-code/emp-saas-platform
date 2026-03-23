@@ -23,7 +23,7 @@ type LoginErrorCode =
   | "RATE_LIMITED";
 
 const redirectToLoginWithErrorCode = (request: Request, code: LoginErrorCode): NextResponse => {
-  return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(code)}`, request.url));
+  return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(code)}`, request.url), { status: 303 });
 };
 
 const parseLoginInput = async (request: Request): Promise<{ email: string; password: string; next: string }> => {
@@ -255,7 +255,9 @@ export async function POST(request: Request) {
       logAuthStage(route.requestId, "before_create_auth_session", { emailHash });
       const authContext = cachedAuthContext ?? (await buildAuthContextFromAccessToken(data.session.access_token));
       const sessionId = await createAuthSession(authContext, route.requestId);
-      const response = NextResponse.redirect(new URL(next.startsWith("/") ? next : "/app/dashboard", request.url));
+      const response = NextResponse.redirect(new URL(next.startsWith("/") ? next : "/app/dashboard", request.url), {
+        status: 303
+      });
       response.cookies.set("lf_access_token", data.session.access_token, { httpOnly: true, sameSite: "lax", path: "/" });
       response.cookies.set("lf_refresh_token", data.session.refresh_token, { httpOnly: true, sameSite: "lax", path: "/" });
       response.cookies.set("lf_session", "1", { httpOnly: true, sameSite: "lax", path: "/" });
