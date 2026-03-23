@@ -88,11 +88,47 @@ export const PlatformShell = ({
                   <span className="text-sm font-medium">{collapsed ? ">" : "<"}</span>
                 </button>
               </div>
+
+              {!collapsed ? (
+                <div className="mt-5 space-y-3">
+                  <div className="rounded-3xl border border-white/10 bg-white/[0.03] px-4 py-4">
+                    <div className="text-sm font-medium text-white">Global operating posture</div>
+                    <p className="mt-2 text-sm leading-6 text-slate-400">
+                      One shell for cross-tenant monitoring, billing governance, and platform-level decision support.
+                    </p>
+                  </div>
+                  <div className="rounded-3xl border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))] px-4 py-4">
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-sky-300/70">Scope</div>
+                    <div className="mt-3 grid gap-2">
+                      <div className="rounded-2xl border border-white/8 bg-white/[0.04] px-3 py-3 text-sm text-slate-300">
+                        Cross-tenant read-only visibility
+                      </div>
+                      <div className="rounded-2xl border border-white/8 bg-white/[0.04] px-3 py-3 text-sm text-slate-300">
+                        Subscription and billing health
+                      </div>
+                      <div className="rounded-2xl border border-white/8 bg-white/[0.04] px-3 py-3 text-sm text-slate-300">
+                        Governance and audit review
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
             </div>
 
             <div className="min-h-0 flex-1 overflow-y-auto px-3 py-5">
               <NavSection groups={PLATFORM_NAVIGATION_GROUPS} collapsed={collapsed} onNavigate={() => setMobileOpen(false)} />
             </div>
+
+            {!collapsed ? (
+              <div className="border-t border-white/8 px-4 py-4">
+                <div className="rounded-3xl border border-white/10 bg-white/[0.03] px-4 py-4">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-sky-300/70">Shell quality</div>
+                  <p className="mt-2 text-sm leading-6 text-slate-400">
+                    Built to keep global oversight in one calmer lane instead of splitting cross-tenant health across unrelated tools.
+                  </p>
+                </div>
+              </div>
+            ) : null}
           </aside>
 
           <div className="flex min-w-0 flex-1 flex-col">

@@ -1,6 +1,7 @@
 ﻿import type { EmployeeReportingLineSummary, OrganizationDepartmentSummary, OrganizationReportingSummary, OrganizationTeamSummary, OrgReportingRelationType, ServiceContext, ServiceResult } from "../lib/types";
 import { assertEmployeeScope, requirePermission } from "../lib/auth-wrapper";
 import { requirePlanFeature } from "../lib/entitlements";
+import { assertEmployeeReadAccess, getAccessibleEmployeeScope } from "./access-scope.service";
 import { getOrganizationOverview } from "./org-chart.service";
 
 export type EmployeeListFilters = {
@@ -127,7 +128,7 @@ export type EmployeeSkill = {
 export type EmployeeProfile = {
   employee: Record<string, unknown>;
   userProfile: { id: string; full_name: string; avatar_url?: string | null } | null;
-  department: { id: string; name: string } | null;
+  department: { id: string; name: string; main_contact_label?: string | null; main_contact_email?: string | null; main_contact_phone?: string | null } | null;
   team: { id: string; name: string } | null;
   manager: { id: string; full_name: string } | null;
   departmentHead: { id: string; full_name: string; employee_code?: string | null } | null;
@@ -195,11 +196,21 @@ export const listEmployees = async (
 ): Promise<ServiceResult<{ rows: EmployeeDirectoryRow[]; total: number }>> => {
   try {
     await requireEmployeeModuleEntitlement(ctx);
-    requirePermission("manage_employees", ctx);
+    const accessScope = await getAccessibleEmployeeScope(ctx);
 
     const { page, pageSize } = normalizePaging(filters);
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
+
+    if (!accessScope.broadAccess && accessScope.ids.size === 0) {
+      return {
+        ok: true,
+        data: {
+          rows: [],
+          total: 0,
+        }
+      };
+    }
 
     let query = ctx.supabase
       .from("employees")
@@ -211,6 +222,10 @@ export const listEmployees = async (
       .is("is_deleted", false)
       .order("created_at", { ascending: false })
       .range(from, to);
+
+    if (!accessScope.broadAccess) {
+      query = query.in("id", Array.from(accessScope.ids));
+    }
 
     if (filters.departmentId) {
       query = query.eq("department_id", filters.departmentId);
@@ -280,8 +295,7 @@ export const getEmployeeDetail = async (
 ): Promise<ServiceResult<EmployeeDetail>> => {
   try {
     await requireEmployeeModuleEntitlement(ctx);
-    requirePermission("manage_employees", ctx);
-    assertEmployeeScope(employeeId, ctx);
+    await assertEmployeeReadAccess(ctx, employeeId);
 
     const { data, error } = await ctx.supabase
       .from("employees")
@@ -347,19 +361,19 @@ const buildIdentitySummary = (
 
 const loadDepartmentRow = async (ctx: ServiceContext, departmentId: string | null) => {
   if (!departmentId) {
-    return null as { id: string; name: string; head_employee_id?: string | null } | null;
+    return null as { id: string; name: string; main_contact_label?: string | null; main_contact_email?: string | null; main_contact_phone?: string | null; head_employee_id?: string | null } | null;
   }
 
   const { data, error } = await ctx.supabase
     .from("departments")
-    .select("id, name, head_employee_id")
+    .select("id, name, main_contact_label, main_contact_email, main_contact_phone, head_employee_id")
     .eq("id", departmentId)
     .eq("company_id", ctx.companyId)
     .is("is_deleted", false)
     .maybeSingle();
 
   if (!error) {
-    return (data as { id: string; name: string; head_employee_id?: string | null } | null) ?? null;
+    return (data as { id: string; name: string; main_contact_label?: string | null; main_contact_email?: string | null; main_contact_phone?: string | null; head_employee_id?: string | null } | null) ?? null;
   }
 
   const fallback = await ctx.supabase
@@ -374,7 +388,15 @@ const loadDepartmentRow = async (ctx: ServiceContext, departmentId: string | nul
     return null;
   }
 
-  return fallback.data ? { ...(fallback.data as { id: string; name: string }), head_employee_id: null } : null;
+  return fallback.data
+    ? {
+        ...(fallback.data as { id: string; name: string }),
+        main_contact_label: null,
+        main_contact_email: null,
+        main_contact_phone: null,
+        head_employee_id: null,
+      }
+    : null;
 };
 
 const loadReportingLinesForEmployee = async (ctx: ServiceContext, employeeId: string): Promise<ReportingLineRow[]> => {
@@ -578,7 +600,15 @@ export const getEmployeeProfile = async (
               avatar_url: userProfileResult.data.avatar_url,
             }
           : null,
-        department: department ? { id: department.id, name: department.name } : null,
+        department: department
+          ? {
+              id: department.id,
+              name: department.name,
+              main_contact_label: department.main_contact_label ?? null,
+              main_contact_email: department.main_contact_email ?? null,
+              main_contact_phone: department.main_contact_phone ?? null,
+            }
+          : null,
         team: team ? { id: team.id, name: team.name } : null,
         manager: managerSummary,
         departmentHead: department?.head_employee_id ? hierarchyIdentities.get(department.head_employee_id) ?? null : null,
@@ -999,7 +1029,20 @@ export const listEmployeeLookups = async (
 ): Promise<ServiceResult<EmployeeLookups>> => {
   try {
     await requireEmployeeModuleEntitlement(ctx);
-    requirePermission("manage_employees", ctx);
+    const accessScope = await getAccessibleEmployeeScope(ctx);
+
+    if (!accessScope.broadAccess && accessScope.ids.size === 0) {
+      return {
+        ok: true,
+        data: {
+          departments: [],
+          teams: [],
+          managers: [],
+          departmentHeads: [],
+          teamLeads: [],
+        }
+      };
+    }
 
     const [departmentsResult, teams, managers] = await Promise.all([
       ctx.supabase
@@ -1016,9 +1059,10 @@ export const listEmployeeLookups = async (
         .order("name", { ascending: true }),
       ctx.supabase
         .from("employees")
-        .select("id, employee_code, user_profile_id, user_profiles(full_name)")
+        .select("id, employee_code, user_profile_id, department_id, team_id, user_profiles(full_name)")
         .eq("company_id", ctx.companyId)
         .is("is_deleted", false)
+        .in("id", accessScope.broadAccess ? ["00000000-0000-0000-0000-000000000000"] : Array.from(accessScope.ids))
         .order("created_at", { ascending: true })
     ]);
 
@@ -1043,9 +1087,24 @@ export const listEmployeeLookups = async (
       return { ok: false, error: "Unable to load lookups" };
     }
 
-    const managerRows = (managers.data ?? []) as Array<{
+    const managerResult = accessScope.broadAccess
+      ? await ctx.supabase
+          .from("employees")
+          .select("id, employee_code, user_profile_id, department_id, team_id, user_profiles(full_name)")
+          .eq("company_id", ctx.companyId)
+          .is("is_deleted", false)
+          .order("created_at", { ascending: true })
+      : managers;
+
+    if (managerResult.error) {
+      return { ok: false, error: "Unable to load lookups" };
+    }
+
+    const managerRows = (managerResult.data ?? []) as Array<{
       id: string;
       employee_code?: string | null;
+      department_id?: string | null;
+      team_id?: string | null;
       user_profiles?: { full_name?: string | null }[] | { full_name?: string | null } | null;
     }>;
 
@@ -1056,13 +1115,16 @@ export const listEmployeeLookups = async (
     }
 
     const teamRows = (teams.data ?? []) as Array<{ id: string; name: string; department_id?: string | null; team_lead_id?: string | null }>;
-    const departmentRows = departmentsData ?? [];
+    const visibleDepartmentIds = new Set(managerRows.map((row) => row.department_id).filter((value): value is string => Boolean(value)));
+    const visibleTeamIds = new Set(managerRows.map((row) => row.team_id).filter((value): value is string => Boolean(value)));
+    const departmentRows = (departmentsData ?? []).filter((department) => accessScope.broadAccess || visibleDepartmentIds.has(department.id));
+    const visibleTeamRows = teamRows.filter((team) => accessScope.broadAccess || visibleTeamIds.has(team.id));
 
     return {
       ok: true,
       data: {
         departments: departmentRows.map((department) => ({ id: department.id, name: department.name })),
-        teams: teamRows.map((team) => ({ id: team.id, name: team.name, department_id: team.department_id ?? null })),
+        teams: visibleTeamRows.map((team) => ({ id: team.id, name: team.name, department_id: team.department_id ?? null })),
         managers: managerRows.map((row) => ({
           id: row.id,
           full_name: fullNameByEmployeeId.get(row.id) ?? "Unknown"
@@ -1074,7 +1136,7 @@ export const listEmployeeLookups = async (
             full_name: fullNameByEmployeeId.get(department.head_employee_id!) ?? "Unknown",
             department_id: department.id,
           })),
-        teamLeads: teamRows
+        teamLeads: visibleTeamRows
           .filter((team) => Boolean(team.team_lead_id))
           .map((team) => ({
             id: team.team_lead_id!,
@@ -1120,7 +1182,7 @@ export const getEmployeeReportingSummary = async (
 ): Promise<ServiceResult<OrganizationReportingSummary | null>> => {
   try {
     await requireEmployeeModuleEntitlement(ctx);
-    await requireSelfOrManageEmployees(ctx, employeeId);
+    await assertEmployeeReadAccess(ctx, employeeId);
 
     const overview = await getOrganizationOverview(ctx);
     if (!overview.ok || !overview.data) {
@@ -1142,7 +1204,7 @@ export const listEmployeeSubordinates = async (
 ): Promise<ServiceResult<Array<{ id: string; full_name: string; employee_code?: string | null; relation_type: OrgReportingRelationType; is_primary: boolean }>>> => {
   try {
     await requireEmployeeModuleEntitlement(ctx);
-    await requireSelfOrManageEmployees(ctx, employeeId);
+    await assertEmployeeReadAccess(ctx, employeeId);
 
     const overview = await getOrganizationOverview(ctx);
     if (!overview.ok || !overview.data) {

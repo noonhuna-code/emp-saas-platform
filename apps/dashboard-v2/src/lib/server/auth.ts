@@ -43,11 +43,29 @@ type PermissionRow = {
   key: string;
 };
 
-const ROLE_PRIORITY = ["Founder", "Admin", "HR", "Manager", "Employee"] as const;
+const ROLE_PRIORITY = [
+  ["platform owner", "platform_owner", "platform admin", "platform_admin", "super admin", "super_admin"],
+  ["founder", "ceo", "founder_ceo", "ceo_founder"],
+  ["admin", "org owner", "org_owner"],
+  ["hr"],
+  ["finance manager", "finance", "finance_admin", "finance_lead"],
+  ["it", "it_manager", "it_admin", "it_support"],
+  ["director", "senior manager", "manager", "supervisor"],
+  ["team lead", "team_lead", "teamlead"],
+  ["employee"]
+] as const;
 const SESSION_COOKIE_NAME = "lf_session_id";
 const SESSION_IDLE_MINUTES = 30;
 const SESSION_MAX_AGE_HOURS = 24;
 const SESSION_TOUCH_MINUTES = 5;
+
+const normalizeRoleName = (value: string): string => {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .replace(/[_-]+/g, " ");
+};
 
 const uniqueStrings = (values: Array<string | null | undefined>): string[] => {
   return Array.from(new Set(values.filter((value): value is string => typeof value === "string" && value.length > 0)));
@@ -57,7 +75,8 @@ const selectPrimaryRole = (roles: RoleRow[]): string | null => {
   if (roles.length === 0) return null;
 
   const rank = (name: string): number => {
-    const index = ROLE_PRIORITY.findIndex((value) => value.toLowerCase() === name.toLowerCase());
+    const normalizedName = normalizeRoleName(name);
+    const index = ROLE_PRIORITY.findIndex((aliases) => aliases.some((value) => normalizeRoleName(value) === normalizedName));
     return index >= 0 ? index : Number.MAX_SAFE_INTEGER;
   };
 

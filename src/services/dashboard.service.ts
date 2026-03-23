@@ -18,6 +18,13 @@ export type EmployeeDashboardData = {
       full_name: string | null;
       email: string | null;
     } | null;
+    department: {
+      id: string;
+      name: string;
+      main_contact_label: string | null;
+      main_contact_email: string | null;
+      main_contact_phone: string | null;
+    } | null;
     company: {
       id: string;
       name: string;
@@ -236,7 +243,7 @@ export const getEmployeeDashboard = async (ctx: ServiceContext, options?: { incl
     const department = employeeRecord.data?.department_id
       ? await ctx.supabase
           .from("departments")
-          .select("id, name")
+          .select("id, name, main_contact_label, main_contact_email, main_contact_phone")
           .eq("company_id", ctx.companyId)
           .eq("id", employeeRecord.data.department_id as string)
           .is("is_deleted", false)
@@ -553,6 +560,15 @@ export const getEmployeeDashboard = async (ctx: ServiceContext, options?: { incl
                 employee_id: teamLeadEmployee.data.id as string,
                 full_name: (teamLeadProfile.data?.full_name as string | null) ?? null,
                 email: null
+              }
+            : null,
+          department: department.data
+            ? {
+                id: department.data.id as string,
+                name: department.data.name as string,
+                main_contact_label: (department.data.main_contact_label as string | null) ?? null,
+                main_contact_email: (department.data.main_contact_email as string | null) ?? null,
+                main_contact_phone: (department.data.main_contact_phone as string | null) ?? null
               }
             : null,
           company: companyInfo.data

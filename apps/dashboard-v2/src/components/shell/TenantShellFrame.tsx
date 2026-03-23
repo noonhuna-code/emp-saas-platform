@@ -126,6 +126,7 @@ export const TenantShellFrame = ({
           <Topbar
             persona={persona}
             role={session.role}
+            permissions={session.permissions}
             companyId={session.companyId}
             email={session.email}
             fullName={session.fullName}

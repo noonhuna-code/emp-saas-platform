@@ -147,6 +147,7 @@ export const AttendancePageClient = ({
         eyebrow="Attendance"
         title="Attendance command center"
         description="Track clock events, geo verification, and correction requests from one focused workspace."
+        chips={["Clock events", "Geo verification", "Correction ready", "Daily operations"]}
         actions={todayData ? (
           <>
             <Badge className="rounded-full border-blue-200 bg-blue-50 text-blue-700">

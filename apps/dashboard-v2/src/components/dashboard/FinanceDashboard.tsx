@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
 import { fetchBillingOverview, fetchPayrollRuns, fetchPayslipHistory } from "@/lib/client/api";
 import type { BillingOverview } from "@/lib/types/billing";
 import type { PayrollRunsResponse, PayslipHistoryResponse } from "@/lib/types/payroll";
@@ -89,30 +88,6 @@ export const FinanceDashboard = () => {
     [runs]
   );
 
-  const activityItems = useMemo(
-    () => [
-      {
-        id: "finance-1",
-        title: "Invoice queue refreshed",
-        description: `${billing?.recentInvoices.length ?? 0} recent invoices in current view.`,
-        timestamp: "Now"
-      },
-      {
-        id: "finance-2",
-        title: "Payroll runs sampled",
-        description: `${runs?.rows.length ?? 0} payroll runs loaded for timeline visibility.`,
-        timestamp: "4 min ago"
-      },
-      {
-        id: "finance-3",
-        title: "Payslip export status updated",
-        description: `${totals.paid} paid snapshots on current page scope.`,
-        timestamp: "9 min ago"
-      }
-    ],
-    [billing?.recentInvoices.length, runs?.rows.length, totals.paid]
-  );
-
   if (loading) return <LoadingState label="Loading finance dashboard..." />;
   if (error || !billing) return <ErrorState message={error ?? "Finance dashboard unavailable"} />;
 
@@ -132,7 +107,12 @@ export const FinanceDashboard = () => {
         )}
       />
 
-      <DashboardModeSwitch value={view} onChange={setView} />
+      <DashboardModeSwitch
+        value={view}
+        onChange={setView}
+        title="Workspace lenses"
+        subtitle="Switch between finance operations, commercial visibility, and payroll execution context without leaving the same shell."
+      />
 
       <DashboardSection visible={view === "workspace"}>
         <div className="dashboard-kpi-grid">
@@ -207,8 +187,17 @@ export const FinanceDashboard = () => {
             ))}
           </WorkflowPanel>
 
-          <WorkflowPanel title="Activity feed" subtitle="Recent finance operations">
-            <ActivityFeed items={activityItems} />
+          <WorkflowPanel title="Finance action paths" subtitle="Fast routes for closeout, invoice review, and payroll delivery">
+            <QuickActionGrid
+              actions={[
+                { label: "Payroll runs", href: "/app/payroll", caption: "Lifecycle and closeout" },
+                { label: "Payslip history", href: "/app/payslips", caption: "Delivery and audit checks" },
+                { label: "Billing console", href: "/app/billing", caption: "Invoices and proofs" },
+                { label: "Approvals queue", href: "/app/approvals", caption: "Pending blockers" }
+              ]}
+            />
+            <SignalRow label="Invoice count in view" value={billing.recentInvoices.length} />
+            <SignalRow label="Paid payslips" value={totals.paid} tone="success" />
           </WorkflowPanel>
         </div>
       </DashboardSection>

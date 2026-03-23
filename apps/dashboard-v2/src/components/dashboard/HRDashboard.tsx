@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Suspense, lazy, useEffect, useMemo, useState } from "react";
-import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
+import { Suspense, lazy, useEffect, useState } from "react";
 import { DashboardPerfMarker, useDashboardPerf } from "@/components/dashboard/useDashboardPerf";
 import { DashboardWidgetBoundary } from "@/components/dashboard/DashboardWidgetBoundary";
 import {
@@ -10,6 +9,7 @@ import {
   DashboardHero,
   DashboardModeSwitch,
   DashboardPanel,
+  QuickActionGrid,
   DashboardSection,
   WorkflowPanel,
   type DashboardView
@@ -28,30 +28,6 @@ export const HRDashboard = () => {
     perf.markKpiRendered();
   }, [perf]);
 
-  const activityItems = useMemo(
-    () => [
-      {
-        id: "hr-1",
-        title: "Payroll cycle status refreshed",
-        description: "Latest payroll run and payout status synchronized.",
-        timestamp: "Now"
-      },
-      {
-        id: "hr-2",
-        title: "Leave queue changed",
-        description: "New leave requests entered review queue.",
-        timestamp: "5 min ago"
-      },
-      {
-        id: "hr-3",
-        title: "Onboarding checklist updated",
-        description: "Employee profile/document checklist has new pending tasks.",
-        timestamp: "11 min ago"
-      }
-    ],
-    []
-  );
-
   return (
     <div className="page-wrap space-y-8 fade-in">
       <DashboardHero
@@ -68,7 +44,12 @@ export const HRDashboard = () => {
         )}
       />
 
-      <DashboardModeSwitch value={view} onChange={setView} />
+      <DashboardModeSwitch
+        value={view}
+        onChange={setView}
+        title="Workspace lenses"
+        subtitle="Switch between workforce operations, trend visibility, and HR queue management from one role-aware shell."
+      />
 
       <DashboardSection visible={view === "workspace"}>
         <section className="space-y-4">
@@ -106,14 +87,21 @@ export const HRDashboard = () => {
               </DashboardWidgetBoundary>
             </Suspense>
           </WorkflowPanel>
-          <WorkflowPanel title="Activity feed" subtitle="Recent HR operations">
-            <ActivityFeed items={activityItems} />
+          <WorkflowPanel title="HR action paths" subtitle="High-frequency routes for people ops, payroll, and policy delivery">
+            <QuickActionGrid
+              actions={[
+                { label: "Employee records", href: "/app/employees", caption: "Profiles and hierarchy" },
+                { label: "Leave review", href: "/app/leave/review", caption: "Queues and coverage" },
+                { label: "Payroll runs", href: "/app/payroll", caption: "Run readiness" },
+                { label: "Knowledge / SOPs", href: "/app/resources", caption: "Policies and guides" }
+              ]}
+            />
           </WorkflowPanel>
         </div>
 
-        <DashboardPanel title="Rendering mode" subtitle="Progressive dashboard hydration active">
+        <DashboardPanel title="Operating scope" subtitle="What HR can act on from this surface">
           <p className="muted">
-            HR KPIs render immediately while payroll and workflow sections continue loading in independent boundaries.
+            HR stays anchored to workforce records, leave governance, payroll readiness, and the policy workflows that affect people operations every day.
           </p>
         </DashboardPanel>
       </DashboardSection>

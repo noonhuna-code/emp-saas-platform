@@ -5,9 +5,10 @@ import { ChevronLeft, ChevronRight, Filter, Landmark, Sparkles } from "lucide-re
 import { fetchWorkspaceCalendar, peekCachedResult } from "@/lib/client/api";
 import type { WorkspaceCalendarDay, WorkspaceCalendarResponse, WorkspaceCalendarEvent } from "@/lib/types/workspace";
 import { LoadingState } from "@/components/states/LoadingState";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusChip } from "@/components/ui/StatusChip";
 import { MiniBarChart } from "@/components/shared/Charts";
+import { FeatureCallout, PageContainer, PageHeader } from "@/components/dashboard-v2/PagePrimitives";
 
 const todayMonth = () => new Date().toISOString().slice(0, 7);
 
@@ -140,27 +141,30 @@ const WorkCalendarPageClient = () => {
   }, [data]);
 
   return (
-    <div className="page-wrap space-y-8">
-      <Card className="dashboard-hero dashboard-hero--executive rounded-xl border-border shadow-sm">
-        <CardHeader className="space-y-2 p-5 pb-3">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--accent)]">Work calendar</p>
-              <CardTitle className="text-3xl">{monthLabel(month)}</CardTitle>
-              <CardDescription className="text-base">Unified shift, leave, attendance, and Pakistan/company holiday timeline.</CardDescription>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <button type="button" className="secondary-btn" onClick={() => setMonth((prev) => shiftMonth(prev, -1))}>
-                <ChevronLeft className="h-4 w-4" /> Prev
-              </button>
-              <input type="month" value={month} onChange={(event) => setMonth(event.target.value)} />
-              <button type="button" className="secondary-btn" onClick={() => setMonth((prev) => shiftMonth(prev, 1))}>
-                Next <ChevronRight className="h-4 w-4" />
-              </button>
-            </div>
+    <PageContainer>
+      <PageHeader
+        eyebrow="Calendar"
+        title={monthLabel(month)}
+        description="Unified shift, leave, attendance, and company holiday timeline for the current workspace."
+        chips={["Shifts", "Leave", "Attendance", "Company updates"]}
+        actions={(
+          <div className="flex flex-wrap items-center gap-2">
+            <button type="button" className="secondary-btn" onClick={() => setMonth((prev) => shiftMonth(prev, -1))}>
+              <ChevronLeft className="h-4 w-4" /> Prev
+            </button>
+            <input type="month" value={month} onChange={(event) => setMonth(event.target.value)} />
+            <button type="button" className="secondary-btn" onClick={() => setMonth((prev) => shiftMonth(prev, 1))}>
+              Next <ChevronRight className="h-4 w-4" />
+            </button>
           </div>
-        </CardHeader>
-      </Card>
+        )}
+      />
+
+      <FeatureCallout
+        badge="Calendar rhythm"
+        title="One timeline for schedule, leave, and company-wide date pressure."
+        description="This workspace keeps the monthly view practical: upcoming shifts, approved leave, holidays, and company updates stay visible without turning the calendar into a cluttered planning wall."
+      />
 
       {loading ? <LoadingState label="Loading work calendar..." /> : null}
       {!loading && error ? (
@@ -289,7 +293,7 @@ const WorkCalendarPageClient = () => {
           </div>
         </>
       ) : null}
-    </div>
+    </PageContainer>
   );
 };
 

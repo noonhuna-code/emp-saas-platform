@@ -1,8 +1,41 @@
 import { NextResponse } from "next/server";
-import { createTask, type ProjectTaskPayload } from "@emp/services/project.service";
+import { createTask, listProjectTasks, type ProjectTaskPayload } from "@emp/services/project.service";
 import { beginRoute, finalizeRoute } from "@/lib/server/route-helpers";
 import { runGuardedMutation } from "@/lib/server/mutation-guard";
 import { handleRouteError, jsonError, mapServiceErrorStatus, sanitizeServiceError } from "@/lib/server/api-errors";
+
+export async function GET(request: Request) {
+  const route = await beginRoute();
+  const endpoint = "/api/projects/tasks";
+
+  try {
+    if (!route.ctx) {
+      return finalizeRoute(route, endpoint, jsonError("Authentication required", 401, route.requestId));
+    }
+
+    const { searchParams } = new URL(request.url);
+    const limit = Number(searchParams.get("limit") ?? "60");
+    const safeLimit = Number.isFinite(limit) ? limit : 60;
+    const projectId = searchParams.get("projectId");
+
+    const result = await listProjectTasks(route.ctx, { limit: safeLimit, projectId });
+    if (!result.ok) {
+      return finalizeRoute(
+        route,
+        endpoint,
+        jsonError(
+          sanitizeServiceError(result.error, "Unable to load project tasks"),
+          mapServiceErrorStatus(result.error),
+          route.requestId
+        )
+      );
+    }
+
+    return finalizeRoute(route, endpoint, NextResponse.json({ ok: true, data: result.data }, { status: 200 }));
+  } catch (error) {
+    return finalizeRoute(route, endpoint, handleRouteError(error, "Unable to load project tasks", route.requestId));
+  }
+}
 
 export async function POST(request: Request) {
   const route = await beginRoute();

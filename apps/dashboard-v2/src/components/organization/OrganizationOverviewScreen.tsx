@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import type { OrganizationDepartmentSummary, OrganizationOverview, OrganizationReportingSummary, OrganizationTeamSummary } from "@emp/lib/types";
 import {
   DashboardRail,
+  FeatureCallout,
   PageContainer,
   PageHeader,
   StatePanel,
@@ -68,18 +69,23 @@ const renderTeamCard = (team: OrganizationTeamSummary) => (
 export function OrganizationOverviewScreen({
   overview,
   error,
+  embedded = false,
 }: {
   overview: OrganizationOverview | null;
   error?: string | null;
+  embedded?: boolean;
 }) {
   if (error) {
     return (
       <PageContainer>
-        <PageHeader
-          eyebrow="Organization"
-          title="Organization foundation"
-          description="The organization surface could not be loaded. The route foundation is in place, but the current request failed."
-        />
+        {!embedded ? (
+          <PageHeader
+            eyebrow="Organization"
+            title="Organization overview"
+            description="The organization surface could not be loaded for this workspace."
+            chips={["Structure", "Reporting", "Read-safe visibility"]}
+          />
+        ) : null}
         <StatePanel title="Unable to load organization data" description={error} />
       </PageContainer>
     );
@@ -88,11 +94,14 @@ export function OrganizationOverviewScreen({
   if (!overview) {
     return (
       <PageContainer>
-        <PageHeader
-          eyebrow="Organization"
-          title="Organization foundation"
-          description="Use this surface to summarize departments, teams, and reporting relationships."
-        />
+        {!embedded ? (
+          <PageHeader
+            eyebrow="Organization"
+            title="Organization overview"
+            description="Track departments, teams, reporting lines, and people coverage from one place."
+            chips={["Departments", "Teams", "Reporting lines"]}
+          />
+        ) : null}
         <StatePanel
           title="No organization data yet"
           description="Departments, teams, and reporting relationships will appear here once your workspace has been configured."
@@ -106,24 +115,35 @@ export function OrganizationOverviewScreen({
 
   return (
     <PageContainer>
-      <PageHeader
-        eyebrow="Organization"
-        title="Company structure and reporting"
-        description="Hierarchy-aware summary for departments, teams, heads, leads, and reporting lines. This is the V2 foundation for future org-aware approvals and org chart experiences."
-        actions={
-          <div className="flex flex-wrap gap-2">
-            <Badge className="rounded-full border-slate-200 bg-white/90 text-slate-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200">
-              {overview.departments.length} departments
-            </Badge>
-            <Badge className="rounded-full border-slate-200 bg-white/90 text-slate-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200">
-              {overview.teams.length} teams
-            </Badge>
-            <Badge className="rounded-full border-slate-200 bg-white/90 text-slate-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200">
-              {overview.employees.length} employees
-            </Badge>
-          </div>
-        }
-      />
+      {!embedded ? (
+        <PageHeader
+          eyebrow="Organization"
+          title="Company structure and reporting"
+          description="Review departments, teams, reporting lines, heads, leads, and workforce coverage from one organization-aware summary."
+          chips={["Departments", "Teams", "Reporting", foundation ? "Foundation ready" : "Overview only"]}
+          actions={
+            <div className="flex flex-wrap gap-2">
+              <Badge className="rounded-full border-slate-200 bg-white/90 text-slate-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200">
+                {overview.departments.length} departments
+              </Badge>
+              <Badge className="rounded-full border-slate-200 bg-white/90 text-slate-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200">
+                {overview.teams.length} teams
+              </Badge>
+              <Badge className="rounded-full border-slate-200 bg-white/90 text-slate-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200">
+                {overview.employees.length} employees
+              </Badge>
+            </div>
+          }
+        />
+      ) : null}
+
+      {!embedded ? (
+        <FeatureCallout
+          badge="Organization layer"
+          title="One operating structure for workforce visibility, reporting, and approval ownership."
+          description="This workspace keeps structure, reporting coverage, and enterprise foundation signals in one calmer lane so leadership, HR, and administrators can understand the organization before opening deeper admin forms."
+        />
+      ) : null}
 
       <StatGrid>
         <StatCard label="Departments" value={overview.departments.length} hint="Top-level and nested structures" />
@@ -134,10 +154,10 @@ export function OrganizationOverviewScreen({
 
       {foundation ? (
         <StatGrid>
-          <StatCard label="Org units" value={foundation.org_unit_count} hint="Generic enterprise structure nodes" />
-          <StatCard label="Role families" value={foundation.role_family_count} hint="Reusable enterprise role-family catalog" />
-          <StatCard label="Positions" value={foundation.position_count} hint="Position planning foundation" />
-          <StatCard label="Delegations / routing" value={foundation.approval_delegation_count + foundation.approval_routing_rule_count} hint="Approval delegation and routing foundations" />
+          <StatCard label="Org units" value={foundation.org_unit_count} hint="Enterprise structure records in the current model" />
+          <StatCard label="Role families" value={foundation.role_family_count} hint="Shared role-group coverage across the company" />
+          <StatCard label="Positions" value={foundation.position_count} hint="Position planning and occupancy coverage" />
+          <StatCard label="Delegations / routing" value={foundation.approval_delegation_count + foundation.approval_routing_rule_count} hint="Approval delegation and routing coverage" />
         </StatGrid>
       ) : null}
 
@@ -160,7 +180,7 @@ export function OrganizationOverviewScreen({
 
         <SurfacePanel
           title="Reporting readiness"
-          description="Current manager compatibility and future-safe reporting foundation."
+          description="Current manager coverage, secondary reporting, and leadership visibility."
         >
           <div className="space-y-3">
             <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4 dark:border-slate-800 dark:bg-slate-900/60">
@@ -194,8 +214,8 @@ export function OrganizationOverviewScreen({
         </SurfacePanel>
 
         <SurfacePanel
-          title="Subordinate listing foundation"
-          description="This surface is ready for manager/team-lead aware subordinate listings and approval visibility."
+          title="Subordinate coverage"
+          description="Manager and team-lead coverage based on active reporting lines."
         >
           <div className="space-y-3">
             {overview.reporting
@@ -234,8 +254,8 @@ export function OrganizationOverviewScreen({
       {foundation ? (
         <DashboardRail className="xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.9fr)]">
           <SurfacePanel
-            title="Enterprise foundation"
-            description="Phase 1 enterprise hierarchy foundation layered on top of the current department and team model."
+            title="Enterprise structure layer"
+            description="The broader organization model that supports offices, departments, teams, positions, and approval ownership."
           >
             <div className="grid gap-3 md:grid-cols-2">
               {foundation.unit_category_counts.map((entry) => (
@@ -256,7 +276,7 @@ export function OrganizationOverviewScreen({
 
           <SurfacePanel
             title="Role-family coverage"
-            description="Seeded enterprise role families ready for positions, approvals, and multi-structure planning."
+            description="Role-family coverage available for positions, approvals, and shared organizational planning."
           >
             <div className="space-y-3">
               {foundation.role_families.slice(0, 10).map((family) => (

@@ -14,6 +14,7 @@ import { LoadingState } from "@/components/states/LoadingState";
 import { ErrorState } from "@/components/states/ErrorState";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusChip } from "@/components/ui/StatusChip";
+import { FeatureCallout, PageContainer, PageHeader } from "@/components/dashboard-v2/PagePrimitives";
 
 const NotesPageClient = () => {
   const cachedNotes = peekCachedResult<{ rows: WorkspaceNote[] }>("/api/workspace/notes?limit=50");
@@ -107,13 +108,19 @@ const NotesPageClient = () => {
   };
 
   return (
-    <div className="page-wrap space-y-8">
-      <Card>
-        <CardHeader className="space-y-2">
-          <CardTitle>My Notes & Files</CardTitle>
-          <p className="text-sm text-muted-foreground">Private workspace notes stored against your employee profile.</p>
-        </CardHeader>
-      </Card>
+    <PageContainer>
+      <PageHeader
+        eyebrow="Notes"
+        title="My notes and files"
+        description="Private workspace notes stored against your employee profile."
+        chips={["Private workspace", "Employee safe", "Files + notes", "No widened access"]}
+      />
+
+      <FeatureCallout
+        badge="Personal workspace"
+        title="Keep private notes close to your operating context."
+        description="This surface stays intentionally narrow: personal notes, attachments, and lightweight reference material tied to your own employee context."
+      />
 
       <Card>
         <CardHeader>
@@ -199,7 +206,7 @@ const NotesPageClient = () => {
           </CardContent>
         </Card>
       ) : null}
-    </div>
+    </PageContainer>
   );
 };
 

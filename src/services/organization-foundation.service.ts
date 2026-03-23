@@ -6,8 +6,8 @@ import type {
   ServiceContext,
   ServiceResult,
 } from "../lib/types";
-import { requirePermission } from "../lib/auth-wrapper";
 import { requirePlanFeature } from "../lib/entitlements";
+import { getAccessibleEmployeeScope, getAccessibleOrgUnitScope, hasBroadOrganizationReadAccess } from "./access-scope.service";
 
 type OrgUnitTypeRow = {
   key: string;
@@ -32,6 +32,12 @@ type RoleFamilyRow = {
 type JobRoleRow = {
   id: string;
   role_family_id: string;
+};
+
+type PositionRow = {
+  id: string;
+  org_unit_id: string;
+  job_role_id: string;
 };
 
 const SUPPORTED_RELATION_TYPES: OrgReportingRelationType[] = [
@@ -79,63 +85,146 @@ export const getOrganizationFoundationSummary = async (
 ): Promise<ServiceResult<OrganizationFoundationSummary>> => {
   try {
     await requirePlanFeature(ctx, "feature.core_employee_management");
-    requirePermission("manage_employees", ctx);
+    const broadAccess = hasBroadOrganizationReadAccess(ctx);
+    const [orgUnitScope, employeeScope] = broadAccess
+      ? [
+          { broadAccess: true, ids: new Set<string>() },
+          { broadAccess: true, ids: new Set<string>() },
+        ]
+      : await Promise.all([getAccessibleOrgUnitScope(ctx), getAccessibleEmployeeScope(ctx)]);
 
-    const [
-      orgUnitTypesResult,
-      orgUnitsResult,
-      roleFamiliesResult,
-      jobRolesResult,
-      positionCount,
-      activeAssignmentCount,
-      approvalDelegationCount,
-      approvalRoutingRuleCount,
-    ] = await Promise.all([
-      ctx.supabase.from("org_unit_types").select("key, category").order("sort_order", { ascending: true }),
+    if (!broadAccess && orgUnitScope.ids.size === 0) {
+      return { ok: false, error: "Permission denied" };
+    }
+
+    const scopedOrgUnitIds = Array.from(orgUnitScope.ids);
+
+    const [orgUnitTypesResult, orgUnitsResult, positionsResult] = await Promise.all([
       ctx.supabase
-        .from("org_units")
-        .select("id, unit_type_key, branch_id, legacy_department_id, legacy_team_id")
-        .eq("company_id", ctx.companyId)
-        .is("is_deleted", false),
-      ctx.supabase
-        .from("job_role_families")
-        .select("id, key, name, is_system_family")
-        .or(`company_id.eq.${ctx.companyId},is_system_family.eq.true`)
+        .from("org_unit_types")
+        .select("key, category")
+        .or(`company_id.eq.${ctx.companyId},is_system.eq.true`)
         .is("is_deleted", false)
         .order("sort_order", { ascending: true }),
-      ctx.supabase
-        .from("job_roles")
-        .select("id, role_family_id")
-        .or(`company_id.eq.${ctx.companyId},is_system_role.eq.true`)
-        .is("is_deleted", false),
-      countRows(ctx, "org_positions", [
-        { column: "company_id", value: ctx.companyId },
-        { column: "is_deleted", value: false },
-      ]),
-      countRows(ctx, "employee_position_assignments", [
-        { column: "company_id", value: ctx.companyId },
-        { column: "is_deleted", value: false },
-        { column: "effective_to", value: null, op: "is" },
-      ]),
-      countRows(ctx, "approval_delegations", [
-        { column: "company_id", value: ctx.companyId },
-        { column: "is_deleted", value: false },
-      ]),
-      countRows(ctx, "approval_routing_rules", [
-        { column: "company_id", value: ctx.companyId },
-        { column: "is_deleted", value: false },
-      ]),
+      (() => {
+        const query = ctx.supabase
+          .from("org_units")
+          .select("id, unit_type_key, branch_id, legacy_department_id, legacy_team_id")
+          .eq("company_id", ctx.companyId)
+          .is("is_deleted", false);
+
+        return broadAccess ? query : query.in("id", scopedOrgUnitIds);
+      })(),
+      (() => {
+        const query = ctx.supabase
+          .from("org_positions")
+          .select("id, org_unit_id, job_role_id")
+          .eq("company_id", ctx.companyId)
+          .is("is_deleted", false);
+
+        return broadAccess ? query : query.in("org_unit_id", scopedOrgUnitIds);
+      })(),
     ]);
 
     if (orgUnitTypesResult.error) throw orgUnitTypesResult.error;
     if (orgUnitsResult.error) throw orgUnitsResult.error;
-    if (roleFamiliesResult.error) throw roleFamiliesResult.error;
-    if (jobRolesResult.error) throw jobRolesResult.error;
+    if (positionsResult.error) throw positionsResult.error;
 
     const orgUnitTypes = (orgUnitTypesResult.data ?? []) as OrgUnitTypeRow[];
     const orgUnits = (orgUnitsResult.data ?? []) as OrgUnitRow[];
-    const roleFamilies = (roleFamiliesResult.data ?? []) as RoleFamilyRow[];
+    const positions = (positionsResult.data ?? []) as PositionRow[];
+
+    const visibleJobRoleIds = Array.from(new Set(positions.map((position) => position.job_role_id)));
+    const jobRolesResult = visibleJobRoleIds.length
+      ? await ctx.supabase
+          .from("job_roles")
+          .select("id, role_family_id")
+          .in("id", visibleJobRoleIds)
+          .is("is_deleted", false)
+      : { data: [], error: null };
+
+    if (jobRolesResult.error) throw jobRolesResult.error;
     const jobRoles = (jobRolesResult.data ?? []) as JobRoleRow[];
+
+    const visibleRoleFamilyIds = Array.from(new Set(jobRoles.map((jobRole) => jobRole.role_family_id)));
+    const roleFamiliesResult = visibleRoleFamilyIds.length
+      ? await ctx.supabase
+          .from("job_role_families")
+          .select("id, key, name, is_system_family")
+          .in("id", visibleRoleFamilyIds)
+          .is("is_deleted", false)
+          .order("sort_order", { ascending: true })
+      : { data: [], error: null };
+
+    if (roleFamiliesResult.error) throw roleFamiliesResult.error;
+    const roleFamilies = (roleFamiliesResult.data ?? []) as RoleFamilyRow[];
+
+    const activeAssignmentCount = broadAccess
+      ? await countRows(ctx, "employee_position_assignments", [
+          { column: "company_id", value: ctx.companyId },
+          { column: "is_deleted", value: false },
+          { column: "effective_to", value: null, op: "is" },
+        ])
+      : (() => {
+          const visiblePositionIds = new Set(positions.map((position) => position.id));
+          if (visiblePositionIds.size === 0) {
+            return Promise.resolve(0);
+          }
+          return ctx.supabase
+            .from("employee_position_assignments")
+            .select("id, position_id, effective_to, effective_from")
+            .eq("company_id", ctx.companyId)
+            .is("is_deleted", false)
+            .in("position_id", Array.from(visiblePositionIds))
+            .then(({ data, error }) => {
+              if (error) throw error;
+              return (data ?? []).filter((row: any) => {
+                const effectiveFrom = new Date(row.effective_from as string);
+                const effectiveTo = row.effective_to ? new Date(row.effective_to as string) : null;
+                const today = new Date(new Date().toDateString());
+                return effectiveFrom <= today && (!effectiveTo || effectiveTo >= today);
+              }).length;
+            });
+        })();
+
+    const approvalDelegationCount = broadAccess
+      ? await countRows(ctx, "approval_delegations", [
+          { column: "company_id", value: ctx.companyId },
+          { column: "is_deleted", value: false },
+        ])
+      : ctx.supabase
+          .from("approval_delegations")
+          .select("id, org_unit_id, delegator_employee_id, delegate_employee_id")
+          .eq("company_id", ctx.companyId)
+          .is("is_deleted", false)
+          .then(({ data, error }) => {
+            if (error) throw error;
+            return (data ?? []).filter((row: any) =>
+              (row.org_unit_id && orgUnitScope.ids.has(row.org_unit_id as string))
+              || (row.delegator_employee_id && employeeScope.ids.has(row.delegator_employee_id as string))
+              || (row.delegate_employee_id && employeeScope.ids.has(row.delegate_employee_id as string))
+            ).length;
+          });
+
+    const approvalRoutingRuleCount = broadAccess
+      ? await countRows(ctx, "approval_routing_rules", [
+          { column: "company_id", value: ctx.companyId },
+          { column: "is_deleted", value: false },
+        ])
+      : ctx.supabase
+          .from("approval_routing_rules")
+          .select("id, subject_org_unit_id, subject_geo_org_unit_id, approver_employee_id, delegate_employee_id")
+          .eq("company_id", ctx.companyId)
+          .is("is_deleted", false)
+          .then(({ data, error }) => {
+            if (error) throw error;
+            return (data ?? []).filter((row: any) =>
+              (row.subject_org_unit_id && orgUnitScope.ids.has(row.subject_org_unit_id as string))
+              || (row.subject_geo_org_unit_id && orgUnitScope.ids.has(row.subject_geo_org_unit_id as string))
+              || (row.approver_employee_id && employeeScope.ids.has(row.approver_employee_id as string))
+              || (row.delegate_employee_id && employeeScope.ids.has(row.delegate_employee_id as string))
+            ).length;
+          });
 
     const categoryByTypeKey = new Map(orgUnitTypes.map((row) => [row.key, row.category]));
     const categoryCountsMap = new Map<OrganizationFoundationCategoryCount["category"], number>();
@@ -151,6 +240,16 @@ export const getOrganizationFoundationSummary = async (
       roleCountByFamilyId.set(jobRole.role_family_id, (roleCountByFamilyId.get(jobRole.role_family_id) ?? 0) + 1);
     }
 
+    const [
+      resolvedActiveAssignmentCount,
+      resolvedApprovalDelegationCount,
+      resolvedApprovalRoutingRuleCount,
+    ] = await Promise.all([
+      Promise.resolve(activeAssignmentCount),
+      Promise.resolve(approvalDelegationCount),
+      Promise.resolve(approvalRoutingRuleCount),
+    ]);
+
     const foundation: OrganizationFoundationSummary = {
       company_id: ctx.companyId,
       org_unit_count: orgUnits.length,
@@ -159,10 +258,10 @@ export const getOrganizationFoundationSummary = async (
       ).length,
       role_family_count: roleFamilies.length,
       job_role_count: jobRoles.length,
-      position_count: positionCount,
-      active_assignment_count: activeAssignmentCount,
-      approval_delegation_count: approvalDelegationCount,
-      approval_routing_rule_count: approvalRoutingRuleCount,
+      position_count: positions.length,
+      active_assignment_count: resolvedActiveAssignmentCount,
+      approval_delegation_count: resolvedApprovalDelegationCount,
+      approval_routing_rule_count: resolvedApprovalRoutingRuleCount,
       unit_category_counts: Array.from(categoryCountsMap.entries()).map(([category, count]) => ({
         category,
         count,

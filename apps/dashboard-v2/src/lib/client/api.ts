@@ -45,6 +45,7 @@ import type {
 import type { OvertimeDecisionResponse, OvertimeListResponse, OvertimeRequestInput, OvertimeRequestResponse } from "@/lib/types/overtime";
 import type { AdminDashboardResponse, EmployeeDashboardResponse, ManagerDashboardResponse } from "@/lib/types/dashboard";
 import type { OrgChartResponse } from "@/lib/types/org";
+import type { OrganizationAdminData, OrganizationOverview } from "@emp/lib/types";
 import type {
   PayrollCostTrendPoint,
   PayrollDeliveryMetricsPoint,
@@ -92,10 +93,36 @@ import type {
   WorkspaceResourceListResponse,
   WorkspaceSendChatResponse
 } from "@/lib/types/workspace";
+import type { ProjectListResponse, ProjectTaskListResponse } from "@/lib/types/projects";
 import type {
   MyFinancialObligationRequestsResponse,
   SubmitFinancialObligationRequestResponse
 } from "@/lib/types/finance";
+
+export type AccessExplanationReason = {
+  code: string;
+  label: string;
+  source: "broad_permission" | "derived" | "explicit" | "context";
+  detail?: string;
+  relationType?: string | null;
+  scopeType?: string | null;
+  scopeEntityId?: string | null;
+  inherited?: boolean;
+};
+
+export type EmployeeAccessExplanation = {
+  employeeId: string;
+  allowed: boolean;
+  broadAccess: boolean;
+  reasons: AccessExplanationReason[];
+};
+
+export type OrgUnitAccessExplanation = {
+  orgUnitId: string;
+  allowed: boolean;
+  broadAccess: boolean;
+  reasons: AccessExplanationReason[];
+};
 
 const parseJson = async <T>(response: Response): Promise<DashboardApiResult<T>> => {
   const payload = (await response.json()) as DashboardApiResult<T>;
@@ -496,6 +523,64 @@ export const rejectOvertime = async (
 export const fetchOrgChart = async (): Promise<DashboardApiResult<OrgChartResponse>> => {
   const response = await fetchWithCache<OrgChartResponse>("/api/org-chart", 60000);
   return response;
+};
+
+export const fetchOrganizationOverview = async (): Promise<DashboardApiResult<OrganizationOverview>> => {
+  return fetchWithCache<OrganizationOverview>("/api/organization/overview", 30000);
+};
+
+export const fetchOrganizationAdminData = async (): Promise<DashboardApiResult<OrganizationAdminData>> => {
+  return fetchWithCache<OrganizationAdminData>("/api/organization/admin", 30000);
+};
+
+export const mutateOrganizationAdmin = async (payload: {
+  resource: string;
+  action?: "save" | "archive" | "restore" | "delete";
+  payload: Record<string, unknown>;
+}): Promise<DashboardApiResult<{ id?: string }>> => {
+  return postJson<{ id?: string }>(
+    "/api/organization/admin",
+    payload as unknown as Record<string, unknown>,
+    { "Idempotency-Key": crypto.randomUUID() }
+  );
+};
+
+export const fetchEmployeeAccessExplanation = async (
+  employeeId: string
+): Promise<DashboardApiResult<EmployeeAccessExplanation>> => {
+  const response = await fetch(`/api/organization/access/employees/${encodeURIComponent(employeeId)}`, {
+    cache: "no-store"
+  });
+  return parseJson<EmployeeAccessExplanation>(response);
+};
+
+export const fetchOrgUnitAccessExplanation = async (
+  orgUnitId: string
+): Promise<DashboardApiResult<OrgUnitAccessExplanation>> => {
+  const response = await fetch(`/api/organization/access/org-units/${encodeURIComponent(orgUnitId)}`, {
+    cache: "no-store"
+  });
+  return parseJson<OrgUnitAccessExplanation>(response);
+};
+
+export const fetchProjects = async (params: {
+  limit?: number;
+} = {}): Promise<DashboardApiResult<ProjectListResponse>> => {
+  const query = new URLSearchParams();
+  if (typeof params.limit === "number") query.set("limit", String(params.limit));
+  const suffix = query.toString() ? `?${query.toString()}` : "";
+  return fetchWithCache<ProjectListResponse>(`/api/projects${suffix}`, 30000);
+};
+
+export const fetchProjectTasks = async (params: {
+  projectId?: string;
+  limit?: number;
+} = {}): Promise<DashboardApiResult<ProjectTaskListResponse>> => {
+  const query = new URLSearchParams();
+  if (params.projectId) query.set("projectId", params.projectId);
+  if (typeof params.limit === "number") query.set("limit", String(params.limit));
+  const suffix = query.toString() ? `?${query.toString()}` : "";
+  return fetchWithCache<ProjectTaskListResponse>(`/api/projects/tasks${suffix}`, 30000);
 };
 
 export const fetchAttendanceToday = async (): Promise<DashboardApiResult<AttendanceTodayResponse>> => {

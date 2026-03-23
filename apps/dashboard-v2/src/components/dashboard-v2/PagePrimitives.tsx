@@ -1,4 +1,4 @@
-﻿import type { ReactNode } from "react";
+import type { ReactNode } from "react";
 import {
   BriefcaseBusiness,
   Building2,
@@ -27,7 +27,9 @@ export const ROLE_ICONS = {
 };
 
 export const PageContainer = ({ children, className }: { children: ReactNode; className?: string }) => (
-  <div className={cn("mx-auto flex w-full max-w-7xl flex-col gap-8 px-6 py-6 lg:px-8", className)}>{children}</div>
+  <div className={cn("mx-auto flex w-full max-w-[1680px] flex-col gap-6 px-4 py-4 sm:px-6 sm:py-6 lg:gap-8 lg:px-8", className)}>
+    {children}
+  </div>
 );
 
 export const PageHeader = ({
@@ -35,25 +37,57 @@ export const PageHeader = ({
   title,
   description,
   actions,
+  chips,
 }: {
   eyebrow?: string;
   title: string;
   description?: string;
   actions?: ReactNode;
+  chips?: string[];
 }) => (
-  <div className="flex flex-col gap-4 rounded-[24px] border border-white/60 bg-white/88 px-6 py-5 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur sm:px-7 lg:flex-row lg:items-center lg:justify-between">
-    <div className="space-y-3">
-      {eyebrow ? (
-        <Badge className="w-fit rounded-full border-blue-200 bg-blue-50 text-[10px] font-semibold uppercase tracking-[0.24em] text-blue-700">
-          {eyebrow}
-        </Badge>
-      ) : null}
-      <div className="space-y-2">
-        <h1 className="text-3xl font-semibold tracking-tight text-slate-950 sm:text-[2.1rem]">{title}</h1>
-        {description ? <p className="max-w-3xl text-sm leading-6 text-slate-600 sm:text-[15px]">{description}</p> : null}
+  <div className="overflow-hidden rounded-[28px] border border-slate-200/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.97),rgba(248,250,255,0.92))] shadow-[0_22px_70px_rgba(15,23,42,0.08)]">
+    <div className="flex flex-col gap-5 px-6 py-6 sm:px-7 lg:flex-row lg:items-start lg:justify-between">
+      <div className="min-w-0 space-y-4">
+        <div className="flex flex-wrap items-center gap-2">
+          {eyebrow ? (
+            <Badge className="w-fit rounded-full border-blue-200/80 bg-blue-50/90 text-[10px] font-semibold uppercase tracking-[0.24em] text-blue-700">
+              {eyebrow}
+            </Badge>
+          ) : null}
+          <Badge className="w-fit rounded-full border-slate-200 bg-white/90 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">
+            Operational workspace
+          </Badge>
+        </div>
+        <div className="space-y-2">
+          <h1 className="max-w-4xl text-[2rem] font-semibold tracking-[-0.04em] text-slate-950 sm:text-[2.35rem]">
+            {title}
+          </h1>
+          {description ? <p className="max-w-3xl text-sm leading-7 text-slate-600 sm:text-[15px]">{description}</p> : null}
+        </div>
+        {chips && chips.length > 0 ? (
+          <div className="flex flex-wrap items-center gap-2">
+            {chips.map((chip) => (
+              <Badge key={chip} className="rounded-full border border-slate-200 bg-white/88 px-3 py-1.5 text-xs font-medium text-slate-600">
+                {chip}
+              </Badge>
+            ))}
+          </div>
+        ) : null}
+      </div>
+      {actions ? <div className="flex w-full flex-wrap items-center gap-3 lg:w-auto lg:max-w-[34rem] lg:justify-end">{actions}</div> : null}
+    </div>
+    <div className="h-px bg-gradient-to-r from-transparent via-slate-200/80 to-transparent" />
+    <div className="grid gap-3 px-6 py-4 text-sm text-slate-500 sm:px-7 lg:grid-cols-3">
+      <div className="rounded-2xl border border-slate-200/70 bg-white/72 px-4 py-3">
+        Premium shell, role-aware context, and an action-first page structure.
+      </div>
+      <div className="rounded-2xl border border-slate-200/70 bg-white/72 px-4 py-3">
+        Built for queue visibility, clearer handoffs, and auditable navigation across modules.
+      </div>
+      <div className="rounded-2xl border border-slate-200/70 bg-white/72 px-4 py-3">
+        Keeps each workspace calm while routing deeper work into the correct surface.
       </div>
     </div>
-    {actions ? <div className="flex w-full flex-wrap items-center gap-3 lg:w-auto lg:justify-end">{actions}</div> : null}
   </div>
 );
 
@@ -63,21 +97,32 @@ export const SurfacePanel = ({
   children,
   className,
   actions,
+  tone = "default",
 }: {
   title: string;
   description?: string;
   children: ReactNode;
   className?: string;
   actions?: ReactNode;
+  tone?: "default" | "subtle" | "spotlight";
 }) => (
-  <Card className={cn("rounded-[24px] border border-slate-200/80 bg-white/92 shadow-[0_20px_60px_rgba(15,23,42,0.06)]", className)}>
-    <CardHeader className="pb-4">
+  <Card
+    className={cn(
+      "rounded-[26px] border shadow-[0_20px_60px_rgba(15,23,42,0.06)]",
+      tone === "default" && "border-slate-200/80 bg-white/92",
+      tone === "subtle" && "border-slate-200/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(248,250,252,0.92))]",
+      tone === "spotlight" &&
+        "border-blue-200/60 bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(239,246,255,0.92))] shadow-[0_22px_70px_rgba(37,99,235,0.08)]",
+      className
+    )}
+  >
+    <CardHeader className="gap-4 pb-4">
       <div className="flex items-start justify-between gap-4">
-        <div className="space-y-1.5">
+        <div className="min-w-0 space-y-2">
           <CardTitle className="text-lg font-semibold tracking-tight text-slate-950">{title}</CardTitle>
-          {description ? <p className="text-sm leading-6 text-slate-600">{description}</p> : null}
+          {description ? <p className="max-w-2xl text-sm leading-6 text-slate-600">{description}</p> : null}
         </div>
-        {actions ? <div className="flex items-center gap-2">{actions}</div> : null}
+        {actions ? <div className="flex shrink-0 items-center gap-2">{actions}</div> : null}
       </div>
     </CardHeader>
     <CardContent className="pt-0">{children}</CardContent>
@@ -85,16 +130,26 @@ export const SurfacePanel = ({
 );
 
 export const FeatureCallout = ({ title, description, badge }: { title: string; description: string; badge?: string }) => (
-  <div className="rounded-[28px] border border-white/70 bg-[linear-gradient(135deg,rgba(255,255,255,0.94),rgba(239,246,255,0.9))] px-6 py-6 shadow-[0_24px_70px_rgba(37,99,235,0.08)]">
-    <div className="space-y-3">
-      {badge ? (
-        <Badge className="rounded-full border-blue-200 bg-white/90 text-[10px] font-semibold uppercase tracking-[0.24em] text-blue-700">
-          {badge}
-        </Badge>
-      ) : null}
-      <div className="space-y-2">
-        <h2 className="text-3xl font-semibold tracking-tight text-slate-950 sm:text-[2.2rem]">{title}</h2>
-        <p className="max-w-3xl text-sm leading-7 text-slate-600 sm:text-base">{description}</p>
+  <div className="rounded-[30px] border border-blue-100/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.98),rgba(239,246,255,0.92))] px-6 py-6 shadow-[0_28px_80px_rgba(37,99,235,0.08)]">
+    <div className="grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(240px,0.6fr)] lg:items-start">
+      <div className="space-y-3">
+        {badge ? (
+          <Badge className="rounded-full border-blue-200 bg-white/90 text-[10px] font-semibold uppercase tracking-[0.24em] text-blue-700">
+            {badge}
+          </Badge>
+        ) : null}
+        <div className="space-y-2">
+          <h2 className="max-w-3xl text-[1.85rem] font-semibold tracking-[-0.045em] text-slate-950 sm:text-[2.15rem]">{title}</h2>
+          <p className="max-w-3xl text-sm leading-7 text-slate-600 sm:text-base">{description}</p>
+        </div>
+      </div>
+      <div className="grid gap-3 text-sm text-slate-500">
+        <div className="rounded-2xl border border-white/70 bg-white/78 px-4 py-3">
+          Designed to keep the workspace focused on the next action instead of scattering context across disconnected pages.
+        </div>
+        <div className="rounded-2xl border border-white/70 bg-white/78 px-4 py-3">
+          Pulls role-safe visibility, queues, and ownership signals into a calmer decision layer.
+        </div>
       </div>
     </div>
   </div>
@@ -103,7 +158,7 @@ export const FeatureCallout = ({ title, description, badge }: { title: string; d
 export const OverviewChips = ({ chips }: { chips: string[] }) => (
   <div className="flex flex-wrap items-center gap-2">
     {chips.map((chip) => (
-      <Badge key={chip} className="rounded-full border border-slate-200 bg-white/80 px-3 py-1.5 text-xs font-medium text-slate-600">
+      <Badge key={chip} className="rounded-full border border-slate-200/80 bg-white/88 px-3 py-1.5 text-xs font-medium text-slate-600 shadow-sm">
         {chip}
       </Badge>
     ))}
@@ -111,7 +166,7 @@ export const OverviewChips = ({ chips }: { chips: string[] }) => (
 );
 
 export const DashboardRail = ({ children, className }: { children: ReactNode; className?: string }) => (
-  <div className={cn("grid gap-6 xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.9fr)]", className)}>{children}</div>
+  <div className={cn("grid gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.86fr)]", className)}>{children}</div>
 );
 
 export const StatGrid = ({ children, className }: { children: ReactNode; className?: string }) => (
@@ -129,8 +184,9 @@ export const StatCard = ({
   hint?: ReactNode;
   className?: string;
 }) => (
-  <Card className={cn("rounded-[22px] border border-slate-200/80 bg-white/92 shadow-[0_18px_40px_rgba(15,23,42,0.05)]", className)}>
+  <Card className={cn("overflow-hidden rounded-[24px] border border-slate-200/80 bg-white/94 shadow-[0_18px_40px_rgba(15,23,42,0.05)]", className)}>
     <CardContent className="space-y-3 p-5">
+      <div className="h-1.5 w-16 rounded-full bg-[linear-gradient(90deg,rgba(37,99,235,0.92),rgba(59,130,246,0.35))]" />
       <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">{label}</p>
       <div className="text-3xl font-semibold tracking-tight text-slate-950">{value}</div>
       {hint ? <div className="text-sm text-slate-600">{hint}</div> : null}
@@ -149,7 +205,7 @@ export const StatePanel = ({
   children?: ReactNode;
   className?: string;
 }) => (
-  <Card className={cn("rounded-[22px] border border-slate-200/80 bg-white/92 shadow-sm", className)}>
+  <Card className={cn("rounded-[24px] border border-slate-200/80 bg-white/94 shadow-sm", className)}>
     <CardContent className="space-y-3 p-6">
       <div className="space-y-1">
         <p className="text-base font-semibold tracking-tight text-slate-950">{title}</p>
@@ -159,4 +215,3 @@ export const StatePanel = ({
     </CardContent>
   </Card>
 );
-

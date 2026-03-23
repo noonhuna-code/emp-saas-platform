@@ -1,37 +1,58 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   approveAttendanceCorrectionRequest,
   approveLeaveRequest,
   fetchUnifiedApprovals,
   rejectAttendanceCorrectionRequest,
-  rejectLeaveRequest
+  rejectLeaveRequest,
 } from "@/lib/client/api";
 import type { UnifiedApprovalItem } from "@/lib/types/approvals";
+import {
+  DashboardRail,
+  FeatureCallout,
+  OverviewChips,
+  PageContainer,
+  PageHeader,
+  StatCard,
+  StatGrid,
+  SurfacePanel,
+} from "@/components/dashboard-v2/PagePrimitives";
 import { UnifiedApprovalsTable } from "@/components/approvals/UnifiedApprovalsTable";
 import { ErrorState } from "@/components/states/ErrorState";
 import { LoadingState } from "@/components/states/LoadingState";
+import { EmptyState } from "@/components/ui/EmptyState";
+
+const toHours = (submittedAt: string): number => {
+  const submitted = new Date(submittedAt);
+  if (Number.isNaN(submitted.getTime())) return 0;
+  return Math.max(0, Math.floor((Date.now() - submitted.getTime()) / (1000 * 60 * 60)));
+};
 
 export const ApprovalsPageClient = () => {
   const [items, setItems] = useState<UnifiedApprovalItem[]>([]);
-  const [typeFilter, setTypeFilter] = useState<"all" | "leave" | "attendance">("all");
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [typeFilter, setTypeFilter] = useState<"all" | "leave" | "attendance">("all");
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
+
     try {
       const result = await fetchUnifiedApprovals();
       if (!result.ok || !result.data) {
-        setError(result.error ?? "Unable to load approvals");
         setItems([]);
+        setError(result.error ?? "Unable to load approvals");
         return;
       }
-      setItems(result.data.items ?? []);
+      setItems(result.data.items);
     } catch (err) {
+      setItems([]);
       setError(err instanceof Error ? err.message : "Unable to load approvals");
     } finally {
       setLoading(false);
@@ -42,73 +63,166 @@ export const ApprovalsPageClient = () => {
     void load();
   }, [load]);
 
-  const handleApprove = useCallback(async (item: UnifiedApprovalItem) => {
-    setBusy(true);
-    setError(null);
-    try {
-      if (item.type === "leave") {
-        const result = await approveLeaveRequest(item.id);
-        if (!result.ok) {
-          setError(result.error ?? "Leave approval failed");
-        }
-      } else {
-        const result = await approveAttendanceCorrectionRequest(item.id);
-        if (!result.ok) {
-          setError(result.error ?? "Attendance approval failed");
-        }
-      }
-      await load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Approval failed");
-    } finally {
-      setBusy(false);
-    }
-  }, [load]);
+  const handleDecision = useCallback(
+    async (item: UnifiedApprovalItem, decision: "approve" | "reject", reason?: string) => {
+      setBusy(true);
+      setNotice(null);
+      setError(null);
 
-  const handleReject = useCallback(async (item: UnifiedApprovalItem, reason?: string) => {
-    setBusy(true);
-    setError(null);
-    try {
-      if (item.type === "leave") {
-        const result = await rejectLeaveRequest(item.id, reason ?? "");
+      try {
+        const result =
+          item.type === "leave"
+            ? decision === "approve"
+              ? await approveLeaveRequest(item.id)
+              : await rejectLeaveRequest(item.id, reason ?? "")
+            : decision === "approve"
+              ? await approveAttendanceCorrectionRequest(item.id)
+              : await rejectAttendanceCorrectionRequest(item.id, reason ?? "");
+
         if (!result.ok) {
-          setError(result.error ?? "Leave rejection failed");
+          setError(result.error ?? "Unable to update approval");
+          return;
         }
-      } else {
-        const result = await rejectAttendanceCorrectionRequest(item.id, reason ?? "");
-        if (!result.ok) {
-          setError(result.error ?? "Attendance rejection failed");
-        }
+
+        setNotice(
+          decision === "approve"
+            ? `${item.employee_name ?? "Request"} approved successfully.`
+            : `${item.employee_name ?? "Request"} rejected successfully.`
+        );
+        await load();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Unable to update approval");
+      } finally {
+        setBusy(false);
       }
-      await load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Rejection failed");
-    } finally {
-      setBusy(false);
-    }
-  }, [load]);
+    },
+    [load]
+  );
+
+  const stats = useMemo(() => {
+    const leaveCount = items.filter((item) => item.type === "leave").length;
+    const attendanceCount = items.filter((item) => item.type === "attendance").length;
+    const oldestHours = items.length > 0 ? Math.max(...items.map((item) => toHours(item.submitted_at))) : 0;
+    return {
+      total: items.length,
+      leave: leaveCount,
+      attendance: attendanceCount,
+      oldestHours,
+    };
+  }, [items]);
+
+  const queueSummary = useMemo(() => {
+    const queue = typeFilter === "all" ? items : items.filter((item) => item.type === typeFilter);
+    return queue.slice(0, 5);
+  }, [items, typeFilter]);
 
   return (
-    <div className="page-wrap stack">
-      <section className="card stack">
-        <h1 style={{ margin: 0 }}>Approvals</h1>
-        <p className="muted" style={{ margin: "6px 0 0" }}>
-          Unified approvals for leave and attendance corrections.
-        </p>
-      </section>
+    <PageContainer>
+      <PageHeader
+        eyebrow="Approvals"
+        title="Decision queue for leave, attendance, and ownership handoffs"
+        description="Keep one approval surface for the requests that block staffing, attendance cleanup, and downstream operational reporting."
+        chips={["Unified queue", "Role-aware review", "Leave + attendance", "Escalation ready"]}
+        actions={(
+          <>
+            <Link href="/app/leave/review" className="secondary-btn">Leave review</Link>
+            <Link href="/app/attendance/review" className="secondary-btn">Attendance review</Link>
+          </>
+        )}
+      />
 
-      {loading ? <LoadingState label="Loading approvals..." /> : null}
-      {!loading && error ? <ErrorState message={error} /> : null}
-      {!loading && !error ? (
-        <UnifiedApprovalsTable
-          items={items}
-          onApprove={handleApprove}
-          onReject={handleReject}
-          busy={busy}
-          typeFilter={typeFilter}
-          onTypeFilterChange={setTypeFilter}
+      <FeatureCallout
+        badge="Unified queue"
+        title="Resolve the backlog before it fragments across modules."
+        description="This workspace keeps leave decisions and attendance corrections in one role-aware queue so managers, HR, and operations leads can act without hunting across separate pages."
+      />
+
+      <StatGrid>
+        <StatCard label="Open items" value={stats.total} hint="Current pending decisions across all request types" />
+        <StatCard label="Leave requests" value={stats.leave} hint="Pending leave approvals waiting on review" />
+        <StatCard label="Attendance items" value={stats.attendance} hint="Corrections and attendance-related decisions" />
+        <StatCard
+          label="Oldest age"
+          value={`${stats.oldestHours}h`}
+          hint="Longest-waiting request in the current queue"
         />
-      ) : null}
-    </div>
+      </StatGrid>
+
+      <DashboardRail>
+        <SurfacePanel
+          title="Approval queue"
+          description="Triage the oldest requests first, then move into the dedicated review pages only when deeper context is needed."
+        >
+          {notice ? (
+            <div className="mb-4 rounded-2xl border border-emerald-200 bg-emerald-50/80 px-4 py-3 text-sm text-emerald-700">
+              {notice}
+            </div>
+          ) : null}
+
+          {loading ? <LoadingState label="Loading approval queue..." /> : null}
+          {!loading && error ? <ErrorState message={error} /> : null}
+          {!loading && !error ? (
+            <UnifiedApprovalsTable
+              items={items}
+              busy={busy}
+              typeFilter={typeFilter}
+              onTypeFilterChange={setTypeFilter}
+              onApprove={(item) => void handleDecision(item, "approve")}
+              onReject={(item, reason) => void handleDecision(item, "reject", reason)}
+            />
+          ) : null}
+        </SurfacePanel>
+
+        <div className="space-y-6">
+          <SurfacePanel title="Queue context" description="What this role-aware lane is optimized to keep clean.">
+            <OverviewChips
+              chips={[
+                `${stats.total} pending total`,
+                `${stats.leave} leave`,
+                `${stats.attendance} attendance`,
+                stats.oldestHours > 0 ? `Oldest ${stats.oldestHours}h` : "No aging queue",
+              ]}
+            />
+            <div className="mt-4 space-y-3">
+              <p className="text-sm leading-6 text-slate-600">
+                Keep this queue focused on requests that affect staffing, payroll-adjacent corrections, and operational accountability. Older requests should be escalated first.
+              </p>
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+                <Link href="/app/organization" className="secondary-btn justify-center">Organization context</Link>
+                <Link href="/app/dashboard" className="secondary-btn justify-center">Back to dashboard</Link>
+              </div>
+            </div>
+          </SurfacePanel>
+
+          <SurfacePanel title="Oldest items" description="The first few requests in the active queue view.">
+            {queueSummary.length === 0 ? (
+              <EmptyState
+                title="No approvals in this lane"
+                subtitle="The current filter is clear. New requests will appear here automatically."
+                compact
+              />
+            ) : (
+              <div className="space-y-3">
+                {queueSummary.map((item) => (
+                  <div
+                    key={`${item.type}-${item.id}-summary`}
+                    className="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="space-y-1">
+                        <p className="text-sm font-semibold text-slate-950">{item.employee_name ?? item.employee_id}</p>
+                        <p className="text-xs uppercase tracking-[0.18em] text-slate-500">{item.type}</p>
+                      </div>
+                      <span className="text-xs font-semibold text-slate-500">{toHours(item.submitted_at)}h</span>
+                    </div>
+                    <p className="mt-2 text-sm leading-6 text-slate-600">{item.summary}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </SurfacePanel>
+        </div>
+      </DashboardRail>
+    </PageContainer>
   );
 };

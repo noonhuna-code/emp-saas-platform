@@ -63,7 +63,7 @@ export const TENANT_NAVIGATION_ITEMS: NavigationItem[] = [
     icon: "users",
     description: "Employee directory and people operations",
     personas: ["manager", "team_lead", "hr", "admin", "founder", "finance", "it"],
-    requiredCapability: ["manage_employees", "manage_company"],
+    requiredCapability: ["manage_employees", "manage_company", "manage_reporting_lines", "manage_delegations"],
     requiredFeatureKey: "feature.core_employee_management"
   }),
   item({
@@ -72,7 +72,7 @@ export const TENANT_NAVIGATION_ITEMS: NavigationItem[] = [
     icon: "network",
     description: "Departments, teams, and reporting lines",
     personas: ["manager", "team_lead", "hr", "admin", "founder", "finance", "it"],
-    requiredCapability: ["manage_employees", "manage_company"],
+    requiredCapability: ["manage_employees", "manage_company", "manage_reporting_lines", "manage_delegations"],
     requiredFeatureKey: "feature.core_employee_management"
   }),
   item({

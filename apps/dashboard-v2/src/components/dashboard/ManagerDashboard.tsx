@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Suspense, lazy, useEffect, useMemo, useState } from "react";
-import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
+import { Suspense, lazy, useEffect, useState } from "react";
 import { DashboardPerfMarker, useDashboardPerf } from "@/components/dashboard/useDashboardPerf";
 import { DashboardWidgetBoundary } from "@/components/dashboard/DashboardWidgetBoundary";
 import {
@@ -10,6 +9,7 @@ import {
   DashboardHero,
   DashboardModeSwitch,
   DashboardPanel,
+  QuickActionGrid,
   DashboardSection,
   WorkflowPanel,
   type DashboardView
@@ -28,30 +28,6 @@ export const ManagerDashboard = () => {
     perf.markKpiRendered();
   }, [perf]);
 
-  const activityItems = useMemo(
-    () => [
-      {
-        id: "manager-1",
-        title: "Team attendance synced",
-        description: "Latest team presence and leave overlap have been refreshed.",
-        timestamp: "Now"
-      },
-      {
-        id: "manager-2",
-        title: "Approvals queue updated",
-        description: "New pending approvals require your review.",
-        timestamp: "3 min ago"
-      },
-      {
-        id: "manager-3",
-        title: "Coverage signal recomputed",
-        description: "Shift coverage trend recalculated for the operations panel.",
-        timestamp: "7 min ago"
-      }
-    ],
-    []
-  );
-
   return (
     <div className="page-wrap space-y-8 fade-in">
       <DashboardHero
@@ -68,7 +44,12 @@ export const ManagerDashboard = () => {
         )}
       />
 
-      <DashboardModeSwitch value={view} onChange={setView} />
+      <DashboardModeSwitch
+        value={view}
+        onChange={setView}
+        title="Workspace lenses"
+        subtitle="Move between team execution, trend reading, and approval workflow context without losing operational focus."
+      />
 
       <DashboardSection visible={view === "workspace"}>
         <section className="space-y-4">
@@ -106,14 +87,21 @@ export const ManagerDashboard = () => {
               </DashboardWidgetBoundary>
             </Suspense>
           </WorkflowPanel>
-          <WorkflowPanel title="Activity feed" subtitle="Recent manager events">
-            <ActivityFeed items={activityItems} />
+          <WorkflowPanel title="Manager action paths" subtitle="Fast routes into the surfaces that affect team delivery most">
+            <QuickActionGrid
+              actions={[
+                { label: "Team attendance", href: "/app/attendance/team", caption: "Presence and late marks" },
+                { label: "Approvals queue", href: "/app/approvals", caption: "Leave and corrections" },
+                { label: "People directory", href: "/app/employees", caption: "Direct reports and profiles" },
+                { label: "Projects", href: "/app/projects", caption: "Execution and staffing" }
+              ]}
+            />
           </WorkflowPanel>
         </div>
 
-        <DashboardPanel title="Performance profile" subtitle="Independent widgets render progressively">
+        <DashboardPanel title="Operating scope" subtitle="What this manager surface is optimized for">
           <p className="muted">
-            Team KPIs render immediately while operational widgets and review timelines resolve independently.
+            Managers get direct coverage, approval pressure, team attendance visibility, and fast navigation into the workstreams that can block execution.
           </p>
         </DashboardPanel>
       </DashboardSection>

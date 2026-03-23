@@ -39,7 +39,7 @@ export const AttendanceTeamPageClient = () => {
       <section className="card stack">
         <h1 style={{ margin: 0 }}>Team Attendance</h1>
         <p className="muted" style={{ margin: "6px 0 0" }}>
-          Live view of today's team attendance status.
+          Live view of today&apos;s team attendance status.
         </p>
       </section>
 

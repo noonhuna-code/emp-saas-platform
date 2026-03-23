@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Suspense, lazy, useEffect, useMemo, useState } from "react";
-import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
+import { Suspense, lazy, useEffect, useState } from "react";
 import { DashboardPerfMarker, useDashboardPerf } from "@/components/dashboard/useDashboardPerf";
 import { DashboardWidgetBoundary } from "@/components/dashboard/DashboardWidgetBoundary";
 import {
@@ -10,6 +9,7 @@ import {
   DashboardHero,
   DashboardModeSwitch,
   DashboardPanel,
+  QuickActionGrid,
   DashboardSection,
   WorkflowPanel,
   type DashboardView
@@ -28,36 +28,12 @@ export const TeamLeadDashboard = () => {
     perf.markKpiRendered();
   }, [perf]);
 
-  const activityItems = useMemo(
-    () => [
-      {
-        id: "teamlead-1",
-        title: "Daily shift board refreshed",
-        description: "Today�s assigned employees and attendance records have been updated.",
-        timestamp: "Now"
-      },
-      {
-        id: "teamlead-2",
-        title: "Shift swap request pending",
-        description: "A team member requested a swap and needs review routing.",
-        timestamp: "4 min ago"
-      },
-      {
-        id: "teamlead-3",
-        title: "Correction queue updated",
-        description: "Attendance corrections are ready for validation.",
-        timestamp: "9 min ago"
-      }
-    ],
-    []
-  );
-
   return (
     <div className="page-wrap space-y-8 fade-in">
       <DashboardHero
         eyebrow="Team Lead Workspace"
         title="Daily team coordination"
-        subtitle="Read-only operational view for attendance coverage, pending approvals, and direct report navigation."
+        subtitle="Keep frontline coverage, approvals, and direct-report context in one action-ready team lead desk."
         emphasis="operations"
         actions={(
           <>
@@ -68,7 +44,12 @@ export const TeamLeadDashboard = () => {
         )}
       />
 
-      <DashboardModeSwitch value={view} onChange={setView} />
+      <DashboardModeSwitch
+        value={view}
+        onChange={setView}
+        title="Workspace lenses"
+        subtitle="Switch between frontline coverage, team-level trends, and review queues without leaving your operating desk."
+      />
 
       <DashboardSection visible={view === "workspace"}>
         <section className="space-y-4">
@@ -106,14 +87,21 @@ export const TeamLeadDashboard = () => {
               </DashboardWidgetBoundary>
             </Suspense>
           </WorkflowPanel>
-          <WorkflowPanel title="Activity feed" subtitle="Latest team-lead actions">
-            <ActivityFeed items={activityItems} />
+          <WorkflowPanel title="Team lead action paths" subtitle="Fast routes for shifts, swaps, approvals, and direct report context">
+            <QuickActionGrid
+              actions={[
+                { label: "Team attendance", href: "/app/attendance/team", caption: "Coverage and late marks" },
+                { label: "Shift swaps", href: "/app/attendance/shift-swaps", caption: "Requests and decisions" },
+                { label: "Approvals queue", href: "/app/approvals", caption: "Operational blockers" },
+                { label: "Team chat", href: "/app/chat", caption: "Coordination and updates" }
+              ]}
+            />
           </WorkflowPanel>
         </div>
 
-        <DashboardPanel title="Performance profile" subtitle="Independent widgets render progressively">
+        <DashboardPanel title="Operating scope" subtitle="What this desk is built to resolve quickly">
           <p className="muted">
-            Team lead widgets resolve independently so the shell remains interactive while review data loads.
+            Team leads stay focused on today&apos;s coverage, swap requests, attendance corrections, and the direct-report context needed to keep frontline work moving.
           </p>
         </DashboardPanel>
       </DashboardSection>

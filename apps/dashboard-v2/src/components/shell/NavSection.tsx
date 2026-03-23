@@ -94,7 +94,14 @@ export const NavSection = ({
                   title={collapsed ? item.label : undefined}
                 >
                   <Icon className={cn("h-4 w-4 shrink-0", active ? "text-blue-200" : "text-slate-400 group-hover:text-slate-100")} />
-                  {!collapsed ? <span className="truncate font-medium leading-none">{item.label}</span> : null}
+                  {!collapsed ? (
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate font-medium leading-none">{item.label}</span>
+                      {active && item.description ? (
+                        <span className="mt-1 block truncate text-xs text-blue-100/80">{item.description}</span>
+                      ) : null}
+                    </span>
+                  ) : null}
                 </Link>
               );
             })}

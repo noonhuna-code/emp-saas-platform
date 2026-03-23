@@ -1,19 +1,32 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from "react";
-import { Clock3, FileUp, MessageSquare, RefreshCw, ShieldCheck, UserCheck } from "lucide-react";
+import {
+  BadgeCheck,
+  CalendarClock,
+  Clock3,
+  CreditCard,
+  FileText,
+  HandCoins,
+  MessageSquare,
+  NotebookPen,
+  PhoneCall,
+  RefreshCw,
+  ShieldCheck,
+  UserCheck
+} from "lucide-react";
 import { fetchEmployeeDashboard, peekCachedResult } from "@/lib/client/api";
 import type { EmployeeDashboardResponse } from "@/lib/types/dashboard";
 import { ErrorState } from "@/components/states/ErrorState";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { ActionCard } from "@/components/ui/ActionCard";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { DashboardPerfMarker, useDashboardPerf } from "@/components/dashboard/useDashboardPerf";
 import { DashboardWidgetBoundary } from "@/components/dashboard/DashboardWidgetBoundary";
 import {
   ChartPanel,
+  DashboardHero,
   DashboardModeSwitch,
   DashboardSection,
   SignalRow,
@@ -27,6 +40,8 @@ import {
   DashboardRail,
   OverviewChips,
   StatePanel,
+  StatCard,
+  StatGrid,
   SurfacePanel,
 } from "@/components/dashboard-v2/PagePrimitives";
 
@@ -40,6 +55,12 @@ type LeaveBreakdown = {
   totalUsed: number;
   totalEntitled: number;
 };
+
+const currencyFormatter = new Intl.NumberFormat("en-PK", {
+  style: "currency",
+  currency: "PKR",
+  maximumFractionDigits: 0
+});
 
 const formatMinutes = (value?: number | null) => {
   if (value === null || value === undefined) return "-";
@@ -55,16 +76,22 @@ const formatDate = (value?: string | null) => {
   return parsed.toLocaleDateString();
 };
 
-const getLeaveBreakdown = (rows: EmployeeDashboardResponse["leaveBalances"]) : LeaveBreakdown => {
-  return rows.reduce(
+const formatCurrency = (value?: number | null) => {
+  if (value === null || value === undefined) return "-";
+  return currencyFormatter.format(value);
+};
+
+const trimText = (value: string, max = 88) => (value.length <= max ? value : `${value.slice(0, max - 1)}...`);
+
+const getLeaveBreakdown = (rows: EmployeeDashboardResponse["leaveBalances"]): LeaveBreakdown =>
+  rows.reduce(
     (acc, row) => {
       acc.totalUsed += Math.max(0, row.used_days);
       acc.totalEntitled += Math.max(0, row.entitled_days);
       return acc;
     },
-    { totalUsed: 0, totalEntitled: 0 },
+    { totalUsed: 0, totalEntitled: 0 }
   );
-};
 
 export const EmployeeDashboard = () => {
   const cachedDashboard = peekCachedResult<EmployeeDashboardResponse>("/api/dashboard/employee");
@@ -105,26 +132,28 @@ export const EmployeeDashboard = () => {
     perf.markKpiRendered();
   }, [perf]);
 
-  const attendanceStatus = useMemo(() => {
-    const status = data?.attendanceToday?.status ?? "not_clocked_in";
-    return status.replace(/_/g, " ");
-  }, [data]);
-
-  if (error && !data) {
-    return <ErrorState message={error} />;
-  }
-
   const workspace = data?.workspace;
-  const shift = data?.upcomingShifts[0] ?? null;
   const attendance = data?.attendanceToday;
+  const shift = data?.upcomingShifts[0] ?? null;
+  const attendanceStatus = useMemo(() => {
+    const status = attendance?.status ?? "not_clocked_in";
+    return status.replace(/_/g, " ");
+  }, [attendance?.status]);
   const isLate = (attendance?.lateMinutes ?? 0) > 0;
 
   const leave = getLeaveBreakdown(data?.leaveBalances ?? []);
   const remainingLeave = Math.max(leave.totalEntitled - leave.totalUsed, 0);
   const leaveUtilization = leave.totalEntitled > 0 ? Math.round((leave.totalUsed / leave.totalEntitled) * 100) : 0;
-  const pendingShiftSwaps = (data?.notifications ?? []).filter((row) => /shift swap/i.test(`${row.title} ${row.message ?? ""}`)).length;
-  const upcomingLeave = (data?.notifications ?? []).find((row) => /leave.*approved|approved.*leave/i.test(`${row.title} ${row.message ?? ""}`));
   const unreadNotifications = workspace?.counts.unreadNotifications ?? 0;
+  const pendingShiftSwaps = (data?.notifications ?? []).filter((row) => /shift swap/i.test(`${row.title} ${row.message ?? ""}`)).length;
+  const upcomingLeave = (data?.notifications ?? []).find((row) =>
+    /leave.*approved|approved.*leave/i.test(`${row.title} ${row.message ?? ""}`)
+  );
+  const recentPayslip = data?.recentPayslips[0] ?? null;
+  const latestNote = workspace?.notes[0] ?? null;
+  const latestResource = workspace?.resources[0] ?? null;
+  const latestRequest = workspace?.loanRequests[0] ?? null;
+  const recentChats = workspace?.chat.slice(0, 3) ?? [];
   const activityItems = useMemo(
     () =>
       (data?.notifications ?? []).slice(0, 5).map((item) => ({
@@ -132,62 +161,101 @@ export const EmployeeDashboard = () => {
         subtitle: item.message ?? "Workspace update",
         meta: new Date(item.created_at).toLocaleString(),
       })),
-    [data?.notifications],
+    [data?.notifications]
   );
+  const supportChips = [
+    workspace?.employee.department_name ? workspace.employee.department_name : "No department assigned",
+    workspace?.employee.team_name ? workspace.employee.team_name : "No team assigned",
+    workspace?.teamLead?.full_name ? `Lead: ${workspace.teamLead.full_name}` : "Lead not assigned",
+    workspace?.department?.main_contact_email ? "Department contact set" : "No shared contact",
+  ];
+
+  if (error && !data) {
+    return <ErrorState message={error} />;
+  }
 
   return (
     <div className="space-y-8 fade-in">
+      <DashboardHero
+        eyebrow="Employee Workspace"
+        title="Your day, requests, records, and support context in one premium lane"
+        subtitle="Stay on top of attendance, leave, payroll snapshots, notes, resources, chat, and shared team support without leaving the employee shell."
+        actions={(
+          <>
+            <Link href="/app/attendance" className="secondary-btn">Attendance</Link>
+            <Link href="/app/leave" className="secondary-btn">Leave</Link>
+            <Link href="/app/notes" className="secondary-btn">Notes</Link>
+            <Link href="/app/resources" className="primary-btn">Resources</Link>
+          </>
+        )}
+      />
+
+      <DashboardModeSwitch
+        value={view}
+        onChange={setView}
+        title="Employee control lanes"
+        subtitle="Move between daily execution, insight, and operating context while keeping your own requests and visibility boundaries clear."
+      />
+
       <DashboardRail className="items-start xl:grid-cols-[minmax(0,1.55fr)_minmax(320px,0.85fr)]">
         <SurfacePanel
-          title="Daily workspace"
-          description="Run your shift, requests, collaboration, and personal workflow from one compact control surface."
-          className="min-h-0"
+          title="Personal control lane"
+          description="Everything you need to act on today: shift status, leave balance, payroll visibility, profile readiness, and support contacts."
+          tone="spotlight"
         >
           <div className="space-y-5">
             <OverviewChips
               chips={[
                 shift ? `${shift.start_time} - ${shift.end_time}` : "No shift assigned",
-                `${pendingShiftSwaps} swaps pending`,
-                `${unreadNotifications} notifications`,
                 `${remainingLeave} leave days remaining`,
+                `${unreadNotifications} unread notifications`,
+                `${workspace?.counts.openLoanRequests ?? 0} open finance requests`,
               ]}
             />
 
-            <div className="grid gap-3 sm:grid-cols-3">
-              <StatePanel
-                title="Attendance"
-                description={isLate ? "Late mark detected" : "Shift status ready"}
-                className="border-slate-200 bg-slate-50/80 shadow-none"
-              >
-                <div className="flex items-center gap-2">
-                  <StatusBadge status={attendanceStatus} tone={isLate ? "warning" : "info"} />
-                </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <StatePanel title="Attendance" description={isLate ? "Late mark detected for today" : "Shift state is currently healthy"} className="border-slate-200 bg-slate-50/80 shadow-none">
+                <SignalRow
+                  label="Current status"
+                  value={<StatusBadge status={attendanceStatus} tone={isLate ? "warning" : "info"} />}
+                  tone={isLate ? "warning" : "info"}
+                />
+                <SignalRow label="Worked today" value={formatMinutes(attendance?.workMinutes)} />
               </StatePanel>
-              <StatePanel
-                title="Leave"
-                description="Current remaining balance"
-                className="border-slate-200 bg-slate-50/80 shadow-none"
-              >
-                <p className="text-xl font-semibold tracking-tight text-slate-950">{remainingLeave} days</p>
+              <StatePanel title="Leave balance" description="Current balance and next leave signal" className="border-slate-200 bg-slate-50/80 shadow-none">
+                <SignalRow label="Remaining" value={`${remainingLeave} days`} tone={remainingLeave > 0 ? "success" : "warning"} />
+                <SignalRow label="Next leave update" value={upcomingLeave ? formatDate(upcomingLeave.created_at) : "No current leave notice"} />
               </StatePanel>
-              <StatePanel
-                title="Signals"
-                description="Unread workspace items"
-                className="border-slate-200 bg-slate-50/80 shadow-none"
-              >
-                <p className="text-xl font-semibold tracking-tight text-slate-950">{unreadNotifications}</p>
+              <StatePanel title="Profile readiness" description="Keep your workspace and approvals friction-free" className="border-slate-200 bg-slate-50/80 shadow-none">
+                <SignalRow
+                  label="Completeness"
+                  value={`${data?.profileCompletenessScore ?? 0}%`}
+                  tone={(data?.profileCompletenessScore ?? 0) >= 80 ? "success" : "warning"}
+                />
+                <SignalRow label="Files available" value={workspace?.counts.files ?? 0} />
+              </StatePanel>
+              <StatePanel title="Department support" description="Use the shared contact path when you need operational help" className="border-slate-200 bg-slate-50/80 shadow-none">
+                <SignalRow
+                  label={workspace?.department?.main_contact_label ?? "Main contact"}
+                  value={workspace?.department?.main_contact_email ?? "Not configured"}
+                  tone={workspace?.department?.main_contact_email ? "info" : "default"}
+                />
+                <SignalRow label="Phone" value={workspace?.department?.main_contact_phone ?? "Not configured"} />
               </StatePanel>
             </div>
           </div>
         </SurfacePanel>
 
-        <SurfacePanel title="Control lanes" description="Switch between execution, analytics, and workflow visibility.">
+        <SurfacePanel title="Operating context" description="Stay aligned with your lead, your department, and your current support channels.">
           <div className="space-y-4">
-            <DashboardModeSwitch value={view} onChange={setView} />
+            <OverviewChips chips={supportChips} />
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-              <SignalRow label="Current shift" value={shift ? `${shift.start_time} - ${shift.end_time}` : "Not assigned"} />
-              <SignalRow label="Pending shift swaps" value={pendingShiftSwaps} tone={pendingShiftSwaps > 0 ? "warning" : "default"} />
-              <SignalRow label="Unread notifications" value={unreadNotifications} tone={unreadNotifications > 0 ? "info" : "default"} />
+              <SignalRow label="Reporting lead" value={workspace?.teamLead?.full_name ?? "Not assigned"} />
+              <SignalRow label="Department" value={workspace?.department?.name ?? workspace?.employee.department_name ?? "-"} />
+              <SignalRow label="Company" value={workspace?.company?.name ?? "-"} />
+              <SignalRow label="Latest payslip" value={recentPayslip ? formatDate(recentPayslip.generated_at) : "No payslips yet"} />
+              <SignalRow label="Open requests" value={workspace?.counts.openLoanRequests ?? 0} tone={(workspace?.counts.openLoanRequests ?? 0) > 0 ? "warning" : "default"} />
+              <SignalRow label="Resources available" value={workspace?.counts.resources ?? 0} />
             </div>
           </div>
         </SurfacePanel>
@@ -195,7 +263,7 @@ export const EmployeeDashboard = () => {
 
       <DashboardSection visible={view === "workspace"}>
         <section className="space-y-4">
-          <h2 className="text-xl font-semibold">Today</h2>
+          <h2 className="text-xl font-semibold">What matters now</h2>
           {!data ? (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
               <SkeletonCard rows={3} />
@@ -204,62 +272,28 @@ export const EmployeeDashboard = () => {
               <SkeletonCard rows={3} />
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-              <Card className="rounded-[22px] border border-slate-200/80 bg-white/92 shadow-[0_18px_40px_rgba(15,23,42,0.05)]">
-                <CardHeader className="p-5 pb-2">
-                  <CardTitle className="text-lg">Today's Shift</CardTitle>
-                  <CardDescription>{shift ? `${shift.start_time} - ${shift.end_time} (${shift.shift_name})` : "No shift assigned"}</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3 p-5 pt-0">
-                  <SignalRow label="Attendance" value={<StatusBadge status={attendanceStatus} tone={isLate ? "warning" : "info"} />} tone={isLate ? "warning" : "info"} />
-                  <SignalRow label="Check in" value={attendance?.checkIn ?? "-"} />
-                  <SignalRow label="Check out" value={attendance?.checkOut ?? "-"} />
-                </CardContent>
-              </Card>
-
-              <Card className="rounded-[22px] border border-slate-200/80 bg-white/92 shadow-[0_18px_40px_rgba(15,23,42,0.05)]">
-                <CardHeader className="p-5 pb-2">
-                  <CardTitle className="text-lg">Clock In / Out</CardTitle>
-                  <CardDescription>Open attendance to record your shift status.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3 p-5 pt-0">
-                  <SignalRow label="Worked today" value={formatMinutes(attendance?.workMinutes)} />
-                  <SignalRow label="Overtime" value={formatMinutes(attendance?.overtimeMinutes)} tone={(attendance?.overtimeMinutes ?? 0) > 0 ? "warning" : "default"} />
-                  <div className="flex justify-end">
-                    <Link href="/app/attendance" className="secondary-btn">
-                      Open Attendance
-                    </Link>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="rounded-[22px] border border-slate-200/80 bg-white/92 shadow-[0_18px_40px_rgba(15,23,42,0.05)]">
-                <CardHeader className="p-5 pb-2">
-                  <CardTitle className="text-lg">Team & Company</CardTitle>
-                  <CardDescription>Assigned reporting and organization context.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3 p-5 pt-0">
-                  <SignalRow label="Reporting lead" value={workspace?.teamLead?.full_name ?? "Not assigned"} />
-                  <SignalRow label="Department" value={workspace?.employee.department_name ?? "-"} />
-                  <SignalRow label="Company" value={workspace?.company?.name ?? "-"} />
-                </CardContent>
-              </Card>
-
-              <Card className="rounded-[22px] border border-slate-200/80 bg-white/92 shadow-[0_18px_40px_rgba(15,23,42,0.05)]">
-                <CardHeader className="p-5 pb-2">
-                  <CardTitle className="text-lg">Security</CardTitle>
-                  <CardDescription>Last known auth health signal.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3 p-5 pt-0">
-                  <SignalRow label="Risk score" value={data?.securityStatus.lastRiskScore ?? "-"} tone={(data?.securityStatus.lastRiskScore ?? 0) > 65 ? "warning" : "success"} />
-                  <SignalRow label="Last sign in" value={formatDate(data?.securityStatus.lastLoginAt)} />
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <ShieldCheck className="h-4 w-4" />
-                    Secure session controls active
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+            <StatGrid>
+              <StatCard
+                label="Today's shift"
+                value={shift ? `${shift.start_time} - ${shift.end_time}` : "No shift"}
+                hint={shift ? shift.shift_name : "No active shift assignment"}
+              />
+              <StatCard
+                label="Work logged"
+                value={formatMinutes(attendance?.workMinutes)}
+                hint={attendance?.checkIn ? `Checked in ${attendance.checkIn}` : "No check-in recorded yet"}
+              />
+              <StatCard
+                label="Payroll snapshot"
+                value={recentPayslip ? formatCurrency(recentPayslip.net_salary) : "-"}
+                hint={recentPayslip ? `Generated ${formatDate(recentPayslip.generated_at)}` : "No recent payslip snapshot"}
+              />
+              <StatCard
+                label="My requests"
+                value={workspace?.counts.openLoanRequests ?? 0}
+                hint={latestRequest ? `${latestRequest.obligation_type} ${latestRequest.status}` : "No open financial requests"}
+              />
+            </StatGrid>
           )}
         </section>
 
@@ -276,15 +310,139 @@ export const EmployeeDashboard = () => {
 
         <section className="space-y-4">
           <h2 className="text-xl font-semibold">Quick Actions</h2>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <ActionCard title="Apply Leave" description="Submit and track leave requests" href="/app/leave" icon={Clock3} />
-            <ActionCard title="Request Shift Swap" description="Propose shift exchange" href="/app/attendance/shift-swaps" icon={RefreshCw} />
-            <ActionCard title="Open Attendance" description="Track daily attendance" href="/app/attendance" icon={Clock3} />
-            <ActionCard title="Open Calendar" description="Holidays, shifts, and leaves" href="/app/calendar" icon={Clock3} />
-            <ActionCard title="Open Chat" description="Collaborate with your team" href="/app/chat" icon={MessageSquare} />
-            <ActionCard title="Upload Document" description="Save profile files and notes" href="/app/notes" icon={FileUp} />
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <ActionCard title="Open Attendance" description="Track today&apos;s shift and attendance records" href="/app/attendance" icon={Clock3} />
+            <ActionCard title="Apply Leave" description="Submit and review leave requests" href="/app/leave" icon={CalendarClock} />
+            <ActionCard title="Payslips" description="Review payroll snapshots and salary history" href="/app/payslips" icon={CreditCard} />
+            <ActionCard title="Loans & Advances" description="Track finance requests already linked to your profile" href="/app/loans" icon={HandCoins} />
+            <ActionCard title="Workspace Notes" description="Capture and pin personal workspace notes" href="/app/notes" icon={NotebookPen} />
+            <ActionCard title="Resources" description="Open SOPs, documents, and company resources" href="/app/resources" icon={FileText} />
+            <ActionCard title="Chat" description="Collaborate with your team and shared contacts" href="/app/chat" icon={MessageSquare} />
+            <ActionCard title="Calendar" description="Review shifts, leave, and calendar context" href="/app/calendar" icon={RefreshCw} />
           </div>
         </section>
+
+        <DashboardRail className="items-start xl:grid-cols-[minmax(0,1.25fr)_minmax(320px,0.95fr)]">
+          <SurfacePanel title="Requests, payroll, and support" description="Keep financial requests, payroll visibility, and support contacts visible while you work.">
+            <div className="space-y-5">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">Financial requests</h3>
+                  <Link href="/app/loans" className="text-sm font-medium text-blue-700 hover:text-blue-800">
+                    Open requests
+                  </Link>
+                </div>
+                {workspace?.loanRequests.length ? (
+                  <div className="space-y-3">
+                    {workspace.loanRequests.slice(0, 3).map((request) => (
+                      <div key={request.id} className="rounded-2xl border border-slate-200/80 bg-slate-50/70 px-4 py-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <p className="text-sm font-semibold text-slate-950">{request.obligation_type}</p>
+                          <StatusBadge status={request.status.replace(/_/g, " ")} tone={request.status === "approved" ? "success" : request.status === "rejected" ? "warning" : "info"} />
+                        </div>
+                        <p className="mt-1 text-sm text-slate-600">
+                          {formatCurrency(request.requested_amount)} {request.currency_code} · {formatDate(request.created_at)}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <EmptyState title="No open requests" subtitle="Your finance queue is clear right now." compact />
+                )}
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">Recent payroll snapshots</h3>
+                  <Link href="/app/payslips" className="text-sm font-medium text-blue-700 hover:text-blue-800">
+                    View payslips
+                  </Link>
+                </div>
+                {data?.recentPayslips.length ? (
+                  <div className="space-y-3">
+                    {data.recentPayslips.map((payslip) => (
+                      <div key={payslip.id} className="rounded-2xl border border-slate-200/80 bg-white/88 px-4 py-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <p className="text-sm font-semibold text-slate-950">{formatDate(payslip.generated_at)}</p>
+                          <span className="text-sm font-medium text-slate-700">{formatCurrency(payslip.net_salary)}</span>
+                        </div>
+                        <p className="mt-1 text-sm text-slate-600">Payroll visibility is available without widening deeper finance controls.</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <EmptyState title="No payslips yet" subtitle="Payslip snapshots will appear here when payroll runs are generated for your scope." compact />
+                )}
+              </div>
+
+              <div className="rounded-2xl border border-blue-100 bg-blue-50/80 px-4 py-4">
+                <div className="flex items-start gap-3">
+                  <PhoneCall className="mt-0.5 h-5 w-5 text-blue-700" />
+                  <div className="space-y-1">
+                    <p className="text-sm font-semibold text-slate-950">{workspace?.department?.main_contact_label ?? "Department shared contact"}</p>
+                    <p className="text-sm text-slate-600">
+                      {workspace?.department?.main_contact_email ?? "Not configured yet"}
+                      {workspace?.department?.main_contact_phone ? ` · ${workspace.department.main_contact_phone}` : ""}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </SurfacePanel>
+
+          <SurfacePanel title="Notes, resources, and support context" description="Keep your own knowledge base and current operational guidance close to the employee home.">
+            <div className="space-y-5">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">Pinned notes and reminders</h3>
+                  <Link href="/app/notes" className="text-sm font-medium text-blue-700 hover:text-blue-800">
+                    Open notes
+                  </Link>
+                </div>
+                {workspace?.notes.length ? (
+                  <div className="space-y-3">
+                    {workspace.notes.slice(0, 3).map((note) => (
+                      <div key={note.id} className="rounded-2xl border border-slate-200/80 bg-slate-50/70 px-4 py-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <p className="text-sm font-semibold text-slate-950">{note.title}</p>
+                          {note.is_pinned ? <StatusBadge status="Pinned" tone="info" /> : null}
+                        </div>
+                        <p className="mt-1 text-sm text-slate-600">{trimText(note.body)}</p>
+                        <p className="mt-2 text-xs text-slate-500">Updated {formatDate(note.updated_at)}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <EmptyState title="No notes yet" subtitle="Create workspace notes to keep daily context and reminders visible here." compact />
+                )}
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">Resources and SOPs</h3>
+                  <Link href="/app/resources" className="text-sm font-medium text-blue-700 hover:text-blue-800">
+                    Browse resources
+                  </Link>
+                </div>
+                {workspace?.resources.length ? (
+                  <div className="space-y-3">
+                    {workspace.resources.slice(0, 3).map((resource) => (
+                      <div key={resource.id} className="rounded-2xl border border-slate-200/80 bg-white/88 px-4 py-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <p className="text-sm font-semibold text-slate-950">{resource.title}</p>
+                          <StatusBadge status={resource.resource_type} tone={resource.resource_type === "sop" ? "info" : undefined} />
+                        </div>
+                        <p className="mt-1 text-sm text-slate-600">{resource.summary ? trimText(resource.summary) : "Company guidance and operational reference material."}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <EmptyState title="No resources published yet" subtitle="Shared resources and SOPs will appear here when available for your company." compact />
+                )}
+              </div>
+            </div>
+          </SurfacePanel>
+        </DashboardRail>
       </DashboardSection>
 
       <DashboardSection visible={view === "analytics"}>
@@ -311,7 +469,7 @@ export const EmployeeDashboard = () => {
 
       <DashboardSection visible={view === "operations"}>
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-          <WorkflowPanel title="Activity feed" subtitle="Recent role-scoped workspace events">
+          <WorkflowPanel title="Inbox and activity" subtitle="Recent role-scoped updates that affect your own work.">
             {activityItems.length === 0 ? (
               <EmptyState title="Your workspace is up to date" subtitle="No recent activity to display." compact />
             ) : (
@@ -324,7 +482,7 @@ export const EmployeeDashboard = () => {
               />
             )}
           </WorkflowPanel>
-          <WorkflowPanel title="Calendar & chat" subtitle="Upcoming events and team signals">
+          <WorkflowPanel title="Calendar and collaboration" subtitle="Keep upcoming events and current conversations visible without leaving the dashboard.">
             <div className="space-y-4">
               <Suspense fallback={<SkeletonCard rows={4} />}>
                 <DashboardWidgetBoundary title="Calendar preview" message="Calendar preview is temporarily unavailable.">
@@ -340,22 +498,58 @@ export const EmployeeDashboard = () => {
           </WorkflowPanel>
         </div>
 
-        <WorkflowPanel title="Detailed timeline" subtitle="Role-scoped workflow events">
-          <Suspense fallback={<SkeletonList rows={6} />}>
-            <DashboardWidgetBoundary title="Detailed timeline" message="The activity timeline is temporarily unavailable.">
-              <EmployeeActivityFeedWidget />
-            </DashboardWidgetBoundary>
-          </Suspense>
-        </WorkflowPanel>
+        <DashboardRail className="items-start xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
+          <WorkflowPanel title="Detailed timeline" subtitle="Role-scoped workflow events and platform reminders.">
+            <Suspense fallback={<SkeletonList rows={6} />}>
+              <DashboardWidgetBoundary title="Detailed timeline" message="The activity timeline is temporarily unavailable.">
+                <EmployeeActivityFeedWidget />
+              </DashboardWidgetBoundary>
+            </Suspense>
+          </WorkflowPanel>
+
+          <SurfacePanel title="Current support lines" description="Keep the nearest support and communication paths visible while you operate.">
+            <div className="space-y-4">
+              <SignalRow label="Reporting lead" value={workspace?.teamLead?.full_name ?? "Not assigned"} />
+              <SignalRow
+                label={workspace?.department?.main_contact_label ?? "Department contact"}
+                value={workspace?.department?.main_contact_email ?? "Not configured"}
+                tone={workspace?.department?.main_contact_email ? "info" : "default"}
+              />
+              <SignalRow label="Latest note" value={latestNote?.title ?? "No note pinned"} />
+              <SignalRow label="Latest resource" value={latestResource?.title ?? "No resource published"} />
+              <SignalRow label="Latest request" value={latestRequest ? `${latestRequest.obligation_type} · ${latestRequest.status}` : "No finance request open"} />
+              <SignalRow label="Profile quality" value={`${data?.profileCompletenessScore ?? 0}%`} tone={(data?.profileCompletenessScore ?? 0) >= 80 ? "success" : "warning"} />
+            </div>
+          </SurfacePanel>
+        </DashboardRail>
 
         <section className="space-y-4">
           <h2 className="text-xl font-semibold">Role Navigation</h2>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <ActionCard title="My Profile" description="Update personal details" href="/app/profile" icon={UserCheck} />
-            <ActionCard title="Payslips" description="Payroll snapshot history" href="/app/payslips" icon={Clock3} />
-            <ActionCard title="Notifications" description="Inbox and reminders" href="/app/notifications" icon={MessageSquare} />
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <ActionCard title="My Profile" description="Review your self-service profile safely" href="/app/profile" icon={UserCheck} />
+            <ActionCard title="Payslips" description="Open payroll snapshots already available to you" href="/app/payslips" icon={CreditCard} />
+            <ActionCard title="Notifications" description="Review alerts, approvals, and reminders" href="/app/notifications" icon={BadgeCheck} />
+            <ActionCard title="Resources" description="Stay close to SOPs and company guidance" href="/app/resources" icon={ShieldCheck} />
           </div>
         </section>
+
+        {recentChats.length ? (
+          <SurfacePanel title="Recent chat context" description="A lightweight view of your current conversation lane without widening deeper collaboration access.">
+            <div className="space-y-3">
+              {recentChats.map((message) => (
+                <div key={message.id} className="rounded-2xl border border-slate-200/80 bg-white/88 px-4 py-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-sm font-semibold text-slate-950">
+                      {message.direction === "out" ? `To ${message.recipient_name ?? "Team member"}` : `From ${message.sender_name ?? "Team member"}`}
+                    </p>
+                    <p className="text-xs text-slate-500">{formatDate(message.created_at)}</p>
+                  </div>
+                  <p className="mt-1 text-sm text-slate-600">{trimText(message.message_text)}</p>
+                </div>
+              ))}
+            </div>
+          </SurfacePanel>
+        ) : null}
       </DashboardSection>
     </div>
   );

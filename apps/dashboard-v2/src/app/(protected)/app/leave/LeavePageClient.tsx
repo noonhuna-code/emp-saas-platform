@@ -148,6 +148,7 @@ export const LeavePageClient = () => {
         eyebrow="Leave & swaps"
         title="Leave workspace"
         description="Apply for leave, review balances, and follow approval progress without leaving the V2 shell."
+        chips={["Leave balances", "Approval progress", "Guided requests", "Employee safe"]}
         actions={
           <>
             <Badge className="rounded-full border-blue-200 bg-blue-50 text-blue-700">

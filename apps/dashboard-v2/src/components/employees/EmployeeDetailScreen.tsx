@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { fetchEmployeeDetail } from "@/lib/client/api";
 import type { EmployeeDetailResponse } from "@/lib/types/employees";
@@ -41,7 +42,9 @@ export const EmployeeDetailScreen = ({ employeeId }: { employeeId: string }) => 
 
   return (
     <div className="page-wrap stack">
-      <a className="secondary-btn" href="/app/employees" style={{ width: "fit-content" }}>Back to Employees</a>
+      <Link className="secondary-btn" href="/app/employees" style={{ width: "fit-content" }}>
+        Back to Employees
+      </Link>
       {loading ? <LoadingState label="Loading employee detail..." /> : null}
       {!loading && error ? <ErrorState message={error} /> : null}
       {!loading && !error && data ? (

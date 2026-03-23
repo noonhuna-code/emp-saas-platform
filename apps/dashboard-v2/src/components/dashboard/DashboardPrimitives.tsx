@@ -19,18 +19,18 @@ export const DASHBOARD_VIEW_OPTIONS: Array<{ id: DashboardView; label: string }>
 const HERO_SIGNALS: Record<"default" | "executive" | "operations", Array<{ label: string; value: string }>> = {
   default: [
     { label: "Context", value: "Role-aware" },
-    { label: "Scope", value: "Tenant-secure" },
-    { label: "State", value: "Live" }
+    { label: "Scope", value: "Tenant secure" },
+    { label: "Mode", value: "Operational" }
   ],
   executive: [
     { label: "Visibility", value: "Executive" },
-    { label: "Metrics", value: "Decision-ready" },
-    { label: "Signal", value: "Cross-team" }
+    { label: "Metrics", value: "Decision ready" },
+    { label: "Span", value: "Cross-team" }
   ],
   operations: [
-    { label: "Workflow", value: "Action-ready" },
-    { label: "Coverage", value: "Real-time" },
-    { label: "Updates", value: "Synced" }
+    { label: "Workflow", value: "Action ready" },
+    { label: "Coverage", value: "Live" },
+    { label: "Focus", value: "Queue aware" }
   ]
 };
 
@@ -59,22 +59,23 @@ export const DashboardHero = ({
       )}
     >
       <CardContent className="dashboard-hero__layout p-6">
-        <div className="dashboard-hero__body">
-          <div className="dashboard-hero__content">
-            {eyebrow ? <p className="dashboard-hero__eyebrow">{eyebrow}</p> : null}
-            <div className="dashboard-hero__copy">
-              <h2 className="dashboard-hero__title">{title}</h2>
-              <p className="dashboard-hero__subtitle">{subtitle}</p>
-            </div>
+        <div className="dashboard-hero__content">
+          {eyebrow ? <p className="dashboard-hero__eyebrow">{eyebrow}</p> : null}
+          <div className="dashboard-hero__copy">
+            <h2 className="dashboard-hero__title">{title}</h2>
+            <p className="dashboard-hero__subtitle">{subtitle}</p>
           </div>
           {actions ? <div className="dashboard-hero__actions">{actions}</div> : null}
         </div>
-        <div className="dashboard-hero__signal-bar">
-          {signals.map((signal) => (
-            <span key={`${signal.label}-${signal.value}`} className="dashboard-hero__signal-pill">
-              {signal.label}: {signal.value}
-            </span>
-          ))}
+        <div className="dashboard-hero__aside">
+          <div className="dashboard-hero__signal-grid">
+            {signals.map((signal) => (
+              <div key={`${signal.label}-${signal.value}`} className="dashboard-hero__signal-card">
+                <span className="dashboard-hero__signal-label">{signal.label}</span>
+                <span className="dashboard-hero__signal-value">{signal.value}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </CardContent>
     </Card>
@@ -82,13 +83,21 @@ export const DashboardHero = ({
 };
 export const DashboardModeSwitch = ({
   value,
-  onChange
+  onChange,
+  title = "Control lanes",
+  subtitle = "Switch between immediate work, analytics, and deeper operating context without leaving the current role."
 }: {
   value: DashboardView;
   onChange: (value: DashboardView) => void;
+  title?: string;
+  subtitle?: string;
 }) => {
   return (
     <div className="dashboard-mode-switch">
+      <div className="dashboard-mode-switch__copy">
+        <p className="dashboard-mode-switch__title">{title}</p>
+        <p className="dashboard-mode-switch__subtitle">{subtitle}</p>
+      </div>
       <Tabs
         tabs={DASHBOARD_VIEW_OPTIONS}
         active={value}

@@ -53,8 +53,8 @@ export const Sidebar = ({
       )}
     >
       <div className="border-b border-white/8 px-4 py-4">
-        <div className={cn("flex items-start justify-between gap-3", collapsed && "justify-center") }>
-          <div className={cn("flex items-start", collapsed ? "justify-center" : "gap-3") }>
+        <div className={cn("flex items-start justify-between gap-3", collapsed && "justify-center")}>
+          <div className={cn("flex items-start", collapsed ? "justify-center" : "gap-3")}>
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-400 via-blue-500 to-indigo-600 text-base font-semibold text-white shadow-[0_12px_28px_rgba(37,99,235,0.34)]">
               E
             </div>
@@ -62,7 +62,7 @@ export const Sidebar = ({
               <div className="min-w-0 space-y-1">
                 <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-sky-300/70">{PERSONA_LABELS[persona]}</div>
                 <div className="text-2xl font-semibold tracking-tight text-white">EMP OS V2</div>
-                <div className="text-sm leading-5 text-slate-400">Premium Workforce Operating System</div>
+                <div className="text-sm leading-5 text-slate-400">Premium workforce operating system</div>
               </div>
             ) : null}
           </div>
@@ -78,14 +78,31 @@ export const Sidebar = ({
         </div>
 
         {!collapsed ? (
-          <div className="mt-5 rounded-3xl border border-white/10 bg-white/[0.03] px-4 py-4">
-            <div className="flex items-center gap-2 text-sm font-medium text-white">
-              <Sparkles className="h-4 w-4 text-sky-300" />
-              Premium workforce command surface
+          <div className="mt-5 space-y-3">
+            <div className="rounded-3xl border border-white/10 bg-white/[0.03] px-4 py-4">
+              <div className="flex items-center gap-2 text-sm font-medium text-white">
+                <Sparkles className="h-4 w-4 text-sky-300" />
+                Premium workforce command surface
+              </div>
+              <p className="mt-2 text-sm leading-6 text-slate-400">
+                One shell for people, approvals, schedules, communication, and analytics.
+              </p>
             </div>
-            <p className="mt-2 text-sm leading-6 text-slate-400">
-              One shell for people, approvals, schedules, communication, and analytics.
-            </p>
+
+            <div className="rounded-3xl border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))] px-4 py-4">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-sky-300/70">Workspace posture</div>
+              <div className="mt-3 grid gap-2">
+                <div className="rounded-2xl border border-white/8 bg-white/[0.04] px-3 py-3 text-sm text-slate-300">
+                  Role-aware navigation
+                </div>
+                <div className="rounded-2xl border border-white/8 bg-white/[0.04] px-3 py-3 text-sm text-slate-300">
+                  Scoped org reads ready
+                </div>
+                <div className="rounded-2xl border border-white/8 bg-white/[0.04] px-3 py-3 text-sm text-slate-300">
+                  Action-first dashboards
+                </div>
+              </div>
+            </div>
           </div>
         ) : null}
       </div>
@@ -93,6 +110,17 @@ export const Sidebar = ({
       <div className="min-h-0 flex-1 overflow-y-auto px-3 py-5">
         <NavSection groups={groups} collapsed={collapsed} onNavigate={onCloseMobile} />
       </div>
+
+      {!collapsed ? (
+        <div className="border-t border-white/8 px-4 py-4">
+          <div className="rounded-3xl border border-white/10 bg-white/[0.03] px-4 py-4">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-sky-300/70">Navigation quality</div>
+            <p className="mt-2 text-sm leading-6 text-slate-400">
+              This shell keeps queues, oversight, organization, and execution surfaces in one calmer lane instead of scattering them across unrelated screens.
+            </p>
+          </div>
+        </div>
+      ) : null}
     </aside>
   );
 };

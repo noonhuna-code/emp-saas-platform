@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Suspense, lazy, useEffect, useMemo, useState } from "react";
-import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
+import { Suspense, lazy, useEffect, useState } from "react";
 import { DashboardPerfMarker, useDashboardPerf } from "@/components/dashboard/useDashboardPerf";
 import { DashboardWidgetBoundary } from "@/components/dashboard/DashboardWidgetBoundary";
 import {
@@ -10,6 +9,7 @@ import {
   DashboardHero,
   DashboardModeSwitch,
   DashboardPanel,
+  QuickActionGrid,
   DashboardSection,
   WorkflowPanel,
   type DashboardView
@@ -30,30 +30,6 @@ export const AdminDashboard = () => {
     perf.markKpiRendered();
   }, [perf]);
 
-  const activityItems = useMemo(
-    () => [
-      {
-        id: "admin-1",
-        title: "Approvals queue reviewed",
-        description: "Pending leave and attendance approvals were refreshed.",
-        timestamp: "Now"
-      },
-      {
-        id: "admin-2",
-        title: "Department stats synced",
-        description: "Headcount and attendance distribution updated for dashboards.",
-        timestamp: "2 min ago"
-      },
-      {
-        id: "admin-3",
-        title: "Security monitor checked",
-        description: "Latest monitoring snapshot is available in operations mode.",
-        timestamp: "5 min ago"
-      }
-    ],
-    []
-  );
-
   return (
     <div className="page-wrap space-y-8 fade-in">
       <DashboardHero
@@ -71,7 +47,12 @@ export const AdminDashboard = () => {
         )}
       />
 
-      <DashboardModeSwitch value={view} onChange={setView} />
+      <DashboardModeSwitch
+        value={view}
+        onChange={setView}
+        title="Workspace lenses"
+        subtitle="Move between company operations, analysis, and governance without leaving the admin command surface."
+      />
 
       <DashboardSection visible={view === "workspace"}>
         <section className="space-y-4">
@@ -118,14 +99,21 @@ export const AdminDashboard = () => {
               </DashboardWidgetBoundary>
             </Suspense>
           </WorkflowPanel>
-          <WorkflowPanel title="Activity feed" subtitle="Recent admin actions">
-            <ActivityFeed items={activityItems} />
+          <WorkflowPanel title="Command paths" subtitle="Most-used operating routes for people, billing, and controls">
+            <QuickActionGrid
+              actions={[
+                { label: "People directory", href: "/app/employees", caption: "Records, roles, and reporting" },
+                { label: "Organization", href: "/app/organization", caption: "Structure and assignments" },
+                { label: "Approvals queue", href: "/app/approvals", caption: "Pending decisions" },
+                { label: "System monitor", href: "/app/monitoring", caption: "Security and health" }
+              ]}
+            />
           </WorkflowPanel>
         </div>
 
-        <DashboardPanel title="Rendering mode" subtitle="Progressive dashboard hydration active">
+        <DashboardPanel title="Operating scope" subtitle="What this workspace covers right now">
           <p className="muted">
-            KPI metrics render immediately while analytics and security widgets stream in behind Suspense boundaries.
+            This surface stays focused on live company operations, governance signals, people oversight, and the queues that need action first.
           </p>
         </DashboardPanel>
       </DashboardSection>

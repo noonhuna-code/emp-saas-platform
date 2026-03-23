@@ -1,10 +1,27 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { cleanupIdempotencyExpired, fetchMonitoringOverview } from "@/lib/client/api";
 import type { MonitoringOverview } from "@/lib/types/monitoring";
+import {
+  DashboardRail,
+  FeatureCallout,
+  PageContainer,
+  PageHeader,
+  StatCard,
+  StatGrid,
+  SurfacePanel,
+} from "@/components/dashboard-v2/PagePrimitives";
 import { ErrorState } from "@/components/states/ErrorState";
 import { LoadingState } from "@/components/states/LoadingState";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { StatusChip } from "@/components/ui/StatusChip";
+
+const formatStamp = (value: string) => {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return value;
+  return parsed.toLocaleString();
+};
 
 export const MonitoringPageClient = () => {
   const [overview, setOverview] = useState<MonitoringOverview | null>(null);
@@ -26,6 +43,7 @@ export const MonitoringPageClient = () => {
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to load monitoring overview");
+      setOverview(null);
     } finally {
       setLoading(false);
     }
@@ -38,12 +56,13 @@ export const MonitoringPageClient = () => {
   const handleCleanup = async () => {
     setCleanupBusy(true);
     setCleanupStatus(null);
+
     try {
       const result = await cleanupIdempotencyExpired();
       if (!result.ok || !result.data) {
         setCleanupStatus(result.error ?? "Cleanup failed");
       } else {
-        setCleanupStatus(`Marked ${result.data.expired} keys as expired`);
+        setCleanupStatus(`Marked ${result.data.expired} keys as expired.`);
         await load();
       }
     } catch (err) {
@@ -53,79 +72,125 @@ export const MonitoringPageClient = () => {
     }
   };
 
-  return (
-    <div className="page-wrap stack">
-      <section className="card stack">
-        <h1 style={{ margin: 0 }}>Monitoring</h1>
-        <p className="muted" style={{ margin: "6px 0 0" }}>
-          Operational signals for rate limiting, idempotency conflicts, and approval errors.
-        </p>
-      </section>
+  const stats = useMemo(() => {
+    return {
+      breaches: overview?.rateLimitBreaches.length ?? 0,
+      conflicts: overview?.idempotencyConflicts.reduce((sum, row) => sum + row.count, 0) ?? 0,
+      failures: overview?.approvalFailures.reduce((sum, row) => sum + row.count, 0) ?? 0,
+      generatedAt: overview?.generated_at ?? "-",
+    };
+  }, [overview]);
 
-      {loading ? <LoadingState label="Loading monitoring data..." /> : null}
+  return (
+    <PageContainer>
+      <PageHeader
+        eyebrow="System Monitor"
+        title="Operational security and workflow integrity"
+        description="Keep rate-limit pressure, idempotency conflicts, and approval workflow failures visible in one review surface for IT and platform operations."
+        chips={["Integrity", "Operator ready", "Queue health", "Tenant safe"]}
+        actions={(
+          <button type="button" className="secondary-btn" onClick={() => void load()}>
+            Refresh
+          </button>
+        )}
+      />
+
+      <FeatureCallout
+        badge="Operational health"
+        title="A calm monitoring surface for the signals that matter first."
+        description="This workspace stays focused on integrity problems that can affect approvals, billing-safe mutations, and tenant-wide request pressure instead of burying operators under decorative telemetry."
+      />
+
+      <StatGrid>
+        <StatCard label="Rate-limit breaches" value={stats.breaches} hint="Threshold exceedances in the last 24 hours" />
+        <StatCard label="Integrity conflicts" value={stats.conflicts} hint="Idempotency collisions currently recorded" />
+        <StatCard label="Approval failures" value={stats.failures} hint="Workflow endpoints failing in the last 24 hours" />
+        <StatCard label="Last generated" value={stats.generatedAt === "-" ? "-" : formatStamp(stats.generatedAt)} hint="Most recent monitoring snapshot" />
+      </StatGrid>
+
+      {cleanupStatus ? (
+        <div className="rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3 text-sm text-slate-600">
+          {cleanupStatus}
+        </div>
+      ) : null}
+
+      {loading ? <LoadingState label="Loading monitoring overview..." /> : null}
       {!loading && error ? <ErrorState message={error} /> : null}
 
       {!loading && overview ? (
-        <>
-          <section className="card stack">
-            <div className="row-between">
-              <h2 style={{ margin: 0 }}>Rate limit breaches (24h)</h2>
-              <span className="muted">{overview.rateLimitBreaches.length} records</span>
-            </div>
-            {overview.rateLimitBreaches.length === 0 ? (
-              <p className="muted">No breaches detected.</p>
-            ) : (
-              <ul className="list">
-                {overview.rateLimitBreaches.map((row) => (
-                  <li key={`${row.endpoint}-${row.window_start}`}>
-                    <strong>{row.endpoint}</strong> — {row.request_count} requests @{" "}
-                    {new Date(row.window_start).toLocaleString()}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-
-          <section className="card stack">
-            <div className="row-between">
-              <h2 style={{ margin: 0 }}>Idempotency conflicts (24h)</h2>
-              <button className="button" onClick={handleCleanup} disabled={cleanupBusy}>
+        <DashboardRail>
+          <SurfacePanel
+            title="System signals"
+            description="Current operational pressure across rate limiting, request integrity, and approval endpoints."
+            actions={(
+              <button type="button" className="secondary-btn" onClick={handleCleanup} disabled={cleanupBusy}>
                 {cleanupBusy ? "Cleaning..." : "Mark expired keys"}
               </button>
-            </div>
-            {cleanupStatus ? <p className="muted">{cleanupStatus}</p> : null}
-            {overview.idempotencyConflicts.length === 0 ? (
-              <p className="muted">No conflicts detected.</p>
-            ) : (
-              <ul className="list">
-                {overview.idempotencyConflicts.map((row) => (
-                  <li key={row.endpoint}>
-                    <strong>{row.endpoint}</strong> — {row.count} conflicts
-                  </li>
-                ))}
-              </ul>
             )}
-          </section>
+          >
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <StatusChip label={`${overview.rateLimitBreaches.length} breach records`} tone={overview.rateLimitBreaches.length > 0 ? "warning" : "success"} />
+                <StatusChip label={`${overview.idempotencyConflicts.length} conflict endpoints`} tone={overview.idempotencyConflicts.length > 0 ? "warning" : "success"} />
+                <StatusChip label={`${overview.approvalFailures.length} approval endpoints`} tone={overview.approvalFailures.length > 0 ? "danger" : "success"} />
+              </div>
 
-          <section className="card stack">
-            <div className="row-between">
-              <h2 style={{ margin: 0 }}>Approval failures (24h)</h2>
-              <span className="muted">{overview.approvalFailures.length} endpoints</span>
+              <div className="grid gap-4 xl:grid-cols-3">
+                <div className="space-y-3 rounded-[22px] border border-slate-200/80 bg-slate-50/70 p-4">
+                  <h3 className="text-sm font-semibold text-slate-950">Rate-limit breaches</h3>
+                  {overview.rateLimitBreaches.length === 0 ? (
+                    <EmptyState title="No breaches detected" subtitle="Thresholds are currently stable." compact />
+                  ) : (
+                    overview.rateLimitBreaches.map((row) => (
+                      <div key={`${row.endpoint}-${row.window_start}`} className="rounded-2xl border border-slate-200 bg-white/80 p-3">
+                        <p className="text-sm font-semibold text-slate-950">{row.endpoint}</p>
+                        <p className="text-xs text-slate-500">{formatStamp(row.window_start)}</p>
+                        <p className="mt-2 text-sm text-slate-600">{row.request_count} requests in the breached window</p>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                <div className="space-y-3 rounded-[22px] border border-slate-200/80 bg-slate-50/70 p-4">
+                  <h3 className="text-sm font-semibold text-slate-950">Idempotency conflicts</h3>
+                  {overview.idempotencyConflicts.length === 0 ? (
+                    <EmptyState title="No conflicts detected" subtitle="No duplicate request collisions were recorded." compact />
+                  ) : (
+                    overview.idempotencyConflicts.map((row) => (
+                      <div key={row.endpoint} className="rounded-2xl border border-slate-200 bg-white/80 p-3">
+                        <p className="text-sm font-semibold text-slate-950">{row.endpoint}</p>
+                        <p className="mt-2 text-sm text-slate-600">{row.count} conflict events</p>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                <div className="space-y-3 rounded-[22px] border border-slate-200/80 bg-slate-50/70 p-4">
+                  <h3 className="text-sm font-semibold text-slate-950">Approval failures</h3>
+                  {overview.approvalFailures.length === 0 ? (
+                    <EmptyState title="No failures detected" subtitle="Approval endpoints are currently healthy." compact />
+                  ) : (
+                    overview.approvalFailures.map((row) => (
+                      <div key={row.endpoint} className="rounded-2xl border border-slate-200 bg-white/80 p-3">
+                        <p className="text-sm font-semibold text-slate-950">{row.endpoint}</p>
+                        <p className="mt-2 text-sm text-slate-600">{row.count} failed requests</p>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
             </div>
-            {overview.approvalFailures.length === 0 ? (
-              <p className="muted">No approval failures detected.</p>
-            ) : (
-              <ul className="list">
-                {overview.approvalFailures.map((row) => (
-                  <li key={row.endpoint}>
-                    <strong>{row.endpoint}</strong> — {row.count} failures
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-        </>
+          </SurfacePanel>
+
+          <SurfacePanel title="Operator notes" description="How to use this surface during review and incident response.">
+            <div className="space-y-3 text-sm leading-6 text-slate-600">
+              <p>Start with approval failures when the queue is blocked, then move to integrity conflicts that could indicate duplicate client submissions or retry storms.</p>
+              <p>Rate-limit breaches are usually the next priority because they affect user experience before they become a data problem.</p>
+              <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Generated {formatStamp(overview.generated_at)}</p>
+            </div>
+          </SurfacePanel>
+        </DashboardRail>
       ) : null}
-    </div>
+    </PageContainer>
   );
 };

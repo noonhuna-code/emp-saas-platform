@@ -147,7 +147,12 @@ export const FounderDashboard = () => {
         )}
       />
 
-      <DashboardModeSwitch value={view} onChange={setView} />
+      <DashboardModeSwitch
+        value={view}
+        onChange={setView}
+        title="Executive lenses"
+        subtitle="Shift between cross-company visibility, trend reading, and operating pressure without losing the executive summary layer."
+      />
 
       <DashboardSection visible={view === "workspace"}>
         <div className="dashboard-kpi-grid">

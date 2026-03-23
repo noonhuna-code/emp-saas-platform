@@ -14,6 +14,13 @@ export type EmployeeDashboardResponse = {
       full_name: string | null;
       email: string | null;
     } | null;
+    department: {
+      id: string;
+      name: string;
+      main_contact_label: string | null;
+      main_contact_email: string | null;
+      main_contact_phone: string | null;
+    } | null;
     company: {
       id: string;
       name: string;

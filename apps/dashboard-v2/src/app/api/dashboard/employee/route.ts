@@ -3,6 +3,7 @@ import { getCached, setCached } from "@/lib/server/dashboard-cache";
 import { getEmployeeDashboard } from "@emp/services/dashboard.service";
 import { beginRoute, finalizeRoute } from "@/lib/server/route-helpers";
 import { handleRouteError, jsonError, mapServiceErrorStatus, sanitizeServiceError } from "@/lib/server/api-errors";
+import type { EmployeeDashboardResponse } from "@/lib/types/dashboard";
 
 export async function GET() {
   const route = await beginRoute();
@@ -12,10 +13,8 @@ export async function GET() {
     if (!route.ctx) {
       return finalizeRoute(route, endpoint, jsonError("Authentication required", 401, route.requestId));
     }
-
-
     const cacheKey = `${route.ctx.companyId}:${route.ctx.userId}:${endpoint}`;
-    const cached = getCached<any>(cacheKey, 45000);
+    const cached = getCached<EmployeeDashboardResponse>(cacheKey, 45000);
     if (cached) {
       return finalizeRoute(
         route,
@@ -28,7 +27,7 @@ export async function GET() {
         })
       );
     }
-    const result = await getEmployeeDashboard(route.ctx, { includeCollections: false });
+    const result = await getEmployeeDashboard(route.ctx);
     if (!result.ok || !result.data) {
       return finalizeRoute(
         route,
@@ -41,20 +40,10 @@ export async function GET() {
       );
     }
 
-    const payload = result.data as any;
-    const trimmed = payload && payload.workspace ? {
-      ...payload,
-      workspace: {
-        ...payload.workspace,
-        notes: [],
-        chat: [],
-        loanRequests: []
-      }
-    } : payload;
+    const payload = result.data;
+    setCached(cacheKey, payload);
 
-    setCached(cacheKey, trimmed);
-
-    return finalizeRoute(route, endpoint, NextResponse.json({ ok: true, data: trimmed }, {
+    return finalizeRoute(route, endpoint, NextResponse.json({ ok: true, data: payload }, {
       status: 200,
       headers: {
         "cache-control": "private, max-age=0, s-maxage=15, stale-while-revalidate=30"

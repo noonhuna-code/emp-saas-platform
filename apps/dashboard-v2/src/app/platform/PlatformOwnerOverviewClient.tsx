@@ -8,12 +8,13 @@ import { ErrorState } from "@/components/states/ErrorState";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { LineChart, MiniBarChart } from "@/components/shared/Charts";
 import { DashboardHero, DashboardKpiTile, DashboardPanel, SignalRow } from "@/components/dashboard/DashboardPrimitives";
+import { FeatureCallout, PageContainer, PageHeader } from "@/components/dashboard-v2/PagePrimitives";
 
 const formatMinorCurrency = (minor: number, currencyCode = "PKR"): string => {
   return new Intl.NumberFormat(undefined, {
     style: "currency",
     currency: currencyCode,
-    maximumFractionDigits: 2
+    maximumFractionDigits: 2,
   }).format(minor / 100);
 };
 
@@ -121,7 +122,20 @@ export const PlatformOwnerOverviewClient = () => {
   if (error || !data) return <ErrorState message={error ?? "Platform overview unavailable"} />;
 
   return (
-    <div className="dashboard-shell fade-in">
+    <PageContainer className="fade-in">
+      <PageHeader
+        eyebrow="Platform"
+        title="Cross-tenant oversight, billing health, and governance signal"
+        description="Use the isolated platform shell for global company visibility, subscription pressure, immutable billing audit review, and system-level follow-up."
+        chips={["Platform owner", "Cross-tenant read-only", "Billing governance", "Oversight shell"]}
+      />
+
+      <FeatureCallout
+        badge="Platform oversight"
+        title="A calmer command surface for tenant health, delinquency risk, and global governance."
+        description="This view stays intentionally focused on the operational signals a platform owner needs first: companies, subscriptions, renewal pressure, payment queue health, and immutable audit movement."
+      />
+
       <DashboardHero
         eyebrow="Platform Owner"
         title="Global companies, billing, and governance view"
@@ -174,7 +188,7 @@ export const PlatformOwnerOverviewClient = () => {
             <SignalRow
               key={`${event.companyId ?? "platform"}-${event.createdAt}-${event.eventType}`}
               label={`${event.eventType} (${event.entityType})`}
-              value={`${event.companyName ?? "Platform"} · ${new Date(event.createdAt).toLocaleString()}`}
+              value={`${event.companyName ?? "Platform"} | ${new Date(event.createdAt).toLocaleString()}`}
             />
           ))}
         </DashboardPanel>
@@ -299,7 +313,6 @@ export const PlatformOwnerOverviewClient = () => {
           </div>
         )}
       </DashboardPanel>
-    </div>
+    </PageContainer>
   );
 };
-

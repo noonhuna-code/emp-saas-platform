@@ -5,8 +5,9 @@ import { fetchWorkspaceResources, peekCachedResult } from "@/lib/client/api";
 import type { WorkspaceResource } from "@/lib/types/workspace";
 import { LoadingState } from "@/components/states/LoadingState";
 import { ErrorState } from "@/components/states/ErrorState";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { StatusChip } from "@/components/ui/StatusChip";
+import { FeatureCallout, PageContainer, PageHeader } from "@/components/dashboard-v2/PagePrimitives";
 
 const ResourcesPageClient = () => {
   const cachedResources = peekCachedResult<{ rows: WorkspaceResource[] }>("/api/workspace/resources?limit=50");
@@ -44,13 +45,19 @@ const ResourcesPageClient = () => {
   }, [hasCachedResources]);
 
   return (
-    <div className="page-wrap space-y-8">
-      <Card>
-        <CardHeader className="space-y-2">
-          <CardTitle>SOPs & Resources</CardTitle>
-          <p className="text-sm text-muted-foreground">Company knowledge base, policy documents, and operational guides.</p>
-        </CardHeader>
-      </Card>
+    <PageContainer>
+      <PageHeader
+        eyebrow="Resources"
+        title="SOPs and resources"
+        description="Company knowledge base, policy documents, and operational guides."
+        chips={["Knowledge base", "Policies", "Operational guides", "Workspace safe"]}
+      />
+
+      <FeatureCallout
+        badge="Knowledge"
+        title="Policies and SOPs should feel like part of the product, not a disconnected archive."
+        description="This workspace keeps reference material close to the daily operating shell so people can move from guidance into action without losing context."
+      />
 
       {loading ? <LoadingState label="Loading resources..." /> : null}
       {!loading && error ? <ErrorState message={error} /> : null}
@@ -80,7 +87,7 @@ const ResourcesPageClient = () => {
           </CardContent>
         </Card>
       ) : null}
-    </div>
+    </PageContainer>
   );
 };
 

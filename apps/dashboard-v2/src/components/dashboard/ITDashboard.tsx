@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
 import { fetchBillingOverview, fetchMonitoringOverview } from "@/lib/client/api";
 import type { BillingOverview } from "@/lib/types/billing";
 import type { MonitoringOverview } from "@/lib/types/monitoring";
@@ -80,30 +79,6 @@ export const ITDashboard = () => {
     } as const;
   }, [monitoring]);
 
-  const activityItems = useMemo(
-    () => [
-      {
-        id: "it-1",
-        title: "Monitoring heartbeat captured",
-        description: "Security and API integrity snapshots updated.",
-        timestamp: "Now"
-      },
-      {
-        id: "it-2",
-        title: "Idempotency conflicts checked",
-        description: `${securityPressure.conflicts} conflict events in current sample window.`,
-        timestamp: "4 min ago"
-      },
-      {
-        id: "it-3",
-        title: "License usage refreshed",
-        description: `Active billable seats: ${billing?.seatSummary.activeBillable ?? 0}.`,
-        timestamp: "8 min ago"
-      }
-    ],
-    [billing?.seatSummary.activeBillable, securityPressure.conflicts]
-  );
-
   if (loading) return <LoadingState label="Loading IT dashboard..." />;
   if (error || !monitoring) return <ErrorState message={error ?? "IT dashboard unavailable"} />;
 
@@ -123,7 +98,12 @@ export const ITDashboard = () => {
         )}
       />
 
-      <DashboardModeSwitch value={view} onChange={setView} />
+      <DashboardModeSwitch
+        value={view}
+        onChange={setView}
+        title="Workspace lenses"
+        subtitle="Shift between IT operations, monitoring summaries, and system response paths without losing platform context."
+      />
 
       <DashboardSection visible={view === "workspace"}>
         <div className="dashboard-kpi-grid">
@@ -161,8 +141,17 @@ export const ITDashboard = () => {
       </DashboardSection>
 
       <DashboardSection visible={view === "operations"}>
-        <WorkflowPanel title="Activity feed" subtitle="Latest IT operations">
-          <ActivityFeed items={activityItems} />
+        <WorkflowPanel title="Response paths" subtitle="Fast routes for incidents, access, and tenant health checks">
+          <QuickActionGrid
+            actions={[
+              { label: "Monitoring center", href: "/app/monitoring", caption: "Security and system telemetry" },
+              { label: "Notification queue", href: "/app/notifications", caption: "Delivery and incident alerts" },
+              { label: "Employee access", href: "/app/employees", caption: "Identity and assignment context" },
+              { label: "Billing / seats", href: "/app/billing", caption: "License and seat posture" }
+            ]}
+          />
+          <SignalRow label="Monitoring generated" value={monitoring.generated_at} />
+          <SignalRow label="Current health" value={securityPressure.health} tone={securityPressure.health === "healthy" ? "success" : "warning"} />
         </WorkflowPanel>
       </DashboardSection>
     </div>

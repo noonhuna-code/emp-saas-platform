@@ -10,8 +10,8 @@
   ServiceContext,
   ServiceResult,
 } from '../lib/types';
-import { requirePermission } from '../lib/auth-wrapper';
 import { requirePlanFeature } from '../lib/entitlements';
+import { getAccessibleEmployeeScope } from './access-scope.service';
 import { getOrganizationFoundationSummary } from './organization-foundation.service';
 
 type ProfileRow = { id: string; full_name: string | null };
@@ -30,6 +30,9 @@ type DepartmentRow = {
   id: string;
   name: string;
   parent_department_id?: string | null;
+  main_contact_label?: string | null;
+  main_contact_email?: string | null;
+  main_contact_phone?: string | null;
   head_employee_id?: string | null;
 };
 type TeamRow = {
@@ -92,6 +95,11 @@ type OrganizationCore = {
   activeSecondaryManagersByEmployeeId: Map<string, ReportingLineRow[]>;
 };
 
+type OrganizationAccessScope = {
+  broadAccess: boolean;
+  employeeIds: Set<string>;
+};
+
 function isActiveReportingLine(line: ReportingLineRow): boolean {
   return !line.effective_to || new Date(line.effective_to) >= new Date(new Date().toDateString());
 }
@@ -99,7 +107,7 @@ function isActiveReportingLine(line: ReportingLineRow): boolean {
 async function loadDepartments(ctx: ServiceContext): Promise<DepartmentRow[]> {
   const { data, error } = await ctx.supabase
     .from('departments')
-    .select('id, name, parent_department_id, head_employee_id')
+    .select('id, name, parent_department_id, main_contact_label, main_contact_email, main_contact_phone, head_employee_id')
     .eq('company_id', ctx.companyId)
     .order('name');
 
@@ -114,6 +122,9 @@ async function loadDepartments(ctx: ServiceContext): Promise<DepartmentRow[]> {
   if (fallback.error) throw fallback.error;
   return ((fallback.data as DepartmentRow[] | null) ?? []).map((department) => ({
     ...department,
+    main_contact_label: null,
+    main_contact_email: null,
+    main_contact_phone: null,
     head_employee_id: null,
   }));
 }
@@ -130,8 +141,26 @@ async function loadReportingLines(ctx: ServiceContext): Promise<ReportingLineRow
   return ((data as ReportingLineRow[] | null) ?? []).filter(isActiveReportingLine);
 }
 
-async function buildOrganizationCore(ctx: ServiceContext): Promise<OrganizationCore> {
-  const [employeesResult, departments, teamsResult, profilesResult, reportingLines] = await Promise.all([
+function collectVisibleDepartments(allDepartments: DepartmentRow[], visibleDepartmentIds: Set<string>): DepartmentRow[] {
+  const departmentsById = new Map(allDepartments.map((department) => [department.id, department]));
+  const finalIds = new Set<string>(visibleDepartmentIds);
+
+  for (const departmentId of Array.from(visibleDepartmentIds)) {
+    let cursor = departmentsById.get(departmentId)?.parent_department_id ?? null;
+    while (cursor) {
+      if (finalIds.has(cursor)) {
+        break;
+      }
+      finalIds.add(cursor);
+      cursor = departmentsById.get(cursor)?.parent_department_id ?? null;
+    }
+  }
+
+  return allDepartments.filter((department) => finalIds.has(department.id));
+}
+
+async function buildOrganizationCore(ctx: ServiceContext, accessScope: OrganizationAccessScope): Promise<OrganizationCore> {
+  const [employeesResult, allDepartments, teamsResult, profilesResult, allReportingLines] = await Promise.all([
     ctx.supabase
       .from('employees')
       .select(
@@ -158,10 +187,28 @@ async function buildOrganizationCore(ctx: ServiceContext): Promise<OrganizationC
   if (teamsResult.error) throw teamsResult.error;
   if (profilesResult.error) throw profilesResult.error;
 
-  const employees = (employeesResult.data as EmployeeRow[] | null) ?? [];
-  const teams = (teamsResult.data as TeamRow[] | null) ?? [];
+  const allEmployees = (employeesResult.data as EmployeeRow[] | null) ?? [];
+  const allTeams = (teamsResult.data as TeamRow[] | null) ?? [];
   const profiles = (profilesResult.data as ProfileRow[] | null) ?? [];
   const profilesById = new Map(profiles.map((profile) => [profile.id, profile]));
+
+  const employees = accessScope.broadAccess
+    ? allEmployees
+    : allEmployees.filter((employee) => accessScope.employeeIds.has(employee.id));
+  const visibleEmployeeIds = new Set(employees.map((employee) => employee.id));
+  const visibleDepartmentIds = new Set(
+    employees
+      .map((employee) => employee.department_id)
+      .filter((departmentId): departmentId is string => Boolean(departmentId))
+  );
+  const visibleTeamIds = new Set(
+    employees
+      .map((employee) => employee.team_id)
+      .filter((teamId): teamId is string => Boolean(teamId))
+  );
+  const departments = collectVisibleDepartments(allDepartments, visibleDepartmentIds);
+  const teams = allTeams.filter((team) => visibleTeamIds.has(team.id));
+  const reportingLines = allReportingLines.filter((line) => visibleEmployeeIds.has(line.employee_id));
 
   const activePrimaryManagerByEmployeeId = new Map<string, string>();
   const activeSecondaryManagersByEmployeeId = new Map<string, ReportingLineRow[]>();
@@ -249,9 +296,16 @@ function buildLegacyOrgTree(core: OrganizationCore): OrgChartResponse {
 export async function getOrgChart(ctx: ServiceContext): Promise<ServiceResult<OrgChartResponse>> {
   try {
     await requirePlanFeature(ctx, 'feature.core_employee_management');
-    requirePermission('manage_employees', ctx);
+    const accessScope = await getAccessibleEmployeeScope(ctx);
 
-    const core = await buildOrganizationCore(ctx);
+    if (!accessScope.broadAccess && accessScope.ids.size === 0) {
+      return { ok: true, data: { departments: [] } };
+    }
+
+    const core = await buildOrganizationCore(ctx, {
+      broadAccess: accessScope.broadAccess,
+      employeeIds: accessScope.ids,
+    });
     return {
       ok: true,
       data: buildLegacyOrgTree(core),
@@ -269,9 +323,31 @@ export async function getOrganizationOverview(
 ): Promise<ServiceResult<OrganizationOverview>> {
   try {
     await requirePlanFeature(ctx, 'feature.core_employee_management');
-    requirePermission('manage_employees', ctx);
+    const accessScope = await getAccessibleEmployeeScope(ctx);
 
-    const core = await buildOrganizationCore(ctx);
+    if (!accessScope.broadAccess && accessScope.ids.size === 0) {
+      return {
+        ok: true,
+        data: {
+          company_id: ctx.companyId,
+          departments: [],
+          teams: [],
+          employees: [],
+          reporting: [],
+          tree: {
+            company_id: ctx.companyId,
+            nodes: [],
+            edges: [],
+          },
+          foundation: null,
+        },
+      };
+    }
+
+    const core = await buildOrganizationCore(ctx, {
+      broadAccess: accessScope.broadAccess,
+      employeeIds: accessScope.ids,
+    });
 
     const employeeById = new Map(core.employees.map((employee) => [employee.id, employee]));
     const teamsByDepartmentId = new Map<string, TeamRow[]>();
@@ -362,6 +438,9 @@ export async function getOrganizationOverview(
         name: department.name,
         code: null,
         parent_department_id: department.parent_department_id ?? null,
+        main_contact_label: department.main_contact_label ?? null,
+        main_contact_email: department.main_contact_email ?? null,
+        main_contact_phone: department.main_contact_phone ?? null,
         head: head
           ? {
               id: head.id,
