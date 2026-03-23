@@ -3,12 +3,226 @@
 import Link from "next/link";
 import { useMemo } from "react";
 import { usePathname } from "next/navigation";
-import { Bell, CircleHelp, Command, LayoutPanelLeft, Menu, Search, ShieldCheck, Sparkles } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import {
+  Bell,
+  ChevronDown,
+  ChevronRight,
+  CircleHelp,
+  Command,
+  LayoutPanelLeft,
+  LogOut,
+  Menu,
+  MoreHorizontal,
+  Search,
+  UserRound
+} from "lucide-react";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
+import { cn } from "@/lib/utils";
 import type { BillingNavigationContext } from "@/lib/types/billing";
 import type { DashboardPersona } from "@/lib/dashboard/capabilities";
-import { TENANT_NAVIGATION_GROUPS, resolveVisibleNavigationGroups } from "@/navigation/navigation.config";
+import {
+  type NavigationGroup,
+  type NavigationVisibilityContext,
+  resolveShellHeaderMeta
+} from "@/navigation/navigation.config";
+import { getOrganizationCapabilities } from "@/components/organization/organization-access";
+
+const formatRoleLabel = (role: string | null | undefined) => {
+  if (!role) return "Workspace user";
+  return role
+    .replace(/[_-]+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (value) => value.toUpperCase());
+};
+
+const resolvePlatformHeaderMeta = (pathname: string, navigationGroups: NavigationGroup[] | undefined) => {
+  const groups = navigationGroups ?? [];
+
+  for (const group of groups) {
+    const item = group.items.find((entry) => pathname === entry.href || pathname.startsWith(`${entry.href}/`));
+    if (item) {
+      return {
+        groupLabel: group.label,
+        itemLabel: item.label,
+        title: item.label,
+        subtitle: item.description ?? "Cross-tenant oversight, governance, and platform-wide control.",
+        searchPlaceholder: "Search platform controls, monitoring, billing, and settings",
+        tabs: groups.flatMap((section) => section.items.map((entry) => ({ label: entry.label, href: entry.href })))
+      };
+    }
+  }
+
+  return {
+    groupLabel: "Platform",
+    itemLabel: "Overview",
+    title: "Platform oversight",
+    subtitle: "Cross-tenant governance, billing posture, and system-wide health in one calmer lane.",
+    searchPlaceholder: "Search platform controls, monitoring, billing, and settings",
+    tabs: groups.flatMap((section) => section.items.map((entry) => ({ label: entry.label, href: entry.href })))
+  };
+};
+
+const TopbarSearch = ({
+  placeholder,
+  className,
+}: {
+  placeholder: string;
+  className?: string;
+}) => (
+  <button
+    type="button"
+    className={cn(
+      "flex h-12 w-full items-center justify-between gap-3 rounded-[22px] border border-slate-200/90 bg-white/92 px-4 text-left text-slate-500 shadow-[0_14px_34px_rgba(15,23,42,0.06)] transition hover:border-slate-300 hover:bg-white dark:border-slate-800 dark:bg-slate-950/70 dark:text-slate-300 dark:hover:border-slate-700 dark:hover:bg-slate-900",
+      className
+    )}
+    onClick={() => window.dispatchEvent(new CustomEvent("emp.commandPalette.toggle"))}
+    aria-label="Open command palette"
+  >
+    <span className="flex min-w-0 items-center gap-3 text-sm font-medium">
+      <Search className="h-4 w-4 shrink-0" />
+      <span className="truncate">{placeholder}</span>
+    </span>
+    <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
+      <Command className="h-3 w-3" />K
+    </span>
+  </button>
+);
+
+const TopbarTitleBlock = ({
+  groupLabel,
+  itemLabel,
+  title,
+  subtitle,
+  compact = false,
+}: {
+  groupLabel: string;
+  itemLabel: string;
+  title: string;
+  subtitle: string;
+  compact?: boolean;
+}) => (
+  <div className="min-w-0">
+    <div className="flex min-w-0 items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+      <span className="truncate">{groupLabel}</span>
+      <ChevronRight className="h-3 w-3 shrink-0" />
+      <span className="truncate">{itemLabel}</span>
+    </div>
+    <div className={cn("mt-2 space-y-1", compact && "mt-1")}>
+      <h1 className={cn("truncate font-semibold tracking-[-0.04em] text-slate-950 dark:text-slate-50", compact ? "text-lg" : "text-[1.65rem]")}>
+        {title}
+      </h1>
+      <p className={cn("max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-400", compact && "hidden sm:block")}>
+        {subtitle}
+      </p>
+    </div>
+  </div>
+);
+
+const TopbarProfileMenu = ({
+  identityLabel,
+  email,
+  roleLabel,
+  avatarUrl,
+  profileHref,
+}: {
+  identityLabel: string;
+  email: string | null | undefined;
+  roleLabel: string;
+  avatarUrl?: string | null;
+  profileHref: string;
+}) => (
+  <details className="group relative">
+    <summary className="flex h-11 cursor-pointer list-none items-center gap-2 rounded-[20px] border border-slate-200 bg-white px-2.5 text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 dark:hover:border-slate-700 dark:hover:bg-slate-900">
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-sky-400 via-blue-500 to-indigo-600 text-sm font-semibold text-white">
+        {avatarUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={avatarUrl} alt={identityLabel} className="h-full w-full object-cover" />
+        ) : (
+          (identityLabel[0] ?? "U").toUpperCase()
+        )}
+      </span>
+      <span className="hidden min-w-0 xl:block">
+        <span className="block truncate text-sm font-semibold">{identityLabel}</span>
+      </span>
+      <ChevronDown className="h-4 w-4 shrink-0 text-slate-400 transition group-open:rotate-180" />
+    </summary>
+
+    <div className="absolute right-0 top-[calc(100%+0.75rem)] z-40 w-[18rem] rounded-[24px] border border-slate-200/90 bg-white/96 p-3 shadow-[0_28px_80px_rgba(15,23,42,0.16)] backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/96">
+      <div className="rounded-[20px] border border-slate-200/80 bg-slate-50/70 px-3 py-3 dark:border-slate-800 dark:bg-slate-900/70">
+        <div className="text-sm font-semibold text-slate-950 dark:text-slate-50">{identityLabel}</div>
+        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">{email ?? "No email available"}</div>
+        <div className="mt-2 inline-flex rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300">
+          {roleLabel}
+        </div>
+      </div>
+
+      <div className="mt-3 grid gap-1">
+        <Link
+          href={profileHref}
+          className="flex items-center gap-2 rounded-2xl px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 hover:text-slate-950 dark:text-slate-200 dark:hover:bg-slate-900 dark:hover:text-slate-50"
+        >
+          <UserRound className="h-4 w-4" />
+          Open profile
+        </Link>
+        <form action="/api/auth/logout" method="post">
+          <button
+            type="submit"
+            className="flex w-full items-center gap-2 rounded-2xl px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 hover:text-slate-950 dark:text-slate-200 dark:hover:bg-slate-900 dark:hover:text-slate-50"
+          >
+            <LogOut className="h-4 w-4" />
+            Sign out
+          </button>
+        </form>
+      </div>
+    </div>
+  </details>
+);
+
+const TopbarContextRow = ({
+  tabs,
+  chips,
+}: {
+  tabs: Array<{ label: string; href: string }>;
+  chips: string[];
+}) => {
+  const pathname = usePathname();
+
+  return (
+    <div className="border-t border-slate-200/70 px-4 py-3 dark:border-slate-800/80 sm:px-6">
+      <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+        <div className="-mx-1 flex items-center gap-2 overflow-x-auto px-1 pb-1">
+          {tabs.map((tab) => {
+            const active = pathname === tab.href || pathname.startsWith(`${tab.href}/`);
+            return (
+              <Link
+                key={tab.href}
+                href={tab.href}
+                className={cn(
+                  "whitespace-nowrap rounded-full border px-4 py-2 text-sm font-medium transition",
+                  active
+                    ? "border-slate-900 bg-slate-950 text-white shadow-sm dark:border-white dark:bg-white dark:text-slate-950"
+                    : "border-slate-200 bg-white/88 text-slate-600 hover:border-slate-300 hover:text-slate-950 dark:border-slate-700 dark:bg-slate-950/65 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:text-slate-50"
+                )}
+              >
+                {tab.label}
+              </Link>
+            );
+          })}
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {chips.map((chip) => (
+            <span
+              key={chip}
+              className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50/85 px-3 py-1.5 text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-300"
+            >
+              {chip}
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export const Topbar = ({
   persona,
@@ -25,6 +239,7 @@ export const Topbar = ({
   shiftEndTime,
   shiftHours,
   billingContext,
+  navigationGroups,
   onToggleSidebar,
   onToggleMobileSidebar,
 }: {
@@ -42,208 +257,231 @@ export const Topbar = ({
   shiftEndTime?: string | null;
   shiftHours?: number | null;
   billingContext: BillingNavigationContext | null;
+  navigationGroups?: NavigationGroup[];
   onToggleSidebar?: () => void;
   onToggleMobileSidebar?: () => void;
 }) => {
   const pathname = usePathname();
   const identityLabel = fullName ?? email ?? "Authenticated user";
-  const lastLoginText = (() => {
-    if (!lastLoginAt) return "Active now";
-    const value = new Date(lastLoginAt);
-    if (!Number.isFinite(value.getTime())) return lastLoginAt;
-    return value.toLocaleString();
-  })();
+  const roleLabel = formatRoleLabel(role ?? persona);
 
-  const shiftText =
-    shiftStartTime && shiftEndTime
-      ? `${shiftStartTime} - ${shiftEndTime}${typeof shiftHours === "number" ? ` (${shiftHours}h)` : ""}`
-      : "No shift assigned";
+  const headerMeta = useMemo(() => {
+    if (persona === "platform_owner") {
+      return resolvePlatformHeaderMeta(pathname, navigationGroups);
+    }
 
-  const idText = employeeCode ?? (employeeId ? employeeId.slice(0, 8) : null);
-  const metaText =
-    persona === "employee"
-      ? "Personal workspace"
-      : role ?? companyId?.slice(0, 8) ?? billingContext?.seatSummary?.activeBillable?.toString() ?? "Tenant workspace";
-
-  const navigationContext = useMemo(() => {
-    const visibleGroups = resolveVisibleNavigationGroups(TENANT_NAVIGATION_GROUPS, {
+    const context: NavigationVisibilityContext = {
       permissions,
       hasEmployeeContext: Boolean(employeeId),
       entitlements: billingContext?.entitlements ?? null,
       persona,
-    });
-
-    for (const group of visibleGroups) {
-      const item = group.items.find((entry) => pathname === entry.href || pathname.startsWith(`${entry.href}/`));
-      if (item) {
-        return {
-          groupLabel: group.label,
-          itemLabel: item.label,
-          itemDescription: item.description ?? "Current workspace context",
-        };
-      }
-    }
-
-    return {
-      groupLabel: "Workspace",
-      itemLabel: "Current view",
-      itemDescription: "Search people, workflows, and actions",
     };
-  }, [billingContext?.entitlements, employeeId, pathname, permissions, persona]);
 
-  const postureBadges = useMemo(() => {
-    const badges = [
-      {
-        icon: ShieldCheck,
-        label: companyId ? "Tenant scoped" : "No tenant scope",
-      },
-      {
-        icon: Sparkles,
-        label:
-          persona === "employee"
-            ? "Self-service ready"
-            : persona === "platform_owner"
-              ? "Platform oversight"
-              : "Role-aware workspace",
-      },
-    ];
+    return resolveShellHeaderMeta(pathname, context);
+  }, [billingContext?.entitlements, employeeId, navigationGroups, pathname, permissions, persona]);
 
-    if (idText) {
-      badges.push({
-        icon: Command,
-        label: `ID ${idText}`,
-      });
+  const contextChips = useMemo(() => {
+    const chips: string[] = [];
+
+    if (persona === "platform_owner") {
+      chips.push("Platform scope", "Global oversight");
+    } else {
+      chips.push(companyId ? "Tenant scoped" : "No tenant scope");
     }
 
-    return badges;
-  }, [companyId, idText, persona]);
+    if (
+      pathname === "/app/organization" ||
+      pathname.startsWith("/app/organization/") ||
+      pathname === "/app/people" ||
+      pathname.startsWith("/app/people/") ||
+      pathname === "/app/org-chart" ||
+      pathname.startsWith("/app/org-chart/")
+    ) {
+      const orgCapabilities = getOrganizationCapabilities(role, permissions);
+      chips.push(orgCapabilities.roleLabel);
+      chips.push(orgCapabilities.isReadOnly ? "Read only" : "Admin capable");
+    } else if (persona === "employee") {
+      chips.push("Self service");
+      if (employeeCode) chips.push(`ID ${employeeCode}`);
+    } else if (persona === "manager" || persona === "team_lead") {
+      chips.push("Team operations");
+    } else if (persona === "founder") {
+      chips.push("Executive view");
+    } else if (persona === "finance") {
+      chips.push("Finance controls");
+    } else if (persona === "it") {
+      chips.push("System visibility");
+    } else if (persona === "hr" || persona === "admin") {
+      chips.push("Operational control");
+    }
+
+    if (shiftStartTime && shiftEndTime && persona !== "platform_owner") {
+      const shiftSummary = `${shiftStartTime}-${shiftEndTime}${typeof shiftHours === "number" ? ` · ${shiftHours}h` : ""}`;
+      chips.push(`Shift ${shiftSummary}`);
+    }
+
+    if (lastLoginAt && persona === "platform_owner") {
+      const loginDate = new Date(lastLoginAt);
+      chips.push(`Seen ${Number.isFinite(loginDate.getTime()) ? loginDate.toLocaleDateString() : lastLoginAt}`);
+    }
+
+    return chips.slice(0, 4);
+  }, [companyId, employeeCode, lastLoginAt, pathname, permissions, persona, role, shiftEndTime, shiftHours, shiftStartTime]);
+
+  const profileHref = employeeId ? "/app/profile" : persona === "platform_owner" ? "/platform" : "/app/dashboard";
+  const notificationsHref = persona === "platform_owner" ? "/platform" : "/app/notifications";
+  const helpHref = persona === "platform_owner" ? "/platform" : "/app/resources";
 
   return (
-    <header className="sticky top-0 z-20 border-b border-slate-200/70 bg-white/88 backdrop-blur-2xl dark:border-slate-800/80 dark:bg-[#020817]/88">
-      <div className="mx-auto flex w-full max-w-[1720px] flex-col gap-4 px-4 py-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-center">
-          <div className="flex min-w-0 flex-1 items-center gap-3">
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-slate-700 dark:hover:bg-slate-900 md:hidden"
-                onClick={onToggleMobileSidebar}
-                aria-label="Open navigation"
-              >
-                <Menu className="h-4 w-4" />
-              </button>
-              {onToggleSidebar ? (
+    <header className="sticky top-0 z-30 px-4 pt-4 sm:px-6 lg:px-8">
+      <div className="mx-auto w-full max-w-[1720px]">
+        <div className="overflow-hidden rounded-[30px] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.97),rgba(247,250,255,0.94))] shadow-[0_24px_70px_rgba(15,23,42,0.08)] backdrop-blur-xl dark:border-slate-800/80 dark:bg-[linear-gradient(180deg,rgba(2,6,23,0.94),rgba(8,15,28,0.92))]">
+          <div className="px-4 py-4 sm:px-6">
+            <div className="flex items-center justify-between gap-3 lg:hidden">
+              <div className="flex min-w-0 items-center gap-3">
                 <button
                   type="button"
-                  className="hidden h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-slate-700 dark:hover:bg-slate-900 md:inline-flex"
-                  onClick={onToggleSidebar}
-                  aria-label="Toggle sidebar"
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-slate-700 dark:hover:bg-slate-900"
+                  onClick={onToggleMobileSidebar}
+                  aria-label="Open navigation"
                 >
-                  <LayoutPanelLeft className="h-4 w-4" />
+                  <Menu className="h-4 w-4" />
                 </button>
-              ) : null}
-            </div>
-
-            <div className="min-w-0 flex-1 rounded-[28px] border border-slate-200/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(245,248,255,0.94))] px-4 py-3 shadow-[0_18px_44px_rgba(15,23,42,0.06)] dark:border-slate-800 dark:bg-[linear-gradient(135deg,rgba(15,23,42,0.96),rgba(2,6,23,0.94))]">
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge className="rounded-full border-blue-200/80 bg-blue-50/90 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-blue-700 dark:border-blue-900/60 dark:bg-blue-950/40 dark:text-blue-200">
-                  {navigationContext.groupLabel}
-                </Badge>
-                <Badge className="rounded-full border-slate-200 bg-white/90 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-300">
-                  {navigationContext.itemLabel}
-                </Badge>
+                <TopbarTitleBlock
+                  groupLabel={headerMeta.groupLabel}
+                  itemLabel={headerMeta.itemLabel}
+                  title={headerMeta.title}
+                  subtitle={headerMeta.subtitle}
+                  compact
+                />
               </div>
-              <div className="mt-3 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-                <div className="min-w-0">
-                  <div className="truncate text-lg font-semibold tracking-tight text-slate-950 dark:text-slate-50">{identityLabel}</div>
-                  <div className="truncate text-sm text-slate-500 dark:text-slate-400">{navigationContext.itemDescription}</div>
-                </div>
-                <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-                  <span>Last login {lastLoginText}</span>
-                  <span className="hidden sm:inline">|</span>
-                  <span>{metaText}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="min-w-0 flex-1">
-            <button
-              type="button"
-              className="flex h-12 w-full items-center justify-between gap-3 rounded-[22px] border border-slate-200 bg-white/92 px-4 text-left text-slate-500 shadow-sm transition hover:border-slate-300 hover:bg-white dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-300 dark:hover:border-slate-700"
-              onClick={() => window.dispatchEvent(new CustomEvent("emp.commandPalette.toggle"))}
-              aria-label="Open command palette"
-            >
-              <span className="flex min-w-0 items-center gap-3 text-sm font-medium">
-                <Search className="h-4 w-4 shrink-0" />
-                <span className="truncate">Search {navigationContext.itemLabel.toLowerCase()}, people, workflows, and docs</span>
-              </span>
-              <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
-                <Command className="h-3 w-3" />K
-              </span>
-            </button>
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge className="rounded-full border-slate-200 bg-white/88 px-3 py-1.5 text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-950/60 dark:text-slate-300">
-              {shiftText}
-            </Badge>
-            {postureBadges.map((badge) => {
-              const Icon = badge.icon;
-              return (
-                <Badge
-                  key={badge.label}
-                  className="rounded-full border-slate-200 bg-white/88 px-3 py-1.5 text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-950/60 dark:text-slate-300"
+              <div className="flex items-center gap-2">
+                <Link
+                  href={notificationsHref}
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-slate-700 dark:hover:bg-slate-900"
+                  aria-label="Notifications"
                 >
-                  <Icon className="mr-1.5 h-3.5 w-3.5" />
-                  {badge.label}
-                </Badge>
-              );
-            })}
-          </div>
+                  <Bell className="h-4 w-4" />
+                </Link>
+                <details className="relative">
+                  <summary className="flex h-11 w-11 cursor-pointer list-none items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-slate-700 dark:hover:bg-slate-900">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </summary>
+                  <div className="absolute right-0 top-[calc(100%+0.75rem)] z-40 w-48 rounded-[22px] border border-slate-200/90 bg-white/96 p-2 shadow-[0_24px_60px_rgba(15,23,42,0.14)] dark:border-slate-800 dark:bg-slate-950/96">
+                    <button
+                      type="button"
+                      className="flex w-full items-center gap-2 rounded-2xl px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 hover:text-slate-950 dark:text-slate-200 dark:hover:bg-slate-900 dark:hover:text-slate-50"
+                      onClick={() => window.dispatchEvent(new CustomEvent("emp.commandPalette.open"))}
+                    >
+                      <Command className="h-4 w-4" />
+                      Search
+                    </button>
+                    <Link
+                      href={helpHref}
+                      className="flex items-center gap-2 rounded-2xl px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 hover:text-slate-950 dark:text-slate-200 dark:hover:bg-slate-900 dark:hover:text-slate-50"
+                    >
+                      <CircleHelp className="h-4 w-4" />
+                      Help
+                    </Link>
+                    <div className="px-3 py-2">
+                      <ThemeToggle compact />
+                    </div>
+                  </div>
+                </details>
+                <TopbarProfileMenu
+                  identityLabel={identityLabel}
+                  email={email}
+                  roleLabel={roleLabel}
+                  avatarUrl={avatarUrl}
+                  profileHref={profileHref}
+                />
+              </div>
+            </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <Link
-              href="/app/notifications"
-              className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-slate-700 dark:hover:bg-slate-900"
-              aria-label="Notifications"
-            >
-              <Bell className="h-4 w-4" />
-            </Link>
-            <button
-              type="button"
-              className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-slate-700 dark:hover:bg-slate-900"
-              onClick={() => window.dispatchEvent(new CustomEvent("emp.commandPalette.toggle"))}
-              aria-label="Help and commands"
-            >
-              <CircleHelp className="h-4 w-4" />
-            </button>
-            <ThemeToggle />
-            <div className="flex items-center gap-3 rounded-[22px] border border-slate-200/80 bg-white/92 px-3 py-2 shadow-sm dark:border-slate-800 dark:bg-slate-950/60">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-sky-400 via-blue-500 to-indigo-600 text-sm font-semibold text-white">
-                {avatarUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
-                ) : (
-                  (identityLabel[0] ?? "U").toUpperCase()
-                )}
+            <div className="mt-3 lg:hidden">
+              <TopbarSearch placeholder={headerMeta.searchPlaceholder} />
+            </div>
+
+            <div className="hidden lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(360px,560px)_auto] lg:items-center lg:gap-4">
+              <div className="flex min-w-0 items-center gap-3">
+                {onToggleSidebar ? (
+                  <button
+                    type="button"
+                    className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-slate-700 dark:hover:bg-slate-900"
+                    onClick={onToggleSidebar}
+                    aria-label="Toggle sidebar"
+                  >
+                    <LayoutPanelLeft className="h-4 w-4" />
+                  </button>
+                ) : null}
+                <TopbarTitleBlock
+                  groupLabel={headerMeta.groupLabel}
+                  itemLabel={headerMeta.itemLabel}
+                  title={headerMeta.title}
+                  subtitle={headerMeta.subtitle}
+                />
               </div>
-              <div className="hidden min-w-0 sm:block">
-                <div className="truncate text-sm font-semibold text-slate-950 dark:text-slate-100">{identityLabel}</div>
-                <div className="truncate text-xs text-slate-500 dark:text-slate-400">{email ?? metaText}</div>
-              </div>
-              <form action="/api/auth/logout" method="post">
+
+              <TopbarSearch placeholder={headerMeta.searchPlaceholder} />
+
+              <div className="flex items-center justify-end gap-2">
+                <Link
+                  href={notificationsHref}
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-slate-700 dark:hover:bg-slate-900"
+                  aria-label="Notifications"
+                >
+                  <Bell className="h-4 w-4" />
+                </Link>
                 <button
-                  type="submit"
-                  className="inline-flex h-9 items-center rounded-2xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:hover:border-slate-600 dark:hover:bg-slate-900"
+                  type="button"
+                  className="hidden h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-slate-700 dark:hover:bg-slate-900 xl:inline-flex"
+                  onClick={() => window.dispatchEvent(new CustomEvent("emp.commandPalette.open"))}
+                  aria-label="Open command palette"
                 >
-                  Logout
+                  <Command className="h-4 w-4" />
                 </button>
-              </form>
+                <Link
+                  href={helpHref}
+                  className="hidden h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-slate-700 dark:hover:bg-slate-900 xl:inline-flex"
+                  aria-label="Help and resources"
+                >
+                  <CircleHelp className="h-4 w-4" />
+                </Link>
+                <ThemeToggle compact />
+                <details className="relative xl:hidden">
+                  <summary className="flex h-11 w-11 cursor-pointer list-none items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-slate-700 dark:hover:bg-slate-900">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </summary>
+                  <div className="absolute right-0 top-[calc(100%+0.75rem)] z-40 w-44 rounded-[22px] border border-slate-200/90 bg-white/96 p-2 shadow-[0_24px_60px_rgba(15,23,42,0.14)] dark:border-slate-800 dark:bg-slate-950/96">
+                    <button
+                      type="button"
+                      className="flex w-full items-center gap-2 rounded-2xl px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 hover:text-slate-950 dark:text-slate-200 dark:hover:bg-slate-900 dark:hover:text-slate-50"
+                      onClick={() => window.dispatchEvent(new CustomEvent("emp.commandPalette.open"))}
+                    >
+                      <Command className="h-4 w-4" />
+                      Search
+                    </button>
+                    <Link
+                      href={helpHref}
+                      className="flex items-center gap-2 rounded-2xl px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 hover:text-slate-950 dark:text-slate-200 dark:hover:bg-slate-900 dark:hover:text-slate-50"
+                    >
+                      <CircleHelp className="h-4 w-4" />
+                      Help
+                    </Link>
+                  </div>
+                </details>
+                <TopbarProfileMenu
+                  identityLabel={identityLabel}
+                  email={email}
+                  roleLabel={roleLabel}
+                  avatarUrl={avatarUrl}
+                  profileHref={profileHref}
+                />
+              </div>
             </div>
           </div>
+
+          <TopbarContextRow tabs={headerMeta.tabs} chips={contextChips} />
         </div>
       </div>
     </header>

@@ -139,6 +139,7 @@ export const PlatformShell = ({
               email={email}
               fullName={email ?? "Platform Owner"}
               billingContext={null}
+              navigationGroups={PLATFORM_NAVIGATION_GROUPS}
               onToggleSidebar={() => setCollapsed((prev) => !prev)}
               onToggleMobileSidebar={() => setMobileOpen((prev) => !prev)}
             />

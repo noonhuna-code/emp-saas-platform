@@ -13,7 +13,6 @@ import {
   SurfacePanel,
 } from "@/components/dashboard-v2/PagePrimitives";
 import { adminInputClassName, AdminTable } from "./OrganizationAdminPrimitives";
-import { OrganizationSectionNav } from "./OrganizationSectionNav";
 import { getOrganizationCapabilities } from "./organization-access";
 
 type PeopleRow = {
@@ -125,7 +124,6 @@ export function OrganizationPeopleScreen({
           title="People directory"
           description="This route is available when the workspace grants organization or people visibility."
           chips={["Role-aware visibility", "Scoped employee reads", "Directory only"]}
-          actions={<OrganizationSectionNav capabilities={capabilities} />}
         />
         <StatePanel
           title="No people-directory access"
@@ -143,7 +141,6 @@ export function OrganizationPeopleScreen({
           title="People directory"
           description="Read the current workforce directory with department, team, reporting, and assignment context."
           chips={["Directory", "Reporting aware", "Read-safe org context"]}
-          actions={<OrganizationSectionNav capabilities={capabilities} />}
         />
         <StatePanel
           title="People data is not available"
@@ -160,7 +157,6 @@ export function OrganizationPeopleScreen({
         title="People directory"
         description="Review employee records, reporting context, department placement, and role-family coverage from one organization-aware directory."
         chips={["Employee records", "Reporting lines", "Scoped org visibility", scope === "my-team" ? "My team view" : "Company scope"]}
-        actions={<OrganizationSectionNav capabilities={capabilities} />}
       />
 
       <FeatureCallout

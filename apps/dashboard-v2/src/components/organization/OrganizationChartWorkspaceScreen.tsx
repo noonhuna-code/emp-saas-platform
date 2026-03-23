@@ -14,7 +14,6 @@ import {
   SurfacePanel,
 } from "@/components/dashboard-v2/PagePrimitives";
 import { adminInputClassName } from "./OrganizationAdminPrimitives";
-import { OrganizationSectionNav } from "./OrganizationSectionNav";
 import { getOrganizationCapabilities } from "./organization-access";
 
 const matches = (value: string, query: string) => {
@@ -84,7 +83,6 @@ export function OrganizationChartWorkspaceScreen({
           title="Organization map"
           description="This route is available when the workspace grants organization visibility."
           chips={["Structure map", "Read-safe org context", "Role gated"]}
-          actions={<OrganizationSectionNav capabilities={capabilities} />}
         />
         <StatePanel
           title="No org-chart access"
@@ -102,7 +100,6 @@ export function OrganizationChartWorkspaceScreen({
           title="Organization map"
           description="Review departments, teams, reporting relationships, and role coverage from one org-aware view."
           chips={["Departments", "Teams", "Reporting links"]}
-          actions={<OrganizationSectionNav capabilities={capabilities} />}
         />
         <StatePanel
           title="Organization map is not available"
@@ -119,7 +116,6 @@ export function OrganizationChartWorkspaceScreen({
         title="Organization map"
         description="Read the current organization structure as departments, teams, leaders, and reporting coverage without dropping into admin forms."
         chips={["Departments", "Teams", "Reporting", "Scoped visibility"]}
-        actions={<OrganizationSectionNav capabilities={capabilities} />}
       />
 
       <FeatureCallout

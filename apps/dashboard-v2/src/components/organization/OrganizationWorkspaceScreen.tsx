@@ -34,7 +34,6 @@ import {
 } from "./OrganizationAdminPrimitives";
 import { DashboardRail, PageContainer, PageHeader, StatePanel, SurfacePanel } from "@/components/dashboard-v2/PagePrimitives";
 import { OrganizationOverviewScreen } from "./OrganizationOverviewScreen";
-import { OrganizationSectionNav } from "./OrganizationSectionNav";
 import { getOrganizationCapabilities } from "./organization-access";
 
 type TabId = "overview" | "structure" | "roles" | "assignments" | "approvals" | "explorer";
@@ -646,15 +645,6 @@ export function OrganizationWorkspaceScreen({
         ]}
         actions={
           <div className="flex flex-wrap items-center gap-2">
-            <OrganizationSectionNav capabilities={capabilities} />
-            {viewerEmployeeId ? (
-              <Badge className="rounded-full border-slate-200 bg-white/90 text-slate-700">
-                Employee context ready
-              </Badge>
-            ) : null}
-            <Badge className="rounded-full border-slate-200 bg-white/90 text-slate-700">
-              Identity model: {adminData?.identity_reference_strategy ?? "profile_audit_employee_org"}
-            </Badge>
             <Button type="button" variant="secondary" onClick={() => void refreshAll()} disabled={loading}>
               {loading ? "Refreshing..." : "Refresh"}
             </Button>

@@ -27,6 +27,20 @@ export type NavigationVisibilityContext = {
   persona: DashboardPersona;
 };
 
+export type ShellHeaderTab = {
+  label: string;
+  href: string;
+};
+
+export type ShellHeaderMeta = {
+  groupLabel: string;
+  itemLabel: string;
+  title: string;
+  subtitle: string;
+  searchPlaceholder: string;
+  tabs: ShellHeaderTab[];
+};
+
 const ALL_PERSONAS: DashboardPersona[] = [
   "employee",
   "manager",
@@ -71,6 +85,15 @@ export const TENANT_NAVIGATION_ITEMS: NavigationItem[] = [
     label: "Organization",
     icon: "network",
     description: "Departments, teams, and reporting lines",
+    personas: ["manager", "team_lead", "hr", "admin", "founder", "finance", "it"],
+    requiredCapability: ["manage_employees", "manage_company", "manage_reporting_lines", "manage_delegations"],
+    requiredFeatureKey: "feature.core_employee_management"
+  }),
+  item({
+    href: "/app/org-chart",
+    label: "Org Chart",
+    icon: "network",
+    description: "Structure map and reporting relationships",
     personas: ["manager", "team_lead", "hr", "admin", "founder", "finance", "it"],
     requiredCapability: ["manage_employees", "manage_company", "manage_reporting_lines", "manage_delegations"],
     requiredFeatureKey: "feature.core_employee_management"
@@ -204,7 +227,7 @@ export const TENANT_NAVIGATION_GROUPS: NavigationGroup[] = [
   {
     id: "people",
     label: "People",
-    items: [byHref("/app/employees"), byHref("/app/organization")]
+    items: [byHref("/app/employees"), byHref("/app/organization"), byHref("/app/org-chart")]
   },
   {
     id: "operations",
@@ -270,4 +293,182 @@ export const resolveVisibleNavigationGroups = (
 ) => groups
   .map((group) => ({ ...group, items: resolveVisibleNavigationItems(group.items, context) }))
   .filter((group) => group.items.length > 0);
+
+const findActiveNavigationEntry = (pathname: string, groups: NavigationGroup[]) => {
+  for (const group of groups) {
+    const item = group.items.find((entry) => pathname === entry.href || pathname.startsWith(`${entry.href}/`));
+    if (item) {
+      return { group, item };
+    }
+  }
+
+  return null;
+};
+
+const pickVisibleTabs = (hrefs: string[], groups: NavigationGroup[]): ShellHeaderTab[] => {
+  const visibleItems = new Map(groups.flatMap((group) => group.items.map((item) => [item.href, item])));
+  return hrefs
+    .map((href) => visibleItems.get(href))
+    .filter((item): item is NavigationItem => Boolean(item))
+    .map((item) => ({ label: item.label, href: item.href }));
+};
+
+const PERSONA_HOME_COPY: Record<DashboardPersona, { title: string; subtitle: string }> = {
+  employee: {
+    title: "Personal workspace",
+    subtitle: "Track your day, requests, records, and support context from one calmer command surface."
+  },
+  manager: {
+    title: "Manager command center",
+    subtitle: "Review team operations, approvals, people context, and execution signals without losing focus."
+  },
+  team_lead: {
+    title: "Team lead workspace",
+    subtitle: "Stay close to frontline approvals, coverage, team execution, and current operational context."
+  },
+  hr: {
+    title: "HR operations workspace",
+    subtitle: "Coordinate people operations, payroll visibility, and organization review from one role-aware shell."
+  },
+  it: {
+    title: "IT operations workspace",
+    subtitle: "Monitor platform health, workspace signals, and operational reliability in one premium control lane."
+  },
+  admin: {
+    title: "Admin command center",
+    subtitle: "Run company operations, approvals, people visibility, and control surfaces from one enterprise shell."
+  },
+  founder: {
+    title: "Executive workspace",
+    subtitle: "Keep strategic visibility, company posture, and key operating signals calm, dense, and decision-ready."
+  },
+  finance: {
+    title: "Finance operations workspace",
+    subtitle: "Stay close to billing, payroll visibility, and financial workflow context without clutter."
+  },
+  platform_owner: {
+    title: "Platform oversight",
+    subtitle: "Review cross-tenant posture, governance, and platform-wide health from one global shell."
+  }
+};
+
+export const resolveShellHeaderMeta = (
+  pathname: string,
+  context: NavigationVisibilityContext
+): ShellHeaderMeta => {
+  const visibleGroups = resolveVisibleNavigationGroups(TENANT_NAVIGATION_GROUPS, context);
+  const activeEntry = findActiveNavigationEntry(pathname, visibleGroups);
+  const fallbackItemLabel = activeEntry?.item.label ?? "Current view";
+  const fallbackGroupLabel = activeEntry?.group.label ?? "Workspace";
+  const fallbackSubtitle = activeEntry?.item.description ?? "Search people, workflows, and actions";
+  const dashboardCopy = PERSONA_HOME_COPY[context.persona];
+
+  if (pathname === "/app/dashboard" || pathname.startsWith("/app/dashboard/")) {
+    return {
+      groupLabel: "Home",
+      itemLabel: "Dashboard",
+      title: dashboardCopy.title,
+      subtitle: dashboardCopy.subtitle,
+      searchPlaceholder:
+        context.persona === "employee"
+          ? "Search notes, resources, requests, and workspace actions"
+          : "Search people, approvals, workflows, and operating actions",
+      tabs: pickVisibleTabs(["/app/dashboard", "/app/profile"], visibleGroups)
+    };
+  }
+
+  if (
+    pathname === "/app/organization" ||
+    pathname.startsWith("/app/organization/") ||
+    pathname === "/app/people" ||
+    pathname.startsWith("/app/people/") ||
+    pathname === "/app/org-chart" ||
+    pathname.startsWith("/app/org-chart/")
+  ) {
+    return {
+      groupLabel: "People",
+      itemLabel:
+        pathname === "/app/people" || pathname.startsWith("/app/people/")
+          ? "People"
+          : pathname === "/app/org-chart" || pathname.startsWith("/app/org-chart/")
+            ? "Org chart"
+            : "Organization",
+      title: "Organization workspace",
+      subtitle: "Read structure, people placement, reporting context, and organization signals without cluttering the command row.",
+      searchPlaceholder: "Search people, teams, departments, reporting lines, and org units",
+      tabs: pickVisibleTabs(["/app/organization", "/app/people", "/app/org-chart"], visibleGroups)
+    };
+  }
+
+  if (
+    pathname === "/app/chat" ||
+    pathname.startsWith("/app/chat/") ||
+    pathname === "/app/notes" ||
+    pathname.startsWith("/app/notes/") ||
+    pathname === "/app/notifications" ||
+    pathname.startsWith("/app/notifications/") ||
+    pathname === "/app/resources" ||
+    pathname.startsWith("/app/resources/")
+  ) {
+    return {
+      groupLabel: "Collaboration",
+      itemLabel: fallbackItemLabel,
+      title: fallbackItemLabel,
+      subtitle: fallbackSubtitle,
+      searchPlaceholder: "Search conversations, notes, resources, and updates",
+      tabs: pickVisibleTabs(["/app/chat", "/app/notes", "/app/notifications", "/app/resources"], visibleGroups)
+    };
+  }
+
+  if (
+    pathname === "/app/attendance" ||
+    pathname.startsWith("/app/attendance/") ||
+    pathname === "/app/leave" ||
+    pathname.startsWith("/app/leave/") ||
+    pathname === "/app/approvals" ||
+    pathname.startsWith("/app/approvals/") ||
+    pathname === "/app/payroll" ||
+    pathname.startsWith("/app/payroll/") ||
+    pathname === "/app/projects" ||
+    pathname.startsWith("/app/projects/")
+  ) {
+    return {
+      groupLabel: "Operations",
+      itemLabel: fallbackItemLabel,
+      title: fallbackItemLabel,
+      subtitle: fallbackSubtitle,
+      searchPlaceholder: "Search attendance, leave, approvals, payroll, and project workflows",
+      tabs: pickVisibleTabs(["/app/attendance", "/app/leave", "/app/approvals", "/app/payroll", "/app/projects"], visibleGroups)
+    };
+  }
+
+  if (
+    pathname === "/app/analytics" ||
+    pathname.startsWith("/app/analytics/") ||
+    pathname === "/app/settings" ||
+    pathname.startsWith("/app/settings/") ||
+    pathname === "/app/billing" ||
+    pathname.startsWith("/app/billing/") ||
+    pathname === "/app/monitoring" ||
+    pathname.startsWith("/app/monitoring/")
+  ) {
+    return {
+      groupLabel: "Platform",
+      itemLabel: fallbackItemLabel,
+      title: fallbackItemLabel,
+      subtitle: fallbackSubtitle,
+      searchPlaceholder: "Search analytics, settings, billing, and monitoring controls",
+      tabs: pickVisibleTabs(["/app/analytics", "/app/settings", "/app/billing", "/app/monitoring"], visibleGroups)
+    };
+  }
+
+  return {
+    groupLabel: fallbackGroupLabel,
+    itemLabel: fallbackItemLabel,
+    title: fallbackItemLabel,
+    subtitle: fallbackSubtitle,
+    searchPlaceholder: `Search ${fallbackItemLabel.toLowerCase()}, people, workflows, and docs`,
+    tabs: []
+  };
+};
 

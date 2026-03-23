@@ -15,7 +15,7 @@ const getInitialTheme = (): ThemeMode => {
   return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 };
 
-export const ThemeToggle = () => {
+export const ThemeToggle = ({ compact = false }: { compact?: boolean }) => {
   const [theme, setTheme] = useState<ThemeMode>("light");
 
   useEffect(() => {
@@ -32,6 +32,27 @@ export const ThemeToggle = () => {
   };
 
   const isDark = theme === "dark";
+
+  if (compact) {
+    return (
+      <button
+        type="button"
+        role="switch"
+        aria-checked={isDark}
+        aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
+        title={isDark ? "Dark mode" : "Light mode"}
+        onClick={toggle}
+        className={cn(
+          "inline-flex h-11 w-11 items-center justify-center rounded-2xl border text-slate-700 shadow-sm transition",
+          isDark
+            ? "border-sky-400/30 bg-sky-500/10 text-sky-700 hover:border-sky-400/50 hover:bg-sky-500/15 dark:text-sky-200"
+            : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 dark:hover:border-slate-700 dark:hover:bg-slate-900"
+        )}
+      >
+        {isDark ? <MoonStar className="h-4 w-4" /> : <SunMedium className="h-4 w-4" />}
+      </button>
+    );
+  }
 
   return (
     <button
