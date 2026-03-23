@@ -72,7 +72,7 @@ const TopbarSearch = ({
   <button
     type="button"
     className={cn(
-      "flex h-12 w-full items-center justify-between gap-3 rounded-[22px] border border-slate-200/90 bg-white/92 px-4 text-left text-slate-500 shadow-[0_14px_34px_rgba(15,23,42,0.06)] transition hover:border-slate-300 hover:bg-white dark:border-slate-800 dark:bg-slate-950/70 dark:text-slate-300 dark:hover:border-slate-700 dark:hover:bg-slate-900",
+      "flex h-11 w-full items-center justify-between gap-3 rounded-[18px] border border-slate-200/85 bg-white/92 px-4 text-left text-slate-500 shadow-[0_10px_24px_rgba(15,23,42,0.05)] transition hover:border-slate-300 hover:bg-white dark:border-slate-800 dark:bg-slate-950/72 dark:text-slate-300 dark:hover:border-slate-700 dark:hover:bg-slate-900",
       className
     )}
     onClick={() => window.dispatchEvent(new CustomEvent("emp.commandPalette.toggle"))}
@@ -102,16 +102,21 @@ const TopbarTitleBlock = ({
   compact?: boolean;
 }) => (
   <div className="min-w-0">
-    <div className="flex min-w-0 items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+    <div className="flex min-w-0 items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
       <span className="truncate">{groupLabel}</span>
       <ChevronRight className="h-3 w-3 shrink-0" />
       <span className="truncate">{itemLabel}</span>
     </div>
-    <div className={cn("mt-2 space-y-1", compact && "mt-1")}>
-      <h1 className={cn("truncate font-semibold tracking-[-0.04em] text-slate-950 dark:text-slate-50", compact ? "text-lg" : "text-[1.65rem]")}>
+    <div className={cn("mt-1.5 space-y-0.5", compact && "mt-1")}>
+      <h1
+        className={cn(
+          "truncate font-semibold tracking-[-0.04em] text-slate-950 dark:text-slate-50",
+          compact ? "text-base" : "text-[1.18rem] xl:text-[1.34rem]"
+        )}
+      >
         {title}
       </h1>
-      <p className={cn("max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-400", compact && "hidden sm:block")}>
+      <p className={cn("max-w-2xl truncate text-[13px] leading-5 text-slate-500 dark:text-slate-400", compact && "hidden sm:block")}>
         {subtitle}
       </p>
     </div>
@@ -132,8 +137,8 @@ const TopbarProfileMenu = ({
   profileHref: string;
 }) => (
   <details className="group relative">
-    <summary className="flex h-11 cursor-pointer list-none items-center gap-2 rounded-[20px] border border-slate-200 bg-white px-2.5 text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 dark:hover:border-slate-700 dark:hover:bg-slate-900">
-      <span className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-sky-400 via-blue-500 to-indigo-600 text-sm font-semibold text-white">
+    <summary className="flex h-10 cursor-pointer list-none items-center gap-2 rounded-[18px] border border-slate-200 bg-white px-2.5 text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 dark:hover:border-slate-700 dark:hover:bg-slate-900">
+      <span className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-sky-400 via-blue-500 to-indigo-600 text-sm font-semibold text-white">
         {avatarUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={avatarUrl} alt={identityLabel} className="h-full w-full object-cover" />
@@ -141,8 +146,8 @@ const TopbarProfileMenu = ({
           (identityLabel[0] ?? "U").toUpperCase()
         )}
       </span>
-      <span className="hidden min-w-0 xl:block">
-        <span className="block truncate text-sm font-semibold">{identityLabel}</span>
+      <span className="hidden min-w-0 2xl:block">
+        <span className="block max-w-[11rem] truncate text-sm font-semibold">{identityLabel}</span>
       </span>
       <ChevronDown className="h-4 w-4 shrink-0 text-slate-400 transition group-open:rotate-180" />
     </summary>
@@ -188,8 +193,8 @@ const TopbarContextRow = ({
   const pathname = usePathname();
 
   return (
-    <div className="border-t border-slate-200/70 px-4 py-3 dark:border-slate-800/80 sm:px-6">
-      <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+    <div className="border-t border-slate-200/70 px-4 py-2.5 dark:border-slate-800/80 sm:px-6">
+      <div className="flex flex-col gap-2.5 xl:flex-row xl:items-center xl:justify-between">
         <div className="-mx-1 flex items-center gap-2 overflow-x-auto px-1 pb-1">
           {tabs.map((tab) => {
             const active = pathname === tab.href || pathname.startsWith(`${tab.href}/`);
@@ -198,7 +203,7 @@ const TopbarContextRow = ({
                 key={tab.href}
                 href={tab.href}
                 className={cn(
-                  "whitespace-nowrap rounded-full border px-4 py-2 text-sm font-medium transition",
+                  "whitespace-nowrap rounded-full border px-3.5 py-1.5 text-sm font-medium transition",
                   active
                     ? "border-slate-900 bg-slate-950 text-white shadow-sm dark:border-white dark:bg-white dark:text-slate-950"
                     : "border-slate-200 bg-white/88 text-slate-600 hover:border-slate-300 hover:text-slate-950 dark:border-slate-700 dark:bg-slate-950/65 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:text-slate-50"
@@ -209,11 +214,11 @@ const TopbarContextRow = ({
             );
           })}
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 xl:justify-end">
           {chips.map((chip) => (
             <span
               key={chip}
-              className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50/85 px-3 py-1.5 text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-300"
+              className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50/85 px-2.5 py-1 text-[11px] font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-300"
             >
               {chip}
             </span>
@@ -316,7 +321,7 @@ export const Topbar = ({
     }
 
     if (shiftStartTime && shiftEndTime && persona !== "platform_owner") {
-      const shiftSummary = `${shiftStartTime}-${shiftEndTime}${typeof shiftHours === "number" ? ` · ${shiftHours}h` : ""}`;
+      const shiftSummary = `${shiftStartTime}-${shiftEndTime}${typeof shiftHours === "number" ? ` - ${shiftHours}h` : ""}`;
       chips.push(`Shift ${shiftSummary}`);
     }
 
@@ -325,23 +330,24 @@ export const Topbar = ({
       chips.push(`Seen ${Number.isFinite(loginDate.getTime()) ? loginDate.toLocaleDateString() : lastLoginAt}`);
     }
 
-    return chips.slice(0, 4);
+    return chips.slice(0, 3);
   }, [companyId, employeeCode, lastLoginAt, pathname, permissions, persona, role, shiftEndTime, shiftHours, shiftStartTime]);
 
   const profileHref = employeeId ? "/app/profile" : persona === "platform_owner" ? "/platform" : "/app/dashboard";
   const notificationsHref = persona === "platform_owner" ? "/platform" : "/app/notifications";
   const helpHref = persona === "platform_owner" ? "/platform" : "/app/resources";
+  const hasContextRow = headerMeta.tabs.length > 0 || contextChips.length > 0;
 
   return (
-    <header className="sticky top-0 z-30 px-4 pt-4 sm:px-6 lg:px-8">
-      <div className="mx-auto w-full max-w-[1720px]">
-        <div className="overflow-hidden rounded-[30px] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.97),rgba(247,250,255,0.94))] shadow-[0_24px_70px_rgba(15,23,42,0.08)] backdrop-blur-xl dark:border-slate-800/80 dark:bg-[linear-gradient(180deg,rgba(2,6,23,0.94),rgba(8,15,28,0.92))]">
-          <div className="px-4 py-4 sm:px-6">
+    <header className="sticky top-0 z-30 border-b border-slate-200/75 bg-[linear-gradient(180deg,rgba(248,250,255,0.96),rgba(244,247,253,0.92))] backdrop-blur-xl dark:border-slate-800/80 dark:bg-[linear-gradient(180deg,rgba(2,6,23,0.9),rgba(8,15,28,0.86))]">
+      <div className="mx-auto w-full max-w-[1720px] px-4 py-3 sm:px-6 lg:px-8">
+        <div className="overflow-hidden rounded-[24px] border border-slate-200/70 bg-white/78 shadow-[0_12px_34px_rgba(15,23,42,0.05)] dark:border-slate-800/70 dark:bg-slate-950/58">
+          <div className="px-4 py-3 sm:px-5">
             <div className="flex items-center justify-between gap-3 lg:hidden">
               <div className="flex min-w-0 items-center gap-3">
                 <button
                   type="button"
-                  className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-slate-700 dark:hover:bg-slate-900"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-slate-700 dark:hover:bg-slate-900"
                   onClick={onToggleMobileSidebar}
                   aria-label="Open navigation"
                 >
@@ -358,13 +364,13 @@ export const Topbar = ({
               <div className="flex items-center gap-2">
                 <Link
                   href={notificationsHref}
-                  className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-slate-700 dark:hover:bg-slate-900"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-slate-700 dark:hover:bg-slate-900"
                   aria-label="Notifications"
                 >
                   <Bell className="h-4 w-4" />
                 </Link>
                 <details className="relative">
-                  <summary className="flex h-11 w-11 cursor-pointer list-none items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-slate-700 dark:hover:bg-slate-900">
+                  <summary className="flex h-10 w-10 cursor-pointer list-none items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-slate-700 dark:hover:bg-slate-900">
                     <MoreHorizontal className="h-4 w-4" />
                   </summary>
                   <div className="absolute right-0 top-[calc(100%+0.75rem)] z-40 w-48 rounded-[22px] border border-slate-200/90 bg-white/96 p-2 shadow-[0_24px_60px_rgba(15,23,42,0.14)] dark:border-slate-800 dark:bg-slate-950/96">
@@ -398,16 +404,16 @@ export const Topbar = ({
               </div>
             </div>
 
-            <div className="mt-3 lg:hidden">
+            <div className="mt-2.5 lg:hidden">
               <TopbarSearch placeholder={headerMeta.searchPlaceholder} />
             </div>
 
-            <div className="hidden lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(360px,560px)_auto] lg:items-center lg:gap-4">
+            <div className="hidden lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(300px,520px)_auto] lg:items-center lg:gap-4">
               <div className="flex min-w-0 items-center gap-3">
                 {onToggleSidebar ? (
                   <button
                     type="button"
-                    className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-slate-700 dark:hover:bg-slate-900"
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-slate-700 dark:hover:bg-slate-900"
                     onClick={onToggleSidebar}
                     aria-label="Toggle sidebar"
                   >
@@ -427,14 +433,14 @@ export const Topbar = ({
               <div className="flex items-center justify-end gap-2">
                 <Link
                   href={notificationsHref}
-                  className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-slate-700 dark:hover:bg-slate-900"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-slate-700 dark:hover:bg-slate-900"
                   aria-label="Notifications"
                 >
                   <Bell className="h-4 w-4" />
                 </Link>
                 <button
                   type="button"
-                  className="hidden h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-slate-700 dark:hover:bg-slate-900 xl:inline-flex"
+                  className="hidden h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-slate-700 dark:hover:bg-slate-900 xl:inline-flex"
                   onClick={() => window.dispatchEvent(new CustomEvent("emp.commandPalette.open"))}
                   aria-label="Open command palette"
                 >
@@ -442,14 +448,14 @@ export const Topbar = ({
                 </button>
                 <Link
                   href={helpHref}
-                  className="hidden h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-slate-700 dark:hover:bg-slate-900 xl:inline-flex"
+                  className="hidden h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-slate-700 dark:hover:bg-slate-900 xl:inline-flex"
                   aria-label="Help and resources"
                 >
                   <CircleHelp className="h-4 w-4" />
                 </Link>
                 <ThemeToggle compact />
                 <details className="relative xl:hidden">
-                  <summary className="flex h-11 w-11 cursor-pointer list-none items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-slate-700 dark:hover:bg-slate-900">
+                  <summary className="flex h-10 w-10 cursor-pointer list-none items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-slate-700 dark:hover:bg-slate-900">
                     <MoreHorizontal className="h-4 w-4" />
                   </summary>
                   <div className="absolute right-0 top-[calc(100%+0.75rem)] z-40 w-44 rounded-[22px] border border-slate-200/90 bg-white/96 p-2 shadow-[0_24px_60px_rgba(15,23,42,0.14)] dark:border-slate-800 dark:bg-slate-950/96">
@@ -481,7 +487,7 @@ export const Topbar = ({
             </div>
           </div>
 
-          <TopbarContextRow tabs={headerMeta.tabs} chips={contextChips} />
+          {hasContextRow ? <TopbarContextRow tabs={headerMeta.tabs} chips={contextChips} /> : null}
         </div>
       </div>
     </header>

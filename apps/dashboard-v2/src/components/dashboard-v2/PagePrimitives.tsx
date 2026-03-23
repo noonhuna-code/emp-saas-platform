@@ -27,7 +27,12 @@ export const ROLE_ICONS = {
 };
 
 export const PageContainer = ({ children, className }: { children: ReactNode; className?: string }) => (
-  <div className={cn("mx-auto flex w-full max-w-[1680px] flex-col gap-6 px-4 py-4 sm:px-6 sm:py-6 lg:gap-8 lg:px-8", className)}>
+  <div
+    className={cn(
+      "mx-auto flex w-full max-w-[1680px] flex-col gap-5 px-4 pb-6 pt-4 sm:px-6 sm:pb-7 sm:pt-5 lg:gap-6 lg:px-8 lg:pb-8 lg:pt-6",
+      className
+    )}
+  >
     {children}
   </div>
 );
@@ -45,48 +50,33 @@ export const PageHeader = ({
   actions?: ReactNode;
   chips?: string[];
 }) => (
-  <div className="overflow-hidden rounded-[28px] border border-slate-200/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.97),rgba(248,250,255,0.92))] shadow-[0_22px_70px_rgba(15,23,42,0.08)]">
-    <div className="flex flex-col gap-5 px-6 py-6 sm:px-7 lg:flex-row lg:items-start lg:justify-between">
-      <div className="min-w-0 space-y-4">
-        <div className="flex flex-wrap items-center gap-2">
+  <div className="overflow-hidden rounded-[26px] border border-slate-200/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.97),rgba(248,250,255,0.92))] shadow-[0_16px_48px_rgba(15,23,42,0.06)]">
+    <div className="flex flex-col gap-4 px-5 py-5 sm:px-6 sm:py-6 lg:flex-row lg:items-start lg:justify-between">
+      <div className="min-w-0 space-y-3">
+        <div className="flex flex-wrap items-center gap-2.5">
           {eyebrow ? (
             <Badge className="w-fit rounded-full border-blue-200/80 bg-blue-50/90 text-[10px] font-semibold uppercase tracking-[0.24em] text-blue-700">
               {eyebrow}
             </Badge>
           ) : null}
-          <Badge className="w-fit rounded-full border-slate-200 bg-white/90 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">
-            Operational workspace
-          </Badge>
         </div>
-        <div className="space-y-2">
-          <h1 className="max-w-4xl text-[2rem] font-semibold tracking-[-0.04em] text-slate-950 sm:text-[2.35rem]">
+        <div className="space-y-1.5">
+          <h1 className="max-w-4xl text-[1.72rem] font-semibold tracking-[-0.045em] text-slate-950 sm:text-[2rem]">
             {title}
           </h1>
-          {description ? <p className="max-w-3xl text-sm leading-7 text-slate-600 sm:text-[15px]">{description}</p> : null}
+          {description ? <p className="max-w-3xl text-sm leading-6 text-slate-600 sm:text-[15px]">{description}</p> : null}
         </div>
         {chips && chips.length > 0 ? (
           <div className="flex flex-wrap items-center gap-2">
             {chips.map((chip) => (
-              <Badge key={chip} className="rounded-full border border-slate-200 bg-white/88 px-3 py-1.5 text-xs font-medium text-slate-600">
+              <Badge key={chip} className="rounded-full border border-slate-200 bg-white/88 px-3 py-1 text-[11px] font-medium text-slate-600">
                 {chip}
               </Badge>
             ))}
           </div>
         ) : null}
       </div>
-      {actions ? <div className="flex w-full flex-wrap items-center gap-3 lg:w-auto lg:max-w-[34rem] lg:justify-end">{actions}</div> : null}
-    </div>
-    <div className="h-px bg-gradient-to-r from-transparent via-slate-200/80 to-transparent" />
-    <div className="grid gap-3 px-6 py-4 text-sm text-slate-500 sm:px-7 lg:grid-cols-3">
-      <div className="rounded-2xl border border-slate-200/70 bg-white/72 px-4 py-3">
-        Premium shell, role-aware context, and an action-first page structure.
-      </div>
-      <div className="rounded-2xl border border-slate-200/70 bg-white/72 px-4 py-3">
-        Built for queue visibility, clearer handoffs, and auditable navigation across modules.
-      </div>
-      <div className="rounded-2xl border border-slate-200/70 bg-white/72 px-4 py-3">
-        Keeps each workspace calm while routing deeper work into the correct surface.
-      </div>
+      {actions ? <div className="flex w-full flex-wrap items-center gap-3 lg:w-auto lg:max-w-[32rem] lg:justify-end">{actions}</div> : null}
     </div>
   </div>
 );
@@ -130,26 +120,16 @@ export const SurfacePanel = ({
 );
 
 export const FeatureCallout = ({ title, description, badge }: { title: string; description: string; badge?: string }) => (
-  <div className="rounded-[30px] border border-blue-100/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.98),rgba(239,246,255,0.92))] px-6 py-6 shadow-[0_28px_80px_rgba(37,99,235,0.08)]">
-    <div className="grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(240px,0.6fr)] lg:items-start">
-      <div className="space-y-3">
-        {badge ? (
-          <Badge className="rounded-full border-blue-200 bg-white/90 text-[10px] font-semibold uppercase tracking-[0.24em] text-blue-700">
-            {badge}
-          </Badge>
-        ) : null}
-        <div className="space-y-2">
-          <h2 className="max-w-3xl text-[1.85rem] font-semibold tracking-[-0.045em] text-slate-950 sm:text-[2.15rem]">{title}</h2>
-          <p className="max-w-3xl text-sm leading-7 text-slate-600 sm:text-base">{description}</p>
-        </div>
-      </div>
-      <div className="grid gap-3 text-sm text-slate-500">
-        <div className="rounded-2xl border border-white/70 bg-white/78 px-4 py-3">
-          Designed to keep the workspace focused on the next action instead of scattering context across disconnected pages.
-        </div>
-        <div className="rounded-2xl border border-white/70 bg-white/78 px-4 py-3">
-          Pulls role-safe visibility, queues, and ownership signals into a calmer decision layer.
-        </div>
+  <div className="rounded-[28px] border border-blue-100/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.98),rgba(239,246,255,0.92))] px-5 py-5 shadow-[0_18px_56px_rgba(37,99,235,0.07)] sm:px-6 sm:py-6">
+    <div className="space-y-3">
+      {badge ? (
+        <Badge className="rounded-full border-blue-200 bg-white/90 text-[10px] font-semibold uppercase tracking-[0.24em] text-blue-700">
+          {badge}
+        </Badge>
+      ) : null}
+      <div className="space-y-1.5">
+        <h2 className="max-w-3xl text-[1.6rem] font-semibold tracking-[-0.045em] text-slate-950 sm:text-[1.85rem]">{title}</h2>
+        <p className="max-w-3xl text-sm leading-6 text-slate-600 sm:text-[15px]">{description}</p>
       </div>
     </div>
   </div>

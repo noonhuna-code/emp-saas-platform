@@ -1,14 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useState, type ReactNode } from "react";
 import {
-  ArrowUpRight,
-  Command,
-  Compass,
   PanelLeftClose,
   PanelLeftOpen,
-  ShieldCheck
 } from "lucide-react";
 import { NavSection } from "@/components/shell/NavSection";
 import { CommandPalette } from "@/components/shell/CommandPalette";
@@ -70,7 +65,7 @@ export const PlatformShell = ({
           <aside
             className={cn(
               "fixed inset-y-0 left-0 z-40 flex h-dvh shrink-0 flex-col overflow-hidden border-r border-sky-300/10 bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.18),transparent_24%),radial-gradient(circle_at_bottom_left,rgba(37,99,235,0.14),transparent_32%),linear-gradient(180deg,#050b18_0%,#081224_48%,#0b1730_100%)] text-white shadow-[20px_0_50px_rgba(2,6,23,0.24)] transition-transform duration-200 lg:sticky lg:top-0 lg:z-20 lg:translate-x-0",
-              collapsed ? "w-24 lg:w-24" : "w-[302px] lg:w-[302px]",
+              collapsed ? "w-24 lg:w-24" : "w-[328px] lg:w-[328px]",
               mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
             )}
           >
@@ -78,7 +73,7 @@ export const PlatformShell = ({
               <div className={cn("flex items-start justify-between gap-3", collapsed && "justify-center")}>
                 <div className={cn("min-w-0", collapsed ? "flex justify-center" : "space-y-4")}>
                   {!collapsed ? (
-                    <div className="inline-flex min-h-8 items-center rounded-full border border-sky-300/18 bg-sky-400/10 px-3 text-[10px] font-semibold uppercase tracking-[0.24em] text-sky-100/82">
+                    <div className="inline-flex min-h-7 items-center rounded-full border border-sky-300/18 bg-sky-400/10 px-3 text-[10px] font-semibold uppercase tracking-[0.24em] text-sky-100/82">
                       Platform oversight
                     </div>
                   ) : null}
@@ -90,9 +85,9 @@ export const PlatformShell = ({
 
                     {!collapsed ? (
                       <div className="min-w-0 space-y-1">
-                        <div className="text-[1.72rem] font-semibold tracking-[-0.08em] text-white">EMP OS V2</div>
-                        <div className="max-w-[16rem] text-sm leading-6 text-slate-400">
-                          Cross-tenant governance, billing, and platform health with calmer control lanes.
+                        <div className="text-[1.7rem] font-semibold tracking-[-0.08em] text-white">EMP OS V2</div>
+                        <div className="max-w-[16rem] text-[13px] leading-5 text-slate-400">
+                          Platform workspace
                         </div>
                       </div>
                     ) : null}
@@ -112,63 +107,17 @@ export const PlatformShell = ({
 
             <div className="min-h-0 flex-1 overflow-hidden">
               <div className="emp-shell-scrollbar h-full min-h-0 overflow-y-auto overscroll-contain px-3 py-4">
-                <div className="space-y-5">
+                <div className="space-y-4">
                   {!collapsed ? (
-                    <>
-                      <section className="space-y-3 rounded-[1.6rem] border border-white/8 bg-white/[0.035] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-                        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.22em] text-sky-100/55">
-                          <Compass className="h-4 w-4 text-sky-300/80" />
-                          Platform posture
-                        </div>
-                        <div className="grid gap-2">
-                          {["Cross-tenant scope", "Governance ready", "Billing signal lane"].map((entry) => (
-                            <div
-                              key={entry}
-                              className="rounded-2xl border border-white/8 bg-white/[0.045] px-3 py-3 text-sm font-medium text-slate-200"
-                            >
-                              {entry}
-                            </div>
-                          ))}
-                        </div>
-                      </section>
-
-                      <div className="rounded-[1.6rem] border border-white/8 bg-white/[0.03] px-4 py-3">
-                        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.22em] text-sky-100/55">
-                          <ShieldCheck className="h-4 w-4 text-sky-300/80" />
-                          Control model
-                        </div>
-                        <p className="mt-2 text-sm leading-6 text-slate-400">
-                          Keep monitoring, subscriptions, governance, and platform settings inside one premium command rail.
-                        </p>
-                      </div>
-                    </>
+                    <div className="rounded-[1.25rem] border border-white/8 bg-white/[0.035] px-3 py-2.5 text-[11px] font-medium text-slate-300">
+                      Platform command
+                    </div>
                   ) : null}
 
                   <NavSection groups={PLATFORM_NAVIGATION_GROUPS} collapsed={collapsed} onNavigate={() => setMobileOpen(false)} />
                 </div>
               </div>
             </div>
-
-            {!collapsed ? (
-              <div className="border-t border-white/8 px-4 py-4">
-                <div className="rounded-[1.6rem] border border-white/8 bg-white/[0.035] p-4">
-                  <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.22em] text-sky-100/55">
-                    <Command className="h-4 w-4 text-sky-300/85" />
-                    Shell quality
-                  </div>
-                  <p className="mt-3 text-sm leading-6 text-slate-400">
-                    Global oversight stays compact, role-safe, and easier to scan under heavy platform density.
-                  </p>
-                  <Link
-                    href="https://emp-saas-platform.vercel.app/sign-in"
-                    className="mt-4 inline-flex items-center rounded-full border border-sky-300/15 bg-sky-400/10 px-3 py-1.5 text-[11px] font-medium text-sky-100 transition hover:border-sky-300/25 hover:bg-sky-400/14"
-                  >
-                    Public sign in
-                    <ArrowUpRight className="ml-1.5 h-3.5 w-3.5" />
-                  </Link>
-                </div>
-              </div>
-            ) : null}
           </aside>
 
           <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
