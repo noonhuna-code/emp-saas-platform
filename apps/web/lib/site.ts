@@ -66,7 +66,7 @@ export const siteConfig = {
     {
       title: "Access",
       links: [
-        { href: `${dashboardUrl}/login`, label: "Sign in" },
+        { href: "/sign-in", label: "Sign in" },
         { href: "/sign-up", label: "Sign up" },
         { href: "/demo", label: "Book demo" }
       ]
@@ -96,4 +96,9 @@ export function buildDashboardUrl(path = "/app/dashboard") {
 export function buildDashboardLoginUrl(next = "/app/dashboard") {
   const safeNext = next.startsWith("/") ? next : "/app/dashboard";
   return `${siteConfig.dashboardUrl}/login?next=${encodeURIComponent(safeNext)}`;
+}
+
+export function buildDashboardAuthActionUrl(path = "/api/auth/login") {
+  const safePath = path.startsWith("/") ? path : "/api/auth/login";
+  return `${siteConfig.dashboardUrl}${safePath}`;
 }

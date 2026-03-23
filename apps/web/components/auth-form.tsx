@@ -7,9 +7,11 @@ type AuthMode = "sign-in" | "sign-up";
 
 type AuthFormProps = {
   mode: AuthMode;
+  actionUrl?: string;
+  nextPath?: string;
 };
 
-export function AuthForm({ mode }: AuthFormProps) {
+export function AuthForm({ mode, actionUrl, nextPath = "/app/dashboard" }: AuthFormProps) {
   const [submitted, setSubmitted] = useState<string | null>(null);
   const isSignIn = mode === "sign-in";
 
@@ -59,19 +61,26 @@ export function AuthForm({ mode }: AuthFormProps) {
           </div>
 
           <form
+            action={isSignIn ? actionUrl : undefined}
             className="grid gap-5"
-            onSubmit={(event) => {
-              event.preventDefault();
-              const formData = new FormData(event.currentTarget);
-              const name = String(
-                formData.get(isSignIn ? "email" : "fullName") ?? ""
-              ).trim();
+            method={isSignIn ? "post" : undefined}
+            onSubmit={
+              isSignIn
+                ? undefined
+                : (event) => {
+                    event.preventDefault();
+                    const formData = new FormData(event.currentTarget);
+                    const name = String(
+                      formData.get(isSignIn ? "email" : "fullName") ?? ""
+                    ).trim();
 
-              setSubmitted(name || "there");
+                    setSubmitted(name || "there");
 
-              event.currentTarget.reset();
-            }}
+                    event.currentTarget.reset();
+                  }
+            }
           >
+            {isSignIn ? <input type="hidden" name="next" value={nextPath} /> : null}
             {!isSignIn ? (
               <label className="grid gap-2">
                 <span className="text-sm font-medium text-slate-700">Full name</span>

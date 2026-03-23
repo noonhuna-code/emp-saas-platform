@@ -3,7 +3,7 @@
 import { BrandLogo } from "@/components/brand-logo";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { buildDashboardLoginUrl, siteConfig } from "@/lib/site";
+import { siteConfig } from "@/lib/site";
 
 export function Navbar() {
   const pathname = usePathname();
@@ -51,7 +51,7 @@ export function Navbar() {
                     ? "bg-white text-slate-950 shadow-[0_10px_30px_rgba(15,23,42,0.08)]"
                     : "text-slate-700 hover:bg-white hover:text-slate-950"
                 }`}
-                href={buildDashboardLoginUrl()}
+                href="/sign-in"
               >
                 Sign in
               </Link>
@@ -100,7 +100,7 @@ export function Navbar() {
                         ? "bg-slate-950 text-white"
                         : "text-slate-700 hover:bg-slate-50 hover:text-slate-950"
                     }`}
-                    href={buildDashboardLoginUrl()}
+                    href="/sign-in"
                   >
                     Sign in
                   </Link>

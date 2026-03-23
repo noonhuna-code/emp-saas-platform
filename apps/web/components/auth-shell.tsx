@@ -8,6 +8,8 @@ type AuthShellProps = {
   title: ReactNode;
   description: string;
   bullets: string[];
+  formAction?: string;
+  nextPath?: string;
 };
 
 export function AuthShell({
@@ -15,7 +17,9 @@ export function AuthShell({
   eyebrow,
   title,
   description,
-  bullets
+  bullets,
+  formAction,
+  nextPath
 }: AuthShellProps) {
   return (
     <section className="section pt-6">
@@ -58,7 +62,7 @@ export function AuthShell({
             </div>
           </div>
 
-          <AuthForm mode={mode} />
+          <AuthForm mode={mode} actionUrl={formAction} nextPath={nextPath} />
         </div>
       </div>
     </section>
