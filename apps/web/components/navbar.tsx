@@ -59,7 +59,7 @@ export function Navbar() {
                 data-analytics-action="primary-cta"
                 data-analytics-location="navbar"
                 className="inline-flex items-center rounded-full bg-slate-950 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_14px_40px_rgba(15,23,42,0.14)] transition hover:bg-slate-800"
-                href="/contact"
+                href="/demo"
               >
                 Book Demo
               </Link>
@@ -115,7 +115,7 @@ export function Navbar() {
                     data-analytics-action="primary-cta"
                     data-analytics-location="mobile-navbar"
                     className="mt-2 inline-flex items-center justify-center rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white shadow-[0_14px_40px_rgba(15,23,42,0.14)] transition hover:bg-slate-800"
-                    href="/contact"
+                    href="/demo"
                   >
                     Book Demo
                   </Link>

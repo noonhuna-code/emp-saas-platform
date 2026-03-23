@@ -79,7 +79,7 @@ export default function SecurityPage() {
           { label: "Security" }
         ]}
         actions={[
-          { href: "/contact", label: "Book Demo" },
+          { href: "/demo", label: "Book Demo" },
           { href: "/product", label: "Review product" }
         ]}
         aside={<SecurityAside />}
@@ -213,7 +213,7 @@ export default function SecurityPage() {
         eyebrow="Review security in context"
         title="Use a live walkthrough to pressure-test permissions, governance, and rollout expectations."
         description="We can focus the conversation on employee records, approval routing, admin controls, and the operating complexity your team needs to manage safely."
-        primary={{ href: "/contact", label: "Book Demo" }}
+        primary={{ href: "/demo", label: "Book Demo" }}
         secondary={{ href: "/docs", label: "Browse docs" }}
       />
     </>

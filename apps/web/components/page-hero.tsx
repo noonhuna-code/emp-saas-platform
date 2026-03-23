@@ -25,18 +25,18 @@ export function PageHero({
 }: PageHeroProps) {
   return (
     <section className="section relative overflow-hidden">
-      <div className="absolute inset-x-0 top-0 -z-10 h-80 bg-[radial-gradient(circle_at_top,rgba(14,116,144,0.14),transparent_60%)]" />
-      <div className="absolute inset-x-0 top-8 -z-10 h-72 bg-[linear-gradient(90deg,rgba(255,255,255,0.36),transparent_22%,transparent_78%,rgba(255,255,255,0.2))]" />
+      <div className="absolute inset-x-0 top-0 -z-10 h-96 bg-[radial-gradient(circle_at_top,rgba(14,116,144,0.12),transparent_55%)]" />
+      <div className="absolute inset-x-0 top-12 -z-10 h-72 bg-[linear-gradient(90deg,rgba(255,255,255,0.46),transparent_18%,transparent_82%,rgba(255,255,255,0.18))]" />
       <div className="container">
         {breadcrumbs ? (
           <div className="mb-8">
             <Breadcrumbs items={breadcrumbs} />
           </div>
         ) : null}
-        <div className="grid gap-8 lg:gap-10 xl:grid-cols-[minmax(0,1fr)_460px] xl:items-center xl:gap-14">
+        <div className="grid gap-8 lg:gap-12 xl:grid-cols-[minmax(0,1fr)_430px] xl:items-start xl:gap-16">
           <div className="max-w-3xl">
             <p className="eyebrow">{eyebrow}</p>
-            <h1 className="mt-4 text-balance text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl lg:text-5xl xl:text-6xl">
+            <h1 className="mt-5 text-balance text-4xl font-semibold tracking-tight text-slate-950 sm:text-5xl lg:text-6xl xl:text-[4.4rem] xl:leading-[1.02]">
               {title}
             </h1>
             <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-600 sm:text-xl">
@@ -61,12 +61,12 @@ export function PageHero({
                 ))}
               </div>
             ) : null}
-            <div className="mt-5 flex flex-wrap gap-2 gap-y-3">
-              {["Premium product walkthrough", "Security-aware evaluation", "Soft pricing discussion"].map(
+            <div className="mt-6 grid gap-3 sm:grid-cols-3">
+              {["Operational product walkthrough", "Pricing grounded in rollout scope", "Security and governance review"].map(
                 (item) => (
                   <span
                     key={item}
-                    className="rounded-full border border-slate-200 bg-white/85 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-600 shadow-[0_8px_24px_rgba(15,23,42,0.04)] sm:text-[11px] sm:tracking-[0.18em]"
+                    className="rounded-[1.2rem] border border-slate-200 bg-white/88 px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-600 shadow-[0_8px_24px_rgba(15,23,42,0.04)]"
                   >
                     {item}
                   </span>
@@ -74,7 +74,7 @@ export function PageHero({
               )}
             </div>
           </div>
-          {aside ? <div className="xl:max-w-[460px] xl:justify-self-end">{aside}</div> : null}
+          {aside ? <div className="xl:sticky xl:top-28 xl:max-w-[430px] xl:justify-self-end">{aside}</div> : null}
         </div>
       </div>
     </section>

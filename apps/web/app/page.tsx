@@ -4,7 +4,9 @@ import { CTASection } from "@/components/cta-section";
 import { FAQList } from "@/components/faq-list";
 import { FounderSection } from "@/components/founder-section";
 import { HeroVisual } from "@/components/hero-visual";
+import { IntegrationGrid } from "@/components/integration-grid";
 import { JsonLd } from "@/components/json-ld";
+import { OperatingSystemMap } from "@/components/operating-system-map";
 import { PlatformSnapshot } from "@/components/platform-snapshot";
 import { RelatedSolutions } from "@/components/related-solutions";
 import { SectionHeading } from "@/components/section-heading";
@@ -12,10 +14,16 @@ import {
   comparisonPoints,
   getSeoClusterLinks,
   homeFaqs,
+  homepageProofStrip,
+  implementationJourney,
+  integrationCategories,
   operatingCoverage,
+  operatingModelLayers,
   pricingTiers,
   proofSectors,
   roleBenefits,
+  supportCards,
+  trustSignals,
   valueStrip,
   workflowSteps
 } from "@/lib/content";
@@ -91,7 +99,7 @@ export default function HomePage() {
               <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:flex-wrap">
                 <Link
                   className="inline-flex w-full items-center justify-center rounded-full bg-slate-950 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 sm:w-auto"
-                  href="/contact"
+                  href="/demo"
                 >
                   Book Demo
                 </Link>
@@ -161,6 +169,37 @@ export default function HomePage() {
                 <p className="mt-3 text-sm leading-7 text-slate-600">{item.body}</p>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="section pt-0">
+        <div className="container">
+          <div className="rounded-[2rem] border border-slate-200/80 bg-white/82 p-6 shadow-[0_22px_80px_rgba(15,23,42,0.06)] backdrop-blur sm:p-8">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div className="max-w-2xl">
+                <p className="eyebrow">What buyers want to verify early</p>
+                <h2 className="mt-4 text-balance text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
+                  The same site should prove product scope, rollout realism, and operational depth quickly.
+                </h2>
+              </div>
+              <Link
+                className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-950 transition hover:border-slate-950"
+                href="/demo"
+              >
+                Book a walkthrough
+              </Link>
+            </div>
+            <div className="mt-8 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              {homepageProofStrip.map((item) => (
+                <div
+                  key={item}
+                  className="rounded-[1.4rem] border border-slate-200 bg-slate-50/90 px-4 py-4 text-sm font-medium leading-7 text-slate-700"
+                >
+                  {item}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
@@ -272,15 +311,31 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="section">
+      <OperatingSystemMap
+        description="EMP works best when company structure, approvals, day-to-day workforce workflows, and leadership visibility all follow the same operating model instead of being rebuilt in separate tools."
+        layers={operatingModelLayers}
+        eyebrow="How EMP works together"
+        title="Start with the company structure, then let every workflow inherit the same system."
+      />
+
+      <section className="section pt-0">
         <div className="container">
-          <SectionHeading
-            eyebrow="Platform coverage"
-            title="The same platform holds the workflows that usually get separated."
-            description="Employee records, approval routing, attendance review, leave management, payroll visibility, and workforce analytics can all stay tied to the same structure."
-          />
-          <div className="mt-10 rounded-[2rem] border border-slate-200/80 bg-white/82 p-6 shadow-[0_22px_80px_rgba(15,23,42,0.06)] backdrop-blur sm:p-8">
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="rounded-[2rem] border border-slate-200/80 bg-white/82 p-6 shadow-[0_22px_80px_rgba(15,23,42,0.06)] backdrop-blur sm:p-8">
+            <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+              <div className="max-w-2xl">
+                <p className="eyebrow">Platform coverage</p>
+                <h2 className="mt-4 text-balance text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
+                  The workflows buyers usually compare can still stay tied to one operating layer.
+                </h2>
+              </div>
+              <Link
+                className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-950 transition hover:border-slate-950 lg:self-start"
+                href="/modules"
+              >
+                Review modules
+              </Link>
+            </div>
+            <div className="mt-8 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               {operatingCoverage.map((item) => (
                 <div
                   key={item}
@@ -290,6 +345,27 @@ export default function HomePage() {
                 </div>
               ))}
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="section pt-0">
+        <div className="container">
+          <SectionHeading
+            eyebrow="Integrations and automation"
+            title="Keep EMP connected to the tools teams already rely on."
+            description="Messaging, identity, work tracking, exports, and internal automation should support the operating model, not break it into disconnected systems."
+          />
+          <div className="mt-10">
+            <IntegrationGrid categories={integrationCategories.slice(0, 4)} />
+          </div>
+          <div className="mt-6 flex justify-start">
+            <Link
+              className="inline-flex items-center rounded-full border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-950 transition hover:border-slate-950"
+              href="/integrations"
+            >
+              Explore integrations
+            </Link>
           </div>
         </div>
       </section>
@@ -434,6 +510,85 @@ export default function HomePage() {
         </div>
       </section>
 
+      <section className="section pt-0">
+        <div className="container">
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-start">
+            <div className="rounded-[2rem] border border-slate-900/10 bg-slate-950 p-8 text-white shadow-[0_30px_120px_rgba(15,23,42,0.18)]">
+              <p className="eyebrow !border-white/15 !bg-white/8 !text-slate-200">
+                Trust and buying posture
+              </p>
+              <h2 className="mt-4 text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
+                The public site should feel like the same calm operating standard as the product.
+              </h2>
+              <p className="mt-5 text-lg leading-8 text-slate-300">
+                That means clear pricing expectations, direct founder access when buyers need it,
+                and a product story grounded in records, approvals, governance, and rollout reality.
+              </p>
+              <div className="mt-8 flex flex-wrap gap-3">
+                <Link
+                  className="inline-flex items-center rounded-full bg-white px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-slate-100"
+                  href="/company"
+                >
+                  Read the company note
+                </Link>
+                <Link
+                  className="inline-flex items-center rounded-full border border-white/15 bg-white/5 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
+                  href="/pricing"
+                >
+                  Review pricing approach
+                </Link>
+              </div>
+            </div>
+            <div className="grid gap-5 md:grid-cols-3">
+              {trustSignals.map((signal) => (
+                <article
+                  key={signal.title}
+                  className="rounded-[1.75rem] border border-slate-200/80 bg-white/85 p-6 shadow-[0_18px_60px_rgba(15,23,42,0.05)]"
+                >
+                  <h2 className="text-xl font-semibold text-slate-950">{signal.title}</h2>
+                  <p className="mt-4 text-base leading-7 text-slate-600">{signal.body}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="section pt-0">
+        <div className="container">
+          <SectionHeading
+            eyebrow="Implementation and rollout"
+            title="A rollout story buyers can believe."
+            description="EMP works best when setup, approvals, permissions, and adoption are sequenced around the operating model your teams actually use."
+          />
+          <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+            {implementationJourney.map((step, index) => (
+              <article
+                key={step.title}
+                className="rounded-[1.75rem] border border-slate-200/80 bg-white/85 p-6 shadow-[0_18px_60px_rgba(15,23,42,0.05)]"
+              >
+                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-teal-700">
+                  Step 0{index + 1}
+                </p>
+                <h2 className="mt-4 text-xl font-semibold text-slate-950">{step.title}</h2>
+                <p className="mt-3 text-base leading-7 text-slate-600">{step.body}</p>
+              </article>
+            ))}
+          </div>
+          <div className="mt-6 grid gap-5 lg:grid-cols-3">
+            {supportCards.map((item) => (
+              <article
+                key={item.title}
+                className="rounded-[1.75rem] border border-slate-900/10 bg-slate-950 p-6 text-white shadow-[0_24px_80px_rgba(15,23,42,0.16)]"
+              >
+                <h2 className="text-xl font-semibold">{item.title}</h2>
+                <p className="mt-4 text-base leading-7 text-slate-300">{item.body}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <RelatedSolutions
         eyebrow="Start with your use case"
         title="Explore the workflows buyers usually ask about first."
@@ -463,7 +618,7 @@ export default function HomePage() {
         eyebrow="See EMP in action"
         title="Bring employee records, approvals, and workforce visibility into one system your team can actually run."
         description="If you are replacing spreadsheets, disconnected HR tools, or improvised manager workflows, EMP gives you a clearer way to run the work."
-        primary={{ href: "/contact", label: "Book Demo" }}
+        primary={{ href: "/demo", label: "Book Demo" }}
         secondary={{ href: "/pricing", label: "Review pricing approach" }}
       />
     </>

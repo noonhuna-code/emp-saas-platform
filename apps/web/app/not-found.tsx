@@ -22,7 +22,7 @@ export default function NotFound() {
             </Link>
             <Link
               className="inline-flex items-center rounded-full border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-950 transition hover:border-slate-950"
-              href="/contact"
+              href="/demo"
             >
               Book demo
             </Link>

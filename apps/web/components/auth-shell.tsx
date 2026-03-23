@@ -51,7 +51,7 @@ export function AuthShell({
                 <Link className="text-sm font-semibold text-slate-950 underline" href="/security">
                   Review security
                 </Link>
-                <Link className="text-sm font-semibold text-slate-950 underline" href="/contact">
+                <Link className="text-sm font-semibold text-slate-950 underline" href="/demo">
                   Book a rollout demo
                 </Link>
               </div>

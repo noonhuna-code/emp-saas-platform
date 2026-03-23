@@ -16,9 +16,9 @@ export const siteConfig = {
   nav: [
     { href: "/product", label: "Product" },
     { href: "/modules", label: "Modules" },
+    { href: "/integrations", label: "Integrations" },
     { href: "/pricing", label: "Pricing" },
-    { href: "/security", label: "Security" },
-    { href: "/docs", label: "Docs" }
+    { href: "/security", label: "Security" }
   ],
   footerNav: [
     {
@@ -26,6 +26,7 @@ export const siteConfig = {
       links: [
         { href: "/product", label: "Product overview" },
         { href: "/modules", label: "Module breakdown" },
+        { href: "/integrations", label: "Integrations" },
         { href: "/pricing", label: "Pricing approach" },
         { href: "/employee-management-software", label: "Employee management guide" }
       ]
@@ -41,11 +42,12 @@ export const siteConfig = {
       ]
     },
     {
-      title: "Support",
+      title: "Company",
       links: [
-        { href: "/contact", label: "Book demo" },
-        { href: "/docs", label: "Docs and help" },
-        { href: "/security", label: "Security" }
+        { href: "/company", label: "Why EMP exists" },
+        { href: "/demo", label: "Book demo" },
+        { href: "/contact", label: "Contact" },
+        { href: "/docs", label: "Docs and help" }
       ]
     },
     {
@@ -61,20 +63,21 @@ export const siteConfig = {
       links: [
         { href: "/sign-in", label: "Sign in" },
         { href: "/sign-up", label: "Sign up" },
-        { href: "/contact", label: "Book demo" }
+        { href: "/demo", label: "Book demo" }
       ]
     }
   ],
   footerMetaLinks: [
+    { href: "/company", label: "Company" },
     { href: "/privacy-policy", label: "Privacy" },
     { href: "/terms-of-service", label: "Terms" },
     { href: "/security", label: "Security" },
     { href: "/docs", label: "Docs" }
   ],
   trustBadges: [
-    "Founder-led support",
-    "Security review available",
-    "Guided demos"
+    "Founder-led product",
+    "Guided rollout reviews",
+    "Security conversations available"
   ]
 } as const;
 

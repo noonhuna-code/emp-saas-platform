@@ -78,7 +78,7 @@ export default function DocsPage() {
           { label: "Docs / Help" }
         ]}
         actions={[
-          { href: "/contact", label: "Book Demo" },
+          { href: "/demo", label: "Book Demo" },
           { href: "/product", label: "View Product" }
         ]}
         aside={<DocsAside />}
@@ -182,7 +182,7 @@ export default function DocsPage() {
           <div className="mt-8 rounded-[1.75rem] border border-slate-200/80 bg-slate-950 px-6 py-5 text-white">
             <p className="text-base leading-8 text-slate-300">
               Need to talk through rollout details instead of reading first?{" "}
-              <Link className="font-semibold text-white underline" href="/contact">
+              <Link className="font-semibold text-white underline" href="/demo">
                 Book a guided demo
               </Link>
               .
@@ -195,7 +195,7 @@ export default function DocsPage() {
         eyebrow="Ready to evaluate fit"
         title="Use documentation, rollout guidance, and a live demo together."
         description="That combination gives buyers confidence that EMP is serious about implementation, not just feature claims."
-        primary={{ href: "/contact", label: "Book Demo" }}
+        primary={{ href: "/demo", label: "Book Demo" }}
         secondary={{ href: "/security", label: "Review security" }}
       />
     </>

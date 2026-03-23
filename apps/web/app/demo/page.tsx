@@ -5,36 +5,36 @@ import { breadcrumbSchema, faqSchema, softwareApplicationSchema } from "@/lib/sc
 import { contactFaqs } from "@/lib/content";
 
 export const metadata = buildMetadata({
-  title: "Contact",
+  title: "Book Demo",
   description:
-    "Contact the EMP team, ask product questions, and start a practical conversation about demos, rollout planning, and workforce operations fit.",
-  path: "/contact",
+    "Book an EMP demo and review how employee records, approvals, attendance, leave, payroll visibility, and rollout planning fit your organization.",
+  path: "/demo",
   keywords: [
-    "contact emp workforce os",
-    "contact workforce software team",
-    "employee management contact",
-    "workforce operations support"
+    "book workforce software demo",
+    "employee management demo",
+    "workforce operations demo",
+    "request emp demo"
   ]
 });
 
-export default function ContactPage() {
+export default function DemoPage() {
   return (
     <>
       <JsonLd
         data={[
           softwareApplicationSchema(
-            "EMP Contact",
-            "Contact page for demos, support questions, and product evaluation conversations.",
-            "/contact"
+            "EMP Demo",
+            "Demo request page for guided EMP evaluations and rollout-fit conversations.",
+            "/demo"
           ),
           breadcrumbSchema([
             { name: "Home", path: "/" },
-            { name: "Contact", path: "/contact" }
+            { name: "Book Demo", path: "/demo" }
           ]),
           faqSchema(contactFaqs)
         ]}
       />
-      <DemoPageScreen mode="contact" />
+      <DemoPageScreen mode="demo" />
     </>
   );
 }

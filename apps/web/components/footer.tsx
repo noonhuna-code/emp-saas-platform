@@ -33,7 +33,7 @@ export function Footer() {
               <div className="flex flex-wrap gap-3">
                 <Link
                   className="inline-flex items-center rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
-                  href="/contact"
+                  href="/demo"
                 >
                   Book demo
                 </Link>
@@ -82,6 +82,9 @@ export function Footer() {
                 Reach out directly for demos, rollout planning, or product questions about how EMP
                 fits your company structure and approval model.
               </p>
+              <Link className="mt-4 inline-flex text-sm font-semibold text-slate-950 underline" href="/company">
+                Read why EMP exists
+              </Link>
             </div>
           </div>
 
