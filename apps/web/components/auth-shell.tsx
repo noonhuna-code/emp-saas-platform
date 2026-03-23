@@ -10,6 +10,7 @@ type AuthShellProps = {
   bullets: string[];
   formAction?: string;
   nextPath?: string;
+  showForm?: boolean;
 };
 
 export function AuthShell({
@@ -19,12 +20,13 @@ export function AuthShell({
   description,
   bullets,
   formAction,
-  nextPath
+  nextPath,
+  showForm = true
 }: AuthShellProps) {
   return (
-    <section className="section pt-6">
+    <section className={showForm ? "section pt-6" : "section-tight pt-2"}>
       <div className="container">
-        <div className="grid gap-8 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] xl:items-start">
+        <div className={showForm ? "grid gap-8 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] xl:items-start" : "max-w-3xl"}>
           <div className="space-y-6">
             <div className="max-w-xl">
               <p className="eyebrow">{eyebrow}</p>
@@ -62,7 +64,7 @@ export function AuthShell({
             </div>
           </div>
 
-          <AuthForm mode={mode} actionUrl={formAction} nextPath={nextPath} />
+          {showForm ? <AuthForm mode={mode} actionUrl={formAction} nextPath={nextPath} /> : null}
         </div>
       </div>
     </section>

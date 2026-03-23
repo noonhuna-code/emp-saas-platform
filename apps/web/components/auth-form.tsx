@@ -48,16 +48,41 @@ export function AuthForm({ mode, actionUrl, nextPath = "/app/dashboard" }: AuthF
         </div>
       ) : (
         <>
-          <div className="mb-6">
-            <p className="eyebrow">{isSignIn ? "Access EMP" : "Create workspace access"}</p>
-            <h2 className="mt-4 text-2xl font-semibold tracking-tight text-slate-950">
-              {isSignIn ? "Sign in to your EMP workspace." : "Start a guided EMP workspace setup."}
-            </h2>
-            <p className="mt-3 text-base leading-7 text-slate-600">
+          <div className="mb-6 space-y-5">
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <Link
+                className={`inline-flex min-h-10 items-center rounded-full border px-4 text-sm font-semibold transition ${
+                  isSignIn
+                    ? "border-slate-950 bg-slate-950 text-white"
+                    : "border-slate-200 bg-white text-slate-600 hover:border-slate-950 hover:text-slate-950"
+                }`}
+                href="/sign-in"
+              >
+                Sign in
+              </Link>
+              <Link
+                className={`inline-flex min-h-10 items-center rounded-full border px-4 text-sm font-semibold transition ${
+                  isSignIn
+                    ? "border-slate-200 bg-white text-slate-600 hover:border-slate-950 hover:text-slate-950"
+                    : "border-slate-950 bg-slate-950 text-white"
+                }`}
+                href="/sign-up"
+              >
+                Sign up
+              </Link>
+            </div>
+
+            <div>
+              <p className="eyebrow">{isSignIn ? "Access EMP" : "Create workspace access"}</p>
+              <h2 className="mt-4 text-2xl font-semibold tracking-tight text-slate-950">
+                {isSignIn ? "Sign in to your EMP workspace." : "Start a guided EMP workspace setup."}
+              </h2>
+              <p className="mt-3 text-base leading-7 text-slate-600">
               {isSignIn
                 ? "Use your work credentials to access the EMP workspace."
                 : "Request account access to begin a guided EMP workspace setup."}
-            </p>
+              </p>
+            </div>
           </div>
 
           <form
@@ -152,26 +177,6 @@ export function AuthForm({ mode, actionUrl, nextPath = "/app/dashboard" }: AuthF
               {isSignIn ? "Sign in" : "Create account"}
             </button>
           </form>
-
-          <div className="mt-6 rounded-[1.5rem] border border-slate-200 bg-white/85 px-5 py-4 text-sm leading-7 text-slate-600">
-            {isSignIn ? (
-              <>
-                Need access for the first time?{" "}
-                <Link className="font-semibold text-slate-950 underline" href="/sign-up">
-                  Create your account
-                </Link>
-                .
-              </>
-            ) : (
-              <>
-                Already invited to EMP?{" "}
-                <Link className="font-semibold text-slate-950 underline" href="/sign-in">
-                  Sign in here
-                </Link>
-                .
-              </>
-            )}
-          </div>
         </>
       )}
     </div>

@@ -1,6 +1,7 @@
 import { JsonLd } from "@/components/json-ld";
 import { PageHero } from "@/components/page-hero";
 import { AuthShell } from "@/components/auth-shell";
+import { AuthForm } from "@/components/auth-form";
 import type { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo";
 import { breadcrumbSchema, softwareApplicationSchema } from "@/lib/schema";
@@ -57,6 +58,7 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
           { label: "Home", href: "/" },
           { label: "Sign in" }
         ]}
+        aside={<AuthForm mode="sign-in" actionUrl={buildDashboardAuthActionUrl("/api/auth/login")} nextPath={nextPath} />}
       />
 
       <AuthShell
@@ -76,6 +78,7 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
         ]}
         formAction={buildDashboardAuthActionUrl("/api/auth/login")}
         nextPath={nextPath}
+        showForm={false}
       />
     </>
   );

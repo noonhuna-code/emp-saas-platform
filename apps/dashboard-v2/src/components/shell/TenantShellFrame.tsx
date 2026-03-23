@@ -109,8 +109,8 @@ export const TenantShellFrame = ({
   };
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,#f8fbff_0%,#eef4ff_42%,#e7eef9_100%)] text-slate-950 dark:bg-[radial-gradient(circle_at_top,#081325_0%,#050b16_42%,#02050b_100%)] dark:text-slate-50">
-      <div className="flex min-h-screen">
+    <div className="h-dvh overflow-hidden bg-[radial-gradient(circle_at_top,#f8fbff_0%,#eef4ff_42%,#e7eef9_100%)] text-slate-950 dark:bg-[radial-gradient(circle_at_top,#081325_0%,#050b16_42%,#02050b_100%)] dark:text-slate-50">
+      <div className="flex h-dvh overflow-hidden">
         <Sidebar
           permissions={session.permissions}
           hasEmployeeContext={Boolean(session.employeeId)}
@@ -122,7 +122,7 @@ export const TenantShellFrame = ({
           onCloseMobile={() => setMobileOpen(false)}
         />
 
-        <div className="flex min-w-0 flex-1 flex-col">
+        <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
           <Topbar
             persona={persona}
             role={session.role}
@@ -142,7 +142,7 @@ export const TenantShellFrame = ({
             onToggleMobileSidebar={() => setMobileOpen((prev) => !prev)}
           />
 
-          <main className="min-h-0 flex-1 overflow-y-auto">
+          <main className="emp-shell-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-y-contain">
             <div className="mx-auto w-full max-w-[1720px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
               <PlanRouteGuard entitlements={billingContext?.entitlements ?? null}>{children}</PlanRouteGuard>
             </div>

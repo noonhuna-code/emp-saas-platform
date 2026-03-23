@@ -3840,4 +3840,47 @@ p { margin: 0; }
   }
 }
 
+.emp-shell-scrollbar {
+  scrollbar-gutter: stable;
+}
+
+@media (pointer: fine) {
+  .emp-shell-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(148, 163, 184, 0.34) transparent;
+  }
+
+  .emp-shell-scrollbar::-webkit-scrollbar {
+    width: 9px;
+    height: 9px;
+  }
+
+  .emp-shell-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .emp-shell-scrollbar::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+    background-color: rgba(148, 163, 184, 0.28);
+  }
+
+  .emp-shell-scrollbar:hover::-webkit-scrollbar-thumb {
+    background-color: rgba(148, 163, 184, 0.44);
+  }
+
+  :root[data-theme="dark"] .emp-shell-scrollbar {
+    scrollbar-color: rgba(148, 163, 184, 0.26) transparent;
+  }
+
+  :root[data-theme="dark"] .emp-shell-scrollbar::-webkit-scrollbar-thumb {
+    background-color: rgba(148, 163, 184, 0.22);
+  }
+
+  :root[data-theme="dark"] .emp-shell-scrollbar:hover::-webkit-scrollbar-thumb {
+    background-color: rgba(148, 163, 184, 0.36);
+  }
+}
+
 

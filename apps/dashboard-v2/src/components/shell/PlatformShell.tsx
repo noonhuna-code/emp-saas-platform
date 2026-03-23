@@ -1,6 +1,15 @@
 "use client";
 
+import Link from "next/link";
 import { useState, type ReactNode } from "react";
+import {
+  ArrowUpRight,
+  Command,
+  Compass,
+  PanelLeftClose,
+  PanelLeftOpen,
+  ShieldCheck
+} from "lucide-react";
 import { NavSection } from "@/components/shell/NavSection";
 import { CommandPalette } from "@/components/shell/CommandPalette";
 import { Topbar } from "@/components/shell/Topbar";
@@ -11,31 +20,32 @@ import { cn } from "@/lib/utils";
 const PLATFORM_NAVIGATION_GROUPS: NavigationGroup[] = [
   {
     id: "platform-home",
-    label: "Platform",
+    label: "Platform command",
+    description: "Global posture, commercial health, and cross-tenant oversight",
     items: [
       {
         href: "/platform",
         label: "Overview",
         icon: "home",
-        description: "Global oversight and control"
+        description: "Global oversight and platform posture"
       },
       {
         href: "/app/monitoring",
         label: "Monitoring",
         icon: "monitoring",
-        description: "Security and system signals"
+        description: "Security, reliability, and system signals"
       },
       {
         href: "/app/billing",
         label: "Billing",
         icon: "billing",
-        description: "Subscriptions and tenant health"
+        description: "Subscriptions, entitlements, and tenant health"
       },
       {
         href: "/app/settings",
         label: "Settings",
         icon: "settings",
-        description: "Platform preferences"
+        description: "Platform preferences and controls"
       }
     ]
   }
@@ -55,28 +65,38 @@ export const PlatformShell = ({
 
   return (
     <>
-      <div className="min-h-screen bg-[radial-gradient(circle_at_top,#f8fbff_0%,#eef4ff_42%,#e7eef9_100%)] text-slate-950 dark:bg-[radial-gradient(circle_at_top,#081325_0%,#050b16_42%,#02050b_100%)] dark:text-slate-50">
-        <div className="flex min-h-screen">
+      <div className="h-dvh overflow-hidden bg-[radial-gradient(circle_at_top,#f8fbff_0%,#eef4ff_42%,#e7eef9_100%)] text-slate-950 dark:bg-[radial-gradient(circle_at_top,#081325_0%,#050b16_42%,#02050b_100%)] dark:text-slate-50">
+        <div className="flex h-dvh overflow-hidden">
           <aside
             className={cn(
-              "fixed inset-y-0 left-0 z-40 flex shrink-0 flex-col border-r border-slate-900/80 bg-[linear-gradient(180deg,#081427_0%,#07111f_48%,#050d18_100%)] text-white transition-transform duration-200 lg:static lg:translate-x-0",
-              collapsed ? "w-24 lg:w-24" : "w-[286px] lg:w-[286px]",
+              "fixed inset-y-0 left-0 z-40 flex h-dvh shrink-0 flex-col overflow-hidden border-r border-sky-300/10 bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.18),transparent_24%),radial-gradient(circle_at_bottom_left,rgba(37,99,235,0.14),transparent_32%),linear-gradient(180deg,#050b18_0%,#081224_48%,#0b1730_100%)] text-white shadow-[20px_0_50px_rgba(2,6,23,0.24)] transition-transform duration-200 lg:sticky lg:top-0 lg:z-20 lg:translate-x-0",
+              collapsed ? "w-24 lg:w-24" : "w-[302px] lg:w-[302px]",
               mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
             )}
           >
-            <div className="border-b border-white/8 px-4 py-4">
+            <div className="border-b border-white/8 px-4 pb-4 pt-4">
               <div className={cn("flex items-start justify-between gap-3", collapsed && "justify-center")}>
-                <div className={cn("flex items-start", collapsed ? "justify-center" : "gap-3")}>
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-400 via-blue-500 to-indigo-600 text-base font-semibold text-white shadow-[0_12px_28px_rgba(37,99,235,0.34)]">
-                    P
-                  </div>
+                <div className={cn("min-w-0", collapsed ? "flex justify-center" : "space-y-4")}>
                   {!collapsed ? (
-                    <div className="min-w-0 space-y-1">
-                      <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-sky-300/70">Platform oversight</div>
-                      <div className="text-2xl font-semibold tracking-tight text-white">EMP OS V2</div>
-                      <div className="text-sm leading-5 text-slate-400">Cross-tenant governance console</div>
+                    <div className="inline-flex min-h-8 items-center rounded-full border border-sky-300/18 bg-sky-400/10 px-3 text-[10px] font-semibold uppercase tracking-[0.24em] text-sky-100/82">
+                      Platform oversight
                     </div>
                   ) : null}
+
+                  <div className={cn("flex items-center", collapsed ? "justify-center" : "gap-3")}>
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[1.15rem] border border-sky-300/20 bg-[linear-gradient(135deg,rgba(37,99,235,0.88),rgba(56,189,248,0.58))] text-sm font-semibold tracking-[0.18em] text-white shadow-[0_16px_34px_rgba(37,99,235,0.28)]">
+                      EMP
+                    </div>
+
+                    {!collapsed ? (
+                      <div className="min-w-0 space-y-1">
+                        <div className="text-[1.72rem] font-semibold tracking-[-0.08em] text-white">EMP OS V2</div>
+                        <div className="max-w-[16rem] text-sm leading-6 text-slate-400">
+                          Cross-tenant governance, billing, and platform health with calmer control lanes.
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
                 </div>
 
                 <button
@@ -85,53 +105,73 @@ export const PlatformShell = ({
                   onClick={() => setCollapsed((prev) => !prev)}
                   aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
                 >
-                  <span className="text-sm font-medium">{collapsed ? ">" : "<"}</span>
+                  {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
                 </button>
               </div>
-
-              {!collapsed ? (
-                <div className="mt-5 space-y-3">
-                  <div className="rounded-3xl border border-white/10 bg-white/[0.03] px-4 py-4">
-                    <div className="text-sm font-medium text-white">Global operating posture</div>
-                    <p className="mt-2 text-sm leading-6 text-slate-400">
-                      One shell for cross-tenant monitoring, billing governance, and platform-level decision support.
-                    </p>
-                  </div>
-                  <div className="rounded-3xl border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))] px-4 py-4">
-                    <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-sky-300/70">Scope</div>
-                    <div className="mt-3 grid gap-2">
-                      <div className="rounded-2xl border border-white/8 bg-white/[0.04] px-3 py-3 text-sm text-slate-300">
-                        Cross-tenant read-only visibility
-                      </div>
-                      <div className="rounded-2xl border border-white/8 bg-white/[0.04] px-3 py-3 text-sm text-slate-300">
-                        Subscription and billing health
-                      </div>
-                      <div className="rounded-2xl border border-white/8 bg-white/[0.04] px-3 py-3 text-sm text-slate-300">
-                        Governance and audit review
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ) : null}
             </div>
 
-            <div className="min-h-0 flex-1 overflow-y-auto px-3 py-5">
-              <NavSection groups={PLATFORM_NAVIGATION_GROUPS} collapsed={collapsed} onNavigate={() => setMobileOpen(false)} />
+            <div className="min-h-0 flex-1 overflow-hidden">
+              <div className="emp-shell-scrollbar h-full min-h-0 overflow-y-auto overscroll-contain px-3 py-4">
+                <div className="space-y-5">
+                  {!collapsed ? (
+                    <>
+                      <section className="space-y-3 rounded-[1.6rem] border border-white/8 bg-white/[0.035] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+                        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.22em] text-sky-100/55">
+                          <Compass className="h-4 w-4 text-sky-300/80" />
+                          Platform posture
+                        </div>
+                        <div className="grid gap-2">
+                          {["Cross-tenant scope", "Governance ready", "Billing signal lane"].map((entry) => (
+                            <div
+                              key={entry}
+                              className="rounded-2xl border border-white/8 bg-white/[0.045] px-3 py-3 text-sm font-medium text-slate-200"
+                            >
+                              {entry}
+                            </div>
+                          ))}
+                        </div>
+                      </section>
+
+                      <div className="rounded-[1.6rem] border border-white/8 bg-white/[0.03] px-4 py-3">
+                        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.22em] text-sky-100/55">
+                          <ShieldCheck className="h-4 w-4 text-sky-300/80" />
+                          Control model
+                        </div>
+                        <p className="mt-2 text-sm leading-6 text-slate-400">
+                          Keep monitoring, subscriptions, governance, and platform settings inside one premium command rail.
+                        </p>
+                      </div>
+                    </>
+                  ) : null}
+
+                  <NavSection groups={PLATFORM_NAVIGATION_GROUPS} collapsed={collapsed} onNavigate={() => setMobileOpen(false)} />
+                </div>
+              </div>
             </div>
 
             {!collapsed ? (
               <div className="border-t border-white/8 px-4 py-4">
-                <div className="rounded-3xl border border-white/10 bg-white/[0.03] px-4 py-4">
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-sky-300/70">Shell quality</div>
-                  <p className="mt-2 text-sm leading-6 text-slate-400">
-                    Built to keep global oversight in one calmer lane instead of splitting cross-tenant health across unrelated tools.
+                <div className="rounded-[1.6rem] border border-white/8 bg-white/[0.035] p-4">
+                  <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.22em] text-sky-100/55">
+                    <Command className="h-4 w-4 text-sky-300/85" />
+                    Shell quality
+                  </div>
+                  <p className="mt-3 text-sm leading-6 text-slate-400">
+                    Global oversight stays compact, role-safe, and easier to scan under heavy platform density.
                   </p>
+                  <Link
+                    href="https://emp-saas-platform.vercel.app/sign-in"
+                    className="mt-4 inline-flex items-center rounded-full border border-sky-300/15 bg-sky-400/10 px-3 py-1.5 text-[11px] font-medium text-sky-100 transition hover:border-sky-300/25 hover:bg-sky-400/14"
+                  >
+                    Public sign in
+                    <ArrowUpRight className="ml-1.5 h-3.5 w-3.5" />
+                  </Link>
                 </div>
               </div>
             ) : null}
           </aside>
 
-          <div className="flex min-w-0 flex-1 flex-col">
+          <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
             <Topbar
               persona={"platform_owner" as DashboardPersona}
               role={role ?? "platform_owner"}
@@ -143,7 +183,7 @@ export const PlatformShell = ({
               onToggleSidebar={() => setCollapsed((prev) => !prev)}
               onToggleMobileSidebar={() => setMobileOpen((prev) => !prev)}
             />
-            <main className="min-h-0 flex-1 overflow-y-auto">
+            <main className="emp-shell-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-y-contain">
               <div className="mx-auto w-full max-w-[1720px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
                 <div className="page-wrap">{children}</div>
               </div>

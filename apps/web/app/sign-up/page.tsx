@@ -1,6 +1,7 @@
 import { JsonLd } from "@/components/json-ld";
 import { PageHero } from "@/components/page-hero";
 import { AuthShell } from "@/components/auth-shell";
+import { AuthForm } from "@/components/auth-form";
 import type { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo";
 import { breadcrumbSchema, softwareApplicationSchema } from "@/lib/schema";
@@ -49,6 +50,7 @@ export default function SignUpPage() {
           { label: "Home", href: "/" },
           { label: "Sign up" }
         ]}
+        aside={<AuthForm mode="sign-up" />}
       />
 
       <AuthShell
@@ -66,6 +68,7 @@ export default function SignUpPage() {
           "Fits guided workspace setup for new teams",
           "Keeps setup aligned with the EMP product experience"
         ]}
+        showForm={false}
       />
     </>
   );
