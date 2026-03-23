@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
+import { buildDashboardUrl } from "@/lib/site";
 
 export default function DashboardAliasPage() {
-  redirect("/sign-in?next=%2Fapp%2Fdashboard");
+  redirect(buildDashboardUrl("/app/dashboard"));
 }

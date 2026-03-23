@@ -1,3 +1,7 @@
+const dashboardUrl =
+  process.env.NEXT_PUBLIC_DASHBOARD_URL ??
+  "https://dashboard-noonhuna-8887s-projects.vercel.app";
+
 export const siteConfig = {
   name: "EMP Workforce OS",
   shortName: "EMP",
@@ -5,6 +9,7 @@ export const siteConfig = {
   description:
     "EMP helps teams manage employee records, reporting lines, leave approvals, attendance exceptions, payroll visibility, admin controls, and workforce analytics in one place.",
   url: process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.empworkforceos.com",
+  dashboardUrl,
   ogImage: "/opengraph-image",
   email: "noonhuna@gmail.com",
   founder: {
@@ -61,7 +66,7 @@ export const siteConfig = {
     {
       title: "Access",
       links: [
-        { href: "/sign-in", label: "Sign in" },
+        { href: `${dashboardUrl}/login`, label: "Sign in" },
         { href: "/sign-up", label: "Sign up" },
         { href: "/demo", label: "Book demo" }
       ]
@@ -82,3 +87,13 @@ export const siteConfig = {
 } as const;
 
 export type NavItem = (typeof siteConfig.nav)[number];
+
+export function buildDashboardUrl(path = "/app/dashboard") {
+  const safePath = path.startsWith("/") ? path : "/app/dashboard";
+  return `${siteConfig.dashboardUrl}${safePath}`;
+}
+
+export function buildDashboardLoginUrl(next = "/app/dashboard") {
+  const safeNext = next.startsWith("/") ? next : "/app/dashboard";
+  return `${siteConfig.dashboardUrl}/login?next=${encodeURIComponent(safeNext)}`;
+}
