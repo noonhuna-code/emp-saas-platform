@@ -145,6 +145,7 @@ export const TenantShellFrame = ({
             shiftEndTime={session.shiftEndTime}
             shiftHours={session.shiftHours}
             billingContext={billingContext}
+            sidebarCollapsed={collapsed}
             onToggleSidebar={toggleCollapsed}
             onToggleMobileSidebar={() => setMobileOpen((prev) => !prev)}
           />

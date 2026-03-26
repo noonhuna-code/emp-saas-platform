@@ -139,6 +139,7 @@ const TopbarProfileMenu = ({
   avatarUrl,
   profileHref,
   homeHref,
+  compactTrigger = false,
 }: {
   identityLabel: string;
   email: string | null | undefined;
@@ -146,6 +147,7 @@ const TopbarProfileMenu = ({
   avatarUrl?: string | null;
   profileHref: string;
   homeHref: string;
+  compactTrigger?: boolean;
 }) => {
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
@@ -199,7 +201,10 @@ const TopbarProfileMenu = ({
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((current) => !current)}
-        className="flex h-10 min-w-0 items-center gap-2 rounded-[16px] border border-slate-200 bg-white px-2.5 text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/35 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 dark:hover:border-slate-700 dark:hover:bg-slate-900"
+        className={cn(
+          "flex h-10 min-w-0 items-center rounded-[16px] border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/35 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 dark:hover:border-slate-700 dark:hover:bg-slate-900",
+          compactTrigger ? "w-12 justify-center gap-1.5 px-2" : "gap-2 px-2.5"
+        )}
       >
         <span className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-sky-400 via-blue-500 to-indigo-600 text-sm font-semibold text-white">
           {avatarUrl ? (
@@ -209,7 +214,7 @@ const TopbarProfileMenu = ({
             (identityLabel[0] ?? "U").toUpperCase()
           )}
         </span>
-        <span className="hidden min-w-0 xl:block">
+        <span className={cn("min-w-0", compactTrigger ? "hidden" : "hidden 2xl:block")}>
           <span className="block max-w-[10rem] truncate text-sm font-semibold leading-4">{identityLabel}</span>
         </span>
         <ChevronDown className={cn("h-4 w-4 shrink-0 text-slate-400 transition", open && "rotate-180")} />
@@ -329,6 +334,7 @@ export const Topbar = ({
   shiftHours,
   billingContext,
   navigationGroups,
+  sidebarCollapsed = false,
   onToggleSidebar,
   onToggleMobileSidebar,
 }: {
@@ -347,6 +353,7 @@ export const Topbar = ({
   shiftHours?: number | null;
   billingContext: BillingNavigationContext | null;
   navigationGroups?: NavigationGroup[];
+  sidebarCollapsed?: boolean;
   onToggleSidebar?: () => void;
   onToggleMobileSidebar?: () => void;
 }) => {
@@ -422,6 +429,7 @@ export const Topbar = ({
   const notificationsHref = persona === "platform_owner" ? "/platform" : "/app/notifications";
   const helpHref = persona === "platform_owner" ? "/platform" : "/app/resources";
   const hasContextRow = headerMeta.tabs.length > 0 || contextChips.length > 0;
+  const compactDesktopProfileTrigger = !sidebarCollapsed;
 
   return (
     <header className="sticky top-0 z-30 border-b border-slate-200/75 bg-[linear-gradient(180deg,rgba(248,250,255,0.96),rgba(244,247,253,0.92))] backdrop-blur-xl dark:border-slate-800/80 dark:bg-[linear-gradient(180deg,rgba(2,6,23,0.9),rgba(8,15,28,0.86))]">
@@ -486,6 +494,7 @@ export const Topbar = ({
                   avatarUrl={avatarUrl}
                   profileHref={profileHref}
                   homeHref={homeHref}
+                  compactTrigger={false}
                 />
               </div>
             </div>
@@ -494,7 +503,7 @@ export const Topbar = ({
               <TopbarSearch placeholder={headerMeta.searchPlaceholder} />
             </div>
 
-            <div className="hidden lg:flex lg:flex-col lg:gap-3 xl:hidden">
+            <div className="hidden lg:flex lg:flex-col lg:gap-3 2xl:hidden">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex min-w-0 items-start gap-2.5">
                   {onToggleSidebar ? (
@@ -546,6 +555,7 @@ export const Topbar = ({
                     avatarUrl={avatarUrl}
                     profileHref={profileHref}
                     homeHref={homeHref}
+                    compactTrigger={compactDesktopProfileTrigger}
                   />
                 </div>
               </div>
@@ -553,7 +563,7 @@ export const Topbar = ({
               <TopbarSearch placeholder={headerMeta.searchPlaceholder} className="max-w-none" />
             </div>
 
-            <div className="hidden xl:grid xl:grid-cols-[minmax(340px,1fr)_minmax(200px,320px)_auto] xl:items-center xl:gap-3 2xl:grid-cols-[minmax(360px,1fr)_minmax(240px,380px)_auto]">
+            <div className="hidden 2xl:grid 2xl:grid-cols-[minmax(340px,1fr)_minmax(180px,280px)_auto] 2xl:items-center 2xl:gap-3">
               <div className="flex min-w-0 items-center gap-2.5">
                 {onToggleSidebar ? (
                   <button
@@ -575,7 +585,7 @@ export const Topbar = ({
 
               <TopbarSearch placeholder={headerMeta.searchPlaceholder} className="justify-self-end" />
 
-              <div className="flex items-center justify-end gap-1.5 xl:gap-2">
+              <div className="flex items-center justify-end gap-1.5 2xl:gap-2">
                 <Link
                   href={notificationsHref}
                   className="inline-flex h-10 w-10 items-center justify-center rounded-[16px] border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-slate-700 dark:hover:bg-slate-900"
@@ -585,7 +595,7 @@ export const Topbar = ({
                 </Link>
                 <button
                   type="button"
-                  className="hidden h-10 w-10 items-center justify-center rounded-[16px] border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-slate-700 dark:hover:bg-slate-900 xl:inline-flex"
+                  className="hidden h-10 w-10 items-center justify-center rounded-[16px] border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-slate-700 dark:hover:bg-slate-900 2xl:inline-flex"
                   onClick={() => window.dispatchEvent(new CustomEvent("emp.commandPalette.open"))}
                   aria-label="Open command palette"
                 >
@@ -593,13 +603,13 @@ export const Topbar = ({
                 </button>
                 <Link
                   href={helpHref}
-                  className="hidden h-10 w-10 items-center justify-center rounded-[16px] border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-slate-700 dark:hover:bg-slate-900 xl:inline-flex"
+                  className="hidden h-10 w-10 items-center justify-center rounded-[16px] border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-slate-700 dark:hover:bg-slate-900 2xl:inline-flex"
                   aria-label="Help and resources"
                 >
                   <CircleHelp className="h-4 w-4" />
                 </Link>
                 <ThemeToggle compact />
-                <details className="relative xl:hidden">
+                <details className="relative 2xl:hidden">
                   <summary className="flex h-10 w-10 cursor-pointer list-none items-center justify-center rounded-[16px] border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-slate-700 dark:hover:bg-slate-900">
                     <MoreHorizontal className="h-4 w-4" />
                   </summary>
@@ -628,6 +638,7 @@ export const Topbar = ({
                   avatarUrl={avatarUrl}
                   profileHref={profileHref}
                   homeHref={homeHref}
+                  compactTrigger={compactDesktopProfileTrigger}
                 />
               </div>
             </div>

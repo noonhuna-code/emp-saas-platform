@@ -130,14 +130,15 @@ export const PlatformShell = ({
             <Topbar
               persona={"platform_owner" as DashboardPersona}
               role={role ?? "platform_owner"}
-              companyId={null}
-              email={email}
-              fullName={email ?? "Platform Owner"}
-              billingContext={null}
-              navigationGroups={PLATFORM_NAVIGATION_GROUPS}
-              onToggleSidebar={() => setCollapsed((prev) => !prev)}
-              onToggleMobileSidebar={() => setMobileOpen((prev) => !prev)}
-            />
+            companyId={null}
+            email={email}
+            fullName={email ?? "Platform Owner"}
+            billingContext={null}
+            navigationGroups={PLATFORM_NAVIGATION_GROUPS}
+            sidebarCollapsed={collapsed}
+            onToggleSidebar={() => setCollapsed((prev) => !prev)}
+            onToggleMobileSidebar={() => setMobileOpen((prev) => !prev)}
+          />
             <main className="emp-shell-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-y-contain">
               <div className="mx-auto w-full max-w-[1720px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
                 <div className="page-wrap">{children}</div>
