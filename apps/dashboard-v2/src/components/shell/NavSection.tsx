@@ -65,8 +65,11 @@ export const NavSection = ({
       {groups.map((group) => (
         <section key={group.id} className="space-y-2">
           {!collapsed ? (
-            <div className="px-3 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
-              {group.label}
+            <div className="flex items-center gap-3 px-3">
+              <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-slate-400/80">
+                {group.label}
+              </div>
+              <div className="h-px flex-1 bg-gradient-to-r from-white/10 via-white/5 to-transparent" />
             </div>
           ) : null}
           <div className="space-y-1.5">
@@ -84,16 +87,25 @@ export const NavSection = ({
                     onNavigate?.();
                   }}
                   className={cn(
-                    "group flex items-center gap-3 rounded-2xl border px-3 py-3 text-sm transition-all duration-150 ease-out",
+                    "group flex items-center gap-3 rounded-[1.15rem] border px-3 py-3 text-sm transition-all duration-150 ease-out",
                     collapsed ? "justify-center px-0" : "",
                     active
-                      ? "border-blue-400/40 bg-blue-500/18 text-white shadow-[0_16px_36px_rgba(37,99,235,0.24)]"
-                      : "border-transparent text-slate-300 hover:border-white/10 hover:bg-white/[0.04] hover:text-white"
+                      ? "border-sky-300/24 bg-[linear-gradient(180deg,rgba(59,130,246,0.26),rgba(37,99,235,0.14))] text-white shadow-[0_16px_34px_rgba(2,6,23,0.28)] ring-1 ring-sky-300/10"
+                      : "border-transparent bg-white/[0.015] text-slate-300 hover:border-white/8 hover:bg-white/[0.05] hover:text-white hover:translate-x-[2px]"
                   )}
                   aria-current={active ? "page" : undefined}
                   title={collapsed ? item.label : undefined}
                 >
-                  <Icon className={cn("h-4 w-4 shrink-0", active ? "text-blue-200" : "text-slate-400 group-hover:text-slate-100")} />
+                  <span
+                    className={cn(
+                      "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border transition-all duration-150",
+                      active
+                        ? "border-white/12 bg-white/[0.12] text-sky-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
+                        : "border-white/6 bg-white/[0.035] text-slate-400 group-hover:border-white/10 group-hover:bg-white/[0.08] group-hover:text-slate-100"
+                    )}
+                  >
+                    <Icon className="h-4 w-4 shrink-0" />
+                  </span>
                   {!collapsed ? <span className="truncate font-medium leading-none">{item.label}</span> : null}
                 </Link>
               );
