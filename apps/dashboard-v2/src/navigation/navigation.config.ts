@@ -115,7 +115,7 @@ export const TENANT_NAVIGATION_ITEMS: NavigationItem[] = [
     description: "Leave planning and shift exchanges",
     personas: ["employee", "manager", "team_lead", "hr", "admin", "founder", "finance"],
     requiresEmployeeContext: true,
-    requiredFeatureAnyKeys: ["feature.core_leave_management", "feature.core_attendance"]
+    requiredFeatureKey: "feature.core_leave_management"
   }),
   item({
     href: "/app/calendar",
@@ -141,7 +141,8 @@ export const TENANT_NAVIGATION_ITEMS: NavigationItem[] = [
     icon: "hand-coins",
     description: "Track salary advances and loan requests",
     personas: ["employee", "manager", "team_lead", "hr", "admin", "founder", "finance"],
-    requiresEmployeeContext: true
+    requiresEmployeeContext: true,
+    requiredFeatureKey: "feature.financial_obligations_loans_advances"
   }),
   item({
     href: "/app/payslips",
@@ -150,7 +151,7 @@ export const TENANT_NAVIGATION_ITEMS: NavigationItem[] = [
     description: "Payroll snapshots and statement history",
     personas: ["employee", "manager", "team_lead", "hr", "admin", "founder", "finance"],
     requiresEmployeeContext: true,
-    requiredFeatureKey: "feature.payroll_runs"
+    requiredFeatureKey: "feature.payslip_history_detail"
   }),
   item({
     href: "/app/payroll",
@@ -201,7 +202,8 @@ export const TENANT_NAVIGATION_ITEMS: NavigationItem[] = [
     icon: "sparkles",
     description: "Recognition, appreciation, and peer highlights",
     personas: ["employee", "manager", "team_lead", "hr", "it", "admin", "founder", "finance"],
-    requiresEmployeeContext: true
+    requiresEmployeeContext: true,
+    requiredFeatureAnyKeys: ["feature.analytics_standard", "feature.analytics_advanced"]
   }),
   item({
     href: "/app/intelligence/reliability",
@@ -209,7 +211,8 @@ export const TENANT_NAVIGATION_ITEMS: NavigationItem[] = [
     icon: "activity",
     description: "Work rhythm, reliability, and team consistency signals",
     personas: ["employee", "manager", "team_lead", "hr", "it", "admin", "founder", "finance"],
-    requiresEmployeeContext: true
+    requiresEmployeeContext: true,
+    requiredFeatureAnyKeys: ["feature.analytics_standard", "feature.analytics_advanced"]
   }),
   item({
     href: "/app/intelligence/feedback",
@@ -217,7 +220,8 @@ export const TENANT_NAVIGATION_ITEMS: NavigationItem[] = [
     icon: "message-square-heart",
     description: "Supervisor feedback and coaching history",
     personas: ["manager", "team_lead", "hr", "admin", "founder"],
-    requiresEmployeeContext: true
+    requiresEmployeeContext: true,
+    requiredFeatureAnyKeys: ["feature.analytics_standard", "feature.analytics_advanced"]
   }),
   item({
     href: "/app/settings",
@@ -283,7 +287,7 @@ export const TENANT_NAVIGATION_GROUPS: NavigationGroup[] = [
     id: "home",
     label: "Home",
     description: "Workspace entry and personal identity surfaces",
-    items: [byHref("/app/dashboard"), byHref("/app/profile")]
+    items: [byHref("/app/dashboard"), byHref("/app/profile"), byHref("/app/settings")]
   },
   {
     id: "workday",
@@ -302,25 +306,25 @@ export const TENANT_NAVIGATION_GROUPS: NavigationGroup[] = [
     id: "collaboration",
     label: "Collaboration",
     description: "Inbox, notes, knowledge, and communication context",
-    items: [byHref("/app/chat"), byHref("/app/notifications"), byHref("/app/resources"), byHref("/app/notes"), byHref("/app/intelligence/kudos")]
+    items: [byHref("/app/chat"), byHref("/app/notifications"), byHref("/app/resources"), byHref("/app/notes")]
   },
   {
     id: "people",
     label: "People & Org",
     description: "Directory, org structure, team coverage, and reporting context",
-    items: [byHref("/app/employees"), byHref("/app/organization"), byHref("/app/org-chart"), byHref("/app/approvals"), byHref("/app/projects")]
+    items: [byHref("/app/employees"), byHref("/app/organization"), byHref("/app/org-chart")]
   },
   {
     id: "intelligence",
     label: "Intelligence",
     description: "Recognition, reliability, and workforce insight surfaces",
-    items: [byHref("/app/intelligence/reliability"), byHref("/app/intelligence/feedback"), byHref("/app/analytics")]
+    items: [byHref("/app/intelligence/kudos"), byHref("/app/intelligence/reliability"), byHref("/app/intelligence/feedback"), byHref("/app/analytics")]
   },
   {
     id: "operations",
-    label: "Operations & Control",
-    description: "Payroll, settings, billing, and system-level visibility",
-    items: [byHref("/app/payroll"), byHref("/app/settings"), byHref("/app/billing"), byHref("/app/monitoring")]
+    label: "Operations",
+    description: "Workflow queues, project execution, payroll, and system-level controls",
+    items: [byHref("/app/approvals"), byHref("/app/projects"), byHref("/app/payroll"), byHref("/app/billing"), byHref("/app/monitoring")]
   }
 ];
 
