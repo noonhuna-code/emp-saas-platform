@@ -17,12 +17,9 @@ export type DashboardCapability =
 export type DashboardPersona =
   | "employee"
   | "manager"
-  | "team_lead"
-  | "hr"
-  | "it"
-  | "admin"
-  | "founder"
+  | "admin_ops"
   | "finance"
+  | "executive"
   | "platform_owner";
 
 type SessionShape = {
@@ -117,15 +114,25 @@ export const resolveDashboardPersona = (session: SessionShape): DashboardPersona
   ) {
     return "platform_owner";
   }
-  if (IT_ROLE_ALIASES.has(role) || caps.has("view_it_dashboard")) return "it";
-  if (role === "founder" || role === "ceo" || caps.has("view_founder_dashboard")) return "founder";
-  if (role === "admin") return "admin";
-  if (role === "hr" || (caps.has("view_hr_dashboard") && !caps.has("view_manager_dashboard") && !caps.has("view_admin_dashboard"))) return "hr";
+  if (role === "founder" || role === "ceo" || role === "founder_ceo" || role === "ceo_founder") return "executive";
+  if (role === "admin" || role === "org_owner" || role === "hr" || IT_ROLE_ALIASES.has(role)) return "admin_ops";
   if (FINANCE_ROLE_ALIASES.has(role)) return "finance";
-  if (role === "team_lead" || role === "teamlead") return "team_lead";
+  if (role === "team_lead" || role === "teamlead") return "manager";
   if (caps.has("view_manager_dashboard")) return "manager";
-  if (caps.has("view_teamlead_dashboard")) return "team_lead";
-  if (caps.has("view_finance_dashboard") && !caps.has("view_hr_dashboard") && !caps.has("view_admin_dashboard") && !caps.has("view_founder_dashboard")) {
+  if (caps.has("view_teamlead_dashboard")) return "manager";
+  if (
+    caps.has("view_admin_dashboard")
+    || caps.has("view_hr_dashboard")
+    || caps.has("view_it_dashboard")
+  ) {
+    return "admin_ops";
+  }
+  if (
+    caps.has("view_finance_dashboard")
+    && !caps.has("view_admin_dashboard")
+    && !caps.has("view_hr_dashboard")
+    && !caps.has("view_it_dashboard")
+  ) {
     return "finance";
   }
   return "employee";

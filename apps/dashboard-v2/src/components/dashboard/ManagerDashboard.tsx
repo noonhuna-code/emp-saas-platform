@@ -20,9 +20,34 @@ import ManagerKpiWidget from "@/components/dashboard/widgets/ManagerKpiWidget";
 const ManagerOperationsWidget = lazy(() => import("@/components/dashboard/widgets/ManagerOperationsWidget"));
 const ManagerWorkflowWidget = lazy(() => import("@/components/dashboard/widgets/ManagerWorkflowWidget"));
 
-export const ManagerDashboard = () => {
+const routeSet = (allowedRoutes: string[]) => new Set(allowedRoutes);
+
+export const ManagerDashboard = ({
+  mode = "manager",
+  allowedRoutes = [],
+  canViewTeamAttendance = false,
+}: {
+  mode?: "manager" | "team_lead";
+  allowedRoutes?: string[];
+  canViewTeamAttendance?: boolean;
+}) => {
   const [view, setView] = useState<DashboardView>("workspace");
-  const perf = useDashboardPerf("manager");
+  const perf = useDashboardPerf(mode === "team_lead" ? "team_lead" : "manager");
+  const allowedRouteSet = routeSet(allowedRoutes);
+  const isTeamLeadMode = mode === "team_lead";
+
+  const heroActions = [
+    allowedRouteSet.has("/app/approvals") ? { href: "/app/approvals", label: "Approvals", tone: "primary" as const } : null,
+    canViewTeamAttendance ? { href: "/app/attendance/team", label: "Team Attendance", tone: isTeamLeadMode ? "primary" as const : "secondary" as const } : null,
+    allowedRouteSet.has("/app/employees") ? { href: "/app/employees", label: isTeamLeadMode ? "Employee Directory" : "Employee Directory", tone: "secondary" as const } : null,
+  ].filter(Boolean) as Array<{ href: string; label: string; tone: "primary" | "secondary" }>;
+
+  const actionPaths = [
+    canViewTeamAttendance ? { label: "Team attendance", href: "/app/attendance/team", caption: "Presence and late marks" } : null,
+    allowedRouteSet.has("/app/approvals") ? { label: "Approvals queue", href: "/app/approvals", caption: "Leave and corrections" } : null,
+    allowedRouteSet.has("/app/employees") ? { label: isTeamLeadMode ? "Employee directory" : "People directory", href: "/app/employees", caption: "Direct reports and profiles" } : null,
+    allowedRouteSet.has("/app/projects") ? { label: "Projects", href: "/app/projects", caption: "Execution and staffing" } : null,
+  ].filter(Boolean) as Array<{ label: string; href: string; caption: string }>;
 
   useEffect(() => {
     perf.markKpiRendered();
@@ -31,15 +56,21 @@ export const ManagerDashboard = () => {
   return (
     <div className="page-wrap space-y-8 fade-in">
       <DashboardHero
-        eyebrow="Manager Workspace"
-        title="Team operations control center"
-        subtitle="Monitor team attendance coverage, pending approvals, and reliability trends with read-only manager summaries."
+        eyebrow={isTeamLeadMode ? "Team Lead Workspace" : "Manager Workspace"}
+        title={isTeamLeadMode ? "Frontline team coordination" : "Team operations control center"}
+        subtitle={
+          isTeamLeadMode
+            ? "Keep assigned teams aligned on attendance, swaps, approvals, and daily delivery without widening into admin-only controls."
+            : "Monitor team attendance coverage, pending approvals, and reliability trends with read-only manager summaries."
+        }
         emphasis="operations"
         actions={(
           <>
-            <Link href="/app/approvals" className="primary-btn">Approvals</Link>
-            <Link href="/app/attendance/team" className="secondary-btn">Team Attendance</Link>
-            <Link href="/app/employees" className="secondary-btn">Employee Directory</Link>
+            {heroActions.map((action) => (
+              <Link key={action.href} href={action.href} className={action.tone === "primary" ? "primary-btn" : "secondary-btn"}>
+                {action.label}
+              </Link>
+            ))}
           </>
         )}
       />
@@ -53,13 +84,13 @@ export const ManagerDashboard = () => {
 
       <DashboardSection visible={view === "workspace"}>
         <section className="space-y-4">
-          <ManagerKpiWidget variant="manager" />
+          <ManagerKpiWidget variant={isTeamLeadMode ? "team_lead" : "manager"} />
         </section>
 
         <section className="space-y-4">
           <Suspense fallback={<div className="grid-2"><SkeletonCard rows={6} /><SkeletonChart /></div>}>
             <DashboardWidgetBoundary title="Manager operations" message="Manager operations are temporarily unavailable.">
-              <ManagerOperationsWidget variant="manager" />
+              <ManagerOperationsWidget variant={isTeamLeadMode ? "team_lead" : "manager"} />
             </DashboardWidgetBoundary>
           </Suspense>
         </section>
@@ -71,7 +102,7 @@ export const ManagerDashboard = () => {
             <DashboardWidgetBoundary title="Team analytics" message="Analytics are temporarily unavailable.">
               <>
                 <DashboardPerfMarker onReady={perf.markChartsLoaded} />
-                <ManagerOperationsWidget variant="manager" />
+                <ManagerOperationsWidget variant={isTeamLeadMode ? "team_lead" : "manager"} />
               </>
             </DashboardWidgetBoundary>
           </Suspense>
@@ -83,25 +114,20 @@ export const ManagerDashboard = () => {
           <WorkflowPanel title="Workflow queue" subtitle="Pending approvals and exceptions">
             <Suspense fallback={<div className="grid-2"><SkeletonList rows={6} /><SkeletonList rows={6} /></div>}>
               <DashboardWidgetBoundary title="Workflow queue" message="Workflow data is temporarily unavailable.">
-                <ManagerWorkflowWidget variant="manager" />
+                <ManagerWorkflowWidget variant={isTeamLeadMode ? "team_lead" : "manager"} />
               </DashboardWidgetBoundary>
             </Suspense>
           </WorkflowPanel>
           <WorkflowPanel title="Manager action paths" subtitle="Fast routes into the surfaces that affect team delivery most">
-            <QuickActionGrid
-              actions={[
-                { label: "Team attendance", href: "/app/attendance/team", caption: "Presence and late marks" },
-                { label: "Approvals queue", href: "/app/approvals", caption: "Leave and corrections" },
-                { label: "People directory", href: "/app/employees", caption: "Direct reports and profiles" },
-                { label: "Projects", href: "/app/projects", caption: "Execution and staffing" }
-              ]}
-            />
+            <QuickActionGrid actions={actionPaths} />
           </WorkflowPanel>
         </div>
 
-        <DashboardPanel title="Operating scope" subtitle="What this manager surface is optimized for">
+        <DashboardPanel title="Operating scope" subtitle={`What this ${isTeamLeadMode ? "team lead" : "manager"} surface is optimized for`}>
           <p className="muted">
-            Managers get direct coverage, approval pressure, team attendance visibility, and fast navigation into the workstreams that can block execution.
+            {isTeamLeadMode
+              ? "Team leads stay close to coverage, approvals, shift pressure, and the workstreams that can block frontline execution."
+              : "Managers get direct coverage, approval pressure, team attendance visibility, and fast navigation into the workstreams that can block execution."}
           </p>
         </DashboardPanel>
       </DashboardSection>

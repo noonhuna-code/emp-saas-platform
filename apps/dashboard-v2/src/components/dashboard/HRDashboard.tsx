@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Suspense, lazy, useEffect, useState } from "react";
+import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import { DashboardPerfMarker, useDashboardPerf } from "@/components/dashboard/useDashboardPerf";
 import { DashboardWidgetBoundary } from "@/components/dashboard/DashboardWidgetBoundary";
 import {
@@ -20,9 +20,29 @@ import HRKpiWidget from "@/components/dashboard/widgets/HRKpiWidget";
 const HROperationsWidget = lazy(() => import("@/components/dashboard/widgets/HROperationsWidget"));
 const HRTimelineWidget = lazy(() => import("@/components/dashboard/widgets/HRTimelineWidget"));
 
-export const HRDashboard = () => {
+export const HRDashboard = ({
+  allowedRoutes = [],
+  canReviewLeave = false,
+}: {
+  allowedRoutes?: string[];
+  canReviewLeave?: boolean;
+}) => {
   const [view, setView] = useState<DashboardView>("workspace");
   const perf = useDashboardPerf("hr");
+  const allowedRouteSet = useMemo(() => new Set(allowedRoutes), [allowedRoutes]);
+
+  const heroActions = [
+    allowedRouteSet.has("/app/payroll") ? { href: "/app/payroll", label: "Payroll Runs", tone: "primary" as const } : null,
+    allowedRouteSet.has("/app/payslips") ? { href: "/app/payslips", label: "Payslips", tone: "secondary" as const } : null,
+    canReviewLeave ? { href: "/app/leave/review", label: "Leave Review", tone: "secondary" as const } : null,
+  ].filter(Boolean) as Array<{ href: string; label: string; tone: "primary" | "secondary" }>;
+
+  const hrActions = [
+    allowedRouteSet.has("/app/employees") ? { label: "Employee records", href: "/app/employees", caption: "Profiles and hierarchy" } : null,
+    canReviewLeave ? { label: "Leave review", href: "/app/leave/review", caption: "Queues and coverage" } : null,
+    allowedRouteSet.has("/app/payroll") ? { label: "Payroll runs", href: "/app/payroll", caption: "Run readiness" } : null,
+    allowedRouteSet.has("/app/resources") ? { label: "Knowledge / SOPs", href: "/app/resources", caption: "Policies and guides" } : null,
+  ].filter(Boolean) as Array<{ label: string; href: string; caption: string }>;
 
   useEffect(() => {
     perf.markKpiRendered();
@@ -37,9 +57,11 @@ export const HRDashboard = () => {
         emphasis="operations"
         actions={(
           <>
-            <Link href="/app/payroll" className="primary-btn">Payroll Runs</Link>
-            <Link href="/app/payslips" className="secondary-btn">Payslips</Link>
-            <Link href="/app/leave/review" className="secondary-btn">Leave Review</Link>
+            {heroActions.map((action) => (
+              <Link key={action.href} href={action.href} className={action.tone === "primary" ? "primary-btn" : "secondary-btn"}>
+                {action.label}
+              </Link>
+            ))}
           </>
         )}
       />
@@ -88,14 +110,7 @@ export const HRDashboard = () => {
             </Suspense>
           </WorkflowPanel>
           <WorkflowPanel title="HR action paths" subtitle="High-frequency routes for people ops, payroll, and policy delivery">
-            <QuickActionGrid
-              actions={[
-                { label: "Employee records", href: "/app/employees", caption: "Profiles and hierarchy" },
-                { label: "Leave review", href: "/app/leave/review", caption: "Queues and coverage" },
-                { label: "Payroll runs", href: "/app/payroll", caption: "Run readiness" },
-                { label: "Knowledge / SOPs", href: "/app/resources", caption: "Policies and guides" }
-              ]}
-            />
+            <QuickActionGrid actions={hrActions} />
           </WorkflowPanel>
         </div>
 

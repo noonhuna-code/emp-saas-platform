@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { Suspense, lazy, useEffect, useState } from "react";
+import { HRDashboard } from "@/components/dashboard/HRDashboard";
+import { ITDashboard } from "@/components/dashboard/ITDashboard";
 import { DashboardPerfMarker, useDashboardPerf } from "@/components/dashboard/useDashboardPerf";
 import { DashboardWidgetBoundary } from "@/components/dashboard/DashboardWidgetBoundary";
 import {
@@ -22,9 +24,46 @@ const AdminOperationsWidget = lazy(() => import("@/components/dashboard/widgets/
 const AdminSecurityWidget = lazy(() => import("@/components/dashboard/widgets/AdminSecurityWidget"));
 const AdminDepartmentWidget = lazy(() => import("@/components/dashboard/widgets/AdminDepartmentWidget"));
 
-export const AdminDashboard = () => {
+export const AdminDashboard = ({
+  mode = "admin",
+  allowedRoutes = [],
+  canReviewLeave = false,
+}: {
+  mode?: "admin" | "hr" | "it";
+  allowedRoutes?: string[];
+  canReviewLeave?: boolean;
+}) => {
+  if (mode === "hr") {
+    return <HRDashboard allowedRoutes={allowedRoutes} canReviewLeave={canReviewLeave} />;
+  }
+
+  if (mode === "it") {
+    return <ITDashboard allowedRoutes={allowedRoutes} />;
+  }
+
+  return <AdminDashboardCore allowedRoutes={allowedRoutes} />;
+};
+
+const AdminDashboardCore = ({
+  allowedRoutes = [],
+}: {
+  allowedRoutes?: string[];
+}) => {
   const [view, setView] = useState<DashboardView>("workspace");
   const perf = useDashboardPerf("admin");
+  const allowedRouteSet = new Set(allowedRoutes);
+  const heroActions = [
+    allowedRouteSet.has("/app/employees") ? { href: "/app/employees", label: "Employees", tone: "secondary" as const } : null,
+    allowedRouteSet.has("/app/payroll") ? { href: "/app/payroll", label: "Payroll", tone: "secondary" as const } : null,
+    allowedRouteSet.has("/app/monitoring") ? { href: "/app/monitoring", label: "Monitoring", tone: "secondary" as const } : null,
+    allowedRouteSet.has("/app/approvals") ? { href: "/app/approvals", label: "Approvals", tone: "primary" as const } : null,
+  ].filter(Boolean) as Array<{ href: string; label: string; tone: "primary" | "secondary" }>;
+  const commandPaths = [
+    allowedRouteSet.has("/app/employees") ? { label: "People directory", href: "/app/employees", caption: "Records, roles, and reporting" } : null,
+    allowedRouteSet.has("/app/organization") ? { label: "Organization", href: "/app/organization", caption: "Structure and assignments" } : null,
+    allowedRouteSet.has("/app/approvals") ? { label: "Approvals queue", href: "/app/approvals", caption: "Pending decisions" } : null,
+    allowedRouteSet.has("/app/monitoring") ? { label: "System monitor", href: "/app/monitoring", caption: "Security and health" } : null,
+  ].filter(Boolean) as Array<{ label: string; href: string; caption: string }>;
 
   useEffect(() => {
     perf.markKpiRendered();
@@ -39,10 +78,11 @@ export const AdminDashboard = () => {
         emphasis="executive"
         actions={(
           <>
-            <Link href="/app/employees" className="secondary-btn">Employees</Link>
-            <Link href="/app/payroll" className="secondary-btn">Payroll</Link>
-            <Link href="/app/monitoring" className="secondary-btn">Monitoring</Link>
-            <Link href="/app/approvals" className="primary-btn">Approvals</Link>
+            {heroActions.map((action) => (
+              <Link key={action.href} href={action.href} className={action.tone === "primary" ? "primary-btn" : "secondary-btn"}>
+                {action.label}
+              </Link>
+            ))}
           </>
         )}
       />
@@ -100,14 +140,7 @@ export const AdminDashboard = () => {
             </Suspense>
           </WorkflowPanel>
           <WorkflowPanel title="Command paths" subtitle="Most-used operating routes for people, billing, and controls">
-            <QuickActionGrid
-              actions={[
-                { label: "People directory", href: "/app/employees", caption: "Records, roles, and reporting" },
-                { label: "Organization", href: "/app/organization", caption: "Structure and assignments" },
-                { label: "Approvals queue", href: "/app/approvals", caption: "Pending decisions" },
-                { label: "System monitor", href: "/app/monitoring", caption: "Security and health" }
-              ]}
-            />
+            <QuickActionGrid actions={commandPaths} />
           </WorkflowPanel>
         </div>
 

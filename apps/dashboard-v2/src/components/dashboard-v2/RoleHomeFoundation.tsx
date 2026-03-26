@@ -39,7 +39,7 @@ type Blueprint = {
   feed: Array<{ title: string; detail: string; timestamp: string }>;
 };
 
-const BLUEPRINTS: Record<DashboardPersona, Blueprint> = {
+const BLUEPRINTS: Record<string, Blueprint> = {
   founder: {
     eyebrow: "Executive control center",
     title: "Company health at a glance",
@@ -323,6 +323,9 @@ const BLUEPRINTS: Record<DashboardPersona, Blueprint> = {
   }
 };
 
+BLUEPRINTS.executive = BLUEPRINTS.founder!;
+BLUEPRINTS.admin_ops = BLUEPRINTS.admin!;
+
 const modeTabs = [
   { id: "workspace", label: "Workspace" },
   { id: "analytics", label: "Analytics" },
@@ -331,7 +334,7 @@ const modeTabs = [
 
 export const RoleHomeFoundation = ({ persona }: { persona: DashboardPersona }) => {
   const [mode, setMode] = useState<Mode>("workspace");
-  const blueprint = BLUEPRINTS[persona];
+  const blueprint = BLUEPRINTS[persona] ?? BLUEPRINTS.employee!;
 
   const analyticsFooter = useMemo(
     () => ["Attendance trend lane", "Leave utilization comparison", "Approval backlog comparison"],

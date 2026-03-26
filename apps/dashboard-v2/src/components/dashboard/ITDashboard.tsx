@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -19,12 +19,17 @@ import {
   type DashboardView
 } from "@/components/dashboard/DashboardPrimitives";
 
-export const ITDashboard = () => {
+export const ITDashboard = ({
+  allowedRoutes = [],
+}: {
+  allowedRoutes?: string[];
+}) => {
   const [monitoring, setMonitoring] = useState<MonitoringOverview | null>(null);
   const [billing, setBilling] = useState<BillingOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState<DashboardView>("workspace");
+  const allowedRouteSet = useMemo(() => new Set(allowedRoutes), [allowedRoutes]);
 
   useEffect(() => {
     let active = true;
@@ -79,6 +84,26 @@ export const ITDashboard = () => {
     } as const;
   }, [monitoring]);
 
+  const heroActions = [
+    allowedRouteSet.has("/app/monitoring") ? { href: "/app/monitoring", label: "Monitoring", tone: "primary" as const } : null,
+    allowedRouteSet.has("/app/notifications") ? { href: "/app/notifications", label: "Notifications", tone: "secondary" as const } : null,
+    allowedRouteSet.has("/app/billing") ? { href: "/app/billing", label: "License usage", tone: "secondary" as const } : null,
+  ].filter(Boolean) as Array<{ href: string; label: string; tone: "primary" | "secondary" }>;
+
+  const accessActions = [
+    allowedRouteSet.has("/app/monitoring") ? { label: "Monitoring center", href: "/app/monitoring", caption: "Security and SLA signals" } : null,
+    allowedRouteSet.has("/app/approvals") ? { label: "Approval queue", href: "/app/approvals", caption: "Operational blockers" } : null,
+    allowedRouteSet.has("/app/notifications") ? { label: "Notifications", href: "/app/notifications", caption: "System events" } : null,
+    allowedRouteSet.has("/app/billing") ? { label: "Billing licenses", href: "/app/billing", caption: "Seat and license counts" } : null,
+  ].filter(Boolean) as Array<{ label: string; href: string; caption: string }>;
+
+  const responseActions = [
+    allowedRouteSet.has("/app/monitoring") ? { label: "Monitoring center", href: "/app/monitoring", caption: "Security and system telemetry" } : null,
+    allowedRouteSet.has("/app/notifications") ? { label: "Notification queue", href: "/app/notifications", caption: "Delivery and incident alerts" } : null,
+    allowedRouteSet.has("/app/employees") ? { label: "Employee access", href: "/app/employees", caption: "Identity and assignment context" } : null,
+    allowedRouteSet.has("/app/billing") ? { label: "Billing / seats", href: "/app/billing", caption: "License and seat posture" } : null,
+  ].filter(Boolean) as Array<{ label: string; href: string; caption: string }>;
+
   if (loading) return <LoadingState label="Loading IT dashboard..." />;
   if (error || !monitoring) return <ErrorState message={error ?? "IT dashboard unavailable"} />;
 
@@ -91,9 +116,11 @@ export const ITDashboard = () => {
         emphasis="operations"
         actions={(
           <>
-            <Link href="/app/monitoring" className="primary-btn">Monitoring</Link>
-            <Link href="/app/notifications" className="secondary-btn">Notifications</Link>
-            <Link href="/app/billing" className="secondary-btn">License usage</Link>
+            {heroActions.map((action) => (
+              <Link key={action.href} href={action.href} className={action.tone === "primary" ? "primary-btn" : "secondary-btn"}>
+                {action.label}
+              </Link>
+            ))}
           </>
         )}
       />
@@ -120,14 +147,7 @@ export const ITDashboard = () => {
         </div>
 
         <WorkflowPanel title="Access and operations" subtitle="IT actions and review paths">
-          <QuickActionGrid
-            actions={[
-              { label: "Monitoring center", href: "/app/monitoring", caption: "Security and SLA signals" },
-              { label: "Approval queue", href: "/app/approvals", caption: "Operational blockers" },
-              { label: "Notifications", href: "/app/notifications", caption: "System events" },
-              { label: "Billing licenses", href: "/app/billing", caption: "Seat and license counts" }
-            ]}
-          />
+          <QuickActionGrid actions={accessActions} />
         </WorkflowPanel>
       </DashboardSection>
 
@@ -142,14 +162,7 @@ export const ITDashboard = () => {
 
       <DashboardSection visible={view === "operations"}>
         <WorkflowPanel title="Response paths" subtitle="Fast routes for incidents, access, and tenant health checks">
-          <QuickActionGrid
-            actions={[
-              { label: "Monitoring center", href: "/app/monitoring", caption: "Security and system telemetry" },
-              { label: "Notification queue", href: "/app/notifications", caption: "Delivery and incident alerts" },
-              { label: "Employee access", href: "/app/employees", caption: "Identity and assignment context" },
-              { label: "Billing / seats", href: "/app/billing", caption: "License and seat posture" }
-            ]}
-          />
+          <QuickActionGrid actions={responseActions} />
           <SignalRow label="Monitoring generated" value={monitoring.generated_at} />
           <SignalRow label="Current health" value={securityPressure.health} tone={securityPressure.health === "healthy" ? "success" : "warning"} />
         </WorkflowPanel>
@@ -157,4 +170,3 @@ export const ITDashboard = () => {
     </div>
   );
 };
-

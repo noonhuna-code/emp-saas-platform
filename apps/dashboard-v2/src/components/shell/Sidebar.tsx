@@ -14,13 +14,10 @@ export const SIDEBAR_EXPANDED_WIDTH = "20.5rem";
 
 const PERSONA_LABELS: Record<DashboardPersona, string> = {
   employee: "Employee workspace",
-  team_lead: "Team lead desk",
   manager: "Manager command",
-  hr: "HR operations",
+  admin_ops: "Operations control",
   finance: "Finance workspace",
-  it: "IT operations",
-  admin: "Administration",
-  founder: "Executive workspace",
+  executive: "Executive workspace",
   platform_owner: "Platform oversight"
 };
 

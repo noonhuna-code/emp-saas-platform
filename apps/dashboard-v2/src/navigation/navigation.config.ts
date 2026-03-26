@@ -45,12 +45,9 @@ export type ShellHeaderMeta = {
 const ALL_PERSONAS: DashboardPersona[] = [
   "employee",
   "manager",
-  "team_lead",
-  "hr",
-  "it",
-  "admin",
-  "founder",
+  "admin_ops",
   "finance",
+  "executive",
   "platform_owner"
 ];
 
@@ -70,14 +67,14 @@ export const TENANT_NAVIGATION_ITEMS: NavigationItem[] = [
     icon: "user",
     description: "Identity, role, and personal profile",
     requiresEmployeeContext: true,
-    personas: ["employee", "manager", "team_lead", "hr", "it", "admin", "founder", "finance"]
+    personas: ["employee", "manager", "admin_ops", "finance", "executive"]
   }),
   item({
     href: "/app/employees",
     label: "People",
     icon: "users",
     description: "Employee directory and people operations",
-    personas: ["manager", "team_lead", "hr", "admin", "founder", "finance", "it"],
+    personas: ["manager", "admin_ops", "finance", "executive"],
     requiredCapability: ["manage_employees", "manage_company", "manage_reporting_lines", "manage_delegations"],
     requiredFeatureKey: "feature.core_employee_management"
   }),
@@ -86,7 +83,7 @@ export const TENANT_NAVIGATION_ITEMS: NavigationItem[] = [
     label: "Organization",
     icon: "network",
     description: "Departments, teams, and reporting lines",
-    personas: ["manager", "team_lead", "hr", "admin", "founder", "finance", "it"],
+    personas: ["manager", "admin_ops", "finance", "executive"],
     requiredCapability: ["manage_employees", "manage_company", "manage_reporting_lines", "manage_delegations"],
     requiredFeatureKey: "feature.core_employee_management"
   }),
@@ -95,7 +92,7 @@ export const TENANT_NAVIGATION_ITEMS: NavigationItem[] = [
     label: "Org Chart",
     icon: "network",
     description: "Structure map and reporting relationships",
-    personas: ["manager", "team_lead", "hr", "admin", "founder", "finance", "it"],
+    personas: ["manager", "admin_ops", "finance", "executive"],
     requiredCapability: ["manage_employees", "manage_company", "manage_reporting_lines", "manage_delegations"],
     requiredFeatureKey: "feature.core_employee_management"
   }),
@@ -104,7 +101,7 @@ export const TENANT_NAVIGATION_ITEMS: NavigationItem[] = [
     label: "Attendance",
     icon: "clock-3",
     description: "Shifts, punches, and attendance history",
-    personas: ["employee", "manager", "team_lead", "hr", "admin", "founder", "finance"],
+    personas: ["employee", "manager", "admin_ops", "finance", "executive"],
     requiredCapability: ["view_attendance", "manage_attendance", "manage_employees"],
     requiredFeatureKey: "feature.core_attendance"
   }),
@@ -113,7 +110,7 @@ export const TENANT_NAVIGATION_ITEMS: NavigationItem[] = [
     label: "Leave & Swaps",
     icon: "calendar-range",
     description: "Leave planning and shift exchanges",
-    personas: ["employee", "manager", "team_lead", "hr", "admin", "founder", "finance"],
+    personas: ["employee", "manager", "admin_ops", "finance", "executive"],
     requiresEmployeeContext: true,
     requiredFeatureKey: "feature.core_leave_management"
   }),
@@ -122,7 +119,7 @@ export const TENANT_NAVIGATION_ITEMS: NavigationItem[] = [
     label: "Calendar",
     icon: "calendar-days",
     description: "Unified shift, leave, holiday, and company timeline",
-    personas: ["employee", "manager", "team_lead", "hr", "admin", "founder", "finance"],
+    personas: ["employee", "manager", "admin_ops", "finance", "executive"],
     requiresEmployeeContext: true,
     requiredFeatureAnyKeys: ["feature.core_leave_management", "feature.core_attendance"]
   }),
@@ -131,7 +128,7 @@ export const TENANT_NAVIGATION_ITEMS: NavigationItem[] = [
     label: "Overtime",
     icon: "timer",
     description: "Request and review overtime hours",
-    personas: ["employee", "manager", "team_lead", "hr", "admin", "founder", "finance"],
+    personas: ["employee", "manager", "admin_ops", "finance", "executive"],
     requiresEmployeeContext: true,
     requiredFeatureKey: "feature.core_attendance"
   }),
@@ -140,7 +137,7 @@ export const TENANT_NAVIGATION_ITEMS: NavigationItem[] = [
     label: "Loans & Advances",
     icon: "hand-coins",
     description: "Track salary advances and loan requests",
-    personas: ["employee", "manager", "team_lead", "hr", "admin", "founder", "finance"],
+    personas: ["employee", "manager", "admin_ops", "finance", "executive"],
     requiresEmployeeContext: true,
     requiredFeatureKey: "feature.financial_obligations_loans_advances"
   }),
@@ -149,7 +146,7 @@ export const TENANT_NAVIGATION_ITEMS: NavigationItem[] = [
     label: "Payslips",
     icon: "scroll-text",
     description: "Payroll snapshots and statement history",
-    personas: ["employee", "manager", "team_lead", "hr", "admin", "founder", "finance"],
+    personas: ["employee", "manager", "admin_ops", "finance", "executive"],
     requiresEmployeeContext: true,
     requiredFeatureKey: "feature.payslip_history_detail"
   }),
@@ -158,7 +155,7 @@ export const TENANT_NAVIGATION_ITEMS: NavigationItem[] = [
     label: "Payroll",
     icon: "wallet-cards",
     description: "Payroll operations and salary processing",
-    personas: ["hr", "finance", "admin", "founder"],
+    personas: ["admin_ops", "finance", "executive"],
     requiredCapability: ["manage_payroll", "manage_company", "manage_billing", "view_billing"],
     requiredFeatureKey: "feature.payroll_runs"
   }),
@@ -167,7 +164,7 @@ export const TENANT_NAVIGATION_ITEMS: NavigationItem[] = [
     label: "Projects",
     icon: "briefcase-business",
     description: "Programs, delivery, and team ownership",
-    personas: ["manager", "team_lead", "admin", "founder"],
+    personas: ["manager", "admin_ops", "executive"],
     requiredFeatureKey: "feature.project_management_core"
   }),
   item({
@@ -175,7 +172,7 @@ export const TENANT_NAVIGATION_ITEMS: NavigationItem[] = [
     label: "Inbox / Chat",
     icon: "messages-square",
     description: "Messages, requests, and shared updates",
-    personas: ["employee", "manager", "team_lead", "hr", "it", "admin", "founder", "finance"],
+    personas: ["employee", "manager", "admin_ops", "finance", "executive"],
     requiresEmployeeContext: true,
     requiredFeatureKey: "feature.core_notifications"
   }),
@@ -184,7 +181,7 @@ export const TENANT_NAVIGATION_ITEMS: NavigationItem[] = [
     label: "Knowledge / SOPs",
     icon: "book-open-text",
     description: "Policies, SOPs, and operating guides",
-    personas: ["employee", "manager", "team_lead", "hr", "it", "admin", "founder", "finance"],
+    personas: ["employee", "manager", "admin_ops", "finance", "executive"],
     requiresEmployeeContext: true,
     requiredFeatureKey: "feature.core_employee_management"
   }),
@@ -193,7 +190,7 @@ export const TENANT_NAVIGATION_ITEMS: NavigationItem[] = [
     label: "Analytics",
     icon: "chart-column-big",
     description: "Comparisons, workforce trends, and visibility",
-    personas: ["manager", "team_lead", "hr", "it", "admin", "founder", "finance"],
+    personas: ["manager", "admin_ops", "finance", "executive"],
     requiredFeatureAnyKeys: ["feature.analytics_standard", "feature.analytics_advanced"]
   }),
   item({
@@ -201,7 +198,7 @@ export const TENANT_NAVIGATION_ITEMS: NavigationItem[] = [
     label: "Kudos",
     icon: "sparkles",
     description: "Recognition, appreciation, and peer highlights",
-    personas: ["employee", "manager", "team_lead", "hr", "it", "admin", "founder", "finance"],
+    personas: ["employee", "manager", "admin_ops", "finance", "executive"],
     requiresEmployeeContext: true,
     requiredFeatureAnyKeys: ["feature.analytics_standard", "feature.analytics_advanced"]
   }),
@@ -210,7 +207,7 @@ export const TENANT_NAVIGATION_ITEMS: NavigationItem[] = [
     label: "Reliability",
     icon: "activity",
     description: "Work rhythm, reliability, and team consistency signals",
-    personas: ["employee", "manager", "team_lead", "hr", "it", "admin", "founder", "finance"],
+    personas: ["employee", "manager", "admin_ops", "finance", "executive"],
     requiresEmployeeContext: true,
     requiredFeatureAnyKeys: ["feature.analytics_standard", "feature.analytics_advanced"]
   }),
@@ -219,7 +216,7 @@ export const TENANT_NAVIGATION_ITEMS: NavigationItem[] = [
     label: "Feedback",
     icon: "message-square-heart",
     description: "Supervisor feedback and coaching history",
-    personas: ["manager", "team_lead", "hr", "admin", "founder"],
+    personas: ["manager", "admin_ops", "executive"],
     requiresEmployeeContext: true,
     requiredFeatureAnyKeys: ["feature.analytics_standard", "feature.analytics_advanced"]
   }),
@@ -228,14 +225,14 @@ export const TENANT_NAVIGATION_ITEMS: NavigationItem[] = [
     label: "Settings",
     icon: "settings-2",
     description: "Workspace preferences and operational controls",
-    personas: ["employee", "manager", "team_lead", "hr", "it", "admin", "founder", "finance"]
+    personas: ["employee", "manager", "admin_ops", "finance", "executive"]
   }),
   item({
     href: "/app/notifications",
     label: "Notifications",
     icon: "bell-dot",
     description: "Unread alerts and operational reminders",
-    personas: ["employee", "manager", "team_lead", "hr", "it", "admin", "founder", "finance"],
+    personas: ["employee", "manager", "admin_ops", "finance", "executive"],
     requiresEmployeeContext: true,
     requiredFeatureKey: "feature.core_notifications"
   }),
@@ -244,7 +241,7 @@ export const TENANT_NAVIGATION_ITEMS: NavigationItem[] = [
     label: "Notes",
     icon: "notebook-tabs",
     description: "Private notes, attachments, and follow-ups",
-    personas: ["employee", "manager", "team_lead", "hr", "it", "admin", "founder", "finance"],
+    personas: ["employee", "manager", "admin_ops", "finance", "executive"],
     requiresEmployeeContext: true,
     requiredFeatureKey: "feature.core_employee_management"
   }),
@@ -253,7 +250,7 @@ export const TENANT_NAVIGATION_ITEMS: NavigationItem[] = [
     label: "Approvals",
     icon: "badge-check",
     description: "Pending decisions and workflow queues",
-    personas: ["manager", "team_lead", "hr", "admin", "founder", "finance"],
+    personas: ["manager", "admin_ops", "finance", "executive"],
     requiredCapability: ["manage_employees", "manage_attendance", "manage_company"],
     requiredFeatureKey: "feature.unified_approvals_workspace"
   }),
@@ -262,7 +259,7 @@ export const TENANT_NAVIGATION_ITEMS: NavigationItem[] = [
     label: "Billing",
     icon: "receipt-text",
     description: "Invoices, seats, and subscription controls",
-    personas: ["finance", "admin", "founder"],
+    personas: ["finance", "admin_ops", "executive"],
     requiredCapability: ["view_billing", "manage_billing", "manage_company"]
   }),
   item({
@@ -270,7 +267,7 @@ export const TENANT_NAVIGATION_ITEMS: NavigationItem[] = [
     label: "System Monitor",
     icon: "shield-check",
     description: "Security signal and system health",
-    personas: ["it", "admin", "founder"],
+    personas: ["admin_ops", "executive"],
     requiredCapability: ["manage_company", "view_all_companies"],
     requiredFeatureKey: "feature.security_intelligence"
   })
@@ -404,23 +401,11 @@ const PERSONA_HOME_COPY: Record<DashboardPersona, { title: string; subtitle: str
     title: "Manager command center",
     subtitle: "Review team operations, approvals, people context, and execution signals without losing focus."
   },
-  team_lead: {
-    title: "Team lead workspace",
-    subtitle: "Stay close to frontline approvals, coverage, team execution, and current operational context."
+  admin_ops: {
+    title: "Operations control workspace",
+    subtitle: "Coordinate people operations, controls, payroll visibility, and governance paths from one role-aware shell."
   },
-  hr: {
-    title: "HR operations workspace",
-    subtitle: "Coordinate people operations, payroll visibility, and organization review from one role-aware shell."
-  },
-  it: {
-    title: "IT operations workspace",
-    subtitle: "Monitor platform health, workspace signals, and operational reliability in one premium control lane."
-  },
-  admin: {
-    title: "Admin command center",
-    subtitle: "Run company operations, approvals, people visibility, and control surfaces from one enterprise shell."
-  },
-  founder: {
+  executive: {
     title: "Executive workspace",
     subtitle: "Keep strategic visibility, company posture, and key operating signals calm, dense, and decision-ready."
   },

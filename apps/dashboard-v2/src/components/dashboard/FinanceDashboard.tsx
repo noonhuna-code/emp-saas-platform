@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -24,13 +24,18 @@ import {
 const asCurrency = (value: number): string =>
   new Intl.NumberFormat(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 2 }).format(value);
 
-export const FinanceDashboard = () => {
+export const FinanceDashboard = ({
+  allowedRoutes = [],
+}: {
+  allowedRoutes?: string[];
+}) => {
   const [billing, setBilling] = useState<BillingOverview | null>(null);
   const [runs, setRuns] = useState<PayrollRunsResponse | null>(null);
   const [payslips, setPayslips] = useState<PayslipHistoryResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState<DashboardView>("workspace");
+  const allowedRouteSet = useMemo(() => new Set(allowedRoutes), [allowedRoutes]);
 
   useEffect(() => {
     let active = true;
@@ -88,6 +93,26 @@ export const FinanceDashboard = () => {
     [runs]
   );
 
+  const heroActions = [
+    allowedRouteSet.has("/app/billing") ? { href: "/app/billing", label: "Billing", tone: "primary" as const } : null,
+    allowedRouteSet.has("/app/payroll") ? { href: "/app/payroll", label: "Payroll", tone: "secondary" as const } : null,
+    allowedRouteSet.has("/app/payslips") ? { href: "/app/payslips", label: "Payslips", tone: "secondary" as const } : null,
+  ].filter(Boolean) as Array<{ href: string; label: string; tone: "primary" | "secondary" }>;
+
+  const operationalModules = [
+    allowedRouteSet.has("/app/billing") ? { label: "Billing console", href: "/app/billing", caption: "Invoices and payment proofs" } : null,
+    allowedRouteSet.has("/app/payroll") ? { label: "Payroll runs", href: "/app/payroll", caption: "Run lifecycle and statuses" } : null,
+    allowedRouteSet.has("/app/payslips") ? { label: "Payslip history", href: "/app/payslips", caption: "Snapshot review" } : null,
+    allowedRouteSet.has("/app/notifications") ? { label: "Notifications", href: "/app/notifications", caption: "Finance alerts" } : null,
+  ].filter(Boolean) as Array<{ label: string; href: string; caption: string }>;
+
+  const actionPaths = [
+    allowedRouteSet.has("/app/payroll") ? { label: "Payroll runs", href: "/app/payroll", caption: "Lifecycle and closeout" } : null,
+    allowedRouteSet.has("/app/payslips") ? { label: "Payslip history", href: "/app/payslips", caption: "Delivery and audit checks" } : null,
+    allowedRouteSet.has("/app/billing") ? { label: "Billing console", href: "/app/billing", caption: "Invoices and proofs" } : null,
+    allowedRouteSet.has("/app/approvals") ? { label: "Approvals queue", href: "/app/approvals", caption: "Pending blockers" } : null,
+  ].filter(Boolean) as Array<{ label: string; href: string; caption: string }>;
+
   if (loading) return <LoadingState label="Loading finance dashboard..." />;
   if (error || !billing) return <ErrorState message={error ?? "Finance dashboard unavailable"} />;
 
@@ -100,9 +125,11 @@ export const FinanceDashboard = () => {
         emphasis="operations"
         actions={(
           <>
-            <Link href="/app/billing" className="primary-btn">Billing</Link>
-            <Link href="/app/payroll" className="secondary-btn">Payroll</Link>
-            <Link href="/app/payslips" className="secondary-btn">Payslips</Link>
+            {heroActions.map((action) => (
+              <Link key={action.href} href={action.href} className={action.tone === "primary" ? "primary-btn" : "secondary-btn"}>
+                {action.label}
+              </Link>
+            ))}
           </>
         )}
       />
@@ -143,14 +170,7 @@ export const FinanceDashboard = () => {
         </div>
 
         <WorkflowPanel title="Operational modules" subtitle="Finance workflows and controls">
-          <QuickActionGrid
-            actions={[
-              { label: "Billing console", href: "/app/billing", caption: "Invoices and payment proofs" },
-              { label: "Payroll runs", href: "/app/payroll", caption: "Run lifecycle and statuses" },
-              { label: "Payslip history", href: "/app/payslips", caption: "Snapshot review" },
-              { label: "Notifications", href: "/app/notifications", caption: "Finance alerts" }
-            ]}
-          />
+          <QuickActionGrid actions={operationalModules} />
         </WorkflowPanel>
       </DashboardSection>
 
@@ -188,14 +208,7 @@ export const FinanceDashboard = () => {
           </WorkflowPanel>
 
           <WorkflowPanel title="Finance action paths" subtitle="Fast routes for closeout, invoice review, and payroll delivery">
-            <QuickActionGrid
-              actions={[
-                { label: "Payroll runs", href: "/app/payroll", caption: "Lifecycle and closeout" },
-                { label: "Payslip history", href: "/app/payslips", caption: "Delivery and audit checks" },
-                { label: "Billing console", href: "/app/billing", caption: "Invoices and proofs" },
-                { label: "Approvals queue", href: "/app/approvals", caption: "Pending blockers" }
-              ]}
-            />
+            <QuickActionGrid actions={actionPaths} />
             <SignalRow label="Invoice count in view" value={billing.recentInvoices.length} />
             <SignalRow label="Paid payslips" value={totals.paid} tone="success" />
           </WorkflowPanel>
@@ -204,5 +217,3 @@ export const FinanceDashboard = () => {
     </div>
   );
 };
-
-

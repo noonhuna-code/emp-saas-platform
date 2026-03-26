@@ -2,12 +2,9 @@ import type { ReactNode } from "react";
 import {
   BriefcaseBusiness,
   Building2,
-  ClipboardCheck,
   Crown,
   Landmark,
-  ShieldCheck,
   Sparkles,
-  Users,
   WalletCards,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,14 +12,11 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 export const ROLE_ICONS = {
-  founder: Crown,
-  admin: Landmark,
-  hr: Users,
+  executive: Crown,
+  admin_ops: Landmark,
   finance: WalletCards,
   manager: BriefcaseBusiness,
-  team_lead: ClipboardCheck,
   employee: Sparkles,
-  it: ShieldCheck,
   platform_owner: Building2,
 };
 

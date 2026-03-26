@@ -55,7 +55,7 @@ const AnalyticsPageClient = ({
     try {
       const requests: Array<Promise<unknown>> = [];
 
-      if (persona === "admin" || persona === "founder" || persona === "hr") {
+      if (persona === "admin_ops" || persona === "executive") {
         requests.push(
           fetchAdminDashboard().then((result) => {
             if (result.ok && result.data) setAdminData(result.data);
@@ -63,7 +63,7 @@ const AnalyticsPageClient = ({
         );
       }
 
-      if (persona === "manager" || persona === "team_lead") {
+      if (persona === "manager") {
         requests.push(
           fetchManagerDashboard().then((result) => {
             if (result.ok && result.data) setManagerData(result.data);
@@ -71,7 +71,7 @@ const AnalyticsPageClient = ({
         );
       }
 
-      if (hasEmployeeContext && (persona === "employee" || persona === "manager" || persona === "team_lead" || persona === "hr")) {
+      if (hasEmployeeContext && (persona === "employee" || persona === "manager" || persona === "admin_ops")) {
         requests.push(
           fetchEmployeeDashboard().then((result) => {
             if (result.ok && result.data) setEmployeeData(result.data);
@@ -79,7 +79,7 @@ const AnalyticsPageClient = ({
         );
       }
 
-      if (persona === "finance" || persona === "admin" || persona === "founder" || permissions.includes("view_billing")) {
+      if (persona === "finance" || persona === "admin_ops" || persona === "executive" || permissions.includes("view_billing")) {
         requests.push(
           fetchBillingOverview().then((result) => {
             if (result.ok && result.data) setBilling(result.data);
@@ -87,7 +87,7 @@ const AnalyticsPageClient = ({
         );
       }
 
-      if (persona === "it" || persona === "admin" || persona === "founder") {
+      if (persona === "admin_ops" || persona === "executive") {
         requests.push(
           fetchMonitoringOverview().then((result) => {
             if (result.ok && result.data) setMonitoring(result.data);

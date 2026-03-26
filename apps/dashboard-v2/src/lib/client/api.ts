@@ -1352,7 +1352,7 @@ export const reviewShiftSwap = async (payload: {
 
 
 
-type DashboardPrewarmPersona = "employee" | "team_lead" | "manager" | "hr" | "it" | "admin" | "founder" | "finance" | "platform_owner";
+type DashboardPrewarmPersona = "employee" | "manager" | "admin_ops" | "finance" | "executive" | "platform_owner";
 
 const settlePrewarm = (tasks: Array<Promise<unknown>>): void => {
   if (tasks.length === 0) return;
@@ -1458,21 +1458,21 @@ export const prewarmDashboardData = (persona: DashboardPrewarmPersona): void => 
   const monthRange = resolveMonthRange(month);
   const phaseOne: Array<Promise<unknown>> = [];
 
-  if (persona === "employee" || persona === "team_lead" || persona === "manager" || persona === "hr") {
+  if (persona === "employee" || persona === "manager") {
     phaseOne.push(fetchEmployeeMe());
     phaseOne.push(fetchAttendanceToday());
     phaseOne.push(fetchWorkspaceNotifications({ limit: 30 }));
   }
 
-  if (persona === "manager" || persona === "team_lead") {
+  if (persona === "manager") {
     phaseOne.push(fetchManagerDashboard());
   }
 
-  if (persona === "admin" || persona === "founder" || persona === "hr") {
+  if (persona === "admin_ops" || persona === "executive") {
     phaseOne.push(fetchAdminDashboard());
   }
 
-  if (persona === "it") {
+  if (persona === "admin_ops" || persona === "finance" || persona === "executive") {
     phaseOne.push(fetchMonitoringOverview());
     phaseOne.push(fetchBillingOverview());
   }
@@ -1486,7 +1486,7 @@ export const prewarmDashboardData = (persona: DashboardPrewarmPersona): void => 
   const runPhaseTwo = () => {
     const phaseTwo: Array<Promise<unknown>> = [];
 
-    if (persona === "employee" || persona === "team_lead" || persona === "manager" || persona === "hr") {
+    if (persona === "employee" || persona === "manager") {
       phaseTwo.push(fetchEmployeeDashboard());
       phaseTwo.push(fetchWorkspaceResources(20));
       phaseTwo.push(fetchWorkspaceNotes(20));
@@ -1500,7 +1500,7 @@ export const prewarmDashboardData = (persona: DashboardPrewarmPersona): void => 
       phaseTwo.push(fetchWorkspaceContacts(200));
     }
 
-    if (persona === "it") {
+    if (persona === "admin_ops" || persona === "finance" || persona === "executive") {
       phaseTwo.push(fetchMonitoringOverview());
       phaseTwo.push(fetchBillingOverview());
       phaseTwo.push(fetchWorkspaceNotifications({ limit: 30 }));

@@ -32,7 +32,11 @@ import {
 const currency = (value: number) =>
   new Intl.NumberFormat(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 2 }).format(value);
 
-export const FounderDashboard = () => {
+export const FounderDashboard = ({
+  allowedRoutes = [],
+}: {
+  allowedRoutes?: string[];
+}) => {
   const [adminData, setAdminData] = useState<AdminDashboardResponse | null>(null);
   const [billing, setBilling] = useState<BillingOverview | null>(null);
   const [monitoring, setMonitoring] = useState<MonitoringOverview | null>(null);
@@ -40,6 +44,7 @@ export const FounderDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState<DashboardView>("workspace");
+  const allowedRouteSet = useMemo(() => new Set(allowedRoutes), [allowedRoutes]);
 
   useEffect(() => {
     let active = true;
@@ -127,6 +132,17 @@ export const FounderDashboard = () => {
       })),
     [payrollRuns?.rows]
   );
+  const heroActions = [
+    allowedRouteSet.has("/app/monitoring") ? { href: "/app/monitoring", label: "Monitoring", tone: "primary" as const } : null,
+    allowedRouteSet.has("/app/payroll") ? { href: "/app/payroll", label: "Payroll", tone: "secondary" as const } : null,
+    allowedRouteSet.has("/app/employees") ? { href: "/app/employees", label: "People", tone: "secondary" as const } : null,
+  ].filter(Boolean) as Array<{ href: string; label: string; tone: "primary" | "secondary" }>;
+  const executiveActions = [
+    allowedRouteSet.has("/app/payroll") ? { label: "Payroll timelines", href: "/app/payroll", caption: "Run-level lifecycle" } : null,
+    allowedRouteSet.has("/app/monitoring") ? { label: "Security monitoring", href: "/app/monitoring", caption: "Alerts and failures" } : null,
+    allowedRouteSet.has("/app/approvals") ? { label: "Approvals queue", href: "/app/approvals", caption: "Operational backlog" } : null,
+    allowedRouteSet.has("/app/employees") ? { label: "People directory", href: "/app/employees", caption: "Headcount view" } : null,
+  ].filter(Boolean) as Array<{ label: string; href: string; caption: string }>;
 
   if (loading) return <LoadingState label="Loading founder dashboard..." />;
   if (error || !adminData || !monitoring || !payrollRuns) return <ErrorState message={error ?? "Founder dashboard unavailable"} />;
@@ -140,9 +156,11 @@ export const FounderDashboard = () => {
         emphasis="executive"
         actions={(
           <>
-            <Link href="/app/monitoring" className="primary-btn">Monitoring</Link>
-            <Link href="/app/payroll" className="secondary-btn">Payroll</Link>
-            <Link href="/app/employees" className="secondary-btn">People</Link>
+            {heroActions.map((action) => (
+              <Link key={action.href} href={action.href} className={action.tone === "primary" ? "primary-btn" : "secondary-btn"}>
+                {action.label}
+              </Link>
+            ))}
           </>
         )}
       />
@@ -187,14 +205,7 @@ export const FounderDashboard = () => {
           />
 
           <WorkflowPanel title="Quick actions" subtitle="Executive navigation">
-            <QuickActionGrid
-              actions={[
-                { label: "Payroll timelines", href: "/app/payroll", caption: "Run-level lifecycle" },
-                { label: "Security monitoring", href: "/app/monitoring", caption: "Alerts and failures" },
-                { label: "Approvals queue", href: "/app/approvals", caption: "Operational backlog" },
-                { label: "People directory", href: "/app/employees", caption: "Headcount view" }
-              ]}
-            />
+            <QuickActionGrid actions={executiveActions} />
           </WorkflowPanel>
         </div>
       </DashboardSection>

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowUpRight, Command, Search, Sparkles } from "lucide-react";
 import type { DashboardPersona } from "@/lib/dashboard/capabilities";
+import { TENANT_NAVIGATION_GROUPS, resolveVisibleNavigationGroups } from "@/navigation/navigation.config";
 
 export type CommandItem = {
   label: string;
@@ -13,36 +14,61 @@ export type CommandItem = {
 };
 
 const COMMANDS: CommandItem[] = [
-  { label: "Open Home", href: "/app/dashboard", section: "Workspace", personas: ["employee", "finance", "it", "manager", "team_lead", "hr", "admin", "founder"] },
-  { label: "Open Attendance", href: "/app/attendance", section: "Workforce", personas: ["employee", "manager", "team_lead", "hr", "admin", "founder", "finance"] },
-  { label: "Request Leave", href: "/app/leave", section: "Workforce", personas: ["employee", "manager", "team_lead", "hr", "admin", "founder", "finance"] },
-  { label: "Open People", href: "/app/employees", section: "Workforce", personas: ["manager", "team_lead", "hr", "admin", "founder", "finance", "it"] },
-  { label: "Open Organization", href: "/app/organization", section: "Workforce", personas: ["manager", "team_lead", "hr", "admin", "founder", "finance", "it"] },
-  { label: "Open Payroll", href: "/app/payroll", section: "Operations", personas: ["hr", "finance", "admin", "founder"] },
-  { label: "Open Projects", href: "/app/projects", section: "Operations", personas: ["manager", "team_lead", "admin", "founder"] },
-  { label: "Open Chat", href: "/app/chat", section: "Collaboration", personas: ["employee", "manager", "team_lead", "hr", "admin", "founder", "finance", "it"] },
-  { label: "Open Knowledge Base", href: "/app/resources", section: "Collaboration", personas: ["employee", "manager", "team_lead", "hr", "admin", "founder", "finance", "it"] },
-  { label: "Open Notifications", href: "/app/notifications", section: "Collaboration", personas: ["employee", "manager", "team_lead", "hr", "admin", "founder", "finance", "it"] },
-  { label: "Open Analytics", href: "/app/analytics", section: "Insights", personas: ["manager", "team_lead", "hr", "it", "admin", "founder", "finance"] },
-  { label: "Open Settings", href: "/app/settings", section: "Platform", personas: ["employee", "manager", "team_lead", "hr", "admin", "founder", "finance", "it"] },
-  { label: "Open Monitoring", href: "/app/monitoring", section: "Platform", personas: ["it", "admin", "founder"] },
-  { label: "Open Billing", href: "/app/billing", section: "Platform", personas: ["finance", "admin", "founder"] },
+  { label: "Open Home", href: "/app/dashboard", section: "Workspace", personas: ["employee", "manager", "admin_ops", "finance", "executive"] },
+  { label: "Open Attendance", href: "/app/attendance", section: "Workforce", personas: ["employee", "manager", "admin_ops", "finance", "executive"] },
+  { label: "Request Leave", href: "/app/leave", section: "Workforce", personas: ["employee", "manager", "admin_ops", "finance", "executive"] },
+  { label: "Open People", href: "/app/employees", section: "Workforce", personas: ["manager", "admin_ops", "finance", "executive"] },
+  { label: "Open Organization", href: "/app/organization", section: "Workforce", personas: ["manager", "admin_ops", "finance", "executive"] },
+  { label: "Open Payroll", href: "/app/payroll", section: "Operations", personas: ["admin_ops", "finance", "executive"] },
+  { label: "Open Projects", href: "/app/projects", section: "Operations", personas: ["manager", "admin_ops", "executive"] },
+  { label: "Open Chat", href: "/app/chat", section: "Collaboration", personas: ["employee", "manager", "admin_ops", "finance", "executive"] },
+  { label: "Open Knowledge Base", href: "/app/resources", section: "Collaboration", personas: ["employee", "manager", "admin_ops", "finance", "executive"] },
+  { label: "Open Notifications", href: "/app/notifications", section: "Collaboration", personas: ["employee", "manager", "admin_ops", "finance", "executive"] },
+  { label: "Open Analytics", href: "/app/analytics", section: "Insights", personas: ["manager", "admin_ops", "finance", "executive"] },
+  { label: "Open Settings", href: "/app/settings", section: "Platform", personas: ["employee", "manager", "admin_ops", "finance", "executive"] },
+  { label: "Open Monitoring", href: "/app/monitoring", section: "Platform", personas: ["admin_ops", "executive"] },
+  { label: "Open Billing", href: "/app/billing", section: "Platform", personas: ["finance", "admin_ops", "executive"] },
   { label: "Open Tenants", href: "/platform", section: "Platform", personas: ["platform_owner"] }
 ];
 
-export const CommandPalette = ({ persona }: { persona: DashboardPersona }) => {
+export const CommandPalette = ({
+  persona,
+  permissions,
+  hasEmployeeContext,
+  entitlements,
+}: {
+  persona: DashboardPersona;
+  permissions?: string[];
+  hasEmployeeContext?: boolean;
+  entitlements?: Record<string, unknown> | null;
+}) => {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const tenantAllowedRoutes = useMemo(() => {
+    if (!permissions) return null;
+    const visibleGroups = resolveVisibleNavigationGroups(TENANT_NAVIGATION_GROUPS, {
+      permissions,
+      hasEmployeeContext: Boolean(hasEmployeeContext),
+      entitlements: entitlements ?? null,
+      persona,
+    });
+    return new Set(visibleGroups.flatMap((group) => group.items.map((item) => item.href)));
+  }, [entitlements, hasEmployeeContext, permissions, persona]);
 
   const items = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const filtered = COMMANDS.filter((item) => item.personas.includes(persona));
+    const filtered = COMMANDS.filter((item) => {
+      if (!item.personas.includes(persona)) return false;
+      if (!tenantAllowedRoutes) return true;
+      if (item.href === "/platform") return persona === "platform_owner";
+      return tenantAllowedRoutes.has(item.href);
+    });
     if (!q) return filtered;
     return filtered.filter((item) => `${item.label} ${item.section} ${item.href}`.toLowerCase().includes(q));
-  }, [persona, query]);
+  }, [persona, query, tenantAllowedRoutes]);
 
   const groupedItems = useMemo(() => {
     const buckets = new Map<string, CommandItem[]>();

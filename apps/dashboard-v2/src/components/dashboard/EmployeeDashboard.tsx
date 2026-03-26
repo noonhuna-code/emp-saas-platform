@@ -93,12 +93,17 @@ const getLeaveBreakdown = (rows: EmployeeDashboardResponse["leaveBalances"]): Le
     { totalUsed: 0, totalEntitled: 0 }
   );
 
-export const EmployeeDashboard = () => {
+export const EmployeeDashboard = ({
+  allowedRoutes = [],
+}: {
+  allowedRoutes?: string[];
+}) => {
   const cachedDashboard = peekCachedResult<EmployeeDashboardResponse>("/api/dashboard/employee");
   const [data, setData] = useState<EmployeeDashboardResponse | null>(cachedDashboard?.ok ? (cachedDashboard.data ?? null) : null);
   const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState<DashboardView>("workspace");
   const perf = useDashboardPerf("employee");
+  const allowedRouteSet = useMemo(() => new Set(allowedRoutes), [allowedRoutes]);
 
   const loadDashboard = useCallback(() => {
     let active = true;
@@ -154,6 +159,16 @@ export const EmployeeDashboard = () => {
   const latestResource = workspace?.resources[0] ?? null;
   const latestRequest = workspace?.loanRequests[0] ?? null;
   const recentChats = workspace?.chat.slice(0, 3) ?? [];
+  const hasAttendance = allowedRouteSet.has("/app/attendance");
+  const hasLeave = allowedRouteSet.has("/app/leave");
+  const hasNotes = allowedRouteSet.has("/app/notes");
+  const hasResources = allowedRouteSet.has("/app/resources");
+  const hasPayslips = allowedRouteSet.has("/app/payslips");
+  const hasLoans = allowedRouteSet.has("/app/loans");
+  const hasChat = allowedRouteSet.has("/app/chat");
+  const hasCalendar = allowedRouteSet.has("/app/calendar");
+  const hasNotifications = allowedRouteSet.has("/app/notifications");
+  const hasProfile = allowedRouteSet.has("/app/profile");
   const activityItems = useMemo(
     () =>
       (data?.notifications ?? []).slice(0, 5).map((item) => ({
@@ -182,10 +197,10 @@ export const EmployeeDashboard = () => {
         subtitle="Stay on top of attendance, leave, payroll snapshots, notes, resources, chat, and shared team support without leaving the employee shell."
         actions={(
           <>
-            <Link href="/app/attendance" className="secondary-btn">Attendance</Link>
-            <Link href="/app/leave" className="secondary-btn">Leave</Link>
-            <Link href="/app/notes" className="secondary-btn">Notes</Link>
-            <Link href="/app/resources" className="primary-btn">Resources</Link>
+            {hasAttendance ? <Link href="/app/attendance" className="secondary-btn">Attendance</Link> : null}
+            {hasLeave ? <Link href="/app/leave" className="secondary-btn">Leave</Link> : null}
+            {hasNotes ? <Link href="/app/notes" className="secondary-btn">Notes</Link> : null}
+            {hasResources ? <Link href="/app/resources" className="primary-btn">Resources</Link> : null}
           </>
         )}
       />
@@ -209,7 +224,7 @@ export const EmployeeDashboard = () => {
                 shift ? `${shift.start_time} - ${shift.end_time}` : "No shift assigned",
                 `${remainingLeave} leave days remaining`,
                 `${unreadNotifications} unread notifications`,
-                `${workspace?.counts.openLoanRequests ?? 0} open finance requests`,
+                hasLoans ? `${workspace?.counts.openLoanRequests ?? 0} open finance requests` : "Finance requests hidden",
               ]}
             />
 
@@ -254,7 +269,7 @@ export const EmployeeDashboard = () => {
               <SignalRow label="Department" value={workspace?.department?.name ?? workspace?.employee.department_name ?? "-"} />
               <SignalRow label="Company" value={workspace?.company?.name ?? "-"} />
               <SignalRow label="Latest payslip" value={recentPayslip ? formatDate(recentPayslip.generated_at) : "No payslips yet"} />
-              <SignalRow label="Open requests" value={workspace?.counts.openLoanRequests ?? 0} tone={(workspace?.counts.openLoanRequests ?? 0) > 0 ? "warning" : "default"} />
+              {hasLoans ? <SignalRow label="Open requests" value={workspace?.counts.openLoanRequests ?? 0} tone={(workspace?.counts.openLoanRequests ?? 0) > 0 ? "warning" : "default"} /> : null}
               <SignalRow label="Resources available" value={workspace?.counts.resources ?? 0} />
             </div>
           </div>
@@ -311,14 +326,14 @@ export const EmployeeDashboard = () => {
         <section className="space-y-4">
           <h2 className="text-xl font-semibold">Quick Actions</h2>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <ActionCard title="Open Attendance" description="Track today&apos;s shift and attendance records" href="/app/attendance" icon={Clock3} />
-            <ActionCard title="Apply Leave" description="Submit and review leave requests" href="/app/leave" icon={CalendarClock} />
-            <ActionCard title="Payslips" description="Review payroll snapshots and salary history" href="/app/payslips" icon={CreditCard} />
-            <ActionCard title="Loans & Advances" description="Track finance requests already linked to your profile" href="/app/loans" icon={HandCoins} />
-            <ActionCard title="Workspace Notes" description="Capture and pin personal workspace notes" href="/app/notes" icon={NotebookPen} />
-            <ActionCard title="Resources" description="Open SOPs, documents, and company resources" href="/app/resources" icon={FileText} />
-            <ActionCard title="Chat" description="Collaborate with your team and shared contacts" href="/app/chat" icon={MessageSquare} />
-            <ActionCard title="Calendar" description="Review shifts, leave, and calendar context" href="/app/calendar" icon={RefreshCw} />
+            {hasAttendance ? <ActionCard title="Open Attendance" description="Track today&apos;s shift and attendance records" href="/app/attendance" icon={Clock3} /> : null}
+            {hasLeave ? <ActionCard title="Apply Leave" description="Submit and review leave requests" href="/app/leave" icon={CalendarClock} /> : null}
+            {hasPayslips ? <ActionCard title="Payslips" description="Review payroll snapshots and salary history" href="/app/payslips" icon={CreditCard} /> : null}
+            {hasLoans ? <ActionCard title="Loans & Advances" description="Track finance requests already linked to your profile" href="/app/loans" icon={HandCoins} /> : null}
+            {hasNotes ? <ActionCard title="Workspace Notes" description="Capture and pin personal workspace notes" href="/app/notes" icon={NotebookPen} /> : null}
+            {hasResources ? <ActionCard title="Resources" description="Open SOPs, documents, and company resources" href="/app/resources" icon={FileText} /> : null}
+            {hasChat ? <ActionCard title="Chat" description="Collaborate with your team and shared contacts" href="/app/chat" icon={MessageSquare} /> : null}
+            {hasCalendar ? <ActionCard title="Calendar" description="Review shifts, leave, and calendar context" href="/app/calendar" icon={RefreshCw} /> : null}
           </div>
         </section>
 
@@ -328,11 +343,11 @@ export const EmployeeDashboard = () => {
               <div className="space-y-3">
                 <div className="flex items-center justify-between gap-3">
                   <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">Financial requests</h3>
-                  <Link href="/app/loans" className="text-sm font-medium text-blue-700 hover:text-blue-800">
+                  {hasLoans ? <Link href="/app/loans" className="text-sm font-medium text-blue-700 hover:text-blue-800">
                     Open requests
-                  </Link>
+                  </Link> : null}
                 </div>
-                {workspace?.loanRequests.length ? (
+                {hasLoans && workspace?.loanRequests.length ? (
                   <div className="space-y-3">
                     {workspace.loanRequests.slice(0, 3).map((request) => (
                       <div key={request.id} className="rounded-2xl border border-slate-200/80 bg-slate-50/70 px-4 py-3">
@@ -347,18 +362,22 @@ export const EmployeeDashboard = () => {
                     ))}
                   </div>
                 ) : (
-                  <EmptyState title="No open requests" subtitle="Your finance queue is clear right now." compact />
+                  <EmptyState
+                    title={hasLoans ? "No open requests" : "Finance requests unavailable"}
+                    subtitle={hasLoans ? "Your finance queue is clear right now." : "This plan does not currently expose loan and advance requests."}
+                    compact
+                  />
                 )}
               </div>
 
               <div className="space-y-3">
                 <div className="flex items-center justify-between gap-3">
                   <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">Recent payroll snapshots</h3>
-                  <Link href="/app/payslips" className="text-sm font-medium text-blue-700 hover:text-blue-800">
+                  {hasPayslips ? <Link href="/app/payslips" className="text-sm font-medium text-blue-700 hover:text-blue-800">
                     View payslips
-                  </Link>
+                  </Link> : null}
                 </div>
-                {data?.recentPayslips.length ? (
+                {hasPayslips && data?.recentPayslips.length ? (
                   <div className="space-y-3">
                     {data.recentPayslips.map((payslip) => (
                       <div key={payslip.id} className="rounded-2xl border border-slate-200/80 bg-white/88 px-4 py-3">
@@ -371,7 +390,11 @@ export const EmployeeDashboard = () => {
                     ))}
                   </div>
                 ) : (
-                  <EmptyState title="No payslips yet" subtitle="Payslip snapshots will appear here when payroll runs are generated for your scope." compact />
+                  <EmptyState
+                    title={hasPayslips ? "No payslips yet" : "Payslips unavailable"}
+                    subtitle={hasPayslips ? "Payslip snapshots will appear here when payroll runs are generated for your scope." : "Your current plan does not expose payslip history."}
+                    compact
+                  />
                 )}
               </div>
 
@@ -517,7 +540,7 @@ export const EmployeeDashboard = () => {
               />
               <SignalRow label="Latest note" value={latestNote?.title ?? "No note pinned"} />
               <SignalRow label="Latest resource" value={latestResource?.title ?? "No resource published"} />
-              <SignalRow label="Latest request" value={latestRequest ? `${latestRequest.obligation_type} · ${latestRequest.status}` : "No finance request open"} />
+              {hasLoans ? <SignalRow label="Latest request" value={latestRequest ? `${latestRequest.obligation_type} · ${latestRequest.status}` : "No finance request open"} /> : null}
               <SignalRow label="Profile quality" value={`${data?.profileCompletenessScore ?? 0}%`} tone={(data?.profileCompletenessScore ?? 0) >= 80 ? "success" : "warning"} />
             </div>
           </SurfacePanel>
@@ -526,14 +549,14 @@ export const EmployeeDashboard = () => {
         <section className="space-y-4">
           <h2 className="text-xl font-semibold">Role Navigation</h2>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <ActionCard title="My Profile" description="Review your self-service profile safely" href="/app/profile" icon={UserCheck} />
-            <ActionCard title="Payslips" description="Open payroll snapshots already available to you" href="/app/payslips" icon={CreditCard} />
-            <ActionCard title="Notifications" description="Review alerts, approvals, and reminders" href="/app/notifications" icon={BadgeCheck} />
-            <ActionCard title="Resources" description="Stay close to SOPs and company guidance" href="/app/resources" icon={ShieldCheck} />
+            {hasProfile ? <ActionCard title="My Profile" description="Review your self-service profile safely" href="/app/profile" icon={UserCheck} /> : null}
+            {hasPayslips ? <ActionCard title="Payslips" description="Open payroll snapshots already available to you" href="/app/payslips" icon={CreditCard} /> : null}
+            {hasNotifications ? <ActionCard title="Notifications" description="Review alerts, approvals, and reminders" href="/app/notifications" icon={BadgeCheck} /> : null}
+            {hasResources ? <ActionCard title="Resources" description="Stay close to SOPs and company guidance" href="/app/resources" icon={ShieldCheck} /> : null}
           </div>
         </section>
 
-        {recentChats.length ? (
+        {hasChat && recentChats.length ? (
           <SurfacePanel title="Recent chat context" description="A lightweight view of your current conversation lane without widening deeper collaboration access.">
             <div className="space-y-3">
               {recentChats.map((message) => (

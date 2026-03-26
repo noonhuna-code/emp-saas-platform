@@ -402,15 +402,13 @@ export const Topbar = ({
     } else if (persona === "employee") {
       chips.push("Self service");
       if (employeeCode) chips.push(`ID ${employeeCode}`);
-    } else if (persona === "manager" || persona === "team_lead") {
+    } else if (persona === "manager") {
       chips.push("Team operations");
-    } else if (persona === "founder") {
+    } else if (persona === "executive") {
       chips.push("Executive view");
     } else if (persona === "finance") {
       chips.push("Finance controls");
-    } else if (persona === "it") {
-      chips.push("System visibility");
-    } else if (persona === "hr" || persona === "admin") {
+    } else if (persona === "admin_ops") {
       chips.push("Operational control");
     }
 

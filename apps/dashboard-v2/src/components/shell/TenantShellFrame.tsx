@@ -48,12 +48,9 @@ export const TenantShellFrame = ({
     const baseRoutes = ["/app/dashboard", "/app/attendance", "/app/leave", "/app/calendar"];
     const personaRoutes: Record<string, string[]> = {
       employee: ["/app/profile", "/app/notes", "/app/notifications", "/app/resources", "/app/chat", "/app/payslips", "/app/attendance/shift-swaps"],
-      team_lead: ["/app/attendance/team", "/app/attendance/shift-swaps", "/app/approvals"],
-      manager: ["/app/attendance/team", "/app/approvals", "/app/employees"],
-      hr: ["/app/leave/review", "/app/employees", "/app/payroll"],
-      admin: ["/app/billing", "/app/payroll", "/app/monitoring"],
-      founder: ["/app/billing", "/app/monitoring", "/app/employees"],
-      it: ["/app/monitoring", "/app/notifications", "/app/billing"],
+      manager: ["/app/attendance/team", "/app/attendance/shift-swaps", "/app/approvals", "/app/employees", "/app/projects"],
+      admin_ops: ["/app/leave/review", "/app/employees", "/app/payroll", "/app/billing", "/app/monitoring", "/app/notifications"],
+      executive: ["/app/billing", "/app/monitoring", "/app/employees", "/app/payroll", "/app/approvals"],
       finance: ["/app/billing", "/app/payroll", "/app/payslips", "/app/notifications"],
       platform_owner: ["/platform"]
     };
@@ -168,7 +165,12 @@ export const TenantShellFrame = ({
         />
       ) : null}
 
-      <CommandPalette persona={persona} />
+      <CommandPalette
+        persona={persona}
+        permissions={session.permissions}
+        hasEmployeeContext={Boolean(session.employeeId)}
+        entitlements={billingContext?.entitlements ?? null}
+      />
     </div>
   );
 };
