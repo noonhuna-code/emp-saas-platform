@@ -201,6 +201,7 @@ const TopbarProfileMenu = ({
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((current) => !current)}
+        title={compactTrigger ? identityLabel : `${identityLabel} account`}
         className={cn(
           "flex h-10 min-w-0 items-center rounded-[16px] border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/35 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 dark:hover:border-slate-700 dark:hover:bg-slate-900",
           compactTrigger ? "w-12 justify-center gap-1.5 px-2" : "gap-2 px-2.5"
@@ -214,7 +215,7 @@ const TopbarProfileMenu = ({
             (identityLabel[0] ?? "U").toUpperCase()
           )}
         </span>
-        <span className={cn("min-w-0", compactTrigger ? "hidden" : "hidden 2xl:block")}>
+        <span className={cn("min-w-0", compactTrigger ? "hidden" : "hidden xl:block")}>
           <span className="block max-w-[10rem] truncate text-sm font-semibold leading-4">{identityLabel}</span>
         </span>
         <ChevronDown className={cn("h-4 w-4 shrink-0 text-slate-400 transition", open && "rotate-180")} />
@@ -459,22 +460,18 @@ export const Topbar = ({
                   href={notificationsHref}
                   className="inline-flex h-10 w-10 items-center justify-center rounded-[16px] border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-slate-700 dark:hover:bg-slate-900"
                   aria-label="Notifications"
+                  title="Notifications"
                 >
                   <Bell className="h-4 w-4" />
                 </Link>
                 <details className="relative">
-                  <summary className="flex h-10 w-10 cursor-pointer list-none items-center justify-center rounded-[16px] border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-slate-700 dark:hover:bg-slate-900">
+                  <summary
+                    title="More actions"
+                    className="flex h-10 w-10 cursor-pointer list-none items-center justify-center rounded-[16px] border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-slate-700 dark:hover:bg-slate-900"
+                  >
                     <MoreHorizontal className="h-4 w-4" />
                   </summary>
                   <div className="absolute right-0 top-[calc(100%+0.75rem)] z-40 w-48 rounded-[20px] border border-slate-200/90 bg-white/96 p-2 shadow-[0_24px_60px_rgba(15,23,42,0.14)] dark:border-slate-800 dark:bg-slate-950/96">
-                    <button
-                      type="button"
-                      className="flex w-full items-center gap-2 rounded-2xl px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 hover:text-slate-950 dark:text-slate-200 dark:hover:bg-slate-900 dark:hover:text-slate-50"
-                      onClick={() => window.dispatchEvent(new CustomEvent("emp.commandPalette.open"))}
-                    >
-                      <Command className="h-4 w-4" />
-                      Search
-                    </button>
                     <Link
                       href={helpHref}
                       className="flex items-center gap-2 rounded-2xl px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 hover:text-slate-950 dark:text-slate-200 dark:hover:bg-slate-900 dark:hover:text-slate-50"
@@ -503,67 +500,7 @@ export const Topbar = ({
               <TopbarSearch placeholder={headerMeta.searchPlaceholder} />
             </div>
 
-            <div className="hidden lg:flex lg:flex-col lg:gap-3 2xl:hidden">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex min-w-0 items-start gap-2.5">
-                  {onToggleSidebar ? (
-                    <button
-                      type="button"
-                      className="mt-0.5 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-[16px] border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-slate-700 dark:hover:bg-slate-900"
-                      onClick={onToggleSidebar}
-                      aria-label="Toggle sidebar"
-                    >
-                      <LayoutPanelLeft className="h-4 w-4" />
-                    </button>
-                  ) : null}
-                  <TopbarTitleBlock
-                    groupLabel={headerMeta.groupLabel}
-                    itemLabel={headerMeta.itemLabel}
-                    title={headerMeta.title}
-                    subtitle={headerMeta.subtitle}
-                  />
-                </div>
-
-                <div className="flex shrink-0 items-center justify-end gap-1.5">
-                  <Link
-                    href={notificationsHref}
-                    className="inline-flex h-10 w-10 items-center justify-center rounded-[16px] border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-slate-700 dark:hover:bg-slate-900"
-                    aria-label="Notifications"
-                  >
-                    <Bell className="h-4 w-4" />
-                  </Link>
-                  <button
-                    type="button"
-                    className="inline-flex h-10 w-10 items-center justify-center rounded-[16px] border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-slate-700 dark:hover:bg-slate-900"
-                    onClick={() => window.dispatchEvent(new CustomEvent("emp.commandPalette.open"))}
-                    aria-label="Open command palette"
-                  >
-                    <Command className="h-4 w-4" />
-                  </button>
-                  <Link
-                    href={helpHref}
-                    className="inline-flex h-10 w-10 items-center justify-center rounded-[16px] border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-slate-700 dark:hover:bg-slate-900"
-                    aria-label="Help and resources"
-                  >
-                    <CircleHelp className="h-4 w-4" />
-                  </Link>
-                  <ThemeToggle compact />
-                  <TopbarProfileMenu
-                    identityLabel={identityLabel}
-                    email={email}
-                    roleLabel={roleLabel}
-                    avatarUrl={avatarUrl}
-                    profileHref={profileHref}
-                    homeHref={homeHref}
-                    compactTrigger={compactDesktopProfileTrigger}
-                  />
-                </div>
-              </div>
-
-              <TopbarSearch placeholder={headerMeta.searchPlaceholder} className="max-w-none" />
-            </div>
-
-            <div className="hidden 2xl:grid 2xl:grid-cols-[minmax(340px,1fr)_minmax(180px,280px)_auto] 2xl:items-center 2xl:gap-3">
+            <div className="hidden lg:grid lg:grid-cols-[minmax(220px,1fr)_minmax(220px,320px)_auto] lg:items-center lg:gap-3 xl:grid-cols-[minmax(260px,1fr)_minmax(240px,360px)_auto] 2xl:grid-cols-[minmax(300px,1fr)_minmax(280px,420px)_auto]">
               <div className="flex min-w-0 items-center gap-2.5">
                 {onToggleSidebar ? (
                   <button
@@ -571,6 +508,7 @@ export const Topbar = ({
                     className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-[16px] border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-slate-700 dark:hover:bg-slate-900"
                     onClick={onToggleSidebar}
                     aria-label="Toggle sidebar"
+                    title="Toggle sidebar"
                   >
                     <LayoutPanelLeft className="h-4 w-4" />
                   </button>
@@ -583,54 +521,26 @@ export const Topbar = ({
                 />
               </div>
 
-              <TopbarSearch placeholder={headerMeta.searchPlaceholder} className="justify-self-end" />
+              <TopbarSearch placeholder={headerMeta.searchPlaceholder} className="justify-self-center" />
 
-              <div className="flex items-center justify-end gap-1.5 2xl:gap-2">
+              <div className="flex items-center justify-end gap-1.5 xl:gap-2">
                 <Link
                   href={notificationsHref}
                   className="inline-flex h-10 w-10 items-center justify-center rounded-[16px] border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-slate-700 dark:hover:bg-slate-900"
                   aria-label="Notifications"
+                  title="Notifications"
                 >
                   <Bell className="h-4 w-4" />
                 </Link>
-                <button
-                  type="button"
-                  className="hidden h-10 w-10 items-center justify-center rounded-[16px] border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-slate-700 dark:hover:bg-slate-900 2xl:inline-flex"
-                  onClick={() => window.dispatchEvent(new CustomEvent("emp.commandPalette.open"))}
-                  aria-label="Open command palette"
-                >
-                  <Command className="h-4 w-4" />
-                </button>
                 <Link
                   href={helpHref}
-                  className="hidden h-10 w-10 items-center justify-center rounded-[16px] border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-slate-700 dark:hover:bg-slate-900 2xl:inline-flex"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-[16px] border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-slate-700 dark:hover:bg-slate-900"
                   aria-label="Help and resources"
+                  title="Help and resources"
                 >
                   <CircleHelp className="h-4 w-4" />
                 </Link>
                 <ThemeToggle compact />
-                <details className="relative 2xl:hidden">
-                  <summary className="flex h-10 w-10 cursor-pointer list-none items-center justify-center rounded-[16px] border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-slate-700 dark:hover:bg-slate-900">
-                    <MoreHorizontal className="h-4 w-4" />
-                  </summary>
-                  <div className="absolute right-0 top-[calc(100%+0.75rem)] z-40 w-44 rounded-[20px] border border-slate-200/90 bg-white/96 p-2 shadow-[0_24px_60px_rgba(15,23,42,0.14)] dark:border-slate-800 dark:bg-slate-950/96">
-                    <button
-                      type="button"
-                      className="flex w-full items-center gap-2 rounded-2xl px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 hover:text-slate-950 dark:text-slate-200 dark:hover:bg-slate-900 dark:hover:text-slate-50"
-                      onClick={() => window.dispatchEvent(new CustomEvent("emp.commandPalette.open"))}
-                    >
-                      <Command className="h-4 w-4" />
-                      Search
-                    </button>
-                    <Link
-                      href={helpHref}
-                      className="flex items-center gap-2 rounded-2xl px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 hover:text-slate-950 dark:text-slate-200 dark:hover:bg-slate-900 dark:hover:text-slate-50"
-                    >
-                      <CircleHelp className="h-4 w-4" />
-                      Help
-                    </Link>
-                  </div>
-                </details>
                 <TopbarProfileMenu
                   identityLabel={identityLabel}
                   email={email}
