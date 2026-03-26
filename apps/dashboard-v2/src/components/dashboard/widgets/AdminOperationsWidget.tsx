@@ -11,10 +11,15 @@ import {
   loadBillingOverviewData
 } from "@/components/dashboard/widgets/dashboard-data-loaders";
 
-export default function AdminOperationsWidget() {
+export default function AdminOperationsWidget({
+  allowedRoutes = [],
+}: {
+  allowedRoutes?: string[];
+}) {
   const [loading, setLoading] = useState(true);
   const [adminData, setAdminData] = useState<Awaited<ReturnType<typeof loadAdminDashboardData>>>(null);
   const [billingData, setBillingData] = useState<Awaited<ReturnType<typeof loadBillingOverviewData>>>(null);
+  const allowedRouteSet = new Set(allowedRoutes);
 
   useEffect(() => {
     let active = true;
@@ -60,10 +65,10 @@ export default function AdminOperationsWidget() {
       <DashboardPanel title="Executive quick actions" subtitle="Common admin workflows">
         <QuickActionGrid
           actions={[
-            { label: "Employee Directory", href: "/app/employees", caption: "Headcount and profiles" },
-            ...(payrollEnabled ? [{ label: "Payroll Runs", href: "/app/payroll", caption: "Review lifecycle" }] : []),
-            ...(payslipsEnabled ? [{ label: "Payslips", href: "/app/payslips", caption: "Snapshot history" }] : []),
-            { label: "Security Monitoring", href: "/app/monitoring", caption: "Tenant signals" }
+            ...(allowedRouteSet.has("/app/employees") ? [{ label: "Employee Directory", href: "/app/employees", caption: "Headcount and profiles" }] : []),
+            ...(payrollEnabled && allowedRouteSet.has("/app/payroll") ? [{ label: "Payroll Runs", href: "/app/payroll", caption: "Review lifecycle" }] : []),
+            ...(payslipsEnabled && allowedRouteSet.has("/app/payslips") ? [{ label: "Payslips", href: "/app/payslips", caption: "Snapshot history" }] : []),
+            ...(securityIntelligenceEnabled && allowedRouteSet.has("/app/monitoring") ? [{ label: "Security Monitoring", href: "/app/monitoring", caption: "Tenant signals" }] : [])
           ]}
         />
       </DashboardPanel>
@@ -94,9 +99,9 @@ export default function AdminOperationsWidget() {
       {!billingData ? (
         <DashboardPanel title="Billing summary" subtitle="Data unavailable" tone="soft">
           <p className="muted">Billing scope is temporarily unavailable.</p>
-          <div className="row" style={{ justifyContent: "flex-end" }}>
+          {allowedRouteSet.has("/app/billing") ? <div className="row" style={{ justifyContent: "flex-end" }}>
             <Link href="/app/billing" className="secondary-btn">Open billing</Link>
-          </div>
+          </div> : null}
         </DashboardPanel>
       ) : null}
     </div>

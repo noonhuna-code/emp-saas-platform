@@ -169,6 +169,9 @@ export const EmployeeDashboard = ({
   const hasCalendar = allowedRouteSet.has("/app/calendar");
   const hasNotifications = allowedRouteSet.has("/app/notifications");
   const hasProfile = allowedRouteSet.has("/app/profile");
+  const hasCollaborationPreview = hasCalendar || hasChat;
+  const hasKnowledgePanel = hasNotes || hasResources;
+  const hasRoleNavigation = hasProfile || hasPayslips || hasNotifications || hasResources;
   const activityItems = useMemo(
     () =>
       (data?.notifications ?? []).slice(0, 5).map((item) => ({
@@ -194,7 +197,7 @@ export const EmployeeDashboard = ({
       <DashboardHero
         eyebrow="Employee Workspace"
         title="Your day, requests, records, and support context in one premium lane"
-        subtitle="Stay on top of attendance, leave, payroll snapshots, notes, resources, chat, and shared team support without leaving the employee shell."
+        subtitle="Stay on top of the self-service tools, records, and shared support context available in your workspace without leaving the employee shell."
         actions={(
           <>
             {hasAttendance ? <Link href="/app/attendance" className="secondary-btn">Attendance</Link> : null}
@@ -268,9 +271,9 @@ export const EmployeeDashboard = ({
               <SignalRow label="Reporting lead" value={workspace?.teamLead?.full_name ?? "Not assigned"} />
               <SignalRow label="Department" value={workspace?.department?.name ?? workspace?.employee.department_name ?? "-"} />
               <SignalRow label="Company" value={workspace?.company?.name ?? "-"} />
-              <SignalRow label="Latest payslip" value={recentPayslip ? formatDate(recentPayslip.generated_at) : "No payslips yet"} />
+              {hasPayslips ? <SignalRow label="Latest payslip" value={recentPayslip ? formatDate(recentPayslip.generated_at) : "No payslips yet"} /> : null}
               {hasLoans ? <SignalRow label="Open requests" value={workspace?.counts.openLoanRequests ?? 0} tone={(workspace?.counts.openLoanRequests ?? 0) > 0 ? "warning" : "default"} /> : null}
-              <SignalRow label="Resources available" value={workspace?.counts.resources ?? 0} />
+              {hasResources ? <SignalRow label="Resources available" value={workspace?.counts.resources ?? 0} /> : null}
             </div>
           </div>
         </SurfacePanel>
@@ -304,9 +307,13 @@ export const EmployeeDashboard = ({
                 hint={recentPayslip ? `Generated ${formatDate(recentPayslip.generated_at)}` : "No recent payslip snapshot"}
               />
               <StatCard
-                label="My requests"
-                value={workspace?.counts.openLoanRequests ?? 0}
-                hint={latestRequest ? `${latestRequest.obligation_type} ${latestRequest.status}` : "No open financial requests"}
+                label={hasLoans ? "My requests" : "Unread alerts"}
+                value={hasLoans ? (workspace?.counts.openLoanRequests ?? 0) : unreadNotifications}
+                hint={
+                  hasLoans
+                    ? (latestRequest ? `${latestRequest.obligation_type} - ${latestRequest.status}` : "No open financial requests")
+                    : (hasNotifications ? `${unreadNotifications} unread notifications in your workspace` : "Notification center unavailable")
+                }
               />
             </StatGrid>
           )}
@@ -356,7 +363,7 @@ export const EmployeeDashboard = ({
                           <StatusBadge status={request.status.replace(/_/g, " ")} tone={request.status === "approved" ? "success" : request.status === "rejected" ? "warning" : "info"} />
                         </div>
                         <p className="mt-1 text-sm text-slate-600">
-                          {formatCurrency(request.requested_amount)} {request.currency_code} · {formatDate(request.created_at)}
+                          {formatCurrency(request.requested_amount)} {request.currency_code} - {formatDate(request.created_at)}
                         </p>
                       </div>
                     ))}
@@ -364,7 +371,7 @@ export const EmployeeDashboard = ({
                 ) : (
                   <EmptyState
                     title={hasLoans ? "No open requests" : "Finance requests unavailable"}
-                    subtitle={hasLoans ? "Your finance queue is clear right now." : "This plan does not currently expose loan and advance requests."}
+                    subtitle={hasLoans ? "Your finance queue is clear right now." : "This workspace does not currently expose finance request access."}
                     compact
                   />
                 )}
@@ -392,7 +399,7 @@ export const EmployeeDashboard = ({
                 ) : (
                   <EmptyState
                     title={hasPayslips ? "No payslips yet" : "Payslips unavailable"}
-                    subtitle={hasPayslips ? "Payslip snapshots will appear here when payroll runs are generated for your scope." : "Your current plan does not expose payslip history."}
+                    subtitle={hasPayslips ? "Payslip snapshots will appear here when payroll runs are generated for your scope." : "Payslip history is not currently available in this workspace."}
                     compact
                   />
                 )}
@@ -405,7 +412,7 @@ export const EmployeeDashboard = ({
                     <p className="text-sm font-semibold text-slate-950">{workspace?.department?.main_contact_label ?? "Department shared contact"}</p>
                     <p className="text-sm text-slate-600">
                       {workspace?.department?.main_contact_email ?? "Not configured yet"}
-                      {workspace?.department?.main_contact_phone ? ` · ${workspace.department.main_contact_phone}` : ""}
+                      {workspace?.department?.main_contact_phone ? ` - ${workspace.department.main_contact_phone}` : ""}
                     </p>
                   </div>
                 </div>
@@ -413,8 +420,10 @@ export const EmployeeDashboard = ({
             </div>
           </SurfacePanel>
 
+          {hasKnowledgePanel ? (
           <SurfacePanel title="Notes, resources, and support context" description="Keep your own knowledge base and current operational guidance close to the employee home.">
             <div className="space-y-5">
+              {hasNotes ? (
               <div className="space-y-3">
                 <div className="flex items-center justify-between gap-3">
                   <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">Pinned notes and reminders</h3>
@@ -439,7 +448,9 @@ export const EmployeeDashboard = ({
                   <EmptyState title="No notes yet" subtitle="Create workspace notes to keep daily context and reminders visible here." compact />
                 )}
               </div>
+              ) : null}
 
+              {hasResources ? (
               <div className="space-y-3">
                 <div className="flex items-center justify-between gap-3">
                   <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">Resources and SOPs</h3>
@@ -463,13 +474,15 @@ export const EmployeeDashboard = ({
                   <EmptyState title="No resources published yet" subtitle="Shared resources and SOPs will appear here when available for your company." compact />
                 )}
               </div>
+              ) : null}
             </div>
           </SurfacePanel>
+          ) : null}
         </DashboardRail>
       </DashboardSection>
 
       <DashboardSection visible={view === "analytics"}>
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+        <div className={`grid grid-cols-1 gap-4 ${hasNotifications ? "xl:grid-cols-2" : ""}`}>
           <ChartPanel title="Productivity trends" subtitle="Attendance and leave movement">
             <Suspense fallback={<SkeletonChart />}>
               <DashboardWidgetBoundary title="Productivity trends" message="Analytics are temporarily unavailable.">
@@ -480,18 +493,18 @@ export const EmployeeDashboard = ({
               </DashboardWidgetBoundary>
             </Suspense>
           </ChartPanel>
-          <ChartPanel title="Notification load" subtitle="Unread and recent updates">
+          {hasNotifications ? <ChartPanel title="Notification load" subtitle="Unread and recent updates">
             <Suspense fallback={<SkeletonCard rows={5} />}>
               <DashboardWidgetBoundary title="Notification load" message="Notification insight is temporarily unavailable.">
                 <EmployeeNotificationsWidget />
               </DashboardWidgetBoundary>
             </Suspense>
-          </ChartPanel>
+          </ChartPanel> : null}
         </div>
       </DashboardSection>
 
       <DashboardSection visible={view === "operations"}>
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+        <div className={`grid grid-cols-1 gap-4 ${hasCollaborationPreview ? "xl:grid-cols-2" : ""}`}>
           <WorkflowPanel title="Inbox and activity" subtitle="Recent role-scoped updates that affect your own work.">
             {activityItems.length === 0 ? (
               <EmptyState title="Your workspace is up to date" subtitle="No recent activity to display." compact />
@@ -505,20 +518,20 @@ export const EmployeeDashboard = ({
               />
             )}
           </WorkflowPanel>
-          <WorkflowPanel title="Calendar and collaboration" subtitle="Keep upcoming events and current conversations visible without leaving the dashboard.">
+          {hasCollaborationPreview ? <WorkflowPanel title="Calendar and collaboration" subtitle="Keep upcoming events and current conversations visible without leaving the dashboard.">
             <div className="space-y-4">
-              <Suspense fallback={<SkeletonCard rows={4} />}>
+              {hasCalendar ? <Suspense fallback={<SkeletonCard rows={4} />}>
                 <DashboardWidgetBoundary title="Calendar preview" message="Calendar preview is temporarily unavailable.">
                   <EmployeeCalendarWidget />
                 </DashboardWidgetBoundary>
-              </Suspense>
-              <Suspense fallback={<SkeletonList rows={4} />}>
+              </Suspense> : null}
+              {hasChat ? <Suspense fallback={<SkeletonList rows={4} />}>
                 <DashboardWidgetBoundary title="Chat preview" message="Chat preview is temporarily unavailable.">
                   <EmployeeChatPreviewWidget />
                 </DashboardWidgetBoundary>
-              </Suspense>
+              </Suspense> : null}
             </div>
-          </WorkflowPanel>
+          </WorkflowPanel> : null}
         </div>
 
         <DashboardRail className="items-start xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
@@ -538,14 +551,15 @@ export const EmployeeDashboard = ({
                 value={workspace?.department?.main_contact_email ?? "Not configured"}
                 tone={workspace?.department?.main_contact_email ? "info" : "default"}
               />
-              <SignalRow label="Latest note" value={latestNote?.title ?? "No note pinned"} />
-              <SignalRow label="Latest resource" value={latestResource?.title ?? "No resource published"} />
-              {hasLoans ? <SignalRow label="Latest request" value={latestRequest ? `${latestRequest.obligation_type} · ${latestRequest.status}` : "No finance request open"} /> : null}
+              {hasNotes ? <SignalRow label="Latest note" value={latestNote?.title ?? "No note pinned"} /> : null}
+              {hasResources ? <SignalRow label="Latest resource" value={latestResource?.title ?? "No resource published"} /> : null}
+              {hasLoans ? <SignalRow label="Latest request" value={latestRequest ? `${latestRequest.obligation_type} - ${latestRequest.status}` : "No finance request open"} /> : null}
               <SignalRow label="Profile quality" value={`${data?.profileCompletenessScore ?? 0}%`} tone={(data?.profileCompletenessScore ?? 0) >= 80 ? "success" : "warning"} />
             </div>
           </SurfacePanel>
         </DashboardRail>
 
+        {hasRoleNavigation ? (
         <section className="space-y-4">
           <h2 className="text-xl font-semibold">Role Navigation</h2>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -555,6 +569,7 @@ export const EmployeeDashboard = ({
             {hasResources ? <ActionCard title="Resources" description="Stay close to SOPs and company guidance" href="/app/resources" icon={ShieldCheck} /> : null}
           </div>
         </section>
+        ) : null}
 
         {hasChat && recentChats.length ? (
           <SurfacePanel title="Recent chat context" description="A lightweight view of your current conversation lane without widening deeper collaboration access.">

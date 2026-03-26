@@ -14,11 +14,16 @@ import {
   loadPayslipHistoryData
 } from "@/components/dashboard/widgets/dashboard-data-loaders";
 
-export default function HROperationsWidget() {
+export default function HROperationsWidget({
+  allowedRoutes = [],
+}: {
+  allowedRoutes?: string[];
+}) {
   const [loading, setLoading] = useState(true);
   const [billingData, setBillingData] = useState<Awaited<ReturnType<typeof loadBillingOverviewData>>>(null);
   const [runsData, setRunsData] = useState<Awaited<ReturnType<typeof loadPayrollRunsData>>>(null);
   const [payslipData, setPayslipData] = useState<Awaited<ReturnType<typeof loadPayslipHistoryData>>>(null);
+  const allowedRouteSet = useMemo(() => new Set(allowedRoutes), [allowedRoutes]);
 
   useEffect(() => {
     let active = true;
@@ -74,10 +79,12 @@ export default function HROperationsWidget() {
               <SignalRow label="Latest period" value={`${String(latestRun.month).padStart(2, "0")}/${latestRun.year}`} />
               <SignalRow label="Status" value={<StatusBadge status={latestRun.status} />} />
               <SignalRow label="Lock state" value={<StatusBadge status={latestRun.locked ? "locked" : "unlocked"} />} tone={latestRun.locked ? "success" : "warning"} />
-              <div className="row" style={{ justifyContent: "flex-end" }}>
-                <Link href={`/app/payroll/${latestRun.id}/timeline`} className="secondary-btn">View timeline</Link>
-                <Link href={`/app/payroll/${latestRun.id}`} className="secondary-btn">Open run</Link>
-              </div>
+              {allowedRouteSet.has("/app/payroll") ? (
+                <div className="row" style={{ justifyContent: "flex-end" }}>
+                  <Link href={`/app/payroll/${latestRun.id}/timeline`} className="secondary-btn">View timeline</Link>
+                  <Link href={`/app/payroll/${latestRun.id}`} className="secondary-btn">Open run</Link>
+                </div>
+              ) : null}
               {payrollRunBars.length > 0 ? <MiniBarChart values={payrollRunBars} height={72} /> : null}
             </>
           ) : (
@@ -93,10 +100,10 @@ export default function HROperationsWidget() {
       <DashboardPanel title="Quick actions" subtitle="Payroll support navigation">
         <QuickActionGrid
           actions={[
-            ...(payrollRunsEnabled ? [{ label: "Payroll workspace", href: "/app/payroll", caption: "Run list and details" }] : []),
-            ...(payslipsEnabled ? [{ label: "Payslip history", href: "/app/payslips", caption: "Employee snapshots" }] : []),
-            { label: "Approvals", href: "/app/approvals", caption: "Cross-workflow queue" },
-            { label: "Monitoring", href: "/app/monitoring", caption: "Operational signals" }
+            ...(payrollRunsEnabled && allowedRouteSet.has("/app/payroll") ? [{ label: "Payroll workspace", href: "/app/payroll", caption: "Run list and details" }] : []),
+            ...(payslipsEnabled && allowedRouteSet.has("/app/payslips") ? [{ label: "Payslip history", href: "/app/payslips", caption: "Employee snapshots" }] : []),
+            ...(allowedRouteSet.has("/app/approvals") ? [{ label: "Approvals", href: "/app/approvals", caption: "Cross-workflow queue" }] : []),
+            ...(allowedRouteSet.has("/app/monitoring") ? [{ label: "Monitoring", href: "/app/monitoring", caption: "Operational signals" }] : [])
           ]}
         />
       </DashboardPanel>

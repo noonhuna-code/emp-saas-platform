@@ -14,9 +14,14 @@ const currency = (value: number) =>
     maximumFractionDigits: 2
   }).format(value);
 
-export default function AdminSecurityWidget() {
+export default function AdminSecurityWidget({
+  allowedRoutes = [],
+}: {
+  allowedRoutes?: string[];
+}) {
   const [loading, setLoading] = useState(true);
   const [adminData, setAdminData] = useState<Awaited<ReturnType<typeof loadAdminDashboardData>>>(null);
+  const allowedRouteSet = new Set(allowedRoutes);
 
   useEffect(() => {
     let active = true;
@@ -60,9 +65,9 @@ export default function AdminSecurityWidget() {
             <SignalRow label="Run ID" value={adminData.payrollSnapshot.runId} />
             <SignalRow label="Status" value={<StatusBadge status={adminData.payrollSnapshot.status} />} />
             <SignalRow label="Total net" value={currency(adminData.payrollSnapshot.totalNet)} tone="info" />
-            <div className="row" style={{ justifyContent: "flex-end" }}>
+            {allowedRouteSet.has("/app/payroll") ? <div className="row" style={{ justifyContent: "flex-end" }}>
               <Link href="/app/payroll" className="secondary-btn">Open payroll workspace</Link>
-            </div>
+            </div> : null}
           </>
         ) : (
           <p className="muted">No payroll run available.</p>

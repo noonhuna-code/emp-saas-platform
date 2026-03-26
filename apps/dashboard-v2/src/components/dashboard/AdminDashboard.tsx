@@ -102,7 +102,7 @@ const AdminDashboardCore = ({
         <section className="space-y-4">
           <Suspense fallback={<div className="grid-3"><SkeletonCard rows={5} /><SkeletonCard rows={6} /><SkeletonCard rows={5} /></div>}>
             <DashboardWidgetBoundary title="Admin operations" message="Admin operational widgets are temporarily unavailable.">
-              <AdminOperationsWidget />
+              <AdminOperationsWidget allowedRoutes={allowedRoutes} />
             </DashboardWidgetBoundary>
           </Suspense>
         </section>
@@ -135,7 +135,7 @@ const AdminDashboardCore = ({
           <WorkflowPanel title="Security and workflow" subtitle="Operational risks and queue health">
             <Suspense fallback={<div className="grid-2"><SkeletonCard rows={5} /><SkeletonList rows={6} /></div>}>
               <DashboardWidgetBoundary title="Security and workflow" message="Security workflow data is temporarily unavailable.">
-                <AdminSecurityWidget />
+                <AdminSecurityWidget allowedRoutes={allowedRoutes} />
               </DashboardWidgetBoundary>
             </Suspense>
           </WorkflowPanel>

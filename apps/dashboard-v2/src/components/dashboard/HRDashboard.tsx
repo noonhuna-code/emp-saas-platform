@@ -81,7 +81,7 @@ export const HRDashboard = ({
         <section className="space-y-4">
           <Suspense fallback={<div className="grid-3"><SkeletonCard rows={5} /><SkeletonChart /><SkeletonCard rows={6} /></div>}>
             <DashboardWidgetBoundary title="HR operations" message="HR operational widgets are temporarily unavailable.">
-              <HROperationsWidget />
+              <HROperationsWidget allowedRoutes={allowedRoutes} />
             </DashboardWidgetBoundary>
           </Suspense>
         </section>
@@ -93,7 +93,7 @@ export const HRDashboard = ({
             <DashboardWidgetBoundary title="HR analytics" message="Analytics are temporarily unavailable.">
               <>
                 <DashboardPerfMarker onReady={perf.markChartsLoaded} />
-                <HROperationsWidget />
+                  <HROperationsWidget allowedRoutes={allowedRoutes} />
               </>
             </DashboardWidgetBoundary>
           </Suspense>
@@ -105,7 +105,7 @@ export const HRDashboard = ({
           <WorkflowPanel title="Workflow timeline" subtitle="HR queue and lifecycle events">
             <Suspense fallback={<div className="grid-2"><SkeletonList rows={6} /><SkeletonList rows={8} /></div>}>
               <DashboardWidgetBoundary title="Workflow timeline" message="Workflow timeline is temporarily unavailable.">
-                <HRTimelineWidget />
+                <HRTimelineWidget allowedRoutes={allowedRoutes} />
               </DashboardWidgetBoundary>
             </Suspense>
           </WorkflowPanel>

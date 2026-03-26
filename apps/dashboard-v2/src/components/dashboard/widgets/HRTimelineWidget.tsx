@@ -18,11 +18,16 @@ const currency = (value: number) =>
     maximumFractionDigits: 2
   }).format(value);
 
-export default function HRTimelineWidget() {
+export default function HRTimelineWidget({
+  allowedRoutes = [],
+}: {
+  allowedRoutes?: string[];
+}) {
   const [loading, setLoading] = useState(true);
   const [billingData, setBillingData] = useState<Awaited<ReturnType<typeof loadBillingOverviewData>>>(null);
   const [runsData, setRunsData] = useState<Awaited<ReturnType<typeof loadPayrollRunsData>>>(null);
   const [payslipData, setPayslipData] = useState<Awaited<ReturnType<typeof loadPayslipHistoryData>>>(null);
+  const allowedRouteSet = useMemo(() => new Set(allowedRoutes), [allowedRoutes]);
 
   useEffect(() => {
     let active = true;
@@ -65,17 +70,17 @@ export default function HRTimelineWidget() {
 
   return (
     <div className="grid-2">
-      {payrollRunsEnabled ? (
+      {payrollRunsEnabled && allowedRouteSet.has("/app/payroll") ? (
         <DashboardPanel title="Recent payroll runs" subtitle="Run lifecycle sample">
           {runTimeline.length > 0 ? <TimelineList items={runTimeline} /> : <p className="muted">No payroll runs found.</p>}
         </DashboardPanel>
       ) : (
         <DashboardPanel title="Recent payroll runs" subtitle="Feature not enabled" tone="soft">
-          <p className="muted">Upgrade plan to enable payroll run history widgets.</p>
+          <p className="muted">Payroll run history is not currently available in this workspace.</p>
         </DashboardPanel>
       )}
 
-      {payslipsEnabled ? (
+      {payslipsEnabled && allowedRouteSet.has("/app/payslips") ? (
         <DashboardPanel title="Recent payslip history" subtitle="Read-only payroll entry snapshots">
           {(payslipData?.rows.length ?? 0) === 0 ? <p className="muted">No payslip history available.</p> : null}
           {(payslipData?.rows ?? []).slice(0, 10).map((row) => (
@@ -90,7 +95,7 @@ export default function HRTimelineWidget() {
         </DashboardPanel>
       ) : (
         <DashboardPanel title="Recent payslip history" subtitle="Feature not enabled" tone="soft">
-          <p className="muted">Payslip history access is disabled by current billing plan.</p>
+          <p className="muted">Payslip history is not currently available in this workspace.</p>
         </DashboardPanel>
       )}
     </div>
