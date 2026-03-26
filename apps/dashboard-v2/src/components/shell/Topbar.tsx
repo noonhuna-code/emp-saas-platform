@@ -98,12 +98,14 @@ const TopbarTitleBlock = ({
   title,
   subtitle,
   compact = false,
+  constrained = false,
 }: {
   groupLabel: string;
   itemLabel: string;
   title: string;
   subtitle: string;
   compact?: boolean;
+  constrained?: boolean;
 }) => (
   <div className="min-w-0">
     <div className="flex min-w-0 items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
@@ -115,7 +117,7 @@ const TopbarTitleBlock = ({
       <h1
         className={cn(
           "truncate font-semibold tracking-[-0.04em] text-slate-950 dark:text-slate-50",
-          compact ? "text-[15px]" : "text-[1.08rem] xl:text-[1.22rem]"
+          compact ? "text-[15px]" : constrained ? "text-[1.02rem] xl:text-[1.14rem]" : "text-[1.08rem] xl:text-[1.22rem]"
         )}
       >
         {title}
@@ -123,7 +125,7 @@ const TopbarTitleBlock = ({
       <p
         className={cn(
           "max-w-2xl overflow-hidden text-ellipsis whitespace-nowrap text-[13px] leading-5 text-slate-500 dark:text-slate-400",
-          compact ? "hidden" : "hidden xl:block"
+          compact ? "hidden" : constrained ? "hidden 2xl:block" : "hidden xl:block"
         )}
       >
         {subtitle}
@@ -204,7 +206,7 @@ const TopbarProfileMenu = ({
         title={compactTrigger ? identityLabel : `${identityLabel} account`}
         className={cn(
           "flex h-10 min-w-0 items-center rounded-[16px] border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/35 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 dark:hover:border-slate-700 dark:hover:bg-slate-900",
-          compactTrigger ? "w-12 justify-center gap-1.5 px-2" : "gap-2 px-2.5"
+          compactTrigger ? "min-w-[2.875rem] justify-center gap-1.5 px-1.5 pr-2" : "gap-2 px-2.5"
         )}
       >
         <span className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-sky-400 via-blue-500 to-indigo-600 text-sm font-semibold text-white">
@@ -431,6 +433,7 @@ export const Topbar = ({
   const helpHref = persona === "platform_owner" ? "/platform" : "/app/resources";
   const hasContextRow = headerMeta.tabs.length > 0 || contextChips.length > 0;
   const compactDesktopProfileTrigger = !sidebarCollapsed;
+  const sidebarExpanded = !sidebarCollapsed;
 
   return (
     <header className="sticky top-0 z-30 border-b border-slate-200/75 bg-[linear-gradient(180deg,rgba(248,250,255,0.96),rgba(244,247,253,0.92))] backdrop-blur-xl dark:border-slate-800/80 dark:bg-[linear-gradient(180deg,rgba(2,6,23,0.9),rgba(8,15,28,0.86))]">
@@ -500,7 +503,14 @@ export const Topbar = ({
               <TopbarSearch placeholder={headerMeta.searchPlaceholder} />
             </div>
 
-            <div className="hidden lg:grid lg:grid-cols-[minmax(220px,1fr)_minmax(220px,320px)_auto] lg:items-center lg:gap-3 xl:grid-cols-[minmax(260px,1fr)_minmax(240px,360px)_auto] 2xl:grid-cols-[minmax(300px,1fr)_minmax(280px,420px)_auto]">
+            <div
+              className={cn(
+                "hidden lg:grid lg:items-center lg:gap-3",
+                sidebarExpanded
+                  ? "lg:grid-cols-[minmax(160px,1fr)_minmax(170px,230px)_auto] xl:grid-cols-[minmax(210px,1fr)_minmax(210px,280px)_auto] 2xl:grid-cols-[minmax(250px,1fr)_minmax(250px,340px)_auto]"
+                  : "lg:grid-cols-[minmax(220px,1fr)_minmax(220px,320px)_auto] xl:grid-cols-[minmax(260px,1fr)_minmax(240px,360px)_auto] 2xl:grid-cols-[minmax(300px,1fr)_minmax(280px,420px)_auto]"
+              )}
+            >
               <div className="flex min-w-0 items-center gap-2.5">
                 {onToggleSidebar ? (
                   <button
@@ -518,10 +528,19 @@ export const Topbar = ({
                   itemLabel={headerMeta.itemLabel}
                   title={headerMeta.title}
                   subtitle={headerMeta.subtitle}
+                  constrained={sidebarExpanded}
                 />
               </div>
 
-              <TopbarSearch placeholder={headerMeta.searchPlaceholder} className="justify-self-center" />
+              <TopbarSearch
+                placeholder={headerMeta.searchPlaceholder}
+                className={cn(
+                  "justify-self-center",
+                  sidebarExpanded
+                    ? "max-w-[230px] xl:max-w-[280px] 2xl:max-w-[340px]"
+                    : "max-w-[320px] xl:max-w-[360px] 2xl:max-w-[420px]"
+                )}
+              />
 
               <div className="flex items-center justify-end gap-1.5 xl:gap-2">
                 <Link
