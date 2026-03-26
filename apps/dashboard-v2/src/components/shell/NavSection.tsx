@@ -93,9 +93,6 @@ export const NavSection = ({
               <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-sky-100/45">
                 {group.label}
               </div>
-              {group.description ? (
-                <p className="mt-1 text-[12px] leading-5 text-slate-400/85">{group.description}</p>
-              ) : null}
             </div>
           ) : null}
 
@@ -116,7 +113,7 @@ export const NavSection = ({
                   }}
                   className={cn(
                     "group relative flex items-center gap-3 overflow-hidden rounded-[1.1rem] border px-3 py-3 text-sm transition-all duration-150 ease-out",
-                    collapsed ? "justify-center px-0 py-3.5" : "",
+                    collapsed ? "justify-center px-0 py-3.5" : "py-2.5",
                     active
                       ? "border-sky-400/25 bg-[linear-gradient(135deg,rgba(37,99,235,0.22),rgba(15,23,42,0.82))] text-white shadow-[0_16px_34px_rgba(2,6,23,0.24)]"
                       : "border-transparent bg-transparent text-slate-300 hover:border-sky-300/12 hover:bg-white/[0.055] hover:text-white"
@@ -147,16 +144,6 @@ export const NavSection = ({
                   {!collapsed ? (
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-[0.95rem] font-semibold leading-none">{item.label}</span>
-                      {item.description ? (
-                        <span
-                          className={cn(
-                            "mt-1 block truncate text-[11px] leading-5",
-                            active ? "text-sky-100/82" : "text-slate-400 group-hover:text-slate-300"
-                          )}
-                        >
-                          {item.description}
-                        </span>
-                      ) : null}
                     </span>
                   ) : null}
                 </Link>

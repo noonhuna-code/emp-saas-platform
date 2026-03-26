@@ -10,6 +10,7 @@ import { Topbar } from "./Topbar";
 import { PlanRouteGuard } from "@/components/guards/PlanRouteGuard";
 import { resolveDashboardPersona } from "@/lib/dashboard/capabilities";
 import { prewarmDashboardData, prewarmRouteData, setClientCacheScope } from "@/lib/client/api";
+import { SIDEBAR_COLLAPSED_WIDTH, SIDEBAR_EXPANDED_WIDTH } from "./Sidebar";
 
 export const TenantShellFrame = ({
   session,
@@ -109,7 +110,7 @@ export const TenantShellFrame = ({
   };
 
   const shellStyle = {
-    "--emp-sidebar-width": collapsed ? "6rem" : "20.5rem",
+    "--emp-sidebar-width": collapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_EXPANDED_WIDTH,
   } as CSSProperties;
 
   return (
