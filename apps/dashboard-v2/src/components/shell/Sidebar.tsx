@@ -12,6 +12,12 @@ import { TENANT_NAVIGATION_GROUPS, resolveVisibleNavigationGroups } from "@/navi
 export const SIDEBAR_COLLAPSED_WIDTH = "6.5rem";
 export const SIDEBAR_EXPANDED_WIDTH = "20.5rem";
 
+const SHARED_SIDEBAR_BACKGROUND =
+  "bg-[radial-gradient(circle_at_14%_8%,rgba(96,165,250,0.3),transparent_15%),radial-gradient(circle_at_18%_24%,rgba(59,130,246,0.16),transparent_26%),radial-gradient(circle_at_0%_62%,rgba(14,165,233,0.14),transparent_28%),radial-gradient(circle_at_24%_88%,rgba(37,99,235,0.18),transparent_32%),linear-gradient(180deg,#030816_0%,#071122_42%,#0a1730_100%)]";
+
+const SHARED_SIDEBAR_OVERLAY =
+  "bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(255,255,255,0.02)_14%,transparent_34%,transparent_72%,rgba(2,6,23,0.22)_100%),radial-gradient(circle_at_18%_38%,rgba(56,189,248,0.09),transparent_24%),radial-gradient(circle_at_bottom_left,rgba(37,99,235,0.12),transparent_30%)]";
+
 const PERSONA_LABELS: Record<DashboardPersona, string> = {
   employee: "Employee workspace",
   manager: "Manager command",
@@ -105,14 +111,14 @@ export const Sidebar = ({
   return (
     <aside
       className={cn(
-        "fixed inset-y-0 left-0 z-40 flex h-dvh shrink-0 flex-col overflow-hidden border-r border-sky-300/10 bg-[radial-gradient(circle_at_12%_8%,rgba(96,165,250,0.28),transparent_16%),radial-gradient(circle_at_18%_28%,rgba(56,189,248,0.18),transparent_24%),radial-gradient(circle_at_22%_78%,rgba(37,99,235,0.18),transparent_28%),linear-gradient(180deg,#040916_0%,#081224_44%,#0b1730_100%)] text-white shadow-[20px_0_50px_rgba(2,6,23,0.24)] transition-transform duration-200 lg:relative lg:inset-auto lg:z-20 lg:h-dvh lg:w-[var(--emp-sidebar-width)] lg:min-w-[var(--emp-sidebar-width)] lg:translate-x-0",
+        `fixed inset-y-0 left-0 z-40 flex h-dvh shrink-0 flex-col overflow-hidden border-r border-sky-300/10 ${SHARED_SIDEBAR_BACKGROUND} text-white shadow-[20px_0_50px_rgba(2,6,23,0.24)] transition-transform duration-200 lg:relative lg:inset-auto lg:z-20 lg:h-dvh lg:w-[var(--emp-sidebar-width)] lg:min-w-[var(--emp-sidebar-width)] lg:translate-x-0`,
         collapsed ? "w-[6.5rem]" : "w-[328px]",
         mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
       )}
     >
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.04)_0%,transparent_18%,transparent_72%,rgba(2,6,23,0.2)_100%),radial-gradient(circle_at_left_center,rgba(14,165,233,0.1),transparent_34%)]"
+        className={`pointer-events-none absolute inset-0 ${SHARED_SIDEBAR_OVERLAY}`}
       />
       <SidebarBrand collapsed={collapsed} persona={persona} onToggleCollapsed={onToggleCollapsed} />
 
