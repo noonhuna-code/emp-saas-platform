@@ -138,12 +138,14 @@ const TopbarProfileMenu = ({
   roleLabel,
   avatarUrl,
   profileHref,
+  homeHref,
 }: {
   identityLabel: string;
   email: string | null | undefined;
   roleLabel: string;
   avatarUrl?: string | null;
   profileHref: string;
+  homeHref: string;
 }) => {
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
@@ -229,6 +231,14 @@ const TopbarProfileMenu = ({
               </div>
 
               <div className="mt-3 grid gap-1">
+                <Link
+                  href={homeHref}
+                  className="flex items-center gap-2 rounded-2xl px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 hover:text-slate-950 dark:text-slate-200 dark:hover:bg-slate-900 dark:hover:text-slate-50"
+                  onClick={() => setOpen(false)}
+                >
+                  <LayoutPanelLeft className="h-4 w-4" />
+                  Open dashboard
+                </Link>
                 <Link
                   href={profileHref}
                   className="flex items-center gap-2 rounded-2xl px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 hover:text-slate-950 dark:text-slate-200 dark:hover:bg-slate-900 dark:hover:text-slate-50"
@@ -408,6 +418,7 @@ export const Topbar = ({
   }, [companyId, employeeCode, lastLoginAt, pathname, permissions, persona, role, shiftEndTime, shiftHours, shiftStartTime]);
 
   const profileHref = employeeId ? "/app/profile" : persona === "platform_owner" ? "/platform" : "/app/dashboard";
+  const homeHref = persona === "platform_owner" ? "/platform" : "/app/dashboard";
   const notificationsHref = persona === "platform_owner" ? "/platform" : "/app/notifications";
   const helpHref = persona === "platform_owner" ? "/platform" : "/app/resources";
   const hasContextRow = headerMeta.tabs.length > 0 || contextChips.length > 0;
@@ -474,6 +485,7 @@ export const Topbar = ({
                   roleLabel={roleLabel}
                   avatarUrl={avatarUrl}
                   profileHref={profileHref}
+                  homeHref={homeHref}
                 />
               </div>
             </div>
@@ -482,7 +494,7 @@ export const Topbar = ({
               <TopbarSearch placeholder={headerMeta.searchPlaceholder} />
             </div>
 
-            <div className="hidden lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(280px,460px)_auto] lg:items-center lg:gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(320px,520px)_auto]">
+            <div className="hidden lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(240px,400px)_auto] lg:items-center lg:gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(280px,460px)_auto]">
               <div className="flex min-w-0 items-center gap-2.5">
                 {onToggleSidebar ? (
                   <button
@@ -556,6 +568,7 @@ export const Topbar = ({
                   roleLabel={roleLabel}
                   avatarUrl={avatarUrl}
                   profileHref={profileHref}
+                  homeHref={homeHref}
                 />
               </div>
             </div>

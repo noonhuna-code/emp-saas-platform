@@ -2,7 +2,7 @@
 
 import type { DashboardSession } from "@/lib/types/auth";
 import type { BillingNavigationContext } from "@/lib/types/billing";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { usePathname } from "next/navigation";
 import { Sidebar } from "./Sidebar";
 import { CommandPalette } from "./CommandPalette";
@@ -108,9 +108,16 @@ export const TenantShellFrame = ({
     });
   };
 
+  const shellStyle = {
+    "--emp-sidebar-width": collapsed ? "6rem" : "20.5rem",
+  } as CSSProperties;
+
   return (
-    <div className="h-dvh overflow-hidden bg-[radial-gradient(circle_at_top,#f8fbff_0%,#eef4ff_42%,#e7eef9_100%)] text-slate-950 dark:bg-[radial-gradient(circle_at_top,#081325_0%,#050b16_42%,#02050b_100%)] dark:text-slate-50">
-      <div className="flex h-dvh overflow-hidden">
+    <div
+      style={shellStyle}
+      className="h-dvh overflow-hidden bg-[radial-gradient(circle_at_top,#f8fbff_0%,#eef4ff_42%,#e7eef9_100%)] text-slate-950 dark:bg-[radial-gradient(circle_at_top,#081325_0%,#050b16_42%,#02050b_100%)] dark:text-slate-50"
+    >
+      <div className="flex h-dvh overflow-hidden lg:grid lg:grid-cols-[var(--emp-sidebar-width)_minmax(0,1fr)]">
         <Sidebar
           permissions={session.permissions}
           hasEmployeeContext={Boolean(session.employeeId)}
