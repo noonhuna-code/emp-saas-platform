@@ -122,7 +122,7 @@ const TopbarTitleBlock = ({
       </h1>
       <p
         className={cn(
-          "max-w-2xl truncate text-[13px] leading-5 text-slate-500 dark:text-slate-400",
+          "max-w-2xl overflow-hidden text-ellipsis whitespace-nowrap text-[13px] leading-5 text-slate-500 dark:text-slate-400",
           compact ? "hidden" : "hidden xl:block"
         )}
       >
@@ -288,7 +288,7 @@ const TopbarContextRow = ({
                   className={cn(
                     "whitespace-nowrap rounded-[12px] px-3 py-1.5 text-sm font-medium transition",
                     active
-                      ? "bg-slate-950 text-white shadow-sm dark:bg-white dark:text-slate-950"
+                      ? "bg-white text-slate-950 shadow-[0_6px_18px_rgba(15,23,42,0.12)] ring-1 ring-sky-500/15 dark:bg-slate-950 dark:text-slate-50 dark:ring-sky-400/20"
                       : "text-slate-600 hover:bg-white hover:text-slate-950 dark:text-slate-300 dark:hover:bg-slate-950 dark:hover:text-slate-50"
                   )}
                 >
@@ -494,7 +494,66 @@ export const Topbar = ({
               <TopbarSearch placeholder={headerMeta.searchPlaceholder} />
             </div>
 
-            <div className="hidden lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(240px,400px)_auto] lg:items-center lg:gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(280px,460px)_auto]">
+            <div className="hidden lg:flex lg:flex-col lg:gap-3 xl:hidden">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex min-w-0 items-start gap-2.5">
+                  {onToggleSidebar ? (
+                    <button
+                      type="button"
+                      className="mt-0.5 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-[16px] border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-slate-700 dark:hover:bg-slate-900"
+                      onClick={onToggleSidebar}
+                      aria-label="Toggle sidebar"
+                    >
+                      <LayoutPanelLeft className="h-4 w-4" />
+                    </button>
+                  ) : null}
+                  <TopbarTitleBlock
+                    groupLabel={headerMeta.groupLabel}
+                    itemLabel={headerMeta.itemLabel}
+                    title={headerMeta.title}
+                    subtitle={headerMeta.subtitle}
+                  />
+                </div>
+
+                <div className="flex shrink-0 items-center justify-end gap-1.5">
+                  <Link
+                    href={notificationsHref}
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-[16px] border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-slate-700 dark:hover:bg-slate-900"
+                    aria-label="Notifications"
+                  >
+                    <Bell className="h-4 w-4" />
+                  </Link>
+                  <button
+                    type="button"
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-[16px] border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-slate-700 dark:hover:bg-slate-900"
+                    onClick={() => window.dispatchEvent(new CustomEvent("emp.commandPalette.open"))}
+                    aria-label="Open command palette"
+                  >
+                    <Command className="h-4 w-4" />
+                  </button>
+                  <Link
+                    href={helpHref}
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-[16px] border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-slate-700 dark:hover:bg-slate-900"
+                    aria-label="Help and resources"
+                  >
+                    <CircleHelp className="h-4 w-4" />
+                  </Link>
+                  <ThemeToggle compact />
+                  <TopbarProfileMenu
+                    identityLabel={identityLabel}
+                    email={email}
+                    roleLabel={roleLabel}
+                    avatarUrl={avatarUrl}
+                    profileHref={profileHref}
+                    homeHref={homeHref}
+                  />
+                </div>
+              </div>
+
+              <TopbarSearch placeholder={headerMeta.searchPlaceholder} className="max-w-none" />
+            </div>
+
+            <div className="hidden xl:grid xl:grid-cols-[minmax(340px,1fr)_minmax(200px,320px)_auto] xl:items-center xl:gap-3 2xl:grid-cols-[minmax(360px,1fr)_minmax(240px,380px)_auto]">
               <div className="flex min-w-0 items-center gap-2.5">
                 {onToggleSidebar ? (
                   <button
@@ -514,7 +573,7 @@ export const Topbar = ({
                 />
               </div>
 
-              <TopbarSearch placeholder={headerMeta.searchPlaceholder} />
+              <TopbarSearch placeholder={headerMeta.searchPlaceholder} className="justify-self-end" />
 
               <div className="flex items-center justify-end gap-1.5 xl:gap-2">
                 <Link
