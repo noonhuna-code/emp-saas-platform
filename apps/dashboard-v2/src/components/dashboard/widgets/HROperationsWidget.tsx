@@ -92,8 +92,8 @@ export default function HROperationsWidget({
           )}
         </DashboardPanel>
       ) : (
-        <DashboardPanel title="Payroll lifecycle watch" subtitle="Feature not enabled in current plan" tone="soft">
-          <p className="muted">Payroll run visibility is disabled by billing entitlement.</p>
+        <DashboardPanel title="Payroll lifecycle watch" subtitle="Payroll visibility unavailable" tone="soft">
+          <p className="muted">Payroll lifecycle visibility is not currently available in this workspace.</p>
         </DashboardPanel>
       )}
 

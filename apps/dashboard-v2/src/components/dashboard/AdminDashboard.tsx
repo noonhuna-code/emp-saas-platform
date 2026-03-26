@@ -55,6 +55,7 @@ const AdminDashboardCore = ({
   const heroActions = [
     allowedRouteSet.has("/app/employees") ? { href: "/app/employees", label: "Employees", tone: "secondary" as const } : null,
     allowedRouteSet.has("/app/payroll") ? { href: "/app/payroll", label: "Payroll", tone: "secondary" as const } : null,
+    allowedRouteSet.has("/app/billing") ? { href: "/app/billing", label: "Billing", tone: "secondary" as const } : null,
     allowedRouteSet.has("/app/monitoring") ? { href: "/app/monitoring", label: "Monitoring", tone: "secondary" as const } : null,
     allowedRouteSet.has("/app/approvals") ? { href: "/app/approvals", label: "Approvals", tone: "primary" as const } : null,
   ].filter(Boolean) as Array<{ href: string; label: string; tone: "primary" | "secondary" }>;
@@ -62,6 +63,7 @@ const AdminDashboardCore = ({
     allowedRouteSet.has("/app/employees") ? { label: "People directory", href: "/app/employees", caption: "Records, roles, and reporting" } : null,
     allowedRouteSet.has("/app/organization") ? { label: "Organization", href: "/app/organization", caption: "Structure and assignments" } : null,
     allowedRouteSet.has("/app/approvals") ? { label: "Approvals queue", href: "/app/approvals", caption: "Pending decisions" } : null,
+    allowedRouteSet.has("/app/billing") ? { label: "Billing console", href: "/app/billing", caption: "Invoices, seats, and proofs" } : null,
     allowedRouteSet.has("/app/monitoring") ? { label: "System monitor", href: "/app/monitoring", caption: "Security and health" } : null,
   ].filter(Boolean) as Array<{ label: string; href: string; caption: string }>;
 

@@ -75,7 +75,7 @@ export default function HRTimelineWidget({
           {runTimeline.length > 0 ? <TimelineList items={runTimeline} /> : <p className="muted">No payroll runs found.</p>}
         </DashboardPanel>
       ) : (
-        <DashboardPanel title="Recent payroll runs" subtitle="Feature not enabled" tone="soft">
+        <DashboardPanel title="Recent payroll runs" subtitle="Payroll visibility unavailable" tone="soft">
           <p className="muted">Payroll run history is not currently available in this workspace.</p>
         </DashboardPanel>
       )}
@@ -94,7 +94,7 @@ export default function HRTimelineWidget({
           ))}
         </DashboardPanel>
       ) : (
-        <DashboardPanel title="Recent payslip history" subtitle="Feature not enabled" tone="soft">
+        <DashboardPanel title="Recent payslip history" subtitle="Payslip visibility unavailable" tone="soft">
           <p className="muted">Payslip history is not currently available in this workspace.</p>
         </DashboardPanel>
       )}

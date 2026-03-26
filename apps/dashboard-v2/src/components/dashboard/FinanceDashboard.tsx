@@ -3,8 +3,10 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { fetchBillingOverview, fetchPayrollRuns, fetchPayslipHistory } from "@/lib/client/api";
+import { PayrollAnalyticsWidgetsSection } from "@/components/dashboard/payroll-analytics/PayrollAnalyticsWidgetsSection";
 import type { BillingOverview } from "@/lib/types/billing";
 import type { PayrollRunsResponse, PayslipHistoryResponse } from "@/lib/types/payroll";
+import { isFeatureEnabled } from "@/lib/client/entitlements";
 import { LoadingState } from "@/components/states/LoadingState";
 import { ErrorState } from "@/components/states/ErrorState";
 import { StatusBadge } from "@/components/shared/StatusBadge";
@@ -93,22 +95,28 @@ export const FinanceDashboard = ({
     [runs]
   );
 
+  const analyticsStandardEnabled = isFeatureEnabled(billing?.entitlements, "feature.analytics_standard");
+  const analyticsAdvancedEnabled = isFeatureEnabled(billing?.entitlements, "feature.analytics_advanced");
+
   const heroActions = [
     allowedRouteSet.has("/app/billing") ? { href: "/app/billing", label: "Billing", tone: "primary" as const } : null,
     allowedRouteSet.has("/app/payroll") ? { href: "/app/payroll", label: "Payroll", tone: "secondary" as const } : null,
     allowedRouteSet.has("/app/payslips") ? { href: "/app/payslips", label: "Payslips", tone: "secondary" as const } : null,
+    allowedRouteSet.has("/app/loans") ? { href: "/app/loans", label: "Loans", tone: "secondary" as const } : null,
   ].filter(Boolean) as Array<{ href: string; label: string; tone: "primary" | "secondary" }>;
 
   const operationalModules = [
     allowedRouteSet.has("/app/billing") ? { label: "Billing console", href: "/app/billing", caption: "Invoices and payment proofs" } : null,
     allowedRouteSet.has("/app/payroll") ? { label: "Payroll runs", href: "/app/payroll", caption: "Run lifecycle and statuses" } : null,
     allowedRouteSet.has("/app/payslips") ? { label: "Payslip history", href: "/app/payslips", caption: "Snapshot review" } : null,
+    allowedRouteSet.has("/app/loans") ? { label: "Loans & advances", href: "/app/loans", caption: "Request and review flow" } : null,
     allowedRouteSet.has("/app/notifications") ? { label: "Notifications", href: "/app/notifications", caption: "Finance alerts" } : null,
   ].filter(Boolean) as Array<{ label: string; href: string; caption: string }>;
 
   const actionPaths = [
     allowedRouteSet.has("/app/payroll") ? { label: "Payroll runs", href: "/app/payroll", caption: "Lifecycle and closeout" } : null,
     allowedRouteSet.has("/app/payslips") ? { label: "Payslip history", href: "/app/payslips", caption: "Delivery and audit checks" } : null,
+    allowedRouteSet.has("/app/loans") ? { label: "Loans & advances", href: "/app/loans", caption: "Employee-linked financial requests" } : null,
     allowedRouteSet.has("/app/billing") ? { label: "Billing console", href: "/app/billing", caption: "Invoices and proofs" } : null,
     allowedRouteSet.has("/app/approvals") ? { label: "Approvals queue", href: "/app/approvals", caption: "Pending blockers" } : null,
   ].filter(Boolean) as Array<{ label: string; href: string; caption: string }>;
@@ -175,6 +183,13 @@ export const FinanceDashboard = ({
       </DashboardSection>
 
       <DashboardSection visible={view === "analytics"}>
+        {(analyticsStandardEnabled || analyticsAdvancedEnabled) ? (
+          <PayrollAnalyticsWidgetsSection
+            title="Payroll analytics"
+            subtitle="Finance trend, delivery quality, growth, and closeout latency"
+          />
+        ) : null}
+
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
           <ChartPanel title="Billing summary" subtitle="Current period health">
             <SignalRow label="Plan" value={billing.subscription?.planName ?? "-"} />

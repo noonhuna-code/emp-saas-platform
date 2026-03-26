@@ -37,8 +37,8 @@ export default function AdminAnalyticsWidget() {
 
   if (!(analyticsStandardEnabled || analyticsAdvancedEnabled)) {
     return (
-      <DashboardPanel title="Payroll analytics" subtitle="Feature not enabled in current plan" tone="soft">
-        <p className="muted">Enable analytics entitlements to access payroll trend and growth widgets.</p>
+      <DashboardPanel title="Payroll analytics" subtitle="Analytics currently unavailable" tone="soft">
+        <p className="muted">Payroll trend and growth widgets are not currently available in this workspace.</p>
       </DashboardPanel>
     );
   }

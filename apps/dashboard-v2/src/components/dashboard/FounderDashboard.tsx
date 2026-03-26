@@ -135,11 +135,13 @@ export const FounderDashboard = ({
   const heroActions = [
     allowedRouteSet.has("/app/monitoring") ? { href: "/app/monitoring", label: "Monitoring", tone: "primary" as const } : null,
     allowedRouteSet.has("/app/payroll") ? { href: "/app/payroll", label: "Payroll", tone: "secondary" as const } : null,
+    allowedRouteSet.has("/app/billing") ? { href: "/app/billing", label: "Billing", tone: "secondary" as const } : null,
     allowedRouteSet.has("/app/employees") ? { href: "/app/employees", label: "People", tone: "secondary" as const } : null,
   ].filter(Boolean) as Array<{ href: string; label: string; tone: "primary" | "secondary" }>;
   const executiveActions = [
     allowedRouteSet.has("/app/payroll") ? { label: "Payroll timelines", href: "/app/payroll", caption: "Run-level lifecycle" } : null,
     allowedRouteSet.has("/app/monitoring") ? { label: "Security monitoring", href: "/app/monitoring", caption: "Alerts and failures" } : null,
+    allowedRouteSet.has("/app/billing") ? { label: "Billing console", href: "/app/billing", caption: "Invoices, seats, and subscription" } : null,
     allowedRouteSet.has("/app/approvals") ? { label: "Approvals queue", href: "/app/approvals", caption: "Operational backlog" } : null,
     allowedRouteSet.has("/app/employees") ? { label: "People directory", href: "/app/employees", caption: "Headcount view" } : null,
   ].filter(Boolean) as Array<{ label: string; href: string; caption: string }>;
@@ -217,9 +219,9 @@ export const FounderDashboard = ({
             subtitle="Executive trend, delivery quality, growth, and closeout latency (read-only)"
           />
         ) : (
-          <ChartPanel title="Payroll analytics" subtitle="Feature not enabled in current plan">
+          <ChartPanel title="Payroll analytics" subtitle="Analytics currently unavailable">
             <p className="muted">
-              Advanced analytics is gated by your billing entitlement. Upgrade plan to unlock executive trend surfaces.
+              Executive payroll analytics are not currently available in this workspace.
             </p>
           </ChartPanel>
         )}
@@ -264,7 +266,7 @@ export const FounderDashboard = ({
             </WorkflowPanel>
           ) : (
             <WorkflowPanel title="Security pressure" subtitle="Feature not enabled">
-              <p className="muted">Security intelligence widgets are disabled for this billing plan.</p>
+              <p className="muted">Security intelligence widgets are not currently available in this workspace.</p>
             </WorkflowPanel>
           )}
         </div>
@@ -288,7 +290,7 @@ export const FounderDashboard = ({
               </div>
               <div className="row">
                 <StatusBadge status={run.status} />
-                <Link href={`/app/payroll/${run.id}/timeline`} className="secondary-btn">Timeline</Link>
+                {allowedRouteSet.has("/app/payroll") ? <Link href={`/app/payroll/${run.id}/timeline`} className="secondary-btn">Timeline</Link> : null}
               </div>
             </div>
           ))}
