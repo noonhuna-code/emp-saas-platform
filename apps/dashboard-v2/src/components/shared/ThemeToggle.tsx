@@ -43,7 +43,7 @@ export const ThemeToggle = ({ compact = false }: { compact?: boolean }) => {
         title={isDark ? "Dark mode" : "Light mode"}
         onClick={toggle}
         className={cn(
-          "inline-flex h-11 w-11 items-center justify-center rounded-2xl border text-slate-700 shadow-sm transition",
+          "inline-flex h-10 w-10 items-center justify-center rounded-[16px] border text-slate-700 shadow-sm transition",
           isDark
             ? "border-sky-400/30 bg-sky-500/10 text-sky-700 hover:border-sky-400/50 hover:bg-sky-500/15 dark:text-sky-200"
             : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 dark:hover:border-slate-700 dark:hover:bg-slate-900"
