@@ -13,6 +13,12 @@ export type EmployeeDashboardResponse = {
       employee_id: string;
       full_name: string | null;
       email: string | null;
+      phone?: string | null;
+    } | null;
+    manager: {
+      employee_id: string;
+      full_name: string | null;
+      phone?: string | null;
     } | null;
     department: {
       id: string;

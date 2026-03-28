@@ -18,6 +18,12 @@ export type EmployeeDashboardData = {
       employee_id: string;
       full_name: string | null;
       email: string | null;
+      phone?: string | null;
+    } | null;
+    manager: {
+      employee_id: string;
+      full_name: string | null;
+      phone?: string | null;
     } | null;
     department: {
       id: string;
@@ -283,7 +289,7 @@ export const getEmployeeDashboard = async (ctx: ServiceContext, options?: { incl
       const teamLeadEmployee = employeeRecord.data?.manager_id
         ? await admin
             .from("employees")
-            .select("id, user_profile_id")
+            .select("id, user_profile_id, manager_id")
             .eq("company_id", ctx.companyId)
           .eq("id", employeeRecord.data.manager_id as string)
           .is("is_deleted", false)
@@ -299,6 +305,44 @@ export const getEmployeeDashboard = async (ctx: ServiceContext, options?: { incl
           .is("is_deleted", false)
           .maybeSingle()
       : { data: null };
+
+      const teamLeadPersonal = teamLeadEmployee.data?.id
+        ? await admin
+            .from("employee_personal_details")
+            .select("phone")
+            .eq("company_id", ctx.companyId)
+            .eq("employee_id", teamLeadEmployee.data.id as string)
+            .maybeSingle()
+        : { data: null };
+
+      const managerEmployee = teamLeadEmployee.data?.manager_id
+        ? await admin
+            .from("employees")
+            .select("id, user_profile_id")
+            .eq("company_id", ctx.companyId)
+            .eq("id", teamLeadEmployee.data.manager_id as string)
+            .is("is_deleted", false)
+            .maybeSingle()
+        : { data: null };
+
+      const managerProfile = managerEmployee.data?.user_profile_id
+        ? await admin
+            .from("user_profiles")
+            .select("id, full_name")
+            .eq("company_id", ctx.companyId)
+            .eq("id", managerEmployee.data.user_profile_id as string)
+            .is("is_deleted", false)
+            .maybeSingle()
+        : { data: null };
+
+      const managerPersonal = managerEmployee.data?.id
+        ? await admin
+            .from("employee_personal_details")
+            .select("phone")
+            .eq("company_id", ctx.companyId)
+            .eq("employee_id", managerEmployee.data.id as string)
+            .maybeSingle()
+        : { data: null };
 
     const myNotesPromise = includeCollections
       ? ctx.supabase
@@ -579,7 +623,15 @@ export const getEmployeeDashboard = async (ctx: ServiceContext, options?: { incl
             ? {
                 employee_id: teamLeadEmployee.data.id as string,
                 full_name: (teamLeadProfile.data?.full_name as string | null) ?? null,
-                email: null
+                email: null,
+                phone: (teamLeadPersonal.data?.phone as string | null) ?? null
+              }
+            : null,
+          manager: managerEmployee.data?.id
+            ? {
+                employee_id: managerEmployee.data.id as string,
+                full_name: (managerProfile.data?.full_name as string | null) ?? null,
+                phone: (managerPersonal.data?.phone as string | null) ?? null
               }
             : null,
           department: department.data

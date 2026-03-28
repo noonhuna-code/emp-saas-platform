@@ -155,8 +155,6 @@ export const EmployeeDashboard = ({
     /leave.*approved|approved.*leave/i.test(`${row.title} ${row.message ?? ""}`)
   );
   const recentPayslip = data?.recentPayslips[0] ?? null;
-  const latestNote = workspace?.notes[0] ?? null;
-  const latestResource = workspace?.resources[0] ?? null;
   const latestRequest = workspace?.loanRequests[0] ?? null;
   const recentChats = workspace?.chat.slice(0, 3) ?? [];
   const hasAttendance = allowedRouteSet.has("/app/attendance");
@@ -185,8 +183,8 @@ export const EmployeeDashboard = ({
   const supportChips = [
     workspace?.employee.department_name ? workspace.employee.department_name : "No department assigned",
     workspace?.employee.team_name ? workspace.employee.team_name : "No team assigned",
-    workspace?.teamLead?.full_name ? `Lead: ${workspace.teamLead.full_name}` : "Lead not assigned",
-    workspace?.department?.main_contact_email ? "Department contact set" : "No shared contact",
+    workspace?.teamLead?.full_name ? `Supervisor: ${workspace.teamLead.full_name}` : "Supervisor not assigned",
+    workspace?.manager?.full_name ? `Manager: ${workspace.manager.full_name}` : "Manager not assigned",
   ];
 
   if (error && !data) {
@@ -199,16 +197,6 @@ export const EmployeeDashboard = ({
         eyebrow="Employee Workspace"
         title="Your day, requests, records, and support context in one premium lane"
         subtitle="Stay on top of the self-service tools, records, and shared support context available in your workspace without leaving the employee shell."
-        actions={(
-          <>
-            {hasAttendance ? <Link href="/app/attendance" className="secondary-btn">Attendance</Link> : null}
-            {hasLeave ? <Link href="/app/leave" className="secondary-btn">Leave</Link> : null}
-            {hasShiftSwaps ? <Link href="/app/attendance/shift-swaps" className="secondary-btn">Shift Swaps</Link> : null}
-            {hasChat ? <Link href="/app/chat" className="secondary-btn">Team Chat</Link> : null}
-            {hasResources ? <Link href="/app/resources" className="primary-btn">Resources</Link> : null}
-            {!hasChat && hasNotes ? <Link href="/app/notes" className="secondary-btn">Notes</Link> : null}
-          </>
-        )}
       />
 
       <DashboardModeSwitch
@@ -218,71 +206,73 @@ export const EmployeeDashboard = ({
         subtitle="Move between daily execution, insight, and operating context while keeping your own requests and visibility boundaries clear."
       />
 
-      <DashboardRail className="items-start xl:grid-cols-[minmax(0,1.55fr)_minmax(320px,0.85fr)]">
-        <SurfacePanel
-          title="Personal control lane"
-          description="Everything you need to act on today: shift status, leave balance, payroll visibility, profile readiness, and support contacts."
-          tone="spotlight"
-        >
-          <div className="space-y-5">
-            <OverviewChips
-              chips={[
-                shift ? `${shift.start_time} - ${shift.end_time}` : "No shift assigned",
-                `${remainingLeave} leave days remaining`,
-                `${unreadNotifications} unread notifications`,
-                hasLoans ? `${workspace?.counts.openLoanRequests ?? 0} open finance requests` : "Finance requests hidden",
-              ]}
-            />
+      <DashboardSection visible={view === "workspace"}>
+        <DashboardRail className="items-start xl:grid-cols-[minmax(0,1.55fr)_minmax(320px,0.85fr)]">
+          <SurfacePanel
+            title="Personal control lane"
+            description="Everything you need to act on today: shift status, leave balance, payroll visibility, profile readiness, and support contacts."
+            tone="spotlight"
+          >
+            <div className="space-y-5">
+              <OverviewChips
+                chips={[
+                  shift ? `${shift.start_time} - ${shift.end_time}` : "No shift assigned",
+                  `${remainingLeave} leave days remaining`,
+                  `${unreadNotifications} unread notifications`,
+                  hasLoans ? `${workspace?.counts.openLoanRequests ?? 0} open finance requests` : "Finance requests hidden",
+                ]}
+              />
 
-            <div className="grid gap-3 sm:grid-cols-2">
-              <StatePanel title="Attendance" description={isLate ? "Late mark detected for today" : "Shift state is currently healthy"} className="border-slate-200 bg-slate-50/80 shadow-none">
-                <SignalRow
-                  label="Current status"
-                  value={<StatusBadge status={attendanceStatus} tone={isLate ? "warning" : "info"} />}
-                  tone={isLate ? "warning" : "info"}
-                />
-                <SignalRow label="Worked today" value={formatMinutes(attendance?.workMinutes)} />
-              </StatePanel>
-              <StatePanel title="Leave balance" description="Current balance and next leave signal" className="border-slate-200 bg-slate-50/80 shadow-none">
-                <SignalRow label="Remaining" value={`${remainingLeave} days`} tone={remainingLeave > 0 ? "success" : "warning"} />
-                <SignalRow label="Next leave update" value={upcomingLeave ? formatDate(upcomingLeave.created_at) : "No current leave notice"} />
-              </StatePanel>
-              <StatePanel title="Profile readiness" description="Keep your workspace and approvals friction-free" className="border-slate-200 bg-slate-50/80 shadow-none">
-                <SignalRow
-                  label="Completeness"
-                  value={`${data?.profileCompletenessScore ?? 0}%`}
-                  tone={(data?.profileCompletenessScore ?? 0) >= 80 ? "success" : "warning"}
-                />
-                <SignalRow label="Files available" value={workspace?.counts.files ?? 0} />
-              </StatePanel>
-              <StatePanel title="Department support" description="Use the shared contact path when you need operational help" className="border-slate-200 bg-slate-50/80 shadow-none">
-                <SignalRow
-                  label={workspace?.department?.main_contact_label ?? "Main contact"}
-                  value={workspace?.department?.main_contact_email ?? "Not configured"}
-                  tone={workspace?.department?.main_contact_email ? "info" : "default"}
-                />
-                <SignalRow label="Phone" value={workspace?.department?.main_contact_phone ?? "Not configured"} />
-              </StatePanel>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <StatePanel title="Attendance" description={isLate ? "Late mark detected for today" : "Shift state is currently healthy"} className="border-slate-200 bg-slate-50/80 shadow-none">
+                  <SignalRow
+                    label="Current status"
+                    value={<StatusBadge status={attendanceStatus} tone={isLate ? "warning" : "info"} />}
+                    tone={isLate ? "warning" : "info"}
+                  />
+                  <SignalRow label="Worked today" value={formatMinutes(attendance?.workMinutes)} />
+                </StatePanel>
+                <StatePanel title="Leave balance" description="Current balance and next leave signal" className="border-slate-200 bg-slate-50/80 shadow-none">
+                  <SignalRow label="Remaining" value={`${remainingLeave} days`} tone={remainingLeave > 0 ? "success" : "warning"} />
+                  <SignalRow label="Next leave update" value={upcomingLeave ? formatDate(upcomingLeave.created_at) : "No current leave notice"} />
+                </StatePanel>
+                <StatePanel title="Profile readiness" description="Keep your workspace and approvals friction-free" className="border-slate-200 bg-slate-50/80 shadow-none">
+                  <SignalRow
+                    label="Completeness"
+                    value={`${data?.profileCompletenessScore ?? 0}%`}
+                    tone={(data?.profileCompletenessScore ?? 0) >= 80 ? "success" : "warning"}
+                  />
+                  <SignalRow label="Files available" value={workspace?.counts.files ?? 0} />
+                </StatePanel>
+                <StatePanel title="Department support" description="Use the nearest support contacts when you need operational help" className="border-slate-200 bg-slate-50/80 shadow-none">
+                  <SignalRow label="Supervisor" value={workspace?.teamLead?.full_name ?? "Not assigned"} tone={workspace?.teamLead?.full_name ? "info" : "default"} />
+                  <SignalRow label="Contact" value={workspace?.teamLead?.phone ?? "Not configured"} />
+                  <SignalRow label="Manager" value={workspace?.manager?.full_name ?? "Not assigned"} tone={workspace?.manager?.full_name ? "info" : "default"} />
+                  <SignalRow label="Contact" value={workspace?.manager?.phone ?? "Not configured"} />
+                </StatePanel>
+              </div>
             </div>
-          </div>
-        </SurfacePanel>
+          </SurfacePanel>
 
-        <SurfacePanel title="Operating context" description="Stay aligned with your lead, your department, and your current support channels.">
-          <div className="space-y-4">
-            <OverviewChips chips={supportChips} />
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+          <SurfacePanel title="Operating context" description="Stay aligned with your lead, your department, and your current support channels.">
+            <div className="space-y-4">
+              <OverviewChips chips={supportChips} />
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
               <SignalRow label="Reporting lead" value={workspace?.teamLead?.full_name ?? "Not assigned"} />
               <SignalRow label="Department" value={workspace?.department?.name ?? workspace?.employee.department_name ?? "-"} />
+              <SignalRow label="Team" value={workspace?.employee.team_name ?? "-"} />
               <SignalRow label="Company" value={workspace?.company?.name ?? "-"} />
+              <SignalRow label="Supervisor contact" value={workspace?.teamLead?.phone ?? "Not configured"} />
+              <SignalRow label="Manager" value={workspace?.manager?.full_name ?? "Not assigned"} />
+              <SignalRow label="Manager contact" value={workspace?.manager?.phone ?? "Not configured"} />
               {hasPayslips ? <SignalRow label="Latest payslip" value={recentPayslip ? formatDate(recentPayslip.generated_at) : "No payslips yet"} /> : null}
               {hasLoans ? <SignalRow label="Open requests" value={workspace?.counts.openLoanRequests ?? 0} tone={(workspace?.counts.openLoanRequests ?? 0) > 0 ? "warning" : "default"} /> : null}
               {hasResources ? <SignalRow label="Resources available" value={workspace?.counts.resources ?? 0} /> : null}
+              </div>
             </div>
-          </div>
-        </SurfacePanel>
-      </DashboardRail>
+          </SurfacePanel>
+        </DashboardRail>
 
-      <DashboardSection visible={view === "workspace"}>
         <section className="space-y-4">
           <h2 className="text-xl font-semibold">What matters now</h2>
           {!data ? (
@@ -550,15 +540,12 @@ export const EmployeeDashboard = ({
           <SurfacePanel title="Current support lines" description="Keep the nearest support and communication paths visible while you operate.">
             <div className="space-y-4">
               <SignalRow label="Reporting lead" value={workspace?.teamLead?.full_name ?? "Not assigned"} />
-              <SignalRow
-                label={workspace?.department?.main_contact_label ?? "Department contact"}
-                value={workspace?.department?.main_contact_email ?? "Not configured"}
-                tone={workspace?.department?.main_contact_email ? "info" : "default"}
-              />
-              {hasNotes ? <SignalRow label="Latest note" value={latestNote?.title ?? "No note pinned"} /> : null}
-              {hasResources ? <SignalRow label="Latest resource" value={latestResource?.title ?? "No resource published"} /> : null}
-              {hasLoans ? <SignalRow label="Latest request" value={latestRequest ? `${latestRequest.obligation_type} - ${latestRequest.status}` : "No finance request open"} /> : null}
-              <SignalRow label="Profile quality" value={`${data?.profileCompletenessScore ?? 0}%`} tone={(data?.profileCompletenessScore ?? 0) >= 80 ? "success" : "warning"} />
+              <SignalRow label="Supervisor contact" value={workspace?.teamLead?.phone ?? "Not configured"} tone={workspace?.teamLead?.phone ? "info" : "default"} />
+              <SignalRow label="Manager" value={workspace?.manager?.full_name ?? "Not assigned"} />
+              <SignalRow label="Manager contact" value={workspace?.manager?.phone ?? "Not configured"} tone={workspace?.manager?.phone ? "info" : "default"} />
+              <SignalRow label="Department" value={workspace?.department?.name ?? workspace?.employee.department_name ?? "-"} />
+              <SignalRow label="Team" value={workspace?.employee.team_name ?? "-"} />
+              <SignalRow label="Company" value={workspace?.company?.name ?? "-"} />
             </div>
           </SurfacePanel>
         </DashboardRail>
