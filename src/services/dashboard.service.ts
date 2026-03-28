@@ -306,14 +306,14 @@ export const getEmployeeDashboard = async (ctx: ServiceContext, options?: { incl
           .maybeSingle()
       : { data: null };
 
-      const teamLeadPersonal = teamLeadEmployee.data?.id
-        ? await admin
-            .from("employee_personal_details")
-            .select("phone")
-            .eq("company_id", ctx.companyId)
-            .eq("employee_id", teamLeadEmployee.data.id as string)
-            .maybeSingle()
-        : { data: null };
+        const teamLeadPersonal = teamLeadEmployee.data?.id
+          ? await admin
+              .from("employee_personal_details")
+              .select("phone_number")
+              .eq("company_id", ctx.companyId)
+              .eq("employee_id", teamLeadEmployee.data.id as string)
+              .maybeSingle()
+          : { data: null };
 
       const managerEmployee = teamLeadEmployee.data?.manager_id
         ? await admin
@@ -335,14 +335,14 @@ export const getEmployeeDashboard = async (ctx: ServiceContext, options?: { incl
             .maybeSingle()
         : { data: null };
 
-      const managerPersonal = managerEmployee.data?.id
-        ? await admin
-            .from("employee_personal_details")
-            .select("phone")
-            .eq("company_id", ctx.companyId)
-            .eq("employee_id", managerEmployee.data.id as string)
-            .maybeSingle()
-        : { data: null };
+        const managerPersonal = managerEmployee.data?.id
+          ? await admin
+              .from("employee_personal_details")
+              .select("phone_number")
+              .eq("company_id", ctx.companyId)
+              .eq("employee_id", managerEmployee.data.id as string)
+              .maybeSingle()
+          : { data: null };
 
     const myNotesPromise = includeCollections
       ? ctx.supabase
@@ -624,14 +624,14 @@ export const getEmployeeDashboard = async (ctx: ServiceContext, options?: { incl
                 employee_id: teamLeadEmployee.data.id as string,
                 full_name: (teamLeadProfile.data?.full_name as string | null) ?? null,
                 email: null,
-                phone: (teamLeadPersonal.data?.phone as string | null) ?? null
+                phone: (teamLeadPersonal.data?.phone_number as string | null) ?? null
               }
             : null,
           manager: managerEmployee.data?.id
             ? {
                 employee_id: managerEmployee.data.id as string,
                 full_name: (managerProfile.data?.full_name as string | null) ?? null,
-                phone: (managerPersonal.data?.phone as string | null) ?? null
+                phone: (managerPersonal.data?.phone_number as string | null) ?? null
               }
             : null,
           department: department.data
