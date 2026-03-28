@@ -43,6 +43,7 @@ export const LeaveHistoryTable = ({
                 <th className="px-4 py-3">Dates</th>
                 <th className="px-4 py-3">Type</th>
                 <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3">Approval stage</th>
                 <th className="px-4 py-3">Total days</th>
                 <th className="px-4 py-3">Actions</th>
               </tr>
@@ -53,6 +54,12 @@ export const LeaveHistoryTable = ({
                   <td className="px-4 py-4">{formatDate(req.start_date)} – {formatDate(req.end_date)}</td>
                   <td className="px-4 py-4">{req.leave_type_name ?? req.leave_type_id}</td>
                   <td className="px-4 py-4"><StatusChip label={req.status} compact /></td>
+                  <td className="px-4 py-4">
+                    <div className="space-y-1">
+                      <p className="text-sm text-slate-700">{req.approval_stage_label ?? "-"}</p>
+                      {req.status === "pending" && req.next_approver_name ? <p className="text-xs text-slate-500">Next: {req.next_approver_name}</p> : null}
+                    </div>
+                  </td>
                   <td className="px-4 py-4">{req.total_days}</td>
                   <td className="px-4 py-4">
                     {req.status === "pending" && onCancel ? (
@@ -67,7 +74,7 @@ export const LeaveHistoryTable = ({
               ))}
               {requests.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-6 text-sm text-slate-500">No leave requests yet.</td>
+                  <td colSpan={6} className="px-4 py-6 text-sm text-slate-500">No leave requests yet.</td>
                 </tr>
               ) : null}
             </tbody>

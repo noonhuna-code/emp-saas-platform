@@ -29,6 +29,8 @@ export type LeaveRequest = {
   employee_avatar_url?: string | null;
   department_id?: string | null;
   leave_type_name?: string | null;
+  next_approver_name?: string | null;
+  approval_stage_label?: string | null;
 };
 
 export type LeaveTypeOption = {

@@ -6,7 +6,7 @@ export default async function LeavePage() {
   const session = await getServerSession();
 
   if (!session.employeeId) {
-    if (session.permissions.includes("manage_employees")) {
+    if (session.permissions.includes("manage_employees") || session.permissions.includes("manage_attendance")) {
       redirect("/app/leave/review");
     }
     redirect("/403");

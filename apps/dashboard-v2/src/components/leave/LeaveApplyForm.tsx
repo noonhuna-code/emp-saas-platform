@@ -32,6 +32,15 @@ export const LeaveApplyForm = ({
   });
 
   const leaveTypeOptions = useMemo(() => {
+    if (balances.length > 0) {
+      return balances
+        .filter((balance) => balance.leave_type_id)
+        .map((balance) => ({
+          id: balance.leave_type_id,
+          name: balance.leave_type_name ?? "Leave",
+        }));
+    }
+
     const map = new Map<string, string>();
 
     (leaveTypes ?? []).forEach((type) => {
@@ -69,7 +78,7 @@ export const LeaveApplyForm = ({
     <div className="space-y-5">
       {!hasTypes ? (
         <div className={helperCardClassName}>
-          No leave types configured yet. Ask HR to publish leave types such as AL, CL, SL, unpaid, maternity, or late login.
+          No eligible leave types are available yet for this employee. Ask HR to publish balances and any gender-restricted leave types that apply.
         </div>
       ) : null}
 

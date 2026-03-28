@@ -22,6 +22,7 @@ export const UnifiedApprovalsTable = ({
   items,
   onApprove,
   onReject,
+  onCancel,
   busy,
   typeFilter,
   onTypeFilterChange
@@ -29,11 +30,13 @@ export const UnifiedApprovalsTable = ({
   items: UnifiedApprovalItem[];
   onApprove: (item: UnifiedApprovalItem) => void;
   onReject: (item: UnifiedApprovalItem, reason?: string) => void;
+  onCancel: (item: UnifiedApprovalItem) => void;
   busy?: boolean;
   typeFilter?: "all" | "leave" | "attendance";
   onTypeFilterChange?: (value: "all" | "leave" | "attendance") => void;
 }) => {
   const [rejectTarget, setRejectTarget] = useState<UnifiedApprovalItem | null>(null);
+  const [cancelTarget, setCancelTarget] = useState<UnifiedApprovalItem | null>(null);
 
   const filteredItems = useMemo(() => {
     if (!typeFilter || typeFilter === "all") return items;
@@ -135,6 +138,11 @@ export const UnifiedApprovalsTable = ({
                       <button className="secondary-btn" onClick={() => setRejectTarget(item)} disabled={busy}>
                         Reject
                       </button>
+                      {item.type === "leave" ? (
+                        <button className="secondary-btn" onClick={() => setCancelTarget(item)} disabled={busy}>
+                          Cancel
+                        </button>
+                      ) : null}
                     </div>
                   </div>
                 </div>
@@ -156,6 +164,19 @@ export const UnifiedApprovalsTable = ({
             onReject(rejectTarget, reason);
           }
           setRejectTarget(null);
+        }}
+      />
+      <ConfirmDialog
+        open={Boolean(cancelTarget)}
+        title="Cancel leave request"
+        confirmLabel="Cancel request"
+        busy={busy}
+        onCancel={() => setCancelTarget(null)}
+        onConfirm={() => {
+          if (cancelTarget) {
+            onCancel(cancelTarget);
+          }
+          setCancelTarget(null);
         }}
       />
     </div>

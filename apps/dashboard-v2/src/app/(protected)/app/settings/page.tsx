@@ -1,6 +1,12 @@
 import Link from "next/link";
-import { getServerSession } from "@/lib/server/auth";
+import { buildAuthContext, getServerSession } from "@/lib/server/auth";
+import { Avatar } from "@/components/shared/Avatar";
+import { PasswordChangeCard } from "@/components/settings/PasswordChangeCard";
+import { AccountSettingsCard } from "@/components/settings/AccountSettingsCard";
+import { SessionVisibilityCard } from "@/components/settings/SessionVisibilityCard";
+import { NotificationRoutingCard } from "@/components/settings/NotificationRoutingCard";
 import {
+  DashboardRail,
   FeatureCallout,
   OverviewChips,
   PageContainer,
@@ -9,6 +15,7 @@ import {
   StatGrid,
   SurfacePanel,
 } from "@/components/dashboard-v2/PagePrimitives";
+import { getSettingsWorkspaceSnapshot } from "@emp/services/settings.service";
 
 const ROLE_LABELS: Record<string, string> = {
   employee: "Employee",
@@ -22,8 +29,50 @@ const ROLE_LABELS: Record<string, string> = {
   platform_owner: "Platform Owner",
 };
 
+const formatDateTime = (value: string | null) => {
+  if (!value) return "No active session timestamp";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("en-PK", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
+};
+
 export default async function SettingsPage() {
   const session = await getServerSession();
+  const auth = await buildAuthContext();
+  const settingsResult = await getSettingsWorkspaceSnapshot({ ...auth, requestId: "settings-page" }, session.sessionId);
+  const settings = settingsResult.ok && settingsResult.data
+    ? settingsResult.data
+    : {
+        account: {
+          employeeId: session.employeeId,
+          fullName: session.fullName,
+          avatarUrl: session.avatarUrl,
+          officialEmail: session.email,
+          personalEmail: null,
+          phoneNumber: null,
+          alternatePhone: null,
+          addressLine1: null,
+          addressLine2: null,
+          city: null,
+          state: null,
+          postalCode: null,
+          country: null,
+          emergencyContactName: null,
+          emergencyContactPhone: null,
+          emergencyContactRelationship: null,
+        },
+        sessions: [],
+        devices: [],
+        notifications: {
+          enabled: false,
+          unreadCount: 0,
+          recent: [],
+          deliveryNote: "Notification routing summary is temporarily unavailable.",
+        },
+      };
   const roleKey = (session.role ?? "employee").toLowerCase();
   const roleLabel = ROLE_LABELS[roleKey] ?? session.role ?? "Workspace user";
 
@@ -36,8 +85,11 @@ export default async function SettingsPage() {
 
   const controlCards = [
     session.employeeId
-      ? { label: "Profile", href: "/app/profile", description: "Personal identity, profile, and self-service preferences" }
+      ? { label: "Profile", href: "/app/profile", description: "Personal identity, profile data, documents, and self-service records" }
       : null,
+    { label: "Notifications", href: "/app/notifications", description: "Unread alerts, leave updates, approval notifications, and operational reminders" },
+    { label: "Notes", href: "/app/notes", description: "Personal notes, attachments, and saved working context" },
+    { label: "Resources", href: "/app/resources", description: "Policies, SOPs, and operating guides" },
     session.permissions.includes("manage_employees") || session.permissions.includes("manage_company")
       ? { label: "Organization", href: "/app/organization", description: "Structure, reporting lines, and assignments" }
       : null,
@@ -47,23 +99,28 @@ export default async function SettingsPage() {
     session.permissions.includes("manage_company")
       ? { label: "Monitoring", href: "/app/monitoring", description: "System health and governance signals" }
       : null,
-    { label: "Notifications", href: "/app/notifications", description: "Unread alerts and operational reminders" },
-    { label: "Resources", href: "/app/resources", description: "Policies, SOPs, and operating guides" },
   ].filter(Boolean) as Array<{ label: string; href: string; description: string }>;
+
+  const accountCards = [
+    { label: "Profile workspace", value: session.employeeId ? "Available" : "Unavailable", hint: session.employeeId ? "Personal, employment, documents, and family records" : "No employee record resolved for this session" },
+    { label: "Login email", value: session.email ?? "Unknown", hint: "Primary sign-in identity for the active session" },
+    { label: "Last login", value: formatDateTime(session.lastLoginAt), hint: "Most recent tracked authenticated session timestamp" },
+    { label: "Assigned shift", value: session.shiftStartTime && session.shiftEndTime ? `${session.shiftStartTime} - ${session.shiftEndTime}` : "No shift assigned", hint: session.shiftHours ? `${session.shiftHours} scheduled hours` : "Shift summary from today's resolved session context" },
+  ];
 
   return (
     <PageContainer>
       <PageHeader
         eyebrow="Settings"
-        title="Workspace controls and configuration lanes"
-        description="Use this hub to move into the control surfaces your role is allowed to manage without turning settings into a dead-end page."
-        chips={["Role-aware", "Control surfaces", "Tenant scoped", "No dead-end settings"]}
+        title="Account, security, and workspace settings"
+        description="Use settings for the parts that belong here: account edits, password security, session visibility, and live notification posture."
+        chips={["Account settings", "Security actions", "Tenant scoped", "Role-aware controls"]}
       />
 
       <FeatureCallout
-        badge="Configuration"
-        title="Settings should route you into real controls, not trap you in a generic preferences screen."
-        description="This workspace reflects the actual role and permission posture already resolved for your session. It stays intentionally focused on where configuration and operational governance really live."
+        badge="Settings workspace"
+        title="Settings should cover identity, access, and account upkeep without duplicating the full product."
+        description="EMP now keeps the high-frequency account controls here while leaving deeper profile, notes, resources, billing, and organization workflows in their owning surfaces."
       />
 
       <StatGrid>
@@ -73,25 +130,75 @@ export default async function SettingsPage() {
         <StatCard label="Tenant scope" value={session.companyId ? "Resolved" : "Unknown"} hint="Company resolution status for this session" />
       </StatGrid>
 
-      <SurfacePanel title="Session posture" description="High-level identity and access context for the current user.">
-        <OverviewChips chips={chips} />
-        <div className="mt-4 text-sm leading-6 text-slate-600">
-          Settings in EMP stay distributed across the real product surfaces that own them: profile, organization, billing, monitoring, and workspace-level resources.
-        </div>
-      </SurfacePanel>
+      <DashboardRail>
+        <SurfacePanel title="Session posture" description="High-level identity and access context for the current user." tone="subtle">
+          <div className="flex items-center gap-4 rounded-[22px] border border-slate-200/80 bg-white/90 p-4 shadow-sm">
+            <Avatar name={session.fullName ?? session.email ?? roleLabel} url={session.avatarUrl} />
+            <div className="min-w-0 space-y-1">
+              <p className="text-base font-semibold text-slate-950">{session.fullName ?? "Workspace user"}</p>
+              <p className="text-sm text-slate-600">{session.email ?? "No email resolved"}</p>
+              <p className="text-xs font-medium uppercase tracking-[0.16em] text-slate-500">
+                {session.employeeCode ? `${session.employeeCode} | ` : null}
+                {roleLabel}
+              </p>
+            </div>
+          </div>
+          <div className="mt-4">
+            <OverviewChips chips={chips} />
+          </div>
+          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            {accountCards.map((card) => (
+              <div key={card.label} className="rounded-[20px] border border-slate-200/80 bg-slate-50/80 px-4 py-3">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">{card.label}</p>
+                <p className="mt-2 text-sm font-medium text-slate-900">{card.value}</p>
+                <p className="mt-1 text-xs leading-5 text-slate-500">{card.hint}</p>
+              </div>
+            ))}
+          </div>
+        </SurfacePanel>
 
-      <SurfacePanel title="Available control surfaces" description="Only routes supported by your current access posture are shown here.">
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {controlCards.map((card) => (
-            <Link
-              key={card.href}
-              href={card.href}
-              className="rounded-[22px] border border-slate-200/80 bg-white/92 p-5 shadow-sm transition hover:border-slate-300 hover:bg-slate-50/80"
-            >
-              <p className="text-sm font-semibold text-slate-950">{card.label}</p>
-              <p className="mt-2 text-sm leading-6 text-slate-600">{card.description}</p>
-            </Link>
-          ))}
+        <SurfacePanel title="Workspace links" description="Move quickly into the owning surfaces where notes, notifications, billing, and profile records already live.">
+          <div className="grid gap-3">
+            {controlCards.map((card) => (
+              <Link
+                key={card.href}
+                href={card.href}
+                className="rounded-[22px] border border-slate-200/80 bg-white/92 p-5 shadow-sm transition hover:border-slate-300 hover:bg-slate-50/80"
+              >
+                <p className="text-sm font-semibold text-slate-950">{card.label}</p>
+                <p className="mt-2 text-sm leading-6 text-slate-600">{card.description}</p>
+              </Link>
+            ))}
+          </div>
+        </SurfacePanel>
+      </DashboardRail>
+
+      <AccountSettingsCard initial={settings.account} />
+
+      <PasswordChangeCard />
+
+      <SessionVisibilityCard currentSessionId={session.sessionId} sessions={settings.sessions} devices={settings.devices} />
+
+      <NotificationRoutingCard notifications={settings.notifications} />
+
+      <SurfacePanel title="Settings model" description="What lives here versus what stays in the rest of the product.">
+        <div className="grid gap-3 md:grid-cols-4">
+          <div className="rounded-[22px] border border-slate-200 bg-slate-50/80 p-4">
+            <p className="text-sm font-semibold text-slate-950">Lives in settings</p>
+            <p className="mt-2 text-sm leading-6 text-slate-600">Account edits, password security, recent sessions, known devices, and notification routing status.</p>
+          </div>
+          <div className="rounded-[22px] border border-slate-200 bg-slate-50/80 p-4">
+            <p className="text-sm font-semibold text-slate-950">Lives in profile</p>
+            <p className="mt-2 text-sm leading-6 text-slate-600">Personal details, employment info, documents, family records, skills, and sensitive data with existing scoped permissions.</p>
+          </div>
+          <div className="rounded-[22px] border border-slate-200 bg-slate-50/80 p-4">
+            <p className="text-sm font-semibold text-slate-950">Lives in notifications</p>
+            <p className="mt-2 text-sm leading-6 text-slate-600">The inbox and workflow alerts live in the notifications workspace. Settings currently shows routing status, not channel-level saved preferences.</p>
+          </div>
+          <div className="rounded-[22px] border border-slate-200 bg-slate-50/80 p-4">
+            <p className="text-sm font-semibold text-slate-950">Lives in workspace lanes</p>
+            <p className="mt-2 text-sm leading-6 text-slate-600">Notes, resources, billing, monitoring, and organization management stay in the surfaces that already own that data.</p>
+          </div>
         </div>
       </SurfacePanel>
     </PageContainer>

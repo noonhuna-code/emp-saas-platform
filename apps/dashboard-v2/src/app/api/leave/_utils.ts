@@ -10,14 +10,16 @@ export const buildLeaveRouteContext = async (ctxOverride?: ServiceContext) => {
 };
 
 export const requireLeaveManager = (ctx: ServiceContext) => {
-  requireServerPermission("manage_employees", ctx);
+  if (!(ctx.permissions.includes("manage_employees") || ctx.permissions.includes("manage_attendance"))) {
+    requireServerPermission("manage_employees", ctx);
+  }
 };
 
 export const resolveTargetEmployeeId = async (
   ctx: ServiceContext,
   requestedEmployeeId?: string | null
 ): Promise<string | null> => {
-  if (requestedEmployeeId && ctx.permissions.includes("manage_employees")) {
+  if (requestedEmployeeId && (ctx.permissions.includes("manage_employees") || ctx.permissions.includes("manage_attendance"))) {
     return requestedEmployeeId;
   }
 

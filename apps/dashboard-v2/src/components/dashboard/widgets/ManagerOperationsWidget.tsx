@@ -8,11 +8,18 @@ import { loadManagerDashboardData } from "@/components/dashboard/widgets/dashboa
 
 type ManagerOperationsWidgetProps = {
   variant: "manager" | "team_lead";
+  allowedRoutes?: string[];
+  canViewTeamAttendance?: boolean;
 };
 
-export default function ManagerOperationsWidget({ variant }: ManagerOperationsWidgetProps) {
+export default function ManagerOperationsWidget({
+  variant,
+  allowedRoutes = [],
+  canViewTeamAttendance = false,
+}: ManagerOperationsWidgetProps) {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<Awaited<ReturnType<typeof loadManagerDashboardData>>>(null);
+  const allowedRouteSet = useMemo(() => new Set(allowedRoutes), [allowedRoutes]);
 
   useEffect(() => {
     let active = true;
@@ -59,14 +66,17 @@ export default function ManagerOperationsWidget({ variant }: ManagerOperationsWi
       <DashboardPanel title="Quick actions" subtitle="High-frequency operational flows">
         <QuickActionGrid
           actions={[
-            { label: "Review approvals", href: "/app/approvals", caption: "Leave + attendance" },
-            { label: "Team attendance", href: "/app/attendance/team", caption: "Today status" },
-            { label: "Attendance review", href: "/app/attendance/review", caption: "Corrections" },
-            {
+            ...(allowedRouteSet.has("/app/approvals") ? [{ label: "Review approvals", href: "/app/approvals", caption: "Leave + attendance" }] : []),
+            ...(allowedRouteSet.has("/app/leave/review") ? [{ label: "Leave review", href: "/app/leave/review", caption: "Approve, reject, cancel" }] : []),
+            ...(canViewTeamAttendance ? [{ label: "Team attendance", href: "/app/attendance/team", caption: "Today status" }] : []),
+            ...(allowedRouteSet.has("/app/attendance/shift-swaps") ? [{ label: "Shift swaps", href: "/app/attendance/shift-swaps", caption: "Requests and review" }] : []),
+            ...(variant === "team_lead" && allowedRouteSet.has("/app/chat") ? [{ label: "Team chat", href: "/app/chat", caption: "Coordination updates" }] : []),
+            ...(allowedRouteSet.has("/app/projects") && variant === "manager" ? [{ label: "Projects", href: "/app/projects", caption: "Execution and staffing" }] : []),
+            ...(allowedRouteSet.has("/app/employees") ? [{
               label: variant === "team_lead" ? "Employee profiles" : "Team search",
               href: "/app/employees",
               caption: "Directory"
-            }
+            }] : [])
           ]}
         />
         <SignalRow label="Heatmap rows" value={data.teamAttendanceHeatmap.length} />

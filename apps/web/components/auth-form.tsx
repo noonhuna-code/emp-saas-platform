@@ -16,7 +16,7 @@ export function AuthForm({ mode, actionUrl, nextPath = "/app/dashboard" }: AuthF
   const isSignIn = mode === "sign-in";
 
   return (
-    <div className="surface rounded-[2rem] p-6 sm:p-8">
+    <div className="surface rounded-[1.8rem] border border-slate-200/80 bg-white/94 p-5 shadow-[0_22px_70px_rgba(15,23,42,0.08)] sm:p-6">
       {submitted ? (
         <div aria-live="polite" className="rounded-[1.5rem] border border-emerald-200 bg-emerald-50 p-6" role="status">
           <p className="eyebrow !border-emerald-200 !bg-white !text-emerald-700">
@@ -48,7 +48,7 @@ export function AuthForm({ mode, actionUrl, nextPath = "/app/dashboard" }: AuthF
         </div>
       ) : (
         <>
-          <div className="mb-6 space-y-5">
+          <div className="mb-6 space-y-4">
             <div className="flex flex-wrap items-center justify-end gap-2">
               <Link
                 className={`inline-flex min-h-10 items-center rounded-full border px-4 text-sm font-semibold transition ${
@@ -74,13 +74,13 @@ export function AuthForm({ mode, actionUrl, nextPath = "/app/dashboard" }: AuthF
 
             <div>
               <p className="eyebrow">{isSignIn ? "Access EMP" : "Create workspace access"}</p>
-              <h2 className="mt-4 text-2xl font-semibold tracking-tight text-slate-950">
+              <h2 className="mt-4 text-[1.9rem] font-semibold tracking-tight text-slate-950">
                 {isSignIn ? "Sign in to your EMP workspace." : "Start a guided EMP workspace setup."}
               </h2>
-              <p className="mt-3 text-base leading-7 text-slate-600">
-              {isSignIn
-                ? "Use your work credentials to access the EMP workspace."
-                : "Request account access to begin a guided EMP workspace setup."}
+              <p className="mt-3 text-[15px] leading-7 text-slate-600">
+                {isSignIn
+                  ? "Use your work credentials to access the EMP workspace."
+                  : "Request account access to begin a guided EMP workspace setup."}
               </p>
             </div>
           </div>

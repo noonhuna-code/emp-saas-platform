@@ -1,7 +1,5 @@
 import { JsonLd } from "@/components/json-ld";
-import { PageHero } from "@/components/page-hero";
 import { AuthShell } from "@/components/auth-shell";
-import { AuthForm } from "@/components/auth-form";
 import type { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo";
 import { breadcrumbSchema, softwareApplicationSchema } from "@/lib/schema";
@@ -37,38 +35,21 @@ export default function SignUpPage() {
         ]}
       />
 
-      <PageHero
-        eyebrow="Sign up"
-        title={
-          <>
-            Request access through a guided{" "}
-            <span className="font-display italic font-normal text-teal-800">workspace signup</span>.
-          </>
-        }
-        description="Use this page for account requests, invite-based onboarding, or guided workspace setup."
-        breadcrumbs={[
-          { label: "Home", href: "/" },
-          { label: "Sign up" }
-        ]}
-        aside={<AuthForm mode="sign-up" />}
-      />
-
       <AuthShell
         mode="sign-up"
-        eyebrow="Account creation"
+        eyebrow="Guided account setup"
         title={
           <>
-            Start account setup with a guided{" "}
+            Start EMP access with a guided{" "}
             <span className="font-display italic font-normal text-teal-800">workspace request</span>.
           </>
         }
-        description="EMP signup works for invites, workspace requests, and guided onboarding for new teams."
+        description="Use this page for invite-based onboarding, workspace requests, and guided rollout setup for new teams."
         bullets={[
           "Useful for invite-led or assisted onboarding",
           "Fits guided workspace setup for new teams",
-          "Keeps setup aligned with the EMP product experience"
+          "Keeps account creation aligned with the real product experience"
         ]}
-        showForm={false}
       />
     </>
   );

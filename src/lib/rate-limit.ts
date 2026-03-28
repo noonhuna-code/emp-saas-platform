@@ -6,6 +6,10 @@ export type RateLimitResult = {
   retry_after_seconds: number;
 };
 
+const RATE_LIMIT_RPC_SOFT_FAIL_ERRORS = [
+  "FOR UPDATE is not allowed with aggregate functions",
+];
+
 export const enforceRateLimit = async (
   ctx: ServiceContext,
   endpoint: string,
@@ -27,6 +31,14 @@ export const enforceRateLimit = async (
   });
 
   if (error) {
+    if (RATE_LIMIT_RPC_SOFT_FAIL_ERRORS.some((message) => error.message.includes(message))) {
+      ctx.logger.warn("Rate limit RPC unavailable; allowing request", {
+        endpoint,
+        requestId: requestId ?? ctx.requestId,
+        error: error.message
+      });
+      return { allowed: true, remaining: limit, retry_after_seconds: windowSeconds };
+    }
     throw new Error(error.message);
   }
 

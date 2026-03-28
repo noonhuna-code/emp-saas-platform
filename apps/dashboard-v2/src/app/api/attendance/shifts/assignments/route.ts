@@ -13,7 +13,7 @@ export async function GET(request: Request) {
       return finalizeRoute(route, endpoint, jsonError("Authentication required", 401, route.requestId));
     }
 
-    const { ctx } = await buildAttendanceRouteContext(route.ctx, ["manage_attendance", "manage_employees", "view_attendance"]);
+    const { ctx } = await buildAttendanceRouteContext(route.ctx, ["manage_attendance", "manage_employees", "assign_shifts", "manage_shifts", "view_attendance"]);
     const url = new URL(request.url);
     const employeeId = (url.searchParams.get("employeeId") ?? "").trim() || undefined;
     const limitRaw = Number(url.searchParams.get("limit") ?? 20);

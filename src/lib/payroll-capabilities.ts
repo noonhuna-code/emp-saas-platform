@@ -68,6 +68,9 @@ const normalizeRole = (role: string | null | undefined): string => {
     .replace(/\//g, "_");
 };
 
+const FINANCE_ROLE_ALIASES = new Set(["finance", "finance_manager", "finance_admin", "finance_lead"]);
+const EXECUTIVE_ROLE_ALIASES = new Set(["founder", "ceo", "founder_ceo", "ceo_founder", "org_owner", "org owner", "executive", "leadership"]);
+
 const addMany = (target: Set<PayrollCapability>, capabilities: PayrollCapability[]) => {
   for (const capability of capabilities) target.add(capability);
 };
@@ -111,6 +114,15 @@ export const resolvePayrollCapabilities = (ctx: AuthContext): Set<PayrollCapabil
     addMany(capabilities, HR_CAPABILITIES);
   }
 
+  if (
+    ctx.permissions.includes("manage_salary")
+    || ctx.permissions.includes("approve_salary")
+    || ctx.permissions.includes("run_payroll")
+    || ctx.permissions.includes("finalize_payroll")
+  ) {
+    addMany(capabilities, HR_CAPABILITIES);
+  }
+
   if (ctx.permissions.includes("manage_company")) {
     addMany(capabilities, FOUNDER_CAPABILITIES);
   }
@@ -125,7 +137,11 @@ export const resolvePayrollCapabilities = (ctx: AuthContext): Set<PayrollCapabil
     addMany(capabilities, ADMIN_EXTRA_CAPABILITIES);
   }
 
-  if (role === "founder" || role === "ceo" || role === "founder_ceo" || role === "ceo_founder") {
+  if (FINANCE_ROLE_ALIASES.has(role)) {
+    addMany(capabilities, HR_CAPABILITIES);
+  }
+
+  if (EXECUTIVE_ROLE_ALIASES.has(role)) {
     addMany(capabilities, FOUNDER_CAPABILITIES);
   }
 

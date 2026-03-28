@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   approveAttendanceCorrectionRequest,
   approveLeaveRequest,
+  cancelLeaveRequest,
   fetchUnifiedApprovals,
   rejectAttendanceCorrectionRequest,
   rejectLeaveRequest,
@@ -64,7 +65,7 @@ export const ApprovalsPageClient = () => {
   }, [load]);
 
   const handleDecision = useCallback(
-    async (item: UnifiedApprovalItem, decision: "approve" | "reject", reason?: string) => {
+    async (item: UnifiedApprovalItem, decision: "approve" | "reject" | "cancel", reason?: string) => {
       setBusy(true);
       setNotice(null);
       setError(null);
@@ -74,7 +75,9 @@ export const ApprovalsPageClient = () => {
           item.type === "leave"
             ? decision === "approve"
               ? await approveLeaveRequest(item.id)
-              : await rejectLeaveRequest(item.id, reason ?? "")
+              : decision === "reject"
+                ? await rejectLeaveRequest(item.id, reason ?? "")
+                : await cancelLeaveRequest(item.id, item.employee_id)
             : decision === "approve"
               ? await approveAttendanceCorrectionRequest(item.id)
               : await rejectAttendanceCorrectionRequest(item.id, reason ?? "");
@@ -87,7 +90,9 @@ export const ApprovalsPageClient = () => {
         setNotice(
           decision === "approve"
             ? `${item.employee_name ?? "Request"} approved successfully.`
-            : `${item.employee_name ?? "Request"} rejected successfully.`
+            : decision === "reject"
+              ? `${item.employee_name ?? "Request"} rejected successfully.`
+              : `${item.employee_name ?? "Request"} cancelled successfully.`
         );
         await load();
       } catch (err) {
@@ -169,6 +174,7 @@ export const ApprovalsPageClient = () => {
               onTypeFilterChange={setTypeFilter}
               onApprove={(item) => void handleDecision(item, "approve")}
               onReject={(item, reason) => void handleDecision(item, "reject", reason)}
+              onCancel={(item) => void handleDecision(item, "cancel")}
             />
           ) : null}
         </SurfacePanel>

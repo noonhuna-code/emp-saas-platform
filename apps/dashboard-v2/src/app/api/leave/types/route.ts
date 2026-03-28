@@ -5,7 +5,7 @@ import { handleRouteError, jsonError } from "@/lib/server/api-errors";
 import { beginRoute, finalizeRoute } from "@/lib/server/route-helpers";
 import { buildLeaveRouteContext, jsonServiceError } from "../_utils";
 
-export async function GET() {
+export async function GET(request: Request) {
   const route = await beginRoute();
   const endpoint = "/api/leave/types";
 
@@ -15,7 +15,9 @@ export async function GET() {
     }
 
     const { ctx } = await buildLeaveRouteContext(route.ctx);
-    const cacheKey = `${ctx.companyId}:${ctx.userId}:${endpoint}`;
+    const url = new URL(request.url);
+    const employeeId = url.searchParams.get("employeeId") ?? undefined;
+    const cacheKey = `${ctx.companyId}:${ctx.userId}:${endpoint}:${employeeId ?? "self"}`;
     const cached = getCached<any>(cacheKey, 45000);
     if (cached) {
       return finalizeRoute(
@@ -30,7 +32,7 @@ export async function GET() {
       );
     }
 
-    const result = await listLeaveTypes(ctx);
+    const result = await listLeaveTypes(ctx, employeeId);
     if (!result.ok) {
       return finalizeRoute(route, endpoint, jsonServiceError(result.error, "Leave type lookup failed", route.requestId));
     }

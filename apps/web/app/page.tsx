@@ -13,14 +13,10 @@ import {
   featuredModules,
   getSeoClusterLinks,
   homeFaqs,
-  homepageProofStrip,
   implementationJourney,
   integrationCategories,
-  operatingCoverage,
   operatingModelLayers,
   pricingTiers,
-  proofSectors,
-  roleBenefits,
   supportCards,
   trustSignals,
   valueStrip,
@@ -52,15 +48,6 @@ export const metadata = buildMetadata({
 });
 
 export default function HomePage() {
-  const proofSectorNotes = {
-    "Multi-site operations": "Keeps attendance, staffing pressure, and approvals aligned across locations.",
-    "Services teams": "Makes leave coverage, manager reviews, and team ownership easier to follow day to day.",
-    "Field operations": "Gives supervisors faster visibility into attendance exceptions and shift pressure.",
-    "Corporate departments": "Helps approvals, reporting lines, and admin controls stay consistent as teams grow.",
-    "Retail groups": "Makes staffing visibility and store-level escalations easier to manage.",
-    "Growing back-office teams": "Brings HR, finance, and operations closer to the same records and approval history."
-  } as const;
-
   return (
     <>
       <JsonLd
@@ -84,15 +71,15 @@ export default function HomePage() {
               <p className="eyebrow">Employee operations for growing teams</p>
               <h1 className="mt-5 text-balance text-4xl font-semibold tracking-tight text-slate-950 sm:text-5xl lg:text-6xl xl:text-7xl">
                 Bring employee records, approvals, and workforce visibility into one{" "}
-                <span className="font-display italic font-normal text-teal-800">
-                  clearer system
+                <span className="inline-block pr-2 sm:pr-3 font-display italic font-normal text-teal-800">
+                  operational workspace
                 </span>
-                for the teams running the business.
+                built for the teams running the business.
               </h1>
               <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-600 sm:text-xl">
-                EMP gives HR, managers, operations, and leadership one place for employee records,
-                reporting lines, leave approvals, attendance exceptions, payroll visibility, admin
-                controls, and workforce analytics.
+                EMP connects employee records, attendance, leave, approvals, payroll visibility,
+                collaboration, and workforce oversight without splitting the operating picture
+                across disconnected tools.
               </p>
               <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:flex-wrap">
                 <Link
@@ -114,39 +101,20 @@ export default function HomePage() {
                   Review security posture
                 </Link>
               </div>
-              <div className="mt-8 rounded-[1.6rem] border border-slate-200/80 bg-white/84 p-4 shadow-[0_18px_60px_rgba(15,23,42,0.06)] backdrop-blur">
-                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-                      Buying posture
-                    </p>
-                    <p className="mt-2 text-sm leading-7 text-slate-700">
-                      Guided demos, public pricing guidance, and direct product answers without pretending the buying motion is self-serve.
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {["Guided evaluation", "Soft public pricing", "Security review available"].map((item) => (
-                      <span
-                        key={item}
-                        className="rounded-full border border-slate-200 bg-slate-50/90 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-600"
-                      >
-                        {item}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-              <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="mt-7 grid gap-3 sm:grid-cols-3">
                 {[
-                  "Built around reporting lines and approvals",
-                  "Employee records, projects, and collaboration stay connected",
-                  "Made for HR, operations, finance, and leadership"
+                  { label: "Core operating surface", value: "Records, approvals, payroll, collaboration" },
+                  { label: "Best-fit teams", value: "HR, managers, finance, operations" },
+                  { label: "Buying motion", value: "Guided demo, clear pricing, rollout review" }
                 ].map((item) => (
                   <div
-                    key={item}
-                    className="rounded-2xl border border-slate-200/80 bg-white/70 px-4 py-4 text-sm font-medium text-slate-700 shadow-[0_14px_40px_rgba(15,23,42,0.05)] backdrop-blur"
+                    key={item.label}
+                    className="rounded-[1.35rem] border border-slate-200/80 bg-white/80 px-4 py-4 shadow-[0_14px_40px_rgba(15,23,42,0.05)] backdrop-blur"
                   >
-                    {item}
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                      {item.label}
+                    </p>
+                    <p className="mt-2 text-sm font-medium leading-6 text-slate-800">{item.value}</p>
                   </div>
                 ))}
               </div>
@@ -169,37 +137,6 @@ export default function HomePage() {
                 <p className="mt-3 text-sm leading-7 text-slate-600">{item.body}</p>
               </div>
             ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="section pt-0">
-        <div className="container">
-          <div className="rounded-[2rem] border border-slate-200/80 bg-white/82 p-6 shadow-[0_22px_80px_rgba(15,23,42,0.06)] backdrop-blur sm:p-8">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-              <div className="max-w-2xl">
-                <p className="eyebrow">What buyers want to verify early</p>
-                <h2 className="mt-4 text-balance text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
-                  The same site should prove product scope, rollout realism, and operational depth quickly.
-                </h2>
-              </div>
-              <Link
-                className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-950 transition hover:border-slate-950"
-                href="/demo"
-              >
-                Book a walkthrough
-              </Link>
-            </div>
-            <div className="mt-8 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              {homepageProofStrip.map((item) => (
-                <div
-                  key={item}
-                  className="rounded-[1.4rem] border border-slate-200 bg-slate-50/90 px-4 py-4 text-sm font-medium leading-7 text-slate-700"
-                >
-                  {item}
-                </div>
-              ))}
-            </div>
           </div>
         </div>
       </section>
@@ -341,37 +278,6 @@ export default function HomePage() {
 
       <section className="section pt-0">
         <div className="container">
-          <div className="rounded-[2rem] border border-slate-200/80 bg-white/82 p-6 shadow-[0_22px_80px_rgba(15,23,42,0.06)] backdrop-blur sm:p-8">
-            <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-              <div className="max-w-2xl">
-                <p className="eyebrow">Platform coverage</p>
-                <h2 className="mt-4 text-balance text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
-                  The workflows buyers usually compare can still stay tied to one operating layer.
-                </h2>
-              </div>
-              <Link
-                className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-950 transition hover:border-slate-950 lg:self-start"
-                href="/modules"
-              >
-                Review modules
-              </Link>
-            </div>
-            <div className="mt-8 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              {operatingCoverage.map((item) => (
-                <div
-                  key={item}
-                  className="rounded-full border border-slate-200 bg-slate-50/80 px-4 py-3 text-sm font-semibold text-slate-700"
-                >
-                  {item}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="section pt-0">
-        <div className="container">
           <SectionHeading
             eyebrow="Integrations and automation"
             title="Keep EMP connected to the tools teams already rely on."
@@ -481,65 +387,6 @@ export default function HomePage() {
                     <h3 className="text-xl font-semibold text-slate-950">{step.title}</h3>
                     <p className="mt-3 text-base leading-7 text-slate-600">{step.body}</p>
                   </div>
-                </article>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="section">
-        <div className="container">
-          <div className="grid gap-10 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:items-start">
-            <div className="rounded-[2rem] border border-slate-200/80 bg-slate-950 p-8 text-white shadow-[0_30px_120px_rgba(15,23,42,0.18)]">
-              <p className="eyebrow !border-white/15 !bg-white/8 !text-slate-200">
-                Where EMP fits best
-              </p>
-              <h2 className="mt-4 text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
-                Built for organizations moving beyond spreadsheet-led coordination.
-              </h2>
-              <p className="mt-5 text-lg leading-8 text-slate-300">
-                EMP is most useful for companies growing across departments, sites, teams, or
-                functions and needing clearer ownership across employee operations.
-              </p>
-              <div className="mt-8 grid gap-4 sm:grid-cols-2">
-                {proofSectors.map((sector) => (
-                  <div key={sector} className="rounded-[1.5rem] border border-white/10 bg-white/5 p-5">
-                    <p className="text-sm font-semibold text-white">{sector}</p>
-                    <p className="mt-2 text-sm leading-7 text-slate-300">
-                      {proofSectorNotes[sector]}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="grid gap-5">
-              <article className="rounded-[1.75rem] border border-slate-200/80 bg-white/85 p-6 shadow-[0_20px_60px_rgba(15,23,42,0.05)]">
-                <p className="eyebrow">Company trust</p>
-                <h2 className="mt-4 text-2xl font-semibold tracking-tight text-slate-950">
-                  EMP should read like a real software company before any proof assets arrive.
-                </h2>
-                <p className="mt-4 text-base leading-7 text-slate-600">
-                  That means a product-led story, honest pricing posture, concrete security review paths, and founder access that stays accountable without taking over the brand.
-                </p>
-                <div className="mt-5 flex flex-wrap gap-3">
-                  <Link className="text-sm font-semibold text-slate-950 underline" href="/company">
-                    Read the company note
-                  </Link>
-                  <Link className="text-sm font-semibold text-slate-950 underline" href="/demo">
-                    Book a guided walkthrough
-                  </Link>
-                </div>
-              </article>
-              {roleBenefits.slice(1, 3).map((role) => (
-                <article
-                  key={role.role}
-                  className="rounded-[1.75rem] border border-slate-200/80 bg-white/80 p-6 shadow-[0_20px_60px_rgba(15,23,42,0.05)]"
-                >
-                  <h2 className="text-lg font-semibold text-slate-950">{role.role}</h2>
-                  <p className="mt-4 text-sm font-medium leading-7 text-slate-800">{role.summary}</p>
-                  <p className="mt-3 text-sm leading-7 text-slate-600">{role.details}</p>
                 </article>
               ))}
             </div>

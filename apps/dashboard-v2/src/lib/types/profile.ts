@@ -108,6 +108,20 @@ export type EmployeeSkill = {
   updated_at?: string | null;
 };
 
+export type EmployeeEducation = {
+  id: string;
+  employee_id: string;
+  company_id: string;
+  institution: string;
+  degree?: string | null;
+  field_of_study?: string | null;
+  start_date?: string | null;
+  end_date?: string | null;
+  grade?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+};
+
 export type EmployeeProfile = {
   employee: Record<string, unknown>;
   userProfile: { id: string; full_name: string; avatar_url?: string | null } | null;
@@ -119,6 +133,7 @@ export type EmployeeProfile = {
   documents: EmployeeDocument[];
   familyMembers: EmployeeFamilyMember[];
   skills: EmployeeSkill[];
+  education: EmployeeEducation[];
   profileCompletenessScore: number | null;
   canViewSensitive: boolean;
 };

@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import type { EmployeeFamilyMember } from "@/lib/types/profile";
@@ -26,6 +26,7 @@ export const FamilySection = ({
   onDelete: (memberId: string) => Promise<void>;
   canEdit: boolean;
 }) => {
+  const addFormRef = useRef<HTMLDivElement | null>(null);
   const [draft, setDraft] = useState({
     full_name: "",
     relationship: "",
@@ -52,6 +53,11 @@ export const FamilySection = ({
       is_dependent: draft.is_dependent,
     });
     setDraft({ full_name: "", relationship: "", date_of_birth: "", phone_number: "", is_dependent: false });
+  };
+
+  const focusAddForm = () => {
+    addFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    addFormRef.current?.querySelector("input")?.focus();
   };
 
   const startEdit = (member: EmployeeFamilyMember) => {
@@ -83,7 +89,7 @@ export const FamilySection = ({
       description="Dependents and household contacts used for benefits, emergency communication, and policy context."
       actions={
         canEdit ? (
-          <Button type="button" variant="secondary" size="sm" className="rounded-full" onClick={handleAdd} disabled={!draft.full_name || !draft.relationship}>
+          <Button type="button" variant="secondary" size="sm" className="rounded-full" onClick={focusAddForm}>
             Add family member
           </Button>
         ) : undefined
@@ -91,7 +97,7 @@ export const FamilySection = ({
     >
       {canEdit ? (
         <ProfilePanel title="Add household record" description="Capture dependents and important family contacts in a consistent format.">
-          <div className="grid gap-4 xl:grid-cols-2">
+          <div ref={addFormRef} className="grid gap-4 xl:grid-cols-2">
             <label className={profileLabelClassName}>
               <span>Full name</span>
               <input className={profileFieldClassName} value={draft.full_name} onChange={(event) => setDraft((prev) => ({ ...prev, full_name: event.target.value }))} />
@@ -120,6 +126,11 @@ export const FamilySection = ({
               Mark as dependent
             </label>
           </div>
+          <SectionActionBar>
+            <Button type="button" className="rounded-full" onClick={handleAdd} disabled={!draft.full_name || !draft.relationship}>
+              Save family member
+            </Button>
+          </SectionActionBar>
         </ProfilePanel>
       ) : null}
 

@@ -13,9 +13,10 @@ export const siteConfig = {
   ogImage: "/opengraph-image",
   email: "noonhuna@gmail.com",
   founder: {
-    name: "Umair",
+    name: "Muhammad Umair",
     title: "Founder, EMP",
     email: "noonhuna@gmail.com",
+    phone: "03106598623",
     image: "/founder/umair.png"
   },
   nav: [

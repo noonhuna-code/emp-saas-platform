@@ -1,5 +1,6 @@
 import type { ServiceContext, ServiceResult } from "../lib/types";
 import { assertEmployeeScope } from "../lib/auth-wrapper";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { requirePlanFeature } from "../lib/entitlements";
 
 export type EmployeeDocumentVersion = {
@@ -53,6 +54,24 @@ const requireDocumentVaultEntitlement = async (ctx: ServiceContext): Promise<voi
   await requirePlanFeature(ctx, "feature.core_employee_management");
 };
 
+const getAdminEnv = (key: string): string => process.env[key] ?? "";
+
+const createSupabaseAdminClient = (): SupabaseClient => {
+  const url = getAdminEnv("SUPABASE_URL") || getAdminEnv("NEXT_PUBLIC_SUPABASE_URL");
+  const serviceRoleKey = getAdminEnv("SUPABASE_SERVICE_ROLE_KEY");
+
+  if (!url || !serviceRoleKey) {
+    throw new Error("Missing Supabase admin environment variables");
+  }
+
+  return createClient(url, serviceRoleKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  });
+};
+
 export const listEmployeeDocumentVersions = async (
   ctx: ServiceContext,
   employeeId: string,
@@ -91,6 +110,7 @@ export const uploadEmployeeDocumentVersion = async (
     await requireDocumentVaultEntitlement(ctx);
     await requireSelfOrManageEmployees(ctx, employeeId);
     assertEmployeeScope(employeeId, ctx);
+    const admin = createSupabaseAdminClient();
 
     if (!file || !file.name) {
       return { ok: false, error: "File is required" };
@@ -101,7 +121,7 @@ export const uploadEmployeeDocumentVersion = async (
     const sanitizedName = file.name.replace(/\s+/g, "_");
     const storagePath = `${ctx.companyId}/${employeeId}/${documentId}/${versionId}/${sanitizedName}`;
 
-    const { error: uploadError } = await ctx.supabase.storage
+    const { error: uploadError } = await admin.storage
       .from(bucket)
       .upload(storagePath, file, {
         contentType: file.type || "application/octet-stream",
@@ -112,28 +132,84 @@ export const uploadEmployeeDocumentVersion = async (
       return { ok: false, error: "Unable to upload document" };
     }
 
-    const rpcResult = await ctx.supabase.rpc("register_employee_document_version", {
-      p_document_id: documentId,
-      p_storage_bucket: bucket,
-      p_storage_path: storagePath,
-      p_file_name: sanitizedName,
-      p_storage_size: file.size,
-      p_storage_mime_type: file.type || null,
-      p_storage_checksum: null,
-      p_uploaded_by: ctx.userProfileId
-    });
+    const { data: latestVersion, error: latestVersionError } = await admin
+      .from("employee_document_versions")
+      .select("version_number")
+      .eq("document_id", documentId)
+      .eq("employee_id", employeeId)
+      .eq("company_id", ctx.companyId)
+      .order("version_number", { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
-    if (rpcResult.error || !rpcResult.data) {
+    if (latestVersionError) {
+      await admin.storage.from(bucket).remove([storagePath]);
       return { ok: false, error: "Unable to register document version" };
     }
 
-    const payload = rpcResult.data as { version_id?: string; version_number?: number };
+    const versionNumber = ((latestVersion?.version_number as number | null) ?? 0) + 1;
+
+    const { error: versionInsertError } = await admin
+      .from("employee_document_versions")
+      .insert({
+        id: versionId,
+        company_id: ctx.companyId,
+        document_id: documentId,
+        employee_id: employeeId,
+        version_number: versionNumber,
+        file_name: sanitizedName,
+        storage_bucket: bucket,
+        storage_path: storagePath,
+        storage_mime_type: file.type || null,
+        storage_size: file.size,
+        storage_checksum: null,
+        uploaded_by: ctx.userProfileId
+      });
+
+    if (versionInsertError) {
+      await admin.storage.from(bucket).remove([storagePath]);
+      return { ok: false, error: "Unable to register document version" };
+    }
+
+    const { error: documentUpdateError } = await admin
+      .from("employee_documents")
+      .update({
+        storage_bucket: bucket,
+        storage_path: storagePath,
+        storage_mime_type: file.type || null,
+        storage_size: file.size,
+        storage_checksum: null,
+        current_version: versionNumber,
+        last_uploaded_at: new Date().toISOString(),
+        last_uploaded_by: ctx.userProfileId,
+        updated_at: new Date().toISOString(),
+        updated_by: ctx.userProfileId
+      })
+      .eq("id", documentId)
+      .eq("company_id", ctx.companyId)
+      .eq("employee_id", employeeId)
+      .is("is_deleted", false);
+
+    if (documentUpdateError) {
+      await admin.storage.from(bucket).remove([storagePath]);
+      return { ok: false, error: "Unable to register document version" };
+    }
+
+    await admin
+      .from("employee_document_access_log")
+      .insert({
+        company_id: ctx.companyId,
+        document_id: documentId,
+        employee_id: employeeId,
+        action: "upload",
+        actor_profile_id: ctx.userProfileId
+      });
 
     return {
       ok: true,
       data: {
-        versionId: payload.version_id ?? versionId,
-        versionNumber: payload.version_number ?? 1
+        versionId,
+        versionNumber
       }
     };
   } catch (err) {
@@ -151,6 +227,7 @@ export const createEmployeeDocumentDownloadUrl = async (
     await requireDocumentVaultEntitlement(ctx);
     await requireSelfOrManageEmployees(ctx, employeeId);
     assertEmployeeScope(employeeId, ctx);
+    const admin = createSupabaseAdminClient();
 
     let bucket: string | null = null;
     let path: string | null = null;
@@ -196,7 +273,7 @@ export const createEmployeeDocumentDownloadUrl = async (
       return { ok: false, error: "Document file unavailable" };
     }
 
-    const { data: signed, error: signedError } = await ctx.supabase.storage
+    const { data: signed, error: signedError } = await admin.storage
       .from(bucket)
       .createSignedUrl(path, 60 * 15);
 

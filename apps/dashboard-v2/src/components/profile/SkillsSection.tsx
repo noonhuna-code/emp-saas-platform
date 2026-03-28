@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import type { EmployeeSkill } from "@/lib/types/profile";
@@ -26,6 +26,7 @@ export const SkillsSection = ({
   onDelete: (skillId: string) => Promise<void>;
   canEdit: boolean;
 }) => {
+  const addFormRef = useRef<HTMLDivElement | null>(null);
   const [draft, setDraft] = useState({ skill_name: "", proficiency: "", years_experience: "" });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingDraft, setEditingDraft] = useState({ skill_name: "", proficiency: "", years_experience: "" });
@@ -38,6 +39,11 @@ export const SkillsSection = ({
       years_experience: draft.years_experience ? Number(draft.years_experience) : null,
     });
     setDraft({ skill_name: "", proficiency: "", years_experience: "" });
+  };
+
+  const focusAddForm = () => {
+    addFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    addFormRef.current?.querySelector("input")?.focus();
   };
 
   const startEdit = (skill: EmployeeSkill) => {
@@ -65,7 +71,7 @@ export const SkillsSection = ({
       description="Maintain a high-signal inventory of role capabilities, proficiency, and experience depth."
       actions={
         canEdit ? (
-          <Button type="button" variant="secondary" size="sm" className="rounded-full" onClick={handleAdd} disabled={!draft.skill_name}>
+          <Button type="button" variant="secondary" size="sm" className="rounded-full" onClick={focusAddForm}>
             Add skill
           </Button>
         ) : undefined
@@ -73,7 +79,7 @@ export const SkillsSection = ({
     >
       {canEdit ? (
         <ProfilePanel title="Add skill" description="Capture the skill name, proficiency level, and years of experience.">
-          <div className="grid gap-4 xl:grid-cols-3">
+          <div ref={addFormRef} className="grid gap-4 xl:grid-cols-3">
             <label className={profileLabelClassName}>
               <span>Skill</span>
               <input className={profileFieldClassName} value={draft.skill_name} onChange={(event) => setDraft((prev) => ({ ...prev, skill_name: event.target.value }))} />
@@ -87,6 +93,11 @@ export const SkillsSection = ({
               <input className={profileFieldClassName} value={draft.years_experience} onChange={(event) => setDraft((prev) => ({ ...prev, years_experience: event.target.value }))} />
             </label>
           </div>
+          <SectionActionBar>
+            <Button type="button" className="rounded-full" onClick={handleAdd} disabled={!draft.skill_name}>
+              Save skill
+            </Button>
+          </SectionActionBar>
         </ProfilePanel>
       ) : null}
 

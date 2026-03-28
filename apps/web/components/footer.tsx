@@ -73,8 +73,12 @@ export function Footer() {
                 <div>
                   <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">Founder note</p>
                   <p className="mt-1 text-sm font-medium text-slate-700">{siteConfig.founder.title}</p>
+                  <p className="mt-1 text-sm text-slate-600">{siteConfig.founder.name}</p>
                   <a className="mt-2 block text-base font-semibold text-slate-950 underline" href={`mailto:${siteConfig.founder.email}`}>
                     {siteConfig.founder.email}
+                  </a>
+                  <a className="mt-1 block text-sm font-medium text-slate-700 underline" href={`tel:${siteConfig.founder.phone}`}>
+                    {siteConfig.founder.phone}
                   </a>
                 </div>
               </div>
@@ -121,6 +125,9 @@ export function Footer() {
             ))}
             <a className="transition hover:text-slate-950" href={`mailto:${siteConfig.founder.email}`}>
               {siteConfig.founder.email}
+            </a>
+            <a className="transition hover:text-slate-950" href={`tel:${siteConfig.founder.phone}`}>
+              {siteConfig.founder.phone}
             </a>
           </div>
         </div>

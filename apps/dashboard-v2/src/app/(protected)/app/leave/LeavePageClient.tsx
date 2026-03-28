@@ -27,6 +27,7 @@ import {
 } from "@/components/dashboard-v2/PagePrimitives";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 export const LeavePageClient = () => {
   const [balances, setBalances] = useState<LeaveBalance[]>([]);
@@ -45,16 +46,17 @@ export const LeavePageClient = () => {
     setLoading(true);
     setError(null);
     try {
-      const [meResult, balancesResult, historyResult, leaveTypesResult] = await Promise.all([
-        fetchEmployeeMe(),
+      const meResult = await fetchEmployeeMe();
+      const resolvedEmployeeId = meResult.ok && meResult.data?.employeeId ? meResult.data.employeeId : null;
+      if (resolvedEmployeeId) {
+        setEmployeeId(resolvedEmployeeId);
+      }
+
+      const [balancesResult, historyResult, leaveTypesResult] = await Promise.all([
         fetchLeaveBalances(),
         fetchLeaveHistory({ page: historyPage, pageSize: historyPageSize }),
-        fetchLeaveTypes(),
+        fetchLeaveTypes({ employeeId: resolvedEmployeeId ?? undefined }),
       ]);
-
-      if (meResult.ok && meResult.data?.employeeId) {
-        setEmployeeId(meResult.data.employeeId);
-      }
 
       if (!balancesResult.ok || !balancesResult.data) {
         setError(balancesResult.error ?? "Unable to load leave balances");
@@ -154,6 +156,9 @@ export const LeavePageClient = () => {
             <Badge className="rounded-full border-blue-200 bg-blue-50 text-blue-700">
               {leaveTypes.length} leave types
             </Badge>
+            <Link href="/app/attendance/shift-swaps" className="secondary-btn">
+              Shift swaps
+            </Link>
             <Button variant="secondary" className="rounded-full" onClick={() => void load()}>
               Refresh
             </Button>

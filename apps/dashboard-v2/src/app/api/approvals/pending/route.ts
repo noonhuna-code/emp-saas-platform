@@ -18,7 +18,7 @@ export async function GET() {
     const ctx = route.ctx;
     await requirePlanFeature(ctx, "feature.unified_approvals_workspace");
 
-    const canLeave = ctx.permissions.includes("manage_employees");
+    const canLeave = ctx.permissions.includes("manage_employees") || ctx.permissions.includes("manage_attendance");
     const canAttendance = ctx.permissions.includes("manage_attendance");
 
     if (!canLeave && !canAttendance) {

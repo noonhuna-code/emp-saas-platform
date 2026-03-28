@@ -12,7 +12,16 @@ import type { ShiftTemplate } from "@/lib/types/workspace";
 import { LoadingState } from "@/components/states/LoadingState";
 import { ErrorState } from "@/components/states/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  FeatureCallout,
+  PageContainer,
+  PageHeader,
+  StatCard,
+  StatGrid,
+  SurfacePanel,
+} from "@/components/dashboard-v2/PagePrimitives";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 const tomorrowDate = () => {
   const date = new Date();
@@ -124,16 +133,26 @@ const ShiftSwapsPageClient = () => {
     setSubmitting(false);
   };
 
+  const pendingMine = useMemo(() => mine.filter((row) => row.status === "pending").length, [mine]);
+
   return (
-    <div className="page-wrap space-y-8">
-      <Card>
-        <CardHeader className="space-y-2">
-          <CardTitle>Shift Swap Requests</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Employees can request shift swaps. Team leads and HR can review queue items in this module.
-          </p>
-        </CardHeader>
-      </Card>
+    <PageContainer>
+      <PageHeader
+        eyebrow="Shift swaps"
+        title="Shift swap workspace"
+        description="Request schedule exchanges, track your pending items, and review the queue when you manage team coverage."
+        chips={["Employee requests", "Supervisor review", "Coverage aware"]}
+        actions={
+          <>
+            <Badge className="rounded-full border-blue-200 bg-blue-50 text-blue-700">
+              {templates.length} shift templates
+            </Badge>
+            <Button variant="secondary" className="rounded-full" onClick={() => void loadData()}>
+              Refresh
+            </Button>
+          </>
+        }
+      />
 
       {loading ? <LoadingState label="Loading shift swap workspace..." /> : null}
       {!loading && error ? (
@@ -148,21 +167,29 @@ const ShiftSwapsPageClient = () => {
 
       {!loading && !error ? (
         <>
+          <FeatureCallout
+            badge="Coverage"
+            title="Handle swap requests without losing the review chain"
+            description="Employees can request a swap, while team leads and HR review only the queue items they are meant to handle."
+          />
+
+          <StatGrid>
+            <StatCard label="My requests" value={mine.length} hint="All submitted swap requests" />
+            <StatCard label="Pending mine" value={pendingMine} hint="Still waiting on review" />
+            <StatCard label="Review queue" value={reviewQueue.length} hint={canReview ? "Requests waiting on your team" : "No review access in this session"} />
+            <StatCard label="Templates" value={templates.length} hint="Available shifts to request" />
+          </StatGrid>
+
           {templateWarning ? (
-            <Card>
-              <CardContent className="pt-6">
+            <SurfacePanel title="Shift template warning" description="You can still review or inspect requests even when the assignment templates are incomplete.">
                 <p className="text-sm text-amber-600 dark:text-amber-400">
                   {templateWarning}. You can still view your requests; submitting a new request needs available shift templates.
                 </p>
-              </CardContent>
-            </Card>
+            </SurfacePanel>
           ) : null}
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Request shift swap</CardTitle>
-            </CardHeader>
-            <CardContent>
+          <div className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
+            <SurfacePanel title="Request shift swap" description="Submit a swap request for a real shift template and add the reason reviewers need.">
               <form className="grid gap-4 md:grid-cols-3" onSubmit={onCreate}>
                 <label className="grid gap-1.5 text-sm">
                   Requested date
@@ -211,77 +238,71 @@ const ShiftSwapsPageClient = () => {
                 </div>
               </form>
               {message ? <p className="text-sm mt-3">{message}</p> : null}
-            </CardContent>
-          </Card>
+            </SurfacePanel>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">My requests</CardTitle>
-            </CardHeader>
-            <CardContent>
+            <SurfacePanel title="My requests" description="Track the swaps you already requested and their current review state.">
               {mine.length === 0 ? <EmptyState title="No shift swap requests" subtitle="Submit a request to swap your shift." compact /> : null}
               {mine.length > 0 ? (
-                <div className="table-wrap">
-                  <table className="table">
-                    <thead>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-slate-200 text-sm">
+                    <thead className="bg-slate-50/80 text-left text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
                       <tr>
-                        <th>Date</th>
-                        <th>Current Shift</th>
-                        <th>Requested Shift</th>
-                        <th>Status</th>
-                        <th>Created</th>
+                        <th className="px-4 py-3">Date</th>
+                        <th className="px-4 py-3">Current Shift</th>
+                        <th className="px-4 py-3">Requested Shift</th>
+                        <th className="px-4 py-3">Status</th>
+                        <th className="px-4 py-3">Created</th>
                       </tr>
                     </thead>
-                    <tbody>
+                    <tbody className="divide-y divide-slate-100 text-slate-700">
                       {mine.map((row) => (
                         <tr key={row.id}>
-                          <td>{row.attendance_date}</td>
-                          <td>{row.old_shift_name ?? row.old_shift_template_id}</td>
-                          <td>{row.requested_shift_name ?? row.requested_shift_template_id}</td>
-                          <td><span className="badge">{row.status}</span></td>
-                          <td>{new Date(row.created_at).toLocaleString()}</td>
+                          <td className="px-4 py-3">{row.attendance_date}</td>
+                          <td className="px-4 py-3">{row.old_shift_name ?? row.old_shift_template_id}</td>
+                          <td className="px-4 py-3">{row.requested_shift_name ?? row.requested_shift_template_id}</td>
+                          <td className="px-4 py-3">
+                            <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-700">{row.status}</span>
+                          </td>
+                          <td className="px-4 py-3 text-slate-500">{new Date(row.created_at).toLocaleString()}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
               ) : null}
-            </CardContent>
-          </Card>
+            </SurfacePanel>
+          </div>
 
           {canReview ? (
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between gap-2">
-                  <CardTitle className="text-lg">Review queue</CardTitle>
-                  <span className="badge">Pending {reviewQueue.length}</span>
-                </div>
-              </CardHeader>
-              <CardContent>
+            <SurfacePanel
+              title="Review queue"
+              description="Approve or reject swap requests that are waiting on your team-level review."
+              actions={<span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700">Pending {reviewQueue.length}</span>}
+            >
                 {reviewQueue.length === 0 ? <EmptyState title="No pending requests" subtitle="The review queue is clear." compact /> : null}
                 {reviewQueue.length > 0 ? (
-                  <div className="table-wrap">
-                    <table className="table">
-                      <thead>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-slate-200 text-sm">
+                      <thead className="bg-slate-50/80 text-left text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
                         <tr>
-                          <th>Employee</th>
-                          <th>Date</th>
-                          <th>Current Shift</th>
-                          <th>Requested Shift</th>
-                          <th>Reason</th>
-                          <th>Actions</th>
+                          <th className="px-4 py-3">Employee</th>
+                          <th className="px-4 py-3">Date</th>
+                          <th className="px-4 py-3">Current Shift</th>
+                          <th className="px-4 py-3">Requested Shift</th>
+                          <th className="px-4 py-3">Reason</th>
+                          <th className="px-4 py-3">Actions</th>
                         </tr>
                       </thead>
-                      <tbody>
+                      <tbody className="divide-y divide-slate-100 text-slate-700">
                         {reviewQueue.map((row) => (
                           <tr key={row.id}>
-                            <td>{row.employee_name ?? row.employee_id}</td>
-                            <td>{row.attendance_date}</td>
-                            <td>{row.old_shift_name ?? row.old_shift_template_id}</td>
-                            <td>{row.requested_shift_name ?? row.requested_shift_template_id}</td>
-                            <td>{row.reason}</td>
-                            <td>
-                              <div className="row">
+                            <td className="px-4 py-3 font-medium text-slate-900">{row.employee_name ?? row.employee_id}</td>
+                            <td className="px-4 py-3">{row.attendance_date}</td>
+                            <td className="px-4 py-3">{row.old_shift_name ?? row.old_shift_template_id}</td>
+                            <td className="px-4 py-3">{row.requested_shift_name ?? row.requested_shift_template_id}</td>
+                            <td className="px-4 py-3 text-slate-500">{row.reason}</td>
+                            <td className="px-4 py-3">
+                              <div className="flex flex-wrap gap-2">
                                 <button type="button" className="primary-btn" onClick={() => void onReview(row.id, "approved")} disabled={submitting}>
                                   Approve
                                 </button>
@@ -296,12 +317,11 @@ const ShiftSwapsPageClient = () => {
                     </table>
                   </div>
                 ) : null}
-              </CardContent>
-            </Card>
+            </SurfacePanel>
           ) : null}
         </>
       ) : null}
-    </div>
+    </PageContainer>
   );
 };
 

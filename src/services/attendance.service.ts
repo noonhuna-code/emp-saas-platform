@@ -378,6 +378,15 @@ const hasAttendanceActorPermission = (ctx: ServiceContext): boolean => {
   );
 };
 
+const hasShiftAssignmentPermission = (ctx: ServiceContext): boolean => {
+  return (
+    ctx.permissions.includes("manage_employees")
+    || ctx.permissions.includes("manage_attendance")
+    || ctx.permissions.includes("assign_shifts")
+    || ctx.permissions.includes("manage_shifts")
+  );
+};
+
 const requireSelfAttendanceAccess = async (ctx: ServiceContext): Promise<void> => {
   if (hasAttendanceActorPermission(ctx)) {
     return;
@@ -506,7 +515,9 @@ const ensureHierarchyAssignable = async (ctx: ServiceContext, targetEmployeeId: 
     return;
   }
 
-  requirePermission("manage_attendance", ctx);
+  if (!(ctx.permissions.includes("manage_attendance") || ctx.permissions.includes("assign_shifts") || ctx.permissions.includes("manage_shifts"))) {
+    throw new Error("Permission denied");
+  }
   const actorEmployeeId = await resolveCurrentEmployeeId(ctx.supabase, ctx);
   if (!actorEmployeeId) {
     throw new Error("Permission denied");
@@ -947,11 +958,8 @@ export const listShiftAssignableEmployees = async (
 ): Promise<ServiceResult<{ rows: ShiftAssignableEmployeeRow[] }>> => {
   try {
     await requireAttendanceEntitlement(ctx);
-    if (!ctx.permissions.includes("manage_attendance") && !ctx.permissions.includes("view_attendance")) {
-      const employeeId = await resolveCurrentEmployeeId(ctx.supabase, ctx);
-      if (!employeeId) {
-        return { ok: false, error: "Permission denied" };
-      }
+    if (!hasShiftAssignmentPermission(ctx)) {
+      return { ok: false, error: "Permission denied" };
     }
 
     const safeLimit = Math.max(1, Math.min(limit, 500));
@@ -1001,7 +1009,7 @@ export const listShiftAssignments = async (
 
     if (ctx.permissions.includes("manage_employees")) {
       assertEmployeeScope(targetEmployeeId, ctx);
-    } else if (ctx.permissions.includes("manage_attendance")) {
+    } else if (ctx.permissions.includes("manage_attendance") || ctx.permissions.includes("assign_shifts") || ctx.permissions.includes("manage_shifts")) {
       await ensureHierarchyAssignable(ctx, targetEmployeeId);
       assertEmployeeScope(targetEmployeeId, ctx);
     } else {
@@ -1053,11 +1061,8 @@ export const assignEmployeeShift = async (
 ): Promise<ServiceResult<{ assignmentId: string }>> => {
   try {
     await requireAttendanceEntitlement(ctx);
-    if (!ctx.permissions.includes("manage_attendance") && !ctx.permissions.includes("view_attendance")) {
-      const employeeId = await resolveCurrentEmployeeId(ctx.supabase, ctx);
-      if (!employeeId) {
-        return { ok: false, error: "Permission denied" };
-      }
+    if (!hasShiftAssignmentPermission(ctx)) {
+      return { ok: false, error: "Permission denied" };
     }
 
     const employeeId = payload.employeeId?.trim();

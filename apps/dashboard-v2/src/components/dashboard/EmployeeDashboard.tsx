@@ -167,6 +167,7 @@ export const EmployeeDashboard = ({
   const hasLoans = allowedRouteSet.has("/app/loans");
   const hasChat = allowedRouteSet.has("/app/chat");
   const hasCalendar = allowedRouteSet.has("/app/calendar");
+  const hasShiftSwaps = allowedRouteSet.has("/app/attendance/shift-swaps");
   const hasNotifications = allowedRouteSet.has("/app/notifications");
   const hasProfile = allowedRouteSet.has("/app/profile");
   const hasCollaborationPreview = hasCalendar || hasChat;
@@ -202,8 +203,10 @@ export const EmployeeDashboard = ({
           <>
             {hasAttendance ? <Link href="/app/attendance" className="secondary-btn">Attendance</Link> : null}
             {hasLeave ? <Link href="/app/leave" className="secondary-btn">Leave</Link> : null}
-            {hasNotes ? <Link href="/app/notes" className="secondary-btn">Notes</Link> : null}
+            {hasShiftSwaps ? <Link href="/app/attendance/shift-swaps" className="secondary-btn">Shift Swaps</Link> : null}
+            {hasChat ? <Link href="/app/chat" className="secondary-btn">Team Chat</Link> : null}
             {hasResources ? <Link href="/app/resources" className="primary-btn">Resources</Link> : null}
+            {!hasChat && hasNotes ? <Link href="/app/notes" className="secondary-btn">Notes</Link> : null}
           </>
         )}
       />
@@ -335,6 +338,7 @@ export const EmployeeDashboard = ({
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
             {hasAttendance ? <ActionCard title="Open Attendance" description="Track today&apos;s shift and attendance records" href="/app/attendance" icon={Clock3} /> : null}
             {hasLeave ? <ActionCard title="Apply Leave" description="Submit and review leave requests" href="/app/leave" icon={CalendarClock} /> : null}
+            {hasShiftSwaps ? <ActionCard title="Shift Swaps" description="Request or track shift exchange approvals" href="/app/attendance/shift-swaps" icon={RefreshCw} /> : null}
             {hasPayslips ? <ActionCard title="Payslips" description="Review payroll snapshots and salary history" href="/app/payslips" icon={CreditCard} /> : null}
             {hasLoans ? <ActionCard title="Loans & Advances" description="Track finance requests already linked to your profile" href="/app/loans" icon={HandCoins} /> : null}
             {hasNotes ? <ActionCard title="Workspace Notes" description="Capture and pin personal workspace notes" href="/app/notes" icon={NotebookPen} /> : null}

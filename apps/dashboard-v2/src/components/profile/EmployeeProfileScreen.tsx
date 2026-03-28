@@ -16,6 +16,9 @@ import {
   addEmployeeSkill,
   updateEmployeeSkill,
   deleteEmployeeSkill,
+  addEmployeeEducation,
+  updateEmployeeEducation,
+  deleteEmployeeEducation,
   fetchSession,
   peekCachedResult,
 } from "@/lib/client/api";
@@ -26,6 +29,8 @@ import { SensitiveDataSection } from "@/components/profile/SensitiveDataSection"
 import { DocumentsSection } from "@/components/profile/DocumentsSection";
 import { FamilySection } from "@/components/profile/FamilySection";
 import { SkillsSection } from "@/components/profile/SkillsSection";
+import { QualificationsSection } from "@/components/profile/QualificationsSection";
+import { EmployeeProfileHeader } from "@/components/profile/EmployeeProfileHeader";
 import { Tabs } from "@/components/shared/Tabs";
 import { ErrorState } from "@/components/states/ErrorState";
 import { LoadingState } from "@/components/states/LoadingState";
@@ -47,6 +52,7 @@ const TAB_ITEMS = [
   { id: "documents", label: "Documents" },
   { id: "family", label: "Family" },
   { id: "skills", label: "Skills" },
+  { id: "qualifications", label: "Qualifications" },
 ];
 
 const getEmployeeField = (profile: EmployeeProfile, key: string): string | null => {
@@ -76,18 +82,22 @@ export const EmployeeProfileScreen = ({ employeeId }: { employeeId: string }) =>
     }
     setError(null);
 
-    void Promise.all([fetchEmployeeProfile(employeeId), fetchEmployeeLookups(), fetchSession()])
-      .then(([profileResult, lookupResult, sessionResult]) => {
+    void Promise.allSettled([fetchEmployeeProfile(employeeId), fetchEmployeeLookups(), fetchSession()])
+      .then(([profileSettled, lookupSettled, sessionSettled]) => {
         if (!active) return;
-        if (!profileResult.ok || !profileResult.data) {
-          setError(profileResult.error ?? "Unable to load employee profile");
+        const profileResult = profileSettled.status === "fulfilled" ? profileSettled.value : null;
+        const lookupResult = lookupSettled.status === "fulfilled" ? lookupSettled.value : null;
+        const sessionResult = sessionSettled.status === "fulfilled" ? sessionSettled.value : null;
+
+        if (!profileResult?.ok || !profileResult.data) {
+          setError(profileResult?.error ?? "Unable to load employee profile");
           return;
         }
         setProfile(profileResult.data.profile);
-        if (lookupResult.ok && lookupResult.data) {
+        if (lookupResult?.ok && lookupResult.data) {
           setLookups(lookupResult.data);
         }
-        if (sessionResult.ok && sessionResult.data) {
+        if (sessionResult?.ok && sessionResult.data) {
           setCanManageEmployees(sessionResult.data.permissions.includes("manage_employees"));
         }
       })
@@ -191,6 +201,15 @@ export const EmployeeProfileScreen = ({ employeeId }: { employeeId: string }) =>
         description="The profile workspace brings together the current employee record, document readiness, household information, and talent inventory without changing the existing profile contracts."
       />
 
+      <EmployeeProfileHeader
+        name={displayName}
+        avatarUrl={profile.userProfile?.avatar_url ?? getEmployeeField(profile, "profile_image_url")}
+        designation={designation}
+        department={department}
+        employmentStatus={employmentStatus}
+        profileCompleteness={profileCompleteness}
+      />
+
       <DashboardRail>
         <SurfacePanel title="Profile overview" description="Current reporting structure and organizational placement.">
           <div className="grid gap-3 sm:grid-cols-2">
@@ -242,6 +261,9 @@ export const EmployeeProfileScreen = ({ employeeId }: { employeeId: string }) =>
         <EmploymentInfoSection
           employee={profile.employee}
           lookups={lookups}
+          departmentName={profile.department?.name}
+          teamName={profile.team?.name}
+          managerName={profile.manager?.full_name}
           canEdit={canEditEmployment}
           onSave={async (payload) => {
             const result = await updateEmploymentInfo(employeeId, payload);
@@ -317,6 +339,25 @@ export const EmployeeProfileScreen = ({ employeeId }: { employeeId: string }) =>
           onDelete={async (skillId) => {
             const result = await deleteEmployeeSkill(employeeId, skillId);
             applyUpdateResult(result, "Unable to remove skill");
+          }}
+        />
+      ) : null}
+
+      {activeTab === "qualifications" ? (
+        <QualificationsSection
+          education={profile.education}
+          canEdit={canEditSelfSections}
+          onAdd={async (payload) => {
+            const result = await addEmployeeEducation(employeeId, payload);
+            applyUpdateResult(result, "Unable to add qualification");
+          }}
+          onUpdate={async (educationId, payload) => {
+            const result = await updateEmployeeEducation(employeeId, educationId, payload);
+            applyUpdateResult(result, "Unable to update qualification");
+          }}
+          onDelete={async (educationId) => {
+            const result = await deleteEmployeeEducation(employeeId, educationId);
+            applyUpdateResult(result, "Unable to remove qualification");
           }}
         />
       ) : null}

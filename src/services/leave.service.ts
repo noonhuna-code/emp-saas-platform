@@ -1,4 +1,4 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { ServiceContext, ServiceResult } from "../lib/types";
 import { assertEmployeeScope, requirePermission } from "../lib/auth-wrapper";
 import { requirePlanFeature } from "../lib/entitlements";
@@ -51,6 +51,8 @@ export type LeaveRequestItem = {
   employee_avatar_url?: string | null;
   department_id?: string | null;
   leave_type_name?: string | null;
+  next_approver_name?: string | null;
+  approval_stage_label?: string | null;
 };
 
 export type LeaveRequestFilters = {
@@ -65,6 +67,41 @@ export type LeaveReviewFilters = LeaveRequestFilters & {
   employeeId?: string;
 };
 
+type ApprovalDirectoryRow = {
+  id: string;
+  manager_id?: string | null;
+  designation?: string | null;
+  user_profile_id?: string | null;
+  user_profiles?: {
+    full_name?: string | null;
+    user_id?: string | null;
+  } | null;
+};
+
+type ApprovalDirectoryEntry = {
+  employeeId: string;
+  managerId: string | null;
+  designation: string | null;
+  userProfileId: string | null;
+  userId: string | null;
+  fullName: string | null;
+  roleName: string | null;
+};
+
+type LeaveApprovalRole =
+  | "employee"
+  | "team_lead"
+  | "manager"
+  | "hr"
+  | "admin"
+  | "finance"
+  | "executive"
+  | "other";
+
+type LeaveApprovalStep = ApprovalDirectoryEntry & {
+  stageLabel: string;
+};
+
 const sanitizeError = (message: string, fallback: string): string => {
   if (!message) return fallback;
   if (message === "UNAUTHENTICATED" || message.includes("JWT")) return "Authentication required";
@@ -73,6 +110,237 @@ const sanitizeError = (message: string, fallback: string): string => {
   if (message === "INVALID_STATE_TRANSITION") return "Invalid state transition";
   if (message.toLowerCase().includes("permission")) return "Permission denied";
   return fallback;
+};
+
+const getAdminEnv = (key: string): string => process.env[key] ?? "";
+
+const createSupabaseAdminClient = (): SupabaseClient => {
+  const url = getAdminEnv("SUPABASE_URL") || getAdminEnv("NEXT_PUBLIC_SUPABASE_URL");
+  const serviceRoleKey = getAdminEnv("SUPABASE_SERVICE_ROLE_KEY");
+
+  if (!url || !serviceRoleKey) {
+    throw new Error("Missing Supabase admin environment variables");
+  }
+
+  return createClient(url, serviceRoleKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  });
+};
+
+const normalizeRoleName = (value?: string | null): string =>
+  (value ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .replace(/[_-]+/g, " ");
+
+const ROLE_PRIORITY = [
+  ["founder", "ceo", "founder ceo", "ceo founder"],
+  ["admin", "org owner", "org_owner"],
+  ["hr"],
+  ["finance manager", "finance", "finance admin", "finance lead"],
+  ["director", "senior manager", "manager", "supervisor"],
+  ["team lead", "team_lead", "teamlead"],
+  ["employee"]
+] as const;
+
+const selectPrimaryRoleName = (roleNames: string[]): string | null => {
+  if (roleNames.length === 0) return null;
+
+  const rank = (name: string): number => {
+    const normalized = normalizeRoleName(name);
+    const index = ROLE_PRIORITY.findIndex((aliases) => aliases.some((alias) => normalizeRoleName(alias) === normalized));
+    return index >= 0 ? index : Number.MAX_SAFE_INTEGER;
+  };
+
+  return [...roleNames].sort((a, b) => {
+    const aRank = rank(a);
+    const bRank = rank(b);
+    if (aRank !== bRank) return aRank - bRank;
+    return a.localeCompare(b);
+  })[0] ?? null;
+};
+
+const uniqueApprovalSteps = (steps: Array<LeaveApprovalStep | null | undefined>): LeaveApprovalStep[] => {
+  const seen = new Set<string>();
+  const output: LeaveApprovalStep[] = [];
+  for (const step of steps) {
+    if (!step?.employeeId || seen.has(step.employeeId)) continue;
+    seen.add(step.employeeId);
+    output.push(step);
+  }
+  return output;
+};
+
+const classifyLeaveApprovalRole = (entry?: ApprovalDirectoryEntry | null): LeaveApprovalRole => {
+  if (!entry) return "other";
+
+  const role = normalizeRoleName(entry.roleName);
+  const designation = normalizeRoleName(entry.designation);
+  const text = `${role} ${designation}`.trim();
+
+  if (text.includes("founder") || text.includes("ceo") || text.includes("chief")) return "executive";
+  if (text.includes(" hr") || text.startsWith("hr") || text.includes("human resources")) return "hr";
+  if (text.includes("admin")) return "admin";
+  if (text.includes("finance")) return "finance";
+  if (text.includes("team lead") || text.includes("teamlead") || text.includes("supervisor")) return "team_lead";
+  if (text.includes("manager") || text.includes("director") || text.includes("lead manager")) return "manager";
+  if (text.includes("employee") || text.includes("agent") || text.includes("associate")) return "employee";
+  return "other";
+};
+
+const stageForStep = (index: number, total: number): string =>
+  total <= 1 ? "Final approval" : `Stage ${index + 1} of ${total}`;
+
+const enrichApprovalSteps = (entries: ApprovalDirectoryEntry[]): LeaveApprovalStep[] =>
+  entries.map((entry, index) => ({
+    ...entry,
+    stageLabel: stageForStep(index, entries.length)
+  }));
+
+const loadApprovalDirectory = async (
+  ctx: ServiceContext,
+  client: SupabaseClient
+): Promise<Map<string, ApprovalDirectoryEntry>> => {
+  const { data: employees, error: employeeError } = await client
+    .from("employees")
+    .select("id, manager_id, designation, user_profile_id, user_profiles(full_name, user_id)")
+    .eq("company_id", ctx.companyId)
+    .is("is_deleted", false);
+
+  if (employeeError) {
+    throw new Error(employeeError.message);
+  }
+
+  const employeeRows = (employees ?? []) as ApprovalDirectoryRow[];
+  const userIds = Array.from(
+    new Set(
+      employeeRows
+        .map((row) => row.user_profiles?.user_id ?? null)
+        .filter((value): value is string => Boolean(value))
+    )
+  );
+
+  const roleNamesByUserId = new Map<string, string[]>();
+
+  if (userIds.length > 0) {
+    const { data: userRoles, error: roleError } = await client
+      .from("user_roles")
+      .select("user_id, roles(name)")
+      .eq("company_id", ctx.companyId)
+      .in("user_id", userIds);
+
+    if (roleError) {
+      throw new Error(roleError.message);
+    }
+
+    for (const row of (userRoles ?? []) as Array<{ user_id?: string | null; roles?: { name?: string | null } | null }>) {
+      const userId = row.user_id ?? null;
+      const roleName = row.roles?.name ?? null;
+      if (!userId || !roleName) continue;
+      const values = roleNamesByUserId.get(userId) ?? [];
+      values.push(roleName);
+      roleNamesByUserId.set(userId, values);
+    }
+  }
+
+  const directory = new Map<string, ApprovalDirectoryEntry>();
+  for (const row of employeeRows) {
+    const userId = row.user_profiles?.user_id ?? null;
+    directory.set(row.id, {
+      employeeId: row.id,
+      managerId: row.manager_id ?? null,
+      designation: row.designation ?? null,
+      userProfileId: row.user_profile_id ?? null,
+      userId,
+      fullName: row.user_profiles?.full_name ?? null,
+      roleName: userId ? selectPrimaryRoleName(roleNamesByUserId.get(userId) ?? []) : null
+    });
+  }
+
+  return directory;
+};
+
+const firstEntryByRole = (
+  directory: Map<string, ApprovalDirectoryEntry>,
+  role: LeaveApprovalRole,
+  excludeEmployeeIds: string[] = []
+): ApprovalDirectoryEntry | null => {
+  for (const entry of directory.values()) {
+    if (excludeEmployeeIds.includes(entry.employeeId)) continue;
+    if (classifyLeaveApprovalRole(entry) === role) return entry;
+  }
+  return null;
+};
+
+const resolveLeaveApprovalChain = (
+  employeeId: string,
+  directory: Map<string, ApprovalDirectoryEntry>
+): LeaveApprovalStep[] => {
+  const requester = directory.get(employeeId);
+  if (!requester) return [];
+
+  const requesterRole = classifyLeaveApprovalRole(requester);
+  const directManager = requester.managerId ? directory.get(requester.managerId) ?? null : null;
+  const skipLevelManager = directManager?.managerId ? directory.get(directManager.managerId) ?? null : null;
+  const hrApprover = firstEntryByRole(directory, "hr", [employeeId]);
+  const adminApprover = firstEntryByRole(directory, "admin", [employeeId]);
+  const executiveApprover = firstEntryByRole(directory, "executive", [employeeId]);
+
+  if (requesterRole === "employee") {
+    const directRole = classifyLeaveApprovalRole(directManager);
+    const chain = uniqueApprovalSteps([
+      directManager
+        ? { ...directManager, stageLabel: "" }
+        : null,
+      directRole === "team_lead" && skipLevelManager ? { ...skipLevelManager, stageLabel: "" } : null,
+      hrApprover ? { ...hrApprover, stageLabel: "" } : null
+    ]);
+    return enrichApprovalSteps(chain);
+  }
+
+  if (requesterRole === "team_lead") {
+    return enrichApprovalSteps(uniqueApprovalSteps([directManager ? { ...directManager, stageLabel: "" } : null]));
+  }
+
+  if (requesterRole === "manager") {
+    return enrichApprovalSteps(
+      uniqueApprovalSteps([
+        hrApprover ? { ...hrApprover, stageLabel: "" } : null,
+        adminApprover ? { ...adminApprover, stageLabel: "" } : null,
+        directManager ? { ...directManager, stageLabel: "" } : null
+      ]).slice(0, 1)
+    );
+  }
+
+  if (requesterRole === "hr" || requesterRole === "admin" || requesterRole === "finance") {
+    return enrichApprovalSteps(
+      uniqueApprovalSteps([
+        executiveApprover ? { ...executiveApprover, stageLabel: "" } : null,
+        directManager ? { ...directManager, stageLabel: "" } : null
+      ]).slice(0, 1)
+    );
+  }
+
+  if (requesterRole === "executive") {
+    return enrichApprovalSteps(
+      uniqueApprovalSteps([
+        adminApprover ? { ...adminApprover, stageLabel: "" } : null,
+        hrApprover ? { ...hrApprover, stageLabel: "" } : null
+      ]).slice(0, 1)
+    );
+  }
+
+  return enrichApprovalSteps(
+    uniqueApprovalSteps([
+      directManager ? { ...directManager, stageLabel: "" } : null,
+      hrApprover ? { ...hrApprover, stageLabel: "" } : null,
+      adminApprover ? { ...adminApprover, stageLabel: "" } : null
+    ]).slice(0, 1)
+  );
 };
 
 const requireLeaveEntitlement = async (ctx: ServiceContext): Promise<void> => {
@@ -115,6 +383,9 @@ const getActorEmployeeId = async (
   return data?.id ?? null;
 };
 
+const hasLeaveReviewAuthority = (ctx: ServiceContext): boolean =>
+  ctx.permissions.includes("manage_employees") || ctx.permissions.includes("manage_attendance");
+
 const ensureSelfOrManager = async (
   ctx: ServiceContext,
   employeeId: string
@@ -123,7 +394,7 @@ const ensureSelfOrManager = async (
   const actorEmployeeId = await getActorEmployeeId(ctx.supabase, ctx);
   const isSelf = actorEmployeeId !== null && actorEmployeeId === employeeId;
 
-  if (!isSelf) {
+  if (!isSelf && !hasLeaveReviewAuthority(ctx)) {
     requirePermission("manage_employees", ctx);
   }
 
@@ -143,9 +414,127 @@ const applyDateFilters = (query: any, filters?: LeaveRequestFilters) => {
   return query;
 };
 
+const getEmployeeGender = async (
+  ctx: ServiceContext,
+  client: SupabaseClient,
+  employeeId: string
+): Promise<string | null> => {
+  const { data, error } = await client
+    .from("employee_personal_details")
+    .select("gender")
+    .eq("company_id", ctx.companyId)
+    .eq("employee_id", employeeId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return normalizeRoleName((data?.gender as string | null) ?? null) || null;
+};
+
+const filterLeaveTypesByGender = (leaveTypes: LeaveTypeItem[], gender: string | null): LeaveTypeItem[] => {
+  if (!gender) {
+    return leaveTypes.filter((item) => !item.gender_restriction);
+  }
+
+  return leaveTypes.filter((item) => {
+    const restriction = normalizeRoleName(item.gender_restriction);
+    return !restriction || restriction === gender;
+  });
+};
+
+const enrichLeaveRequestsWithApprovalStage = (
+  requests: LeaveRequestItem[],
+  directory: Map<string, ApprovalDirectoryEntry>
+): LeaveRequestItem[] => {
+  return requests.map((request) => {
+    const chain = resolveLeaveApprovalChain(request.employee_id, directory);
+    if (chain.length === 0) return request;
+
+    const currentIndex = Math.max(0, Math.min((request.approval_level ?? 1) - 1, chain.length - 1));
+    const nextApprover = request.status === "pending" ? chain[currentIndex] ?? null : null;
+    const stageLabel =
+      request.status === "approved"
+        ? `Final approval complete`
+        : request.status === "rejected"
+          ? "Rejected"
+          : request.status === "cancelled"
+            ? "Cancelled"
+            : nextApprover?.stageLabel ?? stageForStep(currentIndex, chain.length);
+
+    return {
+      ...request,
+      approval_level: request.approval_level ?? 1,
+      final_approved: request.final_approved ?? request.status === "approved",
+      next_approver_name: nextApprover?.fullName ?? null,
+      approval_stage_label: stageLabel
+    } as LeaveRequestItem;
+  });
+};
+
+const resolveCurrentApprovalStep = (
+  request: Pick<LeaveRequestItem, "employee_id" | "approval_level">,
+  directory: Map<string, ApprovalDirectoryEntry>
+): { chain: LeaveApprovalStep[]; currentStep: LeaveApprovalStep | null; currentLevel: number } => {
+  const chain = resolveLeaveApprovalChain(request.employee_id, directory);
+  if (chain.length === 0) {
+    return { chain, currentStep: null, currentLevel: 1 };
+  }
+
+  const currentLevel = Math.max(1, request.approval_level ?? 1);
+  const currentIndex = Math.min(currentLevel - 1, chain.length - 1);
+  return {
+    chain,
+    currentStep: chain[currentIndex] ?? null,
+    currentLevel
+  };
+};
+
+const ensureActorCanReviewRequest = (
+  ctx: ServiceContext,
+  actorEmployeeId: string | null,
+  request: Pick<LeaveRequestItem, "employee_id" | "approval_level">,
+  directory: Map<string, ApprovalDirectoryEntry>
+): { chain: LeaveApprovalStep[]; currentStep: LeaveApprovalStep | null; currentLevel: number } => {
+  const approval = resolveCurrentApprovalStep(request, directory);
+
+  if (!actorEmployeeId || !approval.currentStep || approval.currentStep.employeeId !== actorEmployeeId) {
+    throw new Error("Leave request is waiting on a different approver");
+  }
+
+  return approval;
+};
+
+const createLeaveNotification = async (
+  client: SupabaseClient,
+  companyId: string,
+  recipientProfileId: string | null,
+  actorProfileId: string | null,
+  type: string,
+  title: string,
+  message: string,
+  requestId: string
+) => {
+  if (!recipientProfileId || !actorProfileId) return;
+
+  await client.from("notifications").insert({
+    company_id: companyId,
+    recipient_profile_id: recipientProfileId,
+    type,
+    title,
+    message,
+    reference_type: "leave_request",
+    reference_id: requestId,
+    created_by: actorProfileId,
+    updated_by: actorProfileId
+  });
+};
+
 
 export const listLeaveTypes = async (
-  ctx: ServiceContext
+  ctx: ServiceContext,
+  employeeId?: string | null
 ): Promise<ServiceResult<{ leaveTypes: LeaveTypeItem[] }>> => {
   try {
     await requireLeaveEntitlement(ctx);
@@ -161,16 +550,31 @@ export const listLeaveTypes = async (
       return { ok: false, error: sanitizeError(error.message, "Leave type lookup failed") };
     }
 
+    const leaveTypes = (data ?? []).map((row) => ({
+      id: row.id as string,
+      name: row.name as string,
+      description: (row.description as string | null) ?? null,
+      is_paid: Boolean(row.is_paid),
+      gender_restriction: (row.gender_restriction as string | null) ?? null
+    }));
+
+    if (!employeeId) {
+      return {
+        ok: true,
+        data: {
+          leaveTypes
+        }
+      };
+    }
+
+    assertEmployeeScope(employeeId, ctx);
+    const admin = createSupabaseAdminClient();
+    const gender = await getEmployeeGender(ctx, admin, employeeId);
+
     return {
       ok: true,
       data: {
-        leaveTypes: (data ?? []).map((row) => ({
-          id: row.id as string,
-          name: row.name as string,
-          description: (row.description as string | null) ?? null,
-          is_paid: Boolean(row.is_paid),
-          gender_restriction: (row.gender_restriction as string | null) ?? null
-        }))
+        leaveTypes: filterLeaveTypesByGender(leaveTypes, gender)
       }
     };
   } catch (err) {
@@ -232,6 +636,8 @@ export const applyLeave = async (
         total_days: 0,
         reason: payload.reason ?? null,
         status: "pending",
+        approval_level: 1,
+        final_approved: false,
         is_half_day: payload.is_half_day ?? false,
         half_day_type: payload.half_day_type ?? null,
         applied_by: identity.actorProfileId,
@@ -259,6 +665,29 @@ export const applyLeave = async (
       });
     }
 
+    const admin = createSupabaseAdminClient();
+    const directory = await loadApprovalDirectory(ctx, admin);
+    const approval = resolveCurrentApprovalStep(
+      {
+        employee_id: employeeId,
+        approval_level: 1
+      },
+      directory
+    );
+
+    await createLeaveNotification(
+      admin,
+      ctx.companyId,
+      approval.currentStep?.userProfileId ?? null,
+      identity.actorProfileId,
+      "leave_review",
+      "Leave request awaiting your review",
+      payload.reason?.trim()
+        ? `${directory.get(employeeId)?.fullName ?? "An employee"} submitted a leave request: ${payload.reason.trim()}`
+        : `${directory.get(employeeId)?.fullName ?? "An employee"} submitted a leave request that needs your review.`,
+      data.id
+    );
+
     return { ok: true, data: { requestId: data.id } };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "Leave apply error" };
@@ -275,7 +704,9 @@ export const listLeaveBalances = async (
     assertEmployeeScope(employeeId, ctx);
     await ensureSelfOrManager(ctx, employeeId);
 
-    let query = ctx.supabase
+    const adminSupabase = createSupabaseAdminClient();
+
+    let query = adminSupabase
       .from("leave_balances")
       .select("id, leave_type_id, year, entitled_days, used_days, remaining_days, leave_types(name, is_paid)")
       .eq("company_id", ctx.companyId)
@@ -319,7 +750,9 @@ export const listLeaveRequests = async (
     assertEmployeeScope(employeeId, ctx);
     await ensureSelfOrManager(ctx, employeeId);
 
-    let query = ctx.supabase
+    const admin = createSupabaseAdminClient();
+
+    let query = admin
       .from("leave_requests")
       .select(
         "id, employee_id, leave_type_id, start_date, end_date, total_days, status, reason, is_half_day, half_day_type, approval_level, final_approved, created_at, updated_at, approved_at, leave_types(name), employees!leave_requests_employee_id_fkey(id, department_id, user_profile_id, user_profiles(full_name, avatar_url))"
@@ -370,7 +803,9 @@ export const listLeaveRequests = async (
       } satisfies LeaveRequestItem;
     });
 
-    return { ok: true, data: { requests } };
+    const directory = await loadApprovalDirectory(ctx, admin);
+
+    return { ok: true, data: { requests: enrichLeaveRequestsWithApprovalStage(requests, directory) } };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "Leave history error" };
   }
@@ -382,9 +817,13 @@ export const listPendingLeaveRequests = async (
 ): Promise<ServiceResult<{ requests: LeaveRequestItem[] }>> => {
   try {
     await requireLeaveEntitlement(ctx);
-    requirePermission("manage_employees", ctx);
+    if (!hasLeaveReviewAuthority(ctx)) {
+      requirePermission("manage_employees", ctx);
+    }
 
-    let query = ctx.supabase
+    const admin = createSupabaseAdminClient();
+
+    let query = admin
       .from("leave_requests")
       .select(
         "id, employee_id, leave_type_id, start_date, end_date, total_days, status, reason, is_half_day, half_day_type, approval_level, final_approved, created_at, updated_at, approved_at, leave_types(name), employees!leave_requests_employee_id_fkey(id, department_id, user_profile_id, user_profiles(full_name, avatar_url))"
@@ -439,7 +878,14 @@ export const listPendingLeaveRequests = async (
       } satisfies LeaveRequestItem;
     });
 
-    return { ok: true, data: { requests } };
+    const directory = await loadApprovalDirectory(ctx, admin);
+    const actorEmployeeId = await getActorEmployeeId(ctx.supabase, ctx);
+    const visibleRequests = enrichLeaveRequestsWithApprovalStage(requests, directory).filter((request) => {
+      const approval = resolveCurrentApprovalStep(request, directory);
+      return actorEmployeeId !== null && approval.currentStep?.employeeId === actorEmployeeId;
+    });
+
+    return { ok: true, data: { requests: visibleRequests } };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "Pending leave error" };
   }
@@ -451,9 +897,13 @@ export const listLeaveApprovalHistory = async (
 ): Promise<ServiceResult<{ requests: LeaveRequestItem[] }>> => {
   try {
     await requireLeaveEntitlement(ctx);
-    requirePermission("manage_employees", ctx);
+    if (!hasLeaveReviewAuthority(ctx)) {
+      requirePermission("manage_employees", ctx);
+    }
 
-    let query = ctx.supabase
+    const admin = createSupabaseAdminClient();
+
+    let query = admin
       .from("leave_requests")
       .select(
         "id, employee_id, leave_type_id, start_date, end_date, total_days, status, reason, is_half_day, half_day_type, approval_level, final_approved, created_at, updated_at, approved_at, leave_types(name), employees!leave_requests_employee_id_fkey(id, department_id, user_profile_id, user_profiles(full_name, avatar_url))"
@@ -508,7 +958,9 @@ export const listLeaveApprovalHistory = async (
       } satisfies LeaveRequestItem;
     });
 
-    return { ok: true, data: { requests } };
+    const directory = await loadApprovalDirectory(ctx, admin);
+
+    return { ok: true, data: { requests: enrichLeaveRequestsWithApprovalStage(requests, directory) } };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "Leave approval history error" };
   }
@@ -521,9 +973,13 @@ export const getTeamLeaveCalendar = async (
 ): Promise<ServiceResult<{ requests: LeaveRequestItem[] }>> => {
   try {
     await requireLeaveEntitlement(ctx);
-    requirePermission("manage_employees", ctx);
+    if (!hasLeaveReviewAuthority(ctx)) {
+      requirePermission("manage_employees", ctx);
+    }
 
-    const { data, error } = await ctx.supabase
+    const admin = createSupabaseAdminClient();
+
+    const { data, error } = await admin
       .from("leave_requests")
       .select(
         "id, employee_id, leave_type_id, start_date, end_date, total_days, status, reason, is_half_day, half_day_type, approval_level, final_approved, created_at, updated_at, approved_at, leave_types(name), employees!leave_requests_employee_id_fkey(id, department_id, user_profile_id, user_profiles(full_name, avatar_url))"
@@ -568,7 +1024,9 @@ export const getTeamLeaveCalendar = async (
       } satisfies LeaveRequestItem;
     });
 
-    return { ok: true, data: { requests } };
+    const directory = await loadApprovalDirectory(ctx, admin);
+
+    return { ok: true, data: { requests: enrichLeaveRequestsWithApprovalStage(requests, directory) } };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "Leave calendar error" };
   }
@@ -580,18 +1038,145 @@ export const approveLeave = async (
 ): Promise<ServiceResult<{ status: string }>> => {
   try {
     await requireLeaveEntitlement(ctx);
-    requirePermission("manage_employees", ctx);
-    const { data, error } = await ctx.supabase.rpc("approve_leave_atomic", {
-      p_leave_request_id: requestId,
-      p_actor_id: ctx.userId
-    });
+    if (!hasLeaveReviewAuthority(ctx)) {
+      requirePermission("manage_employees", ctx);
+    }
+    const actorProfileId = await getActorProfileId(ctx.supabase, ctx);
+    const actorEmployeeId = await getActorEmployeeId(ctx.supabase, ctx);
+    const admin = createSupabaseAdminClient();
+    const directory = await loadApprovalDirectory(ctx, admin);
 
-    if (error) {
-      return { ok: false, error: sanitizeError(error.message, "Leave request approval failed") };
+    const { data: request, error: requestError } = await admin
+      .from("leave_requests")
+      .select("id, employee_id, leave_type_id, total_days, status, approval_level")
+      .eq("id", requestId)
+      .eq("company_id", ctx.companyId)
+      .is("is_deleted", false)
+      .maybeSingle();
+
+    if (requestError) {
+      return { ok: false, error: sanitizeError(requestError.message, "Leave request approval failed") };
     }
 
-    const status = (data as { status?: string } | null)?.status ?? "approved";
-    return { ok: true, data: { status } };
+    if (!request) {
+      return { ok: false, error: "Leave request not found" };
+    }
+
+    if (request.status !== "pending") {
+      return { ok: false, error: "Leave request already processed" };
+    }
+
+    const approval = ensureActorCanReviewRequest(
+      ctx,
+      actorEmployeeId,
+      {
+        employee_id: request.employee_id as string,
+        approval_level: (request.approval_level as number | null) ?? 1
+      },
+      directory
+    );
+
+    const currentIndex = Math.max(0, approval.currentLevel - 1);
+    const isFinalStage = currentIndex >= approval.chain.length - 1;
+    const employee = directory.get(request.employee_id as string) ?? null;
+
+    if (!employee) {
+      return { ok: false, error: "Leave request employee not found" };
+    }
+
+    if (!isFinalStage) {
+      const nextStep = approval.chain[currentIndex + 1] ?? null;
+      const { error } = await admin
+        .from("leave_requests")
+        .update({
+          approval_level: approval.currentLevel + 1,
+          updated_by: actorProfileId
+        })
+        .eq("id", requestId)
+        .eq("company_id", ctx.companyId)
+        .eq("status", "pending")
+        .is("is_deleted", false);
+
+      if (error) {
+        return { ok: false, error: sanitizeError(error.message, "Leave request approval failed") };
+      }
+
+      await createLeaveNotification(
+        admin,
+        ctx.companyId,
+        employee.userProfileId,
+        actorProfileId,
+        "leave_progress",
+        "Leave request moved to the next approver",
+        nextStep?.fullName ? `Your leave request is now waiting for ${nextStep.fullName}.` : "Your leave request moved to the next approver.",
+        requestId
+      );
+
+      await createLeaveNotification(
+        admin,
+        ctx.companyId,
+        nextStep?.userProfileId ?? null,
+        actorProfileId,
+        "leave_review",
+        "Leave request awaiting your review",
+        employee.fullName ? `${employee.fullName} submitted a leave request that needs your decision.` : "A leave request is awaiting your review.",
+        requestId
+      );
+
+      return { ok: true, data: { status: "pending" } };
+    }
+
+    const { error: updateError } = await admin
+      .from("leave_requests")
+      .update({
+        status: "approved",
+        final_approved: true,
+        approved_at: new Date().toISOString(),
+        approved_by: actorProfileId,
+        approval_level: approval.chain.length,
+        updated_by: actorProfileId
+      })
+      .eq("id", requestId)
+      .eq("company_id", ctx.companyId)
+      .eq("status", "pending")
+      .is("is_deleted", false);
+
+    if (updateError) {
+      return { ok: false, error: sanitizeError(updateError.message, "Leave request approval failed") };
+    }
+
+    await admin.from("approval_audit_log").insert({
+      company_id: ctx.companyId,
+      entity_type: "leave",
+      entity_id: requestId,
+      actor_profile_id: actorProfileId,
+      action: "approve"
+    });
+
+    await admin.from("leave_ledger").insert({
+      company_id: ctx.companyId,
+      employee_id: request.employee_id,
+      leave_type_id: request.leave_type_id,
+      transaction_type: "used",
+      days: request.total_days,
+      reference_id: requestId,
+      transaction_date: new Date().toISOString().slice(0, 10),
+      created_at: new Date().toISOString(),
+      created_by: actorProfileId
+    });
+
+    await createLeaveNotification(
+      admin,
+      ctx.companyId,
+      employee.userProfileId,
+      actorProfileId,
+      "leave_approved",
+      "Leave approved",
+      "Your leave request has been approved.",
+      requestId
+    );
+
+    return { ok: true, data: { status: "approved" } };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "Leave approval error" };
   }
@@ -604,17 +1189,26 @@ export const rejectLeave = async (
 ): Promise<ServiceResult<{ status: string }>> => {
   try {
     await requireLeaveEntitlement(ctx);
-    requirePermission("manage_employees", ctx);
+    if (!hasLeaveReviewAuthority(ctx)) {
+      requirePermission("manage_employees", ctx);
+    }
 
     const approverProfileId = await getActorProfileId(ctx.supabase, ctx);
+    const actorEmployeeId = await getActorEmployeeId(ctx.supabase, ctx);
+    const admin = createSupabaseAdminClient();
+    const directory = await loadApprovalDirectory(ctx, admin);
 
-    const { data: request } = await ctx.supabase
+    const { data: request, error: requestError } = await admin
       .from("leave_requests")
-      .select("id, employee_id, status")
+      .select("id, employee_id, status, approval_level")
       .eq("id", requestId)
       .eq("company_id", ctx.companyId)
       .is("is_deleted", false)
       .maybeSingle();
+
+    if (requestError) {
+      return { ok: false, error: sanitizeError(requestError.message, "Leave rejection failed") };
+    }
 
     if (!request) {
       return { ok: false, error: "Leave request not found" };
@@ -624,10 +1218,21 @@ export const rejectLeave = async (
       return { ok: false, error: "Leave request already processed" };
     }
 
-    const { data: updated, error } = await ctx.supabase
+    ensureActorCanReviewRequest(
+      ctx,
+      actorEmployeeId,
+      {
+        employee_id: request.employee_id as string,
+        approval_level: (request.approval_level as number | null) ?? 1
+      },
+      directory
+    );
+
+    const { error } = await admin
       .from("leave_requests")
       .update({
         status: "rejected",
+        final_approved: false,
         approved_at: new Date().toISOString(),
         approved_by: approverProfileId,
         updated_by: approverProfileId
@@ -635,35 +1240,23 @@ export const rejectLeave = async (
       .eq("id", requestId)
       .eq("company_id", ctx.companyId)
       .is("is_deleted", false)
-      .eq("status", "pending")
-      .select("id")
-      .maybeSingle();
+      .eq("status", "pending");
 
-    if (error || !updated) {
-      return { ok: false, error: "Leave rejection failed" };
+    if (error) {
+      return { ok: false, error: sanitizeError(error.message, "Leave rejection failed") };
     }
 
-    const { data: employee } = await ctx.supabase
-      .from("employees")
-      .select("user_profile_id")
-      .eq("id", request.employee_id)
-      .eq("company_id", ctx.companyId)
-      .is("is_deleted", false)
-      .maybeSingle();
-
-    if (employee?.user_profile_id) {
-      await ctx.supabase.from("notifications").insert({
-        company_id: ctx.companyId,
-        recipient_profile_id: employee.user_profile_id,
-        type: "leave_rejected",
-        title: "Leave rejected",
-        message: reason ? `Leave rejected: ${reason}` : "Your leave request has been rejected",
-        reference_type: "leave_request",
-        reference_id: requestId,
-        created_by: approverProfileId,
-        updated_by: approverProfileId
-      });
-    }
+    const employee = directory.get(request.employee_id as string) ?? null;
+    await createLeaveNotification(
+      admin,
+      ctx.companyId,
+      employee?.userProfileId ?? null,
+      approverProfileId,
+      "leave_rejected",
+      "Leave rejected",
+      reason ? `Leave rejected: ${reason}` : "Your leave request has been rejected.",
+      requestId
+    );
 
     return { ok: true, data: { status: "rejected" } };
   } catch (err) {
@@ -681,14 +1274,20 @@ export const cancelLeaveRequest = async (
     assertEmployeeScope(employeeId, ctx);
     const identity = await ensureSelfOrManager(ctx, employeeId);
 
-    const { data: request } = await ctx.supabase
+    const admin = createSupabaseAdminClient();
+    const directory = await loadApprovalDirectory(ctx, admin);
+    const { data: request, error: requestError } = await admin
       .from("leave_requests")
-      .select("id, status")
+      .select("id, status, approval_level")
       .eq("id", requestId)
       .eq("company_id", ctx.companyId)
       .eq("employee_id", employeeId)
       .is("is_deleted", false)
       .maybeSingle();
+
+    if (requestError) {
+      return { ok: false, error: sanitizeError(requestError.message, "Leave cancellation failed") };
+    }
 
     if (!request) {
       return { ok: false, error: "Leave request not found" };
@@ -698,21 +1297,69 @@ export const cancelLeaveRequest = async (
       return { ok: false, error: "Only pending requests can be cancelled" };
     }
 
-    const { data: updated, error } = await ctx.supabase
+    if (!identity.isSelf) {
+      ensureActorCanReviewRequest(
+        ctx,
+        identity.actorEmployeeId,
+        {
+          employee_id: employeeId,
+          approval_level: (request.approval_level as number | null) ?? 1
+        },
+        directory
+      );
+    }
+
+    const approval = resolveCurrentApprovalStep(
+      {
+        employee_id: employeeId,
+        approval_level: (request.approval_level as number | null) ?? 1
+      },
+      directory
+    );
+
+    const { error } = await admin
       .from("leave_requests")
       .update({
         status: "cancelled",
+        final_approved: false,
         updated_by: identity.actorProfileId
       })
       .eq("id", requestId)
       .eq("company_id", ctx.companyId)
       .is("is_deleted", false)
-      .eq("status", "pending")
-      .select("id")
-      .maybeSingle();
+      .eq("status", "pending");
 
-    if (error || !updated) {
-      return { ok: false, error: "Leave cancellation failed" };
+    if (error) {
+      return { ok: false, error: sanitizeError(error.message, "Leave cancellation failed") };
+    }
+
+    const employee = directory.get(employeeId) ?? null;
+    const actorIsSelf = identity.isSelf;
+
+    await createLeaveNotification(
+      admin,
+      ctx.companyId,
+      employee?.userProfileId ?? null,
+      identity.actorProfileId,
+      "leave_cancelled",
+      "Leave request cancelled",
+      actorIsSelf
+        ? "Your leave request has been cancelled."
+        : "Your leave request was cancelled by the current reviewer.",
+      requestId
+    );
+
+    if (actorIsSelf && approval.currentStep?.userProfileId) {
+      await createLeaveNotification(
+        admin,
+        ctx.companyId,
+        approval.currentStep.userProfileId,
+        identity.actorProfileId,
+        "leave_cancelled",
+        "Leave request cancelled by employee",
+        employee?.fullName ? `${employee.fullName} cancelled a pending leave request.` : "A pending leave request was cancelled by the employee.",
+        requestId
+      );
     }
 
     return { ok: true, data: { status: "cancelled" } };

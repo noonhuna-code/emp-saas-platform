@@ -11,6 +11,12 @@ import type { ShiftAssignableEmployee, ShiftAssignment, ShiftTemplate } from "@/
 import { LoadingState } from "@/components/states/LoadingState";
 import { ErrorState } from "@/components/states/ErrorState";
 
+const addDays = (dateText: string, days: number) => {
+  const base = new Date(`${dateText}T00:00:00`);
+  base.setDate(base.getDate() + days);
+  return base.toISOString().slice(0, 10);
+};
+
 const ShiftAssignmentsPageClient = () => {
   const [templates, setTemplates] = useState<ShiftTemplate[]>([]);
   const [employees, setEmployees] = useState<ShiftAssignableEmployee[]>([]);
@@ -94,11 +100,16 @@ const ShiftAssignmentsPageClient = () => {
     await loadAssignments(employeeId);
   };
 
+  const applyRangePreset = (days: number) => {
+    if (!effectiveFrom) return;
+    setEffectiveTo(addDays(effectiveFrom, Math.max(0, days - 1)));
+  };
+
   return (
     <div className="page-wrap page-grid">
       <section className="card stack">
         <h1>Shift Assignment</h1>
-        <p className="muted">Team Lead and HR can assign shifts using hierarchy-safe employee scope.</p>
+        <p className="muted">Team leads, supervisors, HR, and admin roles can assign shifts within their scoped employee hierarchy.</p>
       </section>
 
       {loading ? <LoadingState label="Loading shift module..." /> : null}
@@ -135,6 +146,15 @@ const ShiftAssignmentsPageClient = () => {
             Effective to (optional)
             <input type="date" value={effectiveTo} onChange={(event) => setEffectiveTo(event.target.value)} />
           </label>
+          <div className="stack" style={{ justifyContent: "end" }}>
+            <span className="muted">Range presets</span>
+            <div className="row">
+              <button type="button" className="secondary-btn" onClick={() => applyRangePreset(1)}>1 day</button>
+              <button type="button" className="secondary-btn" onClick={() => applyRangePreset(7)}>7 days</button>
+              <button type="button" className="secondary-btn" onClick={() => applyRangePreset(30)}>30 days</button>
+              <button type="button" className="secondary-btn" onClick={() => setEffectiveTo("")}>Custom</button>
+            </div>
+          </div>
           <div className="row" style={{ alignItems: "end" }}>
             <button type="submit" className="primary-btn">Assign</button>
             <button type="button" className="secondary-btn" onClick={() => void loadAssignments()}>Load assignments</button>

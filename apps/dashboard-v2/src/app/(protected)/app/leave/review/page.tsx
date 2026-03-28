@@ -8,7 +8,7 @@ export default async function LeaveReviewPage({
   searchParams?: Promise<{ employeeId?: string; focusId?: string }>;
 }) {
   const session = await getServerSession();
-  if (!session.permissions.includes("manage_employees")) {
+  if (!(session.permissions.includes("manage_employees") || session.permissions.includes("manage_attendance"))) {
     redirect("/403");
   }
 

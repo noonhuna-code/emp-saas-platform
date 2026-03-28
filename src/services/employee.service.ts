@@ -1,5 +1,6 @@
 ﻿import type { EmployeeReportingLineSummary, OrganizationDepartmentSummary, OrganizationReportingSummary, OrganizationTeamSummary, OrgReportingRelationType, ServiceContext, ServiceResult } from "../lib/types";
 import { assertEmployeeScope, requirePermission } from "../lib/auth-wrapper";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { requirePlanFeature } from "../lib/entitlements";
 import { assertEmployeeReadAccess, getAccessibleEmployeeScope } from "./access-scope.service";
 import { getOrganizationOverview } from "./org-chart.service";
@@ -125,6 +126,20 @@ export type EmployeeSkill = {
   updated_at?: string | null;
 };
 
+export type EmployeeEducation = {
+  id: string;
+  employee_id: string;
+  company_id: string;
+  institution: string;
+  degree?: string | null;
+  field_of_study?: string | null;
+  start_date?: string | null;
+  end_date?: string | null;
+  grade?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+};
+
 export type EmployeeProfile = {
   employee: Record<string, unknown>;
   userProfile: { id: string; full_name: string; avatar_url?: string | null } | null;
@@ -141,6 +156,7 @@ export type EmployeeProfile = {
   documents: EmployeeDocument[];
   familyMembers: EmployeeFamilyMember[];
   skills: EmployeeSkill[];
+  education: EmployeeEducation[];
   profileCompletenessScore: number | null;
   canViewSensitive: boolean;
 };
@@ -188,6 +204,32 @@ const requireSelfOrManageEmployees = async (ctx: ServiceContext, employeeId: str
 
 const requireEmployeeModuleEntitlement = async (ctx: ServiceContext): Promise<void> => {
   await requirePlanFeature(ctx, "feature.core_employee_management");
+};
+
+const getAdminEnv = (key: string): string => process.env[key] ?? "";
+
+const createSupabaseAdminClient = (): SupabaseClient => {
+  const url = getAdminEnv("SUPABASE_URL") || getAdminEnv("NEXT_PUBLIC_SUPABASE_URL");
+  const serviceRoleKey = getAdminEnv("SUPABASE_SERVICE_ROLE_KEY");
+
+  if (!url || !serviceRoleKey) {
+    throw new Error("Missing Supabase admin environment variables");
+  }
+
+  return createClient(url, serviceRoleKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  });
+};
+
+const maskSensitiveValue = (value?: string | null): string | null => {
+  if (!value) return null;
+  const trimmed = value.trim();
+  if (trimmed.length === 0) return null;
+  if (trimmed.length <= 4) return "•".repeat(trimmed.length);
+  return `${"•".repeat(Math.max(0, trimmed.length - 4))}${trimmed.slice(-4)}`;
 };
 
 export const listEmployees = async (
@@ -364,7 +406,9 @@ const loadDepartmentRow = async (ctx: ServiceContext, departmentId: string | nul
     return null as { id: string; name: string; main_contact_label?: string | null; main_contact_email?: string | null; main_contact_phone?: string | null; head_employee_id?: string | null } | null;
   }
 
-  const { data, error } = await ctx.supabase
+  const admin = createSupabaseAdminClient();
+
+  const { data, error } = await admin
     .from("departments")
     .select("id, name, main_contact_label, main_contact_email, main_contact_phone, head_employee_id")
     .eq("id", departmentId)
@@ -376,7 +420,7 @@ const loadDepartmentRow = async (ctx: ServiceContext, departmentId: string | nul
     return (data as { id: string; name: string; main_contact_label?: string | null; main_contact_email?: string | null; main_contact_phone?: string | null; head_employee_id?: string | null } | null) ?? null;
   }
 
-  const fallback = await ctx.supabase
+  const fallback = await admin
     .from("departments")
     .select("id, name")
     .eq("id", departmentId)
@@ -396,7 +440,28 @@ const loadDepartmentRow = async (ctx: ServiceContext, departmentId: string | nul
         main_contact_phone: null,
         head_employee_id: null,
       }
-    : null;
+      : null;
+};
+
+const loadTeamRow = async (ctx: ServiceContext, teamId: string | null) => {
+  if (!teamId) {
+    return null as { id: string; name: string; team_lead_id?: string | null } | null;
+  }
+
+  const admin = createSupabaseAdminClient();
+  const { data, error } = await admin
+    .from("teams")
+    .select("id, name, team_lead_id")
+    .eq("id", teamId)
+    .eq("company_id", ctx.companyId)
+    .is("is_deleted", false)
+    .maybeSingle();
+
+  if (error) {
+    return null;
+  }
+
+  return (data as { id: string; name: string; team_lead_id?: string | null } | null) ?? null;
 };
 
 const loadReportingLinesForEmployee = async (ctx: ServiceContext, employeeId: string): Promise<ReportingLineRow[]> => {
@@ -466,6 +531,7 @@ export const getEmployeeProfile = async (
       return { ok: false, error: error?.message ?? "Employee not found" };
     }
 
+    const admin = createSupabaseAdminClient();
     const profileCompletenessPromise = readProfileCompleteness(ctx, employeeId);
     const detailPromises = Promise.all([
       ctx.supabase
@@ -475,7 +541,7 @@ export const getEmployeeProfile = async (
         .eq("company_id", ctx.companyId)
         .is("is_deleted", false)
         .maybeSingle(),
-      ctx.supabase
+      admin
         .from("employee_sensitive_data")
         .select("*")
         .eq("employee_id", employeeId)
@@ -502,12 +568,20 @@ export const getEmployeeProfile = async (
         .eq("employee_id", employeeId)
         .eq("company_id", ctx.companyId)
         .is("is_deleted", false)
+        .order("created_at", { ascending: false }),
+      ctx.supabase
+        .from("employee_education")
+        .select("*")
+        .eq("employee_id", employeeId)
+        .eq("company_id", ctx.companyId)
+        .is("is_deleted", false)
+        .order("end_date", { ascending: false, nullsFirst: false })
         .order("created_at", { ascending: false })
     ]);
 
     const [
       profileCompletenessScore,
-      [personalResult, sensitiveResult, documentsResult, familyResult, skillsResult],
+      [personalResult, sensitiveResult, documentsResult, familyResult, skillsResult, educationResult],
       userProfileResult,
       department,
       teamResult,
@@ -523,19 +597,11 @@ export const getEmployeeProfile = async (
         .is("is_deleted", false)
         .maybeSingle(),
       loadDepartmentRow(ctx, employee.department_id ?? null),
-      employee.team_id
-        ? ctx.supabase
-            .from("teams")
-            .select("id, name, team_lead_id")
-            .eq("id", employee.team_id)
-            .eq("company_id", ctx.companyId)
-            .is("is_deleted", false)
-            .maybeSingle()
-        : Promise.resolve({ data: null, error: null }),
+      loadTeamRow(ctx, employee.team_id ?? null),
       loadReportingLinesForEmployee(ctx, employeeId)
     ]);
 
-    const team = (teamResult as { data?: { id: string; name: string; team_lead_id?: string | null } | null }).data ?? null;
+    const team = teamResult;
     const hierarchyIds = new Set<string>();
     if (employee.manager_id) hierarchyIds.add(employee.manager_id);
     if (department?.head_employee_id) hierarchyIds.add(department.head_employee_id);
@@ -588,6 +654,23 @@ export const getEmployeeProfile = async (
     }));
 
     const managerSummary = primaryManager ? { id: primaryManager.id, full_name: primaryManager.full_name } : null;
+    const personalDetails = personalResult.data
+      ? ({
+          ...(personalResult.data as EmployeePersonalDetails),
+          national_id_masked:
+            (personalResult.data as EmployeePersonalDetails).national_id_masked ??
+            maskSensitiveValue((sensitiveResult.data as EmployeeSensitiveData | null)?.national_id ?? null),
+          passport_number_masked:
+            (personalResult.data as EmployeePersonalDetails).passport_number_masked ??
+            maskSensitiveValue((sensitiveResult.data as EmployeeSensitiveData | null)?.passport_number ?? null),
+          tax_id_masked:
+            (personalResult.data as EmployeePersonalDetails).tax_id_masked ??
+            maskSensitiveValue((sensitiveResult.data as EmployeeSensitiveData | null)?.tax_id ?? null),
+          bank_account_masked:
+            (personalResult.data as EmployeePersonalDetails).bank_account_masked ??
+            maskSensitiveValue((sensitiveResult.data as EmployeeSensitiveData | null)?.bank_account_number ?? null),
+        } satisfies EmployeePersonalDetails)
+      : null;
 
     return {
       ok: true,
@@ -616,11 +699,12 @@ export const getEmployeeProfile = async (
         primaryManager,
         secondaryManagers,
         reportingLines: reportingLineSummaries,
-        personalDetails: personalResult.data ? (personalResult.data as EmployeePersonalDetails) : null,
+        personalDetails,
         sensitiveData: sensitiveResult.data ? (sensitiveResult.data as EmployeeSensitiveData) : null,
         documents: (documentsResult.data ?? []) as EmployeeDocument[],
         familyMembers: (familyResult.data ?? []) as EmployeeFamilyMember[],
         skills: (skillsResult.data ?? []) as EmployeeSkill[],
+        education: (educationResult.data ?? []) as EmployeeEducation[],
         profileCompletenessScore,
         canViewSensitive: ctx.permissions.includes("manage_employees")
       }
@@ -641,7 +725,9 @@ export const upsertEmployeePersonalDetails = async (
     await requireEmployeeModuleEntitlement(ctx);
     await requireSelfOrManageEmployees(ctx, employeeId);
 
-    const { data, error } = await ctx.supabase
+    const admin = createSupabaseAdminClient();
+
+    const { data, error } = await admin
       .from("employee_personal_details")
       .upsert(
         {
@@ -675,7 +761,9 @@ export const upsertEmployeeSensitiveData = async (
     await requireEmployeeModuleEntitlement(ctx);
     requirePermission("manage_employees", ctx);
 
-    const { data, error } = await ctx.supabase
+    const admin = createSupabaseAdminClient();
+
+    const { data, error } = await admin
       .from("employee_sensitive_data")
       .upsert(
         {
@@ -1016,6 +1104,94 @@ export const deleteEmployeeSkill = async (
   }
 };
 
+export type EmployeeEducationInput = Omit<EmployeeEducation, "id" | "company_id" | "employee_id" | "created_at" | "updated_at">;
+
+export const addEmployeeEducation = async (
+  ctx: ServiceContext,
+  employeeId: string,
+  payload: EmployeeEducationInput
+): Promise<ServiceResult<EmployeeEducation>> => {
+  try {
+    await requireEmployeeModuleEntitlement(ctx);
+    await requireSelfOrManageEmployees(ctx, employeeId);
+
+    const { data, error } = await ctx.supabase
+      .from("employee_education")
+      .insert({ company_id: ctx.companyId, employee_id: employeeId, ...payload })
+      .select("*")
+      .single();
+
+    if (error || !data) {
+      return { ok: false, error: error?.message ?? "Qualification create failed" };
+    }
+
+    return { ok: true, data: data as EmployeeEducation };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Qualification create failed" };
+  }
+};
+
+export const updateEmployeeEducation = async (
+  ctx: ServiceContext,
+  employeeId: string,
+  educationId: string,
+  payload: EmployeeEducationInput
+): Promise<ServiceResult<EmployeeEducation>> => {
+  try {
+    await requireEmployeeModuleEntitlement(ctx);
+    await requireSelfOrManageEmployees(ctx, employeeId);
+
+    const { data, error } = await ctx.supabase
+      .from("employee_education")
+      .update({ ...payload })
+      .eq("id", educationId)
+      .eq("employee_id", employeeId)
+      .eq("company_id", ctx.companyId)
+      .is("is_deleted", false)
+      .select("*")
+      .maybeSingle();
+
+    if (error || !data) {
+      return { ok: false, error: error?.message ?? "Qualification update failed" };
+    }
+
+    return { ok: true, data: data as EmployeeEducation };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Qualification update failed" };
+  }
+};
+
+export const deleteEmployeeEducation = async (
+  ctx: ServiceContext,
+  employeeId: string,
+  educationId: string
+): Promise<ServiceResult<{ id: string }>> => {
+  try {
+    await requireEmployeeModuleEntitlement(ctx);
+    await requireSelfOrManageEmployees(ctx, employeeId);
+
+    const { error } = await ctx.supabase
+      .from("employee_education")
+      .update({
+        is_deleted: true,
+        deleted_at: new Date().toISOString(),
+        deleted_by: ctx.userProfileId
+      })
+      .eq("id", educationId)
+      .eq("employee_id", employeeId)
+      .eq("company_id", ctx.companyId)
+      .is("is_deleted", false);
+
+    if (error) {
+      return { ok: false, error: error.message };
+    }
+
+    return { ok: true, data: { id: educationId } };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Qualification delete failed" };
+  }
+};
+
 export type EmployeeLookups = {
   departments: Array<{ id: string; name: string }>;
   teams: Array<{ id: string; name: string; department_id?: string | null }>;
@@ -1030,6 +1206,7 @@ export const listEmployeeLookups = async (
   try {
     await requireEmployeeModuleEntitlement(ctx);
     const accessScope = await getAccessibleEmployeeScope(ctx);
+    const admin = createSupabaseAdminClient();
 
     if (!accessScope.broadAccess && accessScope.ids.size === 0) {
       return {
@@ -1044,34 +1221,34 @@ export const listEmployeeLookups = async (
       };
     }
 
-    const [departmentsResult, teams, managers] = await Promise.all([
-      ctx.supabase
-        .from("departments")
-        .select("id, name, head_employee_id")
-        .eq("company_id", ctx.companyId)
-        .is("is_deleted", false)
-        .order("name", { ascending: true }),
-      ctx.supabase
-        .from("teams")
-        .select("id, name, department_id, team_lead_id")
-        .eq("company_id", ctx.companyId)
-        .is("is_deleted", false)
-        .order("name", { ascending: true }),
-      ctx.supabase
-        .from("employees")
-        .select("id, employee_code, user_profile_id, department_id, team_id, user_profiles(full_name)")
-        .eq("company_id", ctx.companyId)
+      const [departmentsResult, teams, managers] = await Promise.all([
+        admin
+          .from("departments")
+          .select("id, name, head_employee_id")
+          .eq("company_id", ctx.companyId)
+          .is("is_deleted", false)
+          .order("name", { ascending: true }),
+        admin
+          .from("teams")
+          .select("id, name, department_id, team_lead_id")
+          .eq("company_id", ctx.companyId)
+          .is("is_deleted", false)
+          .order("name", { ascending: true }),
+        admin
+          .from("employees")
+          .select("id, employee_code, user_profile_id, department_id, team_id, user_profiles(full_name)")
+          .eq("company_id", ctx.companyId)
         .is("is_deleted", false)
         .in("id", accessScope.broadAccess ? ["00000000-0000-0000-0000-000000000000"] : Array.from(accessScope.ids))
         .order("created_at", { ascending: true })
     ]);
 
-    let departmentsData = departmentsResult.data as Array<{ id: string; name: string; head_employee_id?: string | null }> | null;
-    if (departmentsResult.error) {
-      const fallbackDepartments = await ctx.supabase
-        .from("departments")
-        .select("id, name")
-        .eq("company_id", ctx.companyId)
+      let departmentsData = departmentsResult.data as Array<{ id: string; name: string; head_employee_id?: string | null }> | null;
+      if (departmentsResult.error) {
+        const fallbackDepartments = await admin
+          .from("departments")
+          .select("id, name")
+          .eq("company_id", ctx.companyId)
         .is("is_deleted", false)
         .order("name", { ascending: true });
       if (fallbackDepartments.error || teams.error || managers.error) {
@@ -1087,11 +1264,11 @@ export const listEmployeeLookups = async (
       return { ok: false, error: "Unable to load lookups" };
     }
 
-    const managerResult = accessScope.broadAccess
-      ? await ctx.supabase
-          .from("employees")
-          .select("id, employee_code, user_profile_id, department_id, team_id, user_profiles(full_name)")
-          .eq("company_id", ctx.companyId)
+      const managerResult = accessScope.broadAccess
+        ? await admin
+            .from("employees")
+            .select("id, employee_code, user_profile_id, department_id, team_id, user_profiles(full_name)")
+            .eq("company_id", ctx.companyId)
           .is("is_deleted", false)
           .order("created_at", { ascending: true })
       : managers;

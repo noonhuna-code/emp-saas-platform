@@ -26,27 +26,40 @@ export const ManagerDashboard = ({
   mode = "manager",
   allowedRoutes = [],
   canViewTeamAttendance = false,
+  canReviewLeave = false,
 }: {
   mode?: "manager" | "team_lead";
   allowedRoutes?: string[];
   canViewTeamAttendance?: boolean;
+  canReviewLeave?: boolean;
 }) => {
   const [view, setView] = useState<DashboardView>("workspace");
   const perf = useDashboardPerf(mode === "team_lead" ? "team_lead" : "manager");
   const allowedRouteSet = routeSet(allowedRoutes);
   const isTeamLeadMode = mode === "team_lead";
+  const hasEmployees = allowedRouteSet.has("/app/employees");
+  const hasProjects = allowedRouteSet.has("/app/projects");
+  const hasChat = allowedRouteSet.has("/app/chat");
+  const hasShiftSwaps = allowedRouteSet.has("/app/attendance/shift-swaps");
 
   const heroActions = [
-    allowedRouteSet.has("/app/approvals") ? { href: "/app/approvals", label: "Approvals", tone: "primary" as const } : null,
-    canViewTeamAttendance ? { href: "/app/attendance/team", label: "Team Attendance", tone: isTeamLeadMode ? "primary" as const : "secondary" as const } : null,
-    allowedRouteSet.has("/app/employees") ? { href: "/app/employees", label: isTeamLeadMode ? "Employee Directory" : "Employee Directory", tone: "secondary" as const } : null,
+    canViewTeamAttendance ? { href: "/app/attendance/team", label: "Team Attendance", tone: "primary" as const } : null,
+    allowedRouteSet.has("/app/approvals") ? { href: "/app/approvals", label: "Approvals", tone: isTeamLeadMode ? "secondary" as const : "primary" as const } : null,
+    canReviewLeave ? { href: "/app/leave/review", label: "Leave Review", tone: "secondary" as const } : null,
+    hasShiftSwaps ? { href: "/app/attendance/shift-swaps", label: "Shift Swaps", tone: "secondary" as const } : null,
+    isTeamLeadMode && hasChat ? { href: "/app/chat", label: "Team Chat", tone: "secondary" as const } : null,
+    !isTeamLeadMode && hasProjects ? { href: "/app/projects", label: "Projects", tone: "secondary" as const } : null,
+    hasEmployees ? { href: "/app/employees", label: isTeamLeadMode ? "Employee Directory" : "People Directory", tone: "secondary" as const } : null,
   ].filter(Boolean) as Array<{ href: string; label: string; tone: "primary" | "secondary" }>;
 
   const actionPaths = [
     canViewTeamAttendance ? { label: "Team attendance", href: "/app/attendance/team", caption: "Presence and late marks" } : null,
     allowedRouteSet.has("/app/approvals") ? { label: "Approvals queue", href: "/app/approvals", caption: "Leave and corrections" } : null,
-    allowedRouteSet.has("/app/employees") ? { label: isTeamLeadMode ? "Employee directory" : "People directory", href: "/app/employees", caption: "Direct reports and profiles" } : null,
-    allowedRouteSet.has("/app/projects") ? { label: "Projects", href: "/app/projects", caption: "Execution and staffing" } : null,
+    canReviewLeave ? { label: "Leave review", href: "/app/leave/review", caption: "Approve, reject, or cancel" } : null,
+    hasShiftSwaps ? { label: "Shift swaps", href: "/app/attendance/shift-swaps", caption: "Requests and review queue" } : null,
+    isTeamLeadMode && hasChat ? { label: "Team chat", href: "/app/chat", caption: "Coordination and updates" } : null,
+    hasEmployees ? { label: isTeamLeadMode ? "Employee directory" : "People directory", href: "/app/employees", caption: "Direct reports and profiles" } : null,
+    !isTeamLeadMode && hasProjects ? { label: "Projects", href: "/app/projects", caption: "Execution and staffing" } : null,
   ].filter(Boolean) as Array<{ label: string; href: string; caption: string }>;
 
   useEffect(() => {
@@ -60,8 +73,8 @@ export const ManagerDashboard = ({
         title={isTeamLeadMode ? "Frontline team coordination" : "Team operations control center"}
         subtitle={
           isTeamLeadMode
-            ? "Keep assigned teams aligned on attendance, swaps, approvals, and daily delivery without widening into admin-only controls."
-            : "Monitor team attendance coverage, pending approvals, and reliability trends with read-only manager summaries."
+            ? "Keep assigned teams aligned on attendance, approvals, team chat, and daily delivery without widening into admin-only controls."
+            : "Monitor team attendance coverage, approvals, staffing pressure, and execution signals with the routes you can act on now."
         }
         emphasis="operations"
         actions={(
@@ -90,7 +103,11 @@ export const ManagerDashboard = ({
         <section className="space-y-4">
           <Suspense fallback={<div className="grid-2"><SkeletonCard rows={6} /><SkeletonChart /></div>}>
             <DashboardWidgetBoundary title="Manager operations" message="Manager operations are temporarily unavailable.">
-              <ManagerOperationsWidget variant={isTeamLeadMode ? "team_lead" : "manager"} />
+              <ManagerOperationsWidget
+                variant={isTeamLeadMode ? "team_lead" : "manager"}
+                allowedRoutes={allowedRoutes}
+                canViewTeamAttendance={canViewTeamAttendance}
+              />
             </DashboardWidgetBoundary>
           </Suspense>
         </section>
@@ -102,7 +119,11 @@ export const ManagerDashboard = ({
             <DashboardWidgetBoundary title="Team analytics" message="Analytics are temporarily unavailable.">
               <>
                 <DashboardPerfMarker onReady={perf.markChartsLoaded} />
-                <ManagerOperationsWidget variant={isTeamLeadMode ? "team_lead" : "manager"} />
+                <ManagerOperationsWidget
+                  variant={isTeamLeadMode ? "team_lead" : "manager"}
+                  allowedRoutes={allowedRoutes}
+                  canViewTeamAttendance={canViewTeamAttendance}
+                />
               </>
             </DashboardWidgetBoundary>
           </Suspense>
@@ -114,7 +135,10 @@ export const ManagerDashboard = ({
           <WorkflowPanel title="Workflow queue" subtitle="Pending approvals and exceptions">
             <Suspense fallback={<div className="grid-2"><SkeletonList rows={6} /><SkeletonList rows={6} /></div>}>
               <DashboardWidgetBoundary title="Workflow queue" message="Workflow data is temporarily unavailable.">
-                <ManagerWorkflowWidget variant={isTeamLeadMode ? "team_lead" : "manager"} />
+                <ManagerWorkflowWidget
+                  variant={isTeamLeadMode ? "team_lead" : "manager"}
+                  canOpenEmployees={hasEmployees}
+                />
               </DashboardWidgetBoundary>
             </Suspense>
           </WorkflowPanel>

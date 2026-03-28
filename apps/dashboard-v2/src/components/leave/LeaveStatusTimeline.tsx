@@ -30,9 +30,10 @@ export const LeaveStatusTimeline = ({ request }: { request?: LeaveRequest | null
 
   const items = [
     { label: "Submitted", date: request.created_at },
+    request.approval_stage_label ? { label: "Current stage", date: request.updated_at, meta: request.approval_stage_label } : null,
     request.approved_at ? { label: "Reviewed", date: request.approved_at } : null,
     { label: "Last updated", date: request.updated_at },
-  ].filter(Boolean) as Array<{ label: string; date: string }>;
+  ].filter(Boolean) as Array<{ label: string; date: string; meta?: string }>;
 
   return (
     <Card className="rounded-[24px] border border-slate-200/80 bg-white/92 shadow-sm">
@@ -52,11 +53,16 @@ export const LeaveStatusTimeline = ({ request }: { request?: LeaveRequest | null
           <div key={item.label} className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3">
             <div>
               <p className="text-sm font-semibold text-slate-900">{item.label}</p>
-              <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Leave workflow</p>
+              <p className="text-xs uppercase tracking-[0.18em] text-slate-500">{item.meta ?? "Leave workflow"}</p>
             </div>
             <p className="text-sm text-slate-600">{formatDate(item.date)}</p>
           </div>
         ))}
+        {request.status === "pending" && request.next_approver_name ? (
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50/80 px-4 py-3 text-sm text-slate-600">
+            Next approver: <span className="font-medium text-slate-900">{request.next_approver_name}</span>
+          </div>
+        ) : null}
       </CardContent>
     </Card>
   );

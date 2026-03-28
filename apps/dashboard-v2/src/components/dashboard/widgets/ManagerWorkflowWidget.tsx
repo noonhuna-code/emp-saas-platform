@@ -8,9 +8,10 @@ import { loadManagerDashboardData } from "@/components/dashboard/widgets/dashboa
 
 type ManagerWorkflowWidgetProps = {
   variant: "manager" | "team_lead";
+  canOpenEmployees?: boolean;
 };
 
-export default function ManagerWorkflowWidget({ variant }: ManagerWorkflowWidgetProps) {
+export default function ManagerWorkflowWidget({ variant, canOpenEmployees = false }: ManagerWorkflowWidgetProps) {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<Awaited<ReturnType<typeof loadManagerDashboardData>>>(null);
 
@@ -72,7 +73,7 @@ export default function ManagerWorkflowWidget({ variant }: ManagerWorkflowWidget
 
       <DashboardPanel
         title={variant === "team_lead" ? "Direct report access" : "Quick employee search"}
-        subtitle="Open employee records quickly"
+        subtitle={canOpenEmployees ? "Open employee records quickly" : "Read-only team roster snapshot"}
       >
         {data.quickSearch.length === 0 ? <p className="muted">No direct reports assigned.</p> : null}
         {data.quickSearch.slice(0, 8).map((employee) => (
@@ -81,9 +82,13 @@ export default function ManagerWorkflowWidget({ variant }: ManagerWorkflowWidget
               <strong>{employee.full_name}</strong>
               <span className="muted">{employee.designation ?? "Employee"}</span>
             </div>
-            <Link className="secondary-btn" href={`/app/employees/${employee.id}`}>
-              {variant === "team_lead" ? "Open" : "View"}
-            </Link>
+            {canOpenEmployees ? (
+              <Link className="secondary-btn" href={`/app/employees/${employee.id}`}>
+                {variant === "team_lead" ? "Open" : "View"}
+              </Link>
+            ) : (
+              <span className="text-xs font-medium uppercase tracking-[0.16em] text-slate-400">Roster</span>
+            )}
           </div>
         ))}
       </DashboardPanel>

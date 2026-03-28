@@ -24,26 +24,26 @@ export function PageHero({
   aside
 }: PageHeroProps) {
   return (
-    <section className="relative overflow-hidden pb-10 pt-16 sm:pb-12 sm:pt-20 lg:pb-14 lg:pt-24">
-      <div className="absolute inset-x-0 top-0 -z-10 h-96 bg-[radial-gradient(circle_at_top,rgba(14,116,144,0.12),transparent_55%)]" />
-      <div className="absolute inset-x-0 top-12 -z-10 h-72 bg-[linear-gradient(90deg,rgba(255,255,255,0.46),transparent_18%,transparent_82%,rgba(255,255,255,0.18))]" />
+    <section className="relative overflow-hidden pb-8 pt-10 sm:pb-10 sm:pt-12 lg:pb-12 lg:pt-14">
+      <div className="absolute inset-x-0 top-0 -z-10 h-72 bg-[radial-gradient(circle_at_top,rgba(14,116,144,0.08),transparent_58%)]" />
+      <div className="absolute inset-x-0 top-10 -z-10 h-48 bg-[linear-gradient(90deg,rgba(255,255,255,0.42),transparent_20%,transparent_80%,rgba(255,255,255,0.14))]" />
       <div className="container">
         {breadcrumbs ? (
-          <div className="mb-8">
+          <div className="mb-5">
             <Breadcrumbs items={breadcrumbs} />
           </div>
         ) : null}
-        <div className="grid gap-8 lg:gap-12 xl:grid-cols-[minmax(0,1fr)_430px] xl:items-start xl:gap-16">
-          <div className="max-w-3xl">
+        <div className="grid gap-7 lg:gap-10 xl:grid-cols-[minmax(0,1fr)_400px] xl:items-start xl:gap-12">
+          <div className="max-w-2xl">
             <p className="eyebrow">{eyebrow}</p>
-            <h1 className="mt-5 text-balance text-4xl font-semibold tracking-tight text-slate-950 sm:text-5xl lg:text-6xl xl:text-[4.4rem] xl:leading-[1.02]">
+            <h1 className="mt-4 text-balance text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl lg:text-5xl xl:text-[3.9rem] xl:leading-[1.02]">
               {title}
             </h1>
-            <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-600 sm:text-xl">
+            <p className="mt-5 max-w-xl text-base leading-7 text-slate-600 sm:text-lg sm:leading-8">
               {description}
             </p>
             {actions.length ? (
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+              <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                 {actions.map((action, index) => (
                   <Link
                     data-analytics-action={index === 0 ? "primary-cta" : "secondary-cta"}
@@ -61,20 +61,8 @@ export function PageHero({
                 ))}
               </div>
             ) : null}
-            <div className="mt-6 grid gap-3 sm:grid-cols-3">
-              {["Operational product walkthrough", "Pricing grounded in rollout scope", "Trust and governance review"].map(
-                (item) => (
-                  <span
-                    key={item}
-                    className="rounded-[1.2rem] border border-slate-200 bg-white/88 px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-600 shadow-[0_8px_24px_rgba(15,23,42,0.04)]"
-                  >
-                    {item}
-                  </span>
-                )
-              )}
-            </div>
           </div>
-          {aside ? <div className="xl:sticky xl:top-28 xl:max-w-[430px] xl:justify-self-end">{aside}</div> : null}
+          {aside ? <div className="xl:sticky xl:top-24 xl:max-w-[400px] xl:justify-self-end">{aside}</div> : null}
         </div>
       </div>
     </section>

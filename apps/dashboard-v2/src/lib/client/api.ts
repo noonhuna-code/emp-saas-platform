@@ -265,6 +265,27 @@ export const setClientCacheScope = (scope: string): void => {
     // ignore session storage access failures
   }
 };
+
+const invalidateCachedUrls = (urls: string[]): void => {
+  for (const url of urls) {
+    const cacheKey = getCacheKey(url);
+    GET_CACHE.delete(cacheKey);
+
+    if (typeof window === "undefined") continue;
+    try {
+      window.sessionStorage.removeItem(`${STORAGE_PREFIX}${cacheKey}`);
+    } catch {
+      // ignore browser storage failures
+    }
+  }
+};
+
+const invalidateEmployeeProfileCache = (employeeId: string): void => {
+  invalidateCachedUrls([
+    `/api/employees/${employeeId}/profile`,
+    "/api/employees/me"
+  ]);
+};
 const postJson = async <T>(
   url: string,
   body: Record<string, unknown>,
@@ -285,6 +306,179 @@ const postJson = async <T>(
 export const fetchSession = async (): Promise<DashboardApiResult<DashboardSession>> => {
   const response = await fetchWithCache<DashboardSession>("/api/auth/session", 30000);
   return response;
+};
+
+export const changePassword = async (payload: {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}): Promise<DashboardApiResult<{ redirectTo: string; message: string }>> => {
+  return postJson<{ redirectTo: string; message: string }>(
+    "/api/auth/password",
+    payload as Record<string, unknown>,
+    { "Idempotency-Key": crypto.randomUUID() }
+  );
+};
+
+export const updateSettingsAccount = async (payload: {
+  fullName?: string | null;
+  avatarUrl?: string | null;
+  phoneNumber?: string | null;
+  alternatePhone?: string | null;
+  personalEmail?: string | null;
+  addressLine1?: string | null;
+  addressLine2?: string | null;
+  city?: string | null;
+  state?: string | null;
+  postalCode?: string | null;
+  country?: string | null;
+  emergencyContactName?: string | null;
+  emergencyContactPhone?: string | null;
+  emergencyContactRelationship?: string | null;
+}): Promise<
+  DashboardApiResult<{
+    employeeId: string | null;
+    fullName: string | null;
+    avatarUrl: string | null;
+    officialEmail: string | null;
+    personalEmail: string | null;
+    phoneNumber: string | null;
+    alternatePhone: string | null;
+    addressLine1: string | null;
+    addressLine2: string | null;
+    city: string | null;
+    state: string | null;
+    postalCode: string | null;
+    country: string | null;
+    emergencyContactName: string | null;
+    emergencyContactPhone: string | null;
+    emergencyContactRelationship: string | null;
+  }>
+> => {
+  return postJson(
+    "/api/settings/account",
+    payload as Record<string, unknown>,
+    { "Idempotency-Key": crypto.randomUUID() }
+  );
+};
+
+export const uploadSettingsAvatar = async (
+  file: File
+): Promise<
+  DashboardApiResult<{
+    employeeId: string | null;
+    fullName: string | null;
+    avatarUrl: string | null;
+    officialEmail: string | null;
+    personalEmail: string | null;
+    phoneNumber: string | null;
+    alternatePhone: string | null;
+    addressLine1: string | null;
+    addressLine2: string | null;
+    city: string | null;
+    state: string | null;
+    postalCode: string | null;
+    country: string | null;
+    emergencyContactName: string | null;
+    emergencyContactPhone: string | null;
+    emergencyContactRelationship: string | null;
+  }>
+> => {
+  const formData = new FormData();
+  formData.append("file", file);
+  const response = await fetch("/api/settings/avatar", {
+    method: "POST",
+    headers: {
+      "Idempotency-Key": crypto.randomUUID(),
+    },
+    body: formData,
+  });
+  return parseJson(response);
+};
+
+export const revokeSettingsSession = async (
+  sessionId: string
+): Promise<
+  DashboardApiResult<{
+    sessions: Array<{
+      id: string;
+      createdAt: string;
+      lastSeenAt: string;
+      expiresAt: string;
+      revokedAt: string | null;
+      revokedReason: string | null;
+      status: "current" | "active" | "expired" | "revoked";
+    }>;
+    devices: Array<{
+      id: string;
+      deviceHashMasked: string;
+      firstSeenAt: string;
+      lastSeenAt: string;
+      riskScore: number;
+    }>;
+  }>
+> => {
+  return postJson(
+    "/api/settings/sessions/revoke",
+    { sessionId },
+    { "Idempotency-Key": crypto.randomUUID() }
+  );
+};
+
+export const revokeOtherSettingsSessions = async (): Promise<
+  DashboardApiResult<{
+    sessions: Array<{
+      id: string;
+      createdAt: string;
+      lastSeenAt: string;
+      expiresAt: string;
+      revokedAt: string | null;
+      revokedReason: string | null;
+      status: "current" | "active" | "expired" | "revoked";
+    }>;
+    devices: Array<{
+      id: string;
+      deviceHashMasked: string;
+      firstSeenAt: string;
+      lastSeenAt: string;
+      riskScore: number;
+    }>;
+  }>
+> => {
+  return postJson(
+    "/api/settings/sessions/revoke-others",
+    {},
+    { "Idempotency-Key": crypto.randomUUID() }
+  );
+};
+
+export const forgetSettingsDevice = async (
+  deviceId: string
+): Promise<
+  DashboardApiResult<{
+    sessions: Array<{
+      id: string;
+      createdAt: string;
+      lastSeenAt: string;
+      expiresAt: string;
+      revokedAt: string | null;
+      revokedReason: string | null;
+      status: "current" | "active" | "expired" | "revoked";
+    }>;
+    devices: Array<{
+      id: string;
+      deviceHashMasked: string;
+      firstSeenAt: string;
+      lastSeenAt: string;
+      riskScore: number;
+    }>;
+  }>
+> => {
+  return postJson(
+    "/api/settings/devices/forget",
+    { deviceId },
+    { "Idempotency-Key": crypto.randomUUID() }
+  );
 };
 
 export const fetchEmployees = async (params: {
@@ -336,21 +530,33 @@ export const updatePersonalDetails = async (
   employeeId: string,
   payload: Record<string, unknown>
 ): Promise<DashboardApiResult<EmployeeProfileResponse>> => {
-  return postJson<EmployeeProfileResponse>(`/api/employees/${employeeId}/personal`, payload);
+  const result = await postJson<EmployeeProfileResponse>(`/api/employees/${employeeId}/personal`, payload);
+  if (result.ok) {
+    invalidateEmployeeProfileCache(employeeId);
+  }
+  return result;
 };
 
 export const updateEmploymentInfo = async (
   employeeId: string,
   payload: Record<string, unknown>
 ): Promise<DashboardApiResult<EmployeeProfileResponse>> => {
-  return postJson<EmployeeProfileResponse>(`/api/employees/${employeeId}/employment`, payload);
+  const result = await postJson<EmployeeProfileResponse>(`/api/employees/${employeeId}/employment`, payload);
+  if (result.ok) {
+    invalidateEmployeeProfileCache(employeeId);
+  }
+  return result;
 };
 
 export const updateSensitiveData = async (
   employeeId: string,
   payload: Record<string, unknown>
 ): Promise<DashboardApiResult<EmployeeProfileResponse>> => {
-  return postJson<EmployeeProfileResponse>(`/api/employees/${employeeId}/sensitive`, payload);
+  const result = await postJson<EmployeeProfileResponse>(`/api/employees/${employeeId}/sensitive`, payload);
+  if (result.ok) {
+    invalidateEmployeeProfileCache(employeeId);
+  }
+  return result;
 };
 
 export const addEmployeeDocument = async (
@@ -457,6 +663,31 @@ export const deleteEmployeeSkill = async (
   skillId: string
 ): Promise<DashboardApiResult<EmployeeProfileResponse>> => {
   const response = await fetch(`/api/employees/${employeeId}/skills/${skillId}`, {
+    method: "DELETE"
+  });
+  return parseJson<EmployeeProfileResponse>(response);
+};
+
+export const addEmployeeEducation = async (
+  employeeId: string,
+  payload: Record<string, unknown>
+): Promise<DashboardApiResult<EmployeeProfileResponse>> => {
+  return postJson<EmployeeProfileResponse>(`/api/employees/${employeeId}/education`, payload);
+};
+
+export const updateEmployeeEducation = async (
+  employeeId: string,
+  educationId: string,
+  payload: Record<string, unknown>
+): Promise<DashboardApiResult<EmployeeProfileResponse>> => {
+  return postJson<EmployeeProfileResponse>(`/api/employees/${employeeId}/education/${educationId}`, payload);
+};
+
+export const deleteEmployeeEducation = async (
+  employeeId: string,
+  educationId: string
+): Promise<DashboardApiResult<EmployeeProfileResponse>> => {
+  const response = await fetch(`/api/employees/${employeeId}/education/${educationId}`, {
     method: "DELETE"
   });
   return parseJson<EmployeeProfileResponse>(response);
@@ -667,8 +898,13 @@ export const fetchLeaveBalances = async (params: {
   return response;
 };
 
-export const fetchLeaveTypes = async (): Promise<DashboardApiResult<LeaveTypesResponse>> => {
-  const response = await fetchWithCache<LeaveTypesResponse>("/api/leave/types");
+export const fetchLeaveTypes = async (params: {
+  employeeId?: string;
+} = {}): Promise<DashboardApiResult<LeaveTypesResponse>> => {
+  const query = new URLSearchParams();
+  if (params.employeeId) query.set("employeeId", params.employeeId);
+  const suffix = query.toString() ? `?${query.toString()}` : "";
+  const response = await fetchWithCache<LeaveTypesResponse>(`/api/leave/types${suffix}`);
   return response;
 };
 
@@ -695,7 +931,11 @@ export const fetchLeaveHistory = async (params: {
 export const applyLeaveRequest = async (
   payload: LeaveApplyInput
 ): Promise<DashboardApiResult<LeaveApplyResponse>> => {
-  return postJson<LeaveApplyResponse>("/api/leave/apply", payload);
+  return postJson<LeaveApplyResponse>(
+    "/api/leave/apply",
+    payload,
+    { "Idempotency-Key": crypto.randomUUID() }
+  );
 };
 
 export const cancelLeaveRequest = async (
@@ -1412,7 +1652,6 @@ export const prewarmRouteData = (href: string): void => {
     tasks.push(fetchLeaveBalances());
     tasks.push(fetchLeaveTypes());
     tasks.push(fetchLeaveHistory({ page: 1, pageSize: 10 }));
-    tasks.push(fetchLeaveCalendar(monthRange));
   }
 
   if (path === "/app/calendar") {
@@ -1494,10 +1733,13 @@ export const prewarmDashboardData = (persona: DashboardPrewarmPersona): void => 
       phaseTwo.push(fetchLeaveBalances());
       phaseTwo.push(fetchLeaveTypes());
       phaseTwo.push(fetchLeaveHistory({ page: 1, pageSize: 10 }));
-      phaseTwo.push(fetchLeaveCalendar(monthRange));
       phaseTwo.push(fetchShiftSwapRequests({ scope: "mine", limit: 30 }));
       phaseTwo.push(fetchWorkspaceChat({ limit: 20 }));
       phaseTwo.push(fetchWorkspaceContacts(200));
+    }
+
+    if (persona === "manager") {
+      phaseTwo.push(fetchLeaveCalendar(monthRange));
     }
 
     if (persona === "admin_ops" || persona === "finance" || persona === "executive") {

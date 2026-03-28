@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   approveLeaveRequest,
+  cancelLeaveRequest,
   fetchLeaveCalendar,
   fetchLeaveReviewHistory,
   fetchLeaveReviewQueue,
@@ -14,6 +15,14 @@ import { LeaveApprovalHistoryTable } from "@/components/leave/LeaveApprovalHisto
 import { TeamLeaveCalendar } from "@/components/leave/TeamLeaveCalendar";
 import { ErrorState } from "@/components/states/ErrorState";
 import { LoadingState } from "@/components/states/LoadingState";
+import {
+  FeatureCallout,
+  PageContainer,
+  PageHeader,
+  StatCard,
+  StatGrid,
+} from "@/components/dashboard-v2/PagePrimitives";
+import { Button } from "@/components/ui/button";
 
 const toDateInputValue = (date: Date) => date.toISOString().slice(0, 10);
 
@@ -76,7 +85,7 @@ export const LeaveReviewPageClient = ({
     } finally {
       setLoading(false);
     }
-  }, [calendarRange]);
+  }, [calendarRange, initialEmployeeId]);
 
   useEffect(() => {
     void load();
@@ -116,31 +125,77 @@ export const LeaveReviewPageClient = ({
     }
   }, [load]);
 
+  const handleCancel = useCallback(async (requestId: string, employeeId: string) => {
+    setBusy(true);
+    setError(null);
+    try {
+      const result = await cancelLeaveRequest(requestId, employeeId);
+      if (!result.ok) {
+        setError(result.error ?? "Leave cancellation failed");
+      } else {
+        await load();
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Leave cancellation failed");
+    } finally {
+      setBusy(false);
+    }
+  }, [load]);
+
+  const pendingDays = useMemo(
+    () => pending.reduce((sum, request) => sum + (request.total_days ?? 0), 0),
+    [pending]
+  );
+
+  const calendarEntries = useMemo(() => calendar.length, [calendar]);
+
   return (
-    <div className="page-wrap stack">
-      <section className="card stack">
-        <h1 style={{ margin: 0 }}>Leave Review</h1>
-        <p className="muted" style={{ margin: "6px 0 0" }}>
-          Manager approvals and team leave visibility.
-        </p>
-      </section>
+    <PageContainer>
+      <PageHeader
+        eyebrow="Leave approvals"
+        title="Leave review workspace"
+        description="Approve, reject, or cancel leave requests in the right sequence while keeping team coverage visible."
+        chips={["Supervisor aware", "Manager escalation", "HR-ready fallback"]}
+        actions={
+          <Button variant="secondary" className="rounded-full" onClick={() => void load()}>
+            Refresh
+          </Button>
+        }
+      />
 
       {loading ? <LoadingState label="Loading leave approvals..." /> : null}
       {!loading && error ? <ErrorState message={error} /> : null}
 
       {!loading ? (
         <>
+          <FeatureCallout
+            badge="Approval chain"
+            title="Requests follow the live reporting chain instead of a flat approval queue"
+            description="Agents route through team lead and then manager, team leads route to manager, and manager requests route to HR or the next eligible admin fallback."
+          />
+
+          <StatGrid>
+            <StatCard label="Pending requests" value={pending.length} hint="Requests waiting on your action" />
+            <StatCard label="Pending days" value={pendingDays} hint="Upcoming time away in this queue" />
+            <StatCard label="History items" value={history.length} hint="Requests already resolved" />
+            <StatCard label="Calendar entries" value={calendarEntries} hint="Approved or pending leave in the next 30 days" />
+          </StatGrid>
+
           <LeaveReviewTable
             requests={pending}
             onApprove={handleApprove}
             onReject={handleReject}
+            onCancel={handleCancel}
             busy={busy}
             focusId={focusId}
           />
-          <LeaveApprovalHistoryTable requests={history} />
-          <TeamLeaveCalendar requests={calendar} />
+
+          <div className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
+            <LeaveApprovalHistoryTable requests={history} />
+            <TeamLeaveCalendar requests={calendar} />
+          </div>
         </>
       ) : null}
-    </div>
+    </PageContainer>
   );
 };

@@ -61,6 +61,11 @@ export const SensitiveDataSection = ({
     setEditing(false);
   };
 
+  const maskedNationalId = personal?.national_id_masked ?? mask(sensitive?.national_id);
+  const maskedPassport = personal?.passport_number_masked ?? mask(sensitive?.passport_number);
+  const maskedTaxId = personal?.tax_id_masked ?? mask(sensitive?.tax_id);
+  const maskedBankAccount = personal?.bank_account_masked ?? mask(sensitive?.bank_account_number);
+
   if (!canEdit) {
     return (
       <ProfileSectionCard
@@ -69,10 +74,10 @@ export const SensitiveDataSection = ({
         actions={<StatusBadge status="Masked" />}
       >
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <ReadonlyField label="National ID" value={mask(personal?.national_id_masked)} hint="Masked for employee view" />
-          <ReadonlyField label="Passport" value={mask(personal?.passport_number_masked)} hint="Masked for employee view" />
-          <ReadonlyField label="Tax ID" value={mask(personal?.tax_id_masked)} hint="Masked for employee view" />
-          <ReadonlyField label="Bank account" value={mask(personal?.bank_account_masked)} hint="Masked for employee view" />
+          <ReadonlyField label="National ID" value={maskedNationalId} hint="Masked for employee view" />
+          <ReadonlyField label="Passport" value={maskedPassport} hint="Masked for employee view" />
+          <ReadonlyField label="Tax ID" value={maskedTaxId} hint="Masked for employee view" />
+          <ReadonlyField label="Bank account" value={maskedBankAccount} hint="Masked for employee view" />
         </div>
       </ProfileSectionCard>
     );

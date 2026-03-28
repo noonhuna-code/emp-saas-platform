@@ -1,6 +1,7 @@
 import type { ServiceContext, ServiceResult } from "../lib/types";
 import { requirePermission } from "../lib/auth-wrapper";
 import { requireAnyPlanFeature } from "../lib/entitlements";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 export type EmployeeDashboardData = {
   workspace: {
@@ -141,6 +142,24 @@ export type AdminDashboardData = {
   departmentBreakdown: Array<{ department: string; count: number }>;
 };
 
+const getAdminEnv = (key: string): string => process.env[key] ?? "";
+
+const createSupabaseAdminClient = (): SupabaseClient => {
+  const url = getAdminEnv("SUPABASE_URL") || getAdminEnv("NEXT_PUBLIC_SUPABASE_URL");
+  const serviceRoleKey = getAdminEnv("SUPABASE_SERVICE_ROLE_KEY");
+
+  if (!url || !serviceRoleKey) {
+    throw new Error("Missing Supabase admin environment variables");
+  }
+
+  return createClient(url, serviceRoleKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  });
+};
+
 const resolveCurrentEmployeeId = async (ctx: ServiceContext): Promise<string | null> => {
   try {
     const { data, error } = await ctx.supabase.rpc("current_user_employee_id");
@@ -186,6 +205,7 @@ const EMPLOYEE_DASHBOARD_CACHE = new Map<string, EmployeeDashboardCacheEntry>();
 export const getEmployeeDashboard = async (ctx: ServiceContext, options?: { includeCollections?: boolean }): Promise<ServiceResult<EmployeeDashboardData>> => {
   try {
     await requireDashboardEntitlement(ctx);
+    const admin = createSupabaseAdminClient();
     const employeeId = await resolveCurrentEmployeeId(ctx);
     if (!employeeId) {
       return { ok: false, error: "Employee record not found" };
@@ -230,51 +250,51 @@ export const getEmployeeDashboard = async (ctx: ServiceContext, options?: { incl
         .maybeSingle()
     ]);
 
-    const employeeProfile = employeeRecord.data?.user_profile_id
-      ? await ctx.supabase
-          .from("user_profiles")
-          .select("id, full_name, avatar_url")
-          .eq("company_id", ctx.companyId)
+      const employeeProfile = employeeRecord.data?.user_profile_id
+        ? await admin
+            .from("user_profiles")
+            .select("id, full_name, avatar_url")
+            .eq("company_id", ctx.companyId)
           .eq("id", employeeRecord.data.user_profile_id as string)
           .is("is_deleted", false)
           .maybeSingle()
       : { data: null };
 
-    const department = employeeRecord.data?.department_id
-      ? await ctx.supabase
-          .from("departments")
-          .select("id, name, main_contact_label, main_contact_email, main_contact_phone")
-          .eq("company_id", ctx.companyId)
+      const department = employeeRecord.data?.department_id
+        ? await admin
+            .from("departments")
+            .select("id, name, main_contact_label, main_contact_email, main_contact_phone")
+            .eq("company_id", ctx.companyId)
           .eq("id", employeeRecord.data.department_id as string)
           .is("is_deleted", false)
           .maybeSingle()
       : { data: null };
 
-    const team = employeeRecord.data?.team_id
-      ? await ctx.supabase
-          .from("teams")
-          .select("id, name")
-          .eq("company_id", ctx.companyId)
+      const team = employeeRecord.data?.team_id
+        ? await admin
+            .from("teams")
+            .select("id, name")
+            .eq("company_id", ctx.companyId)
           .eq("id", employeeRecord.data.team_id as string)
           .is("is_deleted", false)
           .maybeSingle()
       : { data: null };
 
-    const teamLeadEmployee = employeeRecord.data?.manager_id
-      ? await ctx.supabase
-          .from("employees")
-          .select("id, user_profile_id")
-          .eq("company_id", ctx.companyId)
+      const teamLeadEmployee = employeeRecord.data?.manager_id
+        ? await admin
+            .from("employees")
+            .select("id, user_profile_id")
+            .eq("company_id", ctx.companyId)
           .eq("id", employeeRecord.data.manager_id as string)
           .is("is_deleted", false)
           .maybeSingle()
       : { data: null };
 
-    const teamLeadProfile = teamLeadEmployee.data?.user_profile_id
-      ? await ctx.supabase
-          .from("user_profiles")
-          .select("id, full_name")
-          .eq("company_id", ctx.companyId)
+      const teamLeadProfile = teamLeadEmployee.data?.user_profile_id
+        ? await admin
+            .from("user_profiles")
+            .select("id, full_name")
+            .eq("company_id", ctx.companyId)
           .eq("id", teamLeadEmployee.data.user_profile_id as string)
           .is("is_deleted", false)
           .maybeSingle()

@@ -19,7 +19,7 @@ export async function GET(request: Request) {
       return finalizeRoute(route, endpoint, jsonError("Authentication required", 401, route.requestId));
     }
 
-    const { ctx } = await buildAttendanceRouteContext(route.ctx, ["manage_attendance", "manage_employees"]);
+    const { ctx } = await buildAttendanceRouteContext(route.ctx, ["manage_attendance", "manage_employees", "assign_shifts", "manage_shifts"]);
     const url = new URL(request.url);
     const limitRaw = Number(url.searchParams.get("limit") ?? 200);
     const limit = Number.isFinite(limitRaw) ? limitRaw : 200;
@@ -41,4 +41,3 @@ export async function GET(request: Request) {
     return finalizeRoute(route, endpoint, handleRouteError(error, "Unable to load assignable employees", route.requestId));
   }
 }
-

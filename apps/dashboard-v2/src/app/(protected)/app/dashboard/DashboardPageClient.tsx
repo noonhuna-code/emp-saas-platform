@@ -52,8 +52,26 @@ export const DashboardPageClient = ({ role, permissions, hasEmployeeContext, ent
     [entitlements, hasEmployeeContext, permissions, persona]
   );
   const allowedRoutes = useMemo(
-    () => [...new Set(visibleGroups.flatMap((group) => group.items.map((item) => item.href)))],
-    [visibleGroups]
+    () => {
+      const routes = new Set(visibleGroups.flatMap((group) => group.items.map((item) => item.href)));
+
+      if (hasEmployeeContext) {
+        routes.add("/app/attendance/shift-swaps");
+      }
+
+      if (permissions.includes("manage_attendance")) {
+        routes.add("/app/attendance/team");
+        routes.add("/app/attendance/shift-swaps");
+        routes.add("/app/leave/review");
+      }
+
+      if (permissions.includes("manage_employees")) {
+        routes.add("/app/leave/review");
+      }
+
+      return [...routes];
+    },
+    [hasEmployeeContext, permissions, visibleGroups]
   );
   const managerMode = normalizedRole === "team_lead" || normalizedRole === "teamlead" || (permissions.includes("manage_attendance") && !permissions.includes("manage_employees"))
     ? "team_lead"
@@ -76,7 +94,9 @@ export const DashboardPageClient = ({ role, permissions, hasEmployeeContext, ent
     return "admin" as const;
   }, [caps, normalizedRole]);
   const canViewTeamAttendance = permissions.includes("manage_attendance") && allowedRoutes.includes("/app/attendance");
-  const canReviewLeave = permissions.includes("manage_employees") && allowedRoutes.includes("/app/leave");
+  const canReviewLeave =
+    (permissions.includes("manage_employees") || permissions.includes("manage_attendance"))
+    && allowedRoutes.includes("/app/leave/review");
 
   const roleDashboard = useMemo(() => {
     switch (persona) {
@@ -87,12 +107,12 @@ export const DashboardPageClient = ({ role, permissions, hasEmployeeContext, ent
       case "finance":
         return <FinanceDashboard allowedRoutes={allowedRoutes} />;
       case "manager":
-        return <ManagerDashboard mode={managerMode} allowedRoutes={allowedRoutes} canViewTeamAttendance={canViewTeamAttendance} />;
+        return <ManagerDashboard mode={managerMode} allowedRoutes={allowedRoutes} canViewTeamAttendance={canViewTeamAttendance} canReviewLeave={canReviewLeave} />;
       case "employee":
       default:
         return hasEmployeeContext
           ? <EmployeeDashboard allowedRoutes={allowedRoutes} />
-          : <ManagerDashboard mode="manager" allowedRoutes={allowedRoutes} canViewTeamAttendance={canViewTeamAttendance} />;
+          : <ManagerDashboard mode="manager" allowedRoutes={allowedRoutes} canViewTeamAttendance={canViewTeamAttendance} canReviewLeave={canReviewLeave} />;
     }
   }, [adminOpsMode, allowedRoutes, canReviewLeave, canViewTeamAttendance, hasEmployeeContext, managerMode, persona]);
 

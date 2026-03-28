@@ -25,7 +25,7 @@ export const runGuardedMutation = async (
   }
 
   try {
-    if (!endpoint.startsWith("/api/billing")) {
+    if (!endpoint.startsWith("/api/billing") && !endpoint.startsWith("/api/auth/")) {
       const { data: blocked, error: blockedError } = await ctx.supabase.rpc("company_billing_is_write_blocked", {
         p_company_id: ctx.companyId,
         p_endpoint: endpoint

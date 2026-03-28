@@ -21,7 +21,7 @@ export async function POST(request: Request) {
       return finalizeRoute(route, endpoint, jsonError("Authentication required", 401, route.requestId));
     }
 
-    const { ctx } = await buildAttendanceRouteContext(route.ctx, ["manage_attendance", "manage_employees"]);
+    const { ctx } = await buildAttendanceRouteContext(route.ctx, ["manage_attendance", "manage_employees", "assign_shifts", "manage_shifts"]);
     const body = (await request.json()) as AssignShiftBody;
 
     const guarded = await runGuardedMutation(ctx, request, endpoint, async () => {

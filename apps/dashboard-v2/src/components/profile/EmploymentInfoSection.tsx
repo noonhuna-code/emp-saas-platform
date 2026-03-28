@@ -7,6 +7,7 @@ import type { EmployeeLookupResponse } from "@/lib/types/profile";
 import {
   ProfilePanel,
   ProfileSectionCard,
+  ReadonlyField,
   SectionActionBar,
   profileFieldClassName,
   profileLabelClassName,
@@ -32,11 +33,17 @@ type EmploymentFormState = {
 export const EmploymentInfoSection = ({
   employee,
   lookups,
+  departmentName,
+  teamName,
+  managerName,
   canEdit,
   onSave,
 }: {
   employee: Record<string, unknown>;
   lookups: EmployeeLookupResponse | null;
+  departmentName?: string | null;
+  teamName?: string | null;
+  managerName?: string | null;
   canEdit: boolean;
   onSave: (payload: EmploymentFormState) => Promise<void>;
 }) => {
@@ -147,50 +154,58 @@ export const EmploymentInfoSection = ({
       </ProfilePanel>
 
       <ProfilePanel title="Organization mapping" description="Department, team, and reporting line used in approvals and org hierarchy.">
-        <div className="grid gap-4 xl:grid-cols-3">
-          <label className={profileLabelClassName}>
-            <span>Department</span>
-            <select
-              className={profileFieldClassName}
-              value={form.department_id ?? ""}
-              onChange={(event) => setForm((prev) => ({ ...prev, department_id: event.target.value || null }))}
-              disabled={!editing}
-            >
-              <option value="">Unassigned</option>
-              {lookups?.departments.map((dept) => (
-                <option key={dept.id} value={dept.id}>{dept.name}</option>
-              ))}
-            </select>
-          </label>
-          <label className={profileLabelClassName}>
-            <span>Team</span>
-            <select
-              className={profileFieldClassName}
-              value={form.team_id ?? ""}
-              onChange={(event) => setForm((prev) => ({ ...prev, team_id: event.target.value || null }))}
-              disabled={!editing}
-            >
-              <option value="">Unassigned</option>
-              {lookups?.teams.map((team) => (
-                <option key={team.id} value={team.id}>{team.name}</option>
-              ))}
-            </select>
-          </label>
-          <label className={profileLabelClassName}>
-            <span>Reporting manager</span>
-            <select
-              className={profileFieldClassName}
-              value={form.manager_id ?? ""}
-              onChange={(event) => setForm((prev) => ({ ...prev, manager_id: event.target.value || null }))}
-              disabled={!editing}
-            >
-              <option value="">None</option>
-              {lookups?.managers.map((manager) => (
-                <option key={manager.id} value={manager.id}>{manager.full_name}</option>
-              ))}
-            </select>
-          </label>
-        </div>
+        {editing ? (
+          <div className="grid gap-4 xl:grid-cols-3">
+            <label className={profileLabelClassName}>
+              <span>Department</span>
+              <select
+                className={profileFieldClassName}
+                value={form.department_id ?? ""}
+                onChange={(event) => setForm((prev) => ({ ...prev, department_id: event.target.value || null }))}
+                disabled={!editing}
+              >
+                <option value="">Unassigned</option>
+                {lookups?.departments.map((dept) => (
+                  <option key={dept.id} value={dept.id}>{dept.name}</option>
+                ))}
+              </select>
+            </label>
+            <label className={profileLabelClassName}>
+              <span>Team</span>
+              <select
+                className={profileFieldClassName}
+                value={form.team_id ?? ""}
+                onChange={(event) => setForm((prev) => ({ ...prev, team_id: event.target.value || null }))}
+                disabled={!editing}
+              >
+                <option value="">Unassigned</option>
+                {lookups?.teams.map((team) => (
+                  <option key={team.id} value={team.id}>{team.name}</option>
+                ))}
+              </select>
+            </label>
+            <label className={profileLabelClassName}>
+              <span>Reporting manager</span>
+              <select
+                className={profileFieldClassName}
+                value={form.manager_id ?? ""}
+                onChange={(event) => setForm((prev) => ({ ...prev, manager_id: event.target.value || null }))}
+                disabled={!editing}
+              >
+                <option value="">None</option>
+                {lookups?.managers.map((manager) => (
+                  <option key={manager.id} value={manager.id}>{manager.full_name}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            <ReadonlyField label="Department" value={departmentName ?? "Unassigned"} />
+            <ReadonlyField label="Team" value={teamName ?? "Unassigned"} />
+            <ReadonlyField label="Reporting manager" value={managerName ?? "None"} />
+          </div>
+        )}
       </ProfilePanel>
 
       <ProfilePanel title="Lifecycle milestones" description="Confirmation, probation, and exit tracking values.">

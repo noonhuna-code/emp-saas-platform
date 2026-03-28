@@ -32,9 +32,10 @@ export const HRDashboard = ({
   const allowedRouteSet = useMemo(() => new Set(allowedRoutes), [allowedRoutes]);
 
   const heroActions = [
-    allowedRouteSet.has("/app/payroll") ? { href: "/app/payroll", label: "Payroll Runs", tone: "primary" as const } : null,
-    allowedRouteSet.has("/app/payslips") ? { href: "/app/payslips", label: "Payslips", tone: "secondary" as const } : null,
+    allowedRouteSet.has("/app/employees") ? { href: "/app/employees", label: "Employee Records", tone: "primary" as const } : null,
     canReviewLeave ? { href: "/app/leave/review", label: "Leave Review", tone: "secondary" as const } : null,
+    allowedRouteSet.has("/app/payroll") ? { href: "/app/payroll", label: "Payroll Runs", tone: "secondary" as const } : null,
+    allowedRouteSet.has("/app/resources") ? { href: "/app/resources", label: "Knowledge / SOPs", tone: "secondary" as const } : null,
   ].filter(Boolean) as Array<{ href: string; label: string; tone: "primary" | "secondary" }>;
 
   const hrActions = [
@@ -53,7 +54,7 @@ export const HRDashboard = ({
       <DashboardHero
         eyebrow="HR Workspace"
         title="Payroll and workforce operations"
-        subtitle="Read-only payroll run lifecycle monitoring and workforce ops throughput for HR teams."
+        subtitle="Stay close to employee records, leave review, payroll readiness, and policy delivery from one HR-ready start surface."
         emphasis="operations"
         actions={(
           <>

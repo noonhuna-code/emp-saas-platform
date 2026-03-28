@@ -19,10 +19,10 @@ export function CTASection({
   return (
     <section className="section">
       <div className="container">
-        <div className="relative overflow-hidden rounded-[2.2rem] border border-slate-900/10 bg-slate-950 px-6 py-10 text-white shadow-[0_34px_120px_rgba(15,23,42,0.26)] sm:px-10 sm:py-14 lg:px-12 lg:py-16">
+        <div className="relative overflow-hidden rounded-[2.2rem] border border-slate-900/10 bg-slate-950 px-6 py-9 text-white shadow-[0_34px_120px_rgba(15,23,42,0.26)] sm:px-10 sm:py-12 lg:px-12 lg:py-14">
           <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent" />
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(45,212,191,0.12),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(250,204,21,0.08),transparent_24%)]" />
-          <div className="relative grid gap-8 xl:grid-cols-[minmax(0,1fr)_300px] xl:items-end">
+          <div className="relative grid gap-6 xl:grid-cols-[minmax(0,1fr)_280px] xl:items-end">
             <div className="max-w-3xl">
               <p className="eyebrow !border-white/15 !bg-white/8 !text-slate-200">{eyebrow}</p>
               <h2 className="mt-4 text-balance text-3xl font-semibold tracking-tight sm:text-4xl lg:text-[2.8rem]">
@@ -49,21 +49,11 @@ export function CTASection({
                   </Link>
                 ) : null}
               </div>
-              <div className="mt-5 flex flex-wrap gap-2">
-                {["Guided demo", "Directional pricing", "Rollout planning"].map((item) => (
-                  <span
-                    key={item}
-                    className="rounded-full border border-white/12 bg-white/6 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-slate-300"
-                  >
-                    {item}
-                  </span>
-                ))}
-              </div>
             </div>
 
-            <div className="rounded-[1.75rem] border border-white/10 bg-white/5 p-5 shadow-[0_18px_60px_rgba(15,23,42,0.12)] xl:self-stretch">
+            <div className="rounded-[1.55rem] border border-white/10 bg-white/5 p-5 shadow-[0_18px_60px_rgba(15,23,42,0.12)] xl:self-stretch">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-                Evaluation format
+                Evaluation posture
               </p>
               <div className="mt-4 grid gap-3">
                 {["30 to 45 minute walkthrough", "Role-based product review", "Commercial and rollout discussion"].map(
@@ -78,8 +68,7 @@ export function CTASection({
                 )}
               </div>
               <p className="mt-4 text-sm leading-7 text-slate-400">
-                Built to move buyers from curiosity into a grounded product conversation without
-                pretending the site can replace rollout scoping.
+                Built to move buyers from product proof into a grounded rollout conversation.
               </p>
             </div>
           </div>
