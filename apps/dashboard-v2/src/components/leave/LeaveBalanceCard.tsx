@@ -1,41 +1,39 @@
-﻿import type { LeaveBalance } from "@/lib/types/leave";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import type { LeaveBalance } from "@/lib/types/leave";
+import { SurfacePanel } from "@/components/dashboard-v2/PagePrimitives";
 
 export const LeaveBalanceCard = ({ balances }: { balances: LeaveBalance[] }) => {
-  if (!balances.length) {
-    return (
-      <Card className="rounded-[24px] border border-slate-200/80 bg-white/92 shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-lg font-semibold text-slate-950">Leave balances</CardTitle>
-        </CardHeader>
-        <CardContent className="pt-0">
-          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50/80 p-4 text-sm text-slate-600">
-            No leave balances available.
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
-    <Card className="rounded-[24px] border border-slate-200/80 bg-white/92 shadow-sm">
-      <CardHeader>
-        <CardTitle className="text-lg font-semibold text-slate-950">Leave balances</CardTitle>
-      </CardHeader>
-      <CardContent className="grid gap-4 pt-0 md:grid-cols-2">
-        {balances.map((balance) => (
-          <Card key={balance.id} className="rounded-[20px] border border-slate-200/80 bg-slate-50/70 shadow-none">
-            <CardContent className="space-y-2 p-4">
-              <div className="text-sm text-slate-500">{balance.leave_type_name ?? "Leave"}</div>
-              <div className="text-2xl font-semibold tracking-tight text-slate-950">{balance.remaining_days}</div>
-              <div className="text-xs text-slate-500">
-                Used {balance.used_days} • Annual {balance.entitled_days}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </CardContent>
-    </Card>
+    <SurfacePanel title="Leave balances" description="Compact balance register for the currently entitled leave types.">
+      {!balances.length ? (
+        <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50/80 p-4 text-sm text-slate-600">
+          No leave balances available.
+        </div>
+      ) : (
+        <div className="overflow-hidden rounded-[22px] border border-slate-200">
+          <div className="max-h-[360px] overflow-auto">
+            <table className="min-w-full divide-y divide-slate-200 text-sm">
+              <thead className="bg-slate-50/90 text-left text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                <tr>
+                  <th className="px-4 py-3">Type</th>
+                  <th className="px-4 py-3">Entitled</th>
+                  <th className="px-4 py-3">Used</th>
+                  <th className="px-4 py-3">Remaining</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 bg-white">
+                {balances.map((balance) => (
+                  <tr key={balance.id}>
+                    <td className="px-4 py-3 font-medium text-slate-900">{balance.leave_type_name ?? "Leave"}</td>
+                    <td className="px-4 py-3 text-slate-700">{balance.entitled_days}</td>
+                    <td className="px-4 py-3 text-slate-700">{balance.used_days}</td>
+                    <td className="px-4 py-3 font-semibold text-slate-900">{balance.remaining_days}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </SurfacePanel>
   );
 };
-

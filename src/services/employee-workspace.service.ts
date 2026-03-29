@@ -321,6 +321,81 @@ export const createWorkspaceNote = async (
   }
 };
 
+export const updateWorkspaceNote = async (
+  ctx: ServiceContext,
+  noteId: string,
+  payload: {
+    title: string;
+    body: string;
+    fileUrl?: string | null;
+    fileName?: string | null;
+    isPinned?: boolean;
+  }
+): Promise<ServiceResult<{ id: string }>> => {
+  try {
+    const employeeId = await requireWorkspaceAccess(ctx);
+    const title = payload.title?.trim();
+    const body = payload.body?.trim();
+    if (!title || !body) return { ok: false, error: "Title and body are required" };
+
+    const { data, error } = await ctx.supabase
+      .from("employee_workspace_notes")
+      .update({
+        title,
+        body,
+        file_url: payload.fileUrl?.trim() || null,
+        file_name: payload.fileName?.trim() || null,
+        is_pinned: Boolean(payload.isPinned),
+        updated_by: ctx.userProfileId,
+      })
+      .eq("company_id", ctx.companyId)
+      .eq("employee_id", employeeId)
+      .eq("id", noteId)
+      .is("is_deleted", false)
+      .select("id")
+      .single();
+
+    if (error || !data) {
+      return { ok: false, error: sanitizeError(error?.message, "Unable to update note") };
+    }
+
+    return { ok: true, data: { id: data.id as string } };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "Unable to update note" };
+  }
+};
+
+export const deleteWorkspaceNote = async (
+  ctx: ServiceContext,
+  noteId: string
+): Promise<ServiceResult<{ id: string }>> => {
+  try {
+    const employeeId = await requireWorkspaceAccess(ctx);
+    const { data, error } = await ctx.supabase
+      .from("employee_workspace_notes")
+      .update({
+        is_deleted: true,
+        deleted_at: new Date().toISOString(),
+        deleted_by: ctx.userProfileId,
+        updated_by: ctx.userProfileId,
+      })
+      .eq("company_id", ctx.companyId)
+      .eq("employee_id", employeeId)
+      .eq("id", noteId)
+      .is("is_deleted", false)
+      .select("id")
+      .single();
+
+    if (error || !data) {
+      return { ok: false, error: sanitizeError(error?.message, "Unable to delete note") };
+    }
+
+    return { ok: true, data: { id: data.id as string } };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "Unable to delete note" };
+  }
+};
+
 export const listWorkspaceChatMessages = async (
   ctx: ServiceContext,
   filters: { peerEmployeeId?: string; limit?: number } = {}

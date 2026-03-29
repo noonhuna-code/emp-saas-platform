@@ -5,7 +5,7 @@ import {
   fetchShiftSwapRequests,
   fetchShiftTemplates,
   requestShiftSwap,
-  reviewShiftSwap
+  reviewShiftSwap,
 } from "@/lib/client/api";
 import type { ShiftSwapRequest } from "@/lib/types/attendance";
 import type { ShiftTemplate } from "@/lib/types/workspace";
@@ -13,7 +13,6 @@ import { LoadingState } from "@/components/states/LoadingState";
 import { ErrorState } from "@/components/states/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import {
-  FeatureCallout,
   PageContainer,
   PageHeader,
   StatCard,
@@ -22,6 +21,9 @@ import {
 } from "@/components/dashboard-v2/PagePrimitives";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+
+const fieldClassName =
+  "h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-100";
 
 const tomorrowDate = () => {
   const date = new Date();
@@ -42,7 +44,7 @@ const ShiftSwapsPageClient = () => {
   const [form, setForm] = useState({
     attendanceDate: tomorrowDate(),
     requestedShiftTemplateId: "",
-    reason: ""
+    reason: "",
   });
 
   const selectedTemplateName = useMemo(() => {
@@ -57,7 +59,7 @@ const ShiftSwapsPageClient = () => {
 
     const [templateResult, mineResult] = await Promise.all([
       fetchShiftTemplates(),
-      fetchShiftSwapRequests({ scope: "mine", limit: 50 })
+      fetchShiftSwapRequests({ scope: "mine", limit: 50 }),
     ]);
 
     if (!mineResult.ok || !mineResult.data) {
@@ -75,7 +77,7 @@ const ShiftSwapsPageClient = () => {
     setMine(mineResult.data.rows);
     setForm((prev) => ({
       ...prev,
-      requestedShiftTemplateId: prev.requestedShiftTemplateId || templateRows[0]?.id || ""
+      requestedShiftTemplateId: prev.requestedShiftTemplateId || templateRows[0]?.id || "",
     }));
 
     const reviewResult = await fetchShiftSwapRequests({ scope: "review", status: "pending", limit: 100 });
@@ -103,7 +105,7 @@ const ShiftSwapsPageClient = () => {
     const result = await requestShiftSwap({
       attendanceDate: form.attendanceDate,
       requestedShiftTemplateId: form.requestedShiftTemplateId,
-      reason: form.reason
+      reason: form.reason,
     });
 
     if (!result.ok) {
@@ -140,8 +142,7 @@ const ShiftSwapsPageClient = () => {
       <PageHeader
         eyebrow="Shift swaps"
         title="Shift swap workspace"
-        description="Request schedule exchanges, track your pending items, and review the queue when you manage team coverage."
-        chips={["Employee requests", "Supervisor review", "Coverage aware"]}
+        description="Request a schedule exchange, track your queue, and review team coverage from one compact lane."
         actions={
           <>
             <Badge className="rounded-full border-blue-200 bg-blue-50 text-blue-700">
@@ -167,12 +168,6 @@ const ShiftSwapsPageClient = () => {
 
       {!loading && !error ? (
         <>
-          <FeatureCallout
-            badge="Coverage"
-            title="Handle swap requests without losing the review chain"
-            description="Employees can request a swap, while team leads and HR review only the queue items they are meant to handle."
-          />
-
           <StatGrid>
             <StatCard label="My requests" value={mine.length} hint="All submitted swap requests" />
             <StatCard label="Pending mine" value={pendingMine} hint="Still waiting on review" />
@@ -181,19 +176,18 @@ const ShiftSwapsPageClient = () => {
           </StatGrid>
 
           {templateWarning ? (
-            <SurfacePanel title="Shift template warning" description="You can still review or inspect requests even when the assignment templates are incomplete.">
-                <p className="text-sm text-amber-600 dark:text-amber-400">
-                  {templateWarning}. You can still view your requests; submitting a new request needs available shift templates.
-                </p>
+            <SurfacePanel title="Shift template warning" description="Requests can still be reviewed, but new submissions need live templates.">
+              <p className="text-sm text-amber-600">{templateWarning}</p>
             </SurfacePanel>
           ) : null}
 
-          <div className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
-            <SurfacePanel title="Request shift swap" description="Submit a swap request for a real shift template and add the reason reviewers need.">
+          <div className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.9fr)]">
+            <SurfacePanel title="Request shift swap" description="Submit a swap request against a live shift template.">
               <form className="grid gap-4 md:grid-cols-3" onSubmit={onCreate}>
                 <label className="grid gap-1.5 text-sm">
                   Requested date
                   <input
+                    className={fieldClassName}
                     type="date"
                     value={form.attendanceDate}
                     onChange={(event) => setForm((prev) => ({ ...prev, attendanceDate: event.target.value }))}
@@ -203,6 +197,7 @@ const ShiftSwapsPageClient = () => {
                 <label className="grid gap-1.5 text-sm">
                   Target shift
                   <select
+                    className={fieldClassName}
                     value={form.requestedShiftTemplateId}
                     onChange={(event) => setForm((prev) => ({ ...prev, requestedShiftTemplateId: event.target.value }))}
                     required
@@ -219,55 +214,54 @@ const ShiftSwapsPageClient = () => {
                 <label className="grid gap-1.5 text-sm">
                   Reason
                   <input
+                    className={fieldClassName}
                     type="text"
                     value={form.reason}
                     onChange={(event) => setForm((prev) => ({ ...prev, reason: event.target.value }))}
-                    placeholder="Reason for swap request"
+                    placeholder="Short reason"
                     required
                   />
                 </label>
                 <div className="flex flex-col justify-end gap-2 md:col-span-3">
-                  <button
-                    type="submit"
-                    className="primary-btn"
-                    disabled={submitting || templates.length === 0 || !form.requestedShiftTemplateId}
-                  >
+                  <Button type="submit" className="w-fit rounded-full px-5" disabled={submitting || templates.length === 0 || !form.requestedShiftTemplateId}>
                     {submitting ? "Submitting..." : "Submit request"}
-                  </button>
+                  </Button>
                   <span className="text-xs text-muted-foreground">{selectedTemplateName}</span>
                 </div>
               </form>
-              {message ? <p className="text-sm mt-3">{message}</p> : null}
+              {message ? <p className="mt-3 text-sm text-emerald-700">{message}</p> : null}
             </SurfacePanel>
 
-            <SurfacePanel title="My requests" description="Track the swaps you already requested and their current review state.">
+            <SurfacePanel title="My requests" description="Track the status of the swaps you already submitted.">
               {mine.length === 0 ? <EmptyState title="No shift swap requests" subtitle="Submit a request to swap your shift." compact /> : null}
               {mine.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-slate-200 text-sm">
-                    <thead className="bg-slate-50/80 text-left text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-                      <tr>
-                        <th className="px-4 py-3">Date</th>
-                        <th className="px-4 py-3">Current Shift</th>
-                        <th className="px-4 py-3">Requested Shift</th>
-                        <th className="px-4 py-3">Status</th>
-                        <th className="px-4 py-3">Created</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 text-slate-700">
-                      {mine.map((row) => (
-                        <tr key={row.id}>
-                          <td className="px-4 py-3">{row.attendance_date}</td>
-                          <td className="px-4 py-3">{row.old_shift_name ?? row.old_shift_template_id}</td>
-                          <td className="px-4 py-3">{row.requested_shift_name ?? row.requested_shift_template_id}</td>
-                          <td className="px-4 py-3">
-                            <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-700">{row.status}</span>
-                          </td>
-                          <td className="px-4 py-3 text-slate-500">{new Date(row.created_at).toLocaleString()}</td>
+                <div className="overflow-hidden rounded-[22px] border border-slate-200">
+                  <div className="max-h-[360px] overflow-auto">
+                    <table className="min-w-full divide-y divide-slate-200 text-sm">
+                      <thead className="bg-slate-50/80 text-left text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                        <tr>
+                          <th className="px-4 py-3">Date</th>
+                          <th className="px-4 py-3">Current shift</th>
+                          <th className="px-4 py-3">Requested shift</th>
+                          <th className="px-4 py-3">Status</th>
+                          <th className="px-4 py-3">Created</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 bg-white text-slate-700">
+                        {mine.map((row) => (
+                          <tr key={row.id}>
+                            <td className="px-4 py-3">{row.attendance_date}</td>
+                            <td className="px-4 py-3">{row.old_shift_name ?? row.old_shift_template_id}</td>
+                            <td className="px-4 py-3">{row.requested_shift_name ?? row.requested_shift_template_id}</td>
+                            <td className="px-4 py-3">
+                              <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-700">{row.status}</span>
+                            </td>
+                            <td className="px-4 py-3 text-slate-500">{new Date(row.created_at).toLocaleString()}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               ) : null}
             </SurfacePanel>
@@ -276,24 +270,25 @@ const ShiftSwapsPageClient = () => {
           {canReview ? (
             <SurfacePanel
               title="Review queue"
-              description="Approve or reject swap requests that are waiting on your team-level review."
+              description="Approve or reject only the requests that are currently waiting on your review."
               actions={<span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700">Pending {reviewQueue.length}</span>}
             >
-                {reviewQueue.length === 0 ? <EmptyState title="No pending requests" subtitle="The review queue is clear." compact /> : null}
-                {reviewQueue.length > 0 ? (
-                  <div className="overflow-x-auto">
+              {reviewQueue.length === 0 ? <EmptyState title="No pending requests" subtitle="The review queue is clear." compact /> : null}
+              {reviewQueue.length > 0 ? (
+                <div className="overflow-hidden rounded-[22px] border border-slate-200">
+                  <div className="max-h-[360px] overflow-auto">
                     <table className="min-w-full divide-y divide-slate-200 text-sm">
                       <thead className="bg-slate-50/80 text-left text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
                         <tr>
                           <th className="px-4 py-3">Employee</th>
                           <th className="px-4 py-3">Date</th>
-                          <th className="px-4 py-3">Current Shift</th>
-                          <th className="px-4 py-3">Requested Shift</th>
+                          <th className="px-4 py-3">Current shift</th>
+                          <th className="px-4 py-3">Requested shift</th>
                           <th className="px-4 py-3">Reason</th>
                           <th className="px-4 py-3">Actions</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100 text-slate-700">
+                      <tbody className="divide-y divide-slate-100 bg-white text-slate-700">
                         {reviewQueue.map((row) => (
                           <tr key={row.id}>
                             <td className="px-4 py-3 font-medium text-slate-900">{row.employee_name ?? row.employee_id}</td>
@@ -303,12 +298,12 @@ const ShiftSwapsPageClient = () => {
                             <td className="px-4 py-3 text-slate-500">{row.reason}</td>
                             <td className="px-4 py-3">
                               <div className="flex flex-wrap gap-2">
-                                <button type="button" className="primary-btn" onClick={() => void onReview(row.id, "approved")} disabled={submitting}>
+                                <Button type="button" className="rounded-full px-4" onClick={() => void onReview(row.id, "approved")} disabled={submitting}>
                                   Approve
-                                </button>
-                                <button type="button" className="secondary-btn" onClick={() => void onReview(row.id, "rejected")} disabled={submitting}>
+                                </Button>
+                                <Button type="button" variant="secondary" className="rounded-full px-4" onClick={() => void onReview(row.id, "rejected")} disabled={submitting}>
                                   Reject
-                                </button>
+                                </Button>
                               </div>
                             </td>
                           </tr>
@@ -316,7 +311,8 @@ const ShiftSwapsPageClient = () => {
                       </tbody>
                     </table>
                   </div>
-                ) : null}
+                </div>
+              ) : null}
             </SurfacePanel>
           ) : null}
         </>

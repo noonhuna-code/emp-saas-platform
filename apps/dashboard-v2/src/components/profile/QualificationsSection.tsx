@@ -1,16 +1,20 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import type { EmployeeEducation } from "@/lib/types/profile";
 import {
   ProfilePanel,
   ProfileSectionCard,
-  ReadonlyField,
+  ProfileTableShell,
   SectionActionBar,
   profileFieldClassName,
   profileLabelClassName,
+  profileTableActionCellClassName,
+  profileTableCellClassName,
+  profileTableClassName,
+  profileTableHeadClassName,
 } from "@/components/profile/ProfileSectionPrimitives";
 
 type QualificationDraft = {
@@ -31,6 +35,12 @@ const emptyDraft: QualificationDraft = {
   grade: "",
 };
 
+const formatTimeline = (start?: string | null, end?: string | null) => {
+  const left = start ? new Date(start).toLocaleDateString() : "—";
+  const right = end ? new Date(end).toLocaleDateString() : "Present";
+  return `${left} — ${right}`;
+};
+
 export const QualificationsSection = ({
   education,
   onAdd,
@@ -44,15 +54,12 @@ export const QualificationsSection = ({
   onDelete: (educationId: string) => Promise<void>;
   canEdit: boolean;
 }) => {
-  const addFormRef = useRef<HTMLDivElement | null>(null);
   const [draft, setDraft] = useState<QualificationDraft>(emptyDraft);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingDraft, setEditingDraft] = useState<QualificationDraft>(emptyDraft);
+  const [showCreateForm, setShowCreateForm] = useState(false);
 
-  const focusAddForm = () => {
-    addFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    addFormRef.current?.querySelector("input")?.focus();
-  };
+  const rows = useMemo(() => [...education].sort((a, b) => a.institution.localeCompare(b.institution)), [education]);
 
   const handleAdd = async () => {
     if (!draft.institution) return;
@@ -65,9 +72,11 @@ export const QualificationsSection = ({
       grade: draft.grade || null,
     });
     setDraft(emptyDraft);
+    setShowCreateForm(false);
   };
 
   const startEdit = (entry: EmployeeEducation) => {
+    setShowCreateForm(false);
     setEditingId(entry.id);
     setEditingDraft({
       institution: entry.institution,
@@ -95,18 +104,18 @@ export const QualificationsSection = ({
   return (
     <ProfileSectionCard
       title="Qualifications"
-      description="Maintain academic qualifications and formal education records used in role readiness and profile completeness."
+      description="Keep education history in one dense register with less page travel and clearer comparisons."
       actions={
         canEdit ? (
-          <Button type="button" variant="secondary" size="sm" className="rounded-full" onClick={focusAddForm}>
-            Add qualification
+          <Button type="button" variant="secondary" size="sm" className="rounded-full" onClick={() => setShowCreateForm((prev) => !prev)}>
+            {showCreateForm ? "Hide form" : "Add qualification"}
           </Button>
         ) : undefined
       }
     >
-      {canEdit ? (
-        <ProfilePanel title="Add qualification" description="Capture institution, degree, field of study, and completion dates.">
-          <div ref={addFormRef} className="grid gap-4 xl:grid-cols-2">
+      {showCreateForm && canEdit ? (
+        <ProfilePanel title="Add qualification" description="Capture institution, qualification, study focus, and dates.">
+          <div className="grid gap-4 xl:grid-cols-2">
             <label className={profileLabelClassName}>
               <span>Institution</span>
               <input className={profileFieldClassName} value={draft.institution} onChange={(event) => setDraft((prev) => ({ ...prev, institution: event.target.value }))} />
@@ -133,6 +142,9 @@ export const QualificationsSection = ({
             </label>
           </div>
           <SectionActionBar>
+            <Button type="button" variant="secondary" className="rounded-full" onClick={() => setShowCreateForm(false)}>
+              Cancel
+            </Button>
             <Button type="button" className="rounded-full" onClick={handleAdd} disabled={!draft.institution}>
               Save qualification
             </Button>
@@ -140,73 +152,90 @@ export const QualificationsSection = ({
         </ProfilePanel>
       ) : null}
 
-      <div className="space-y-4">
-        {education.length === 0 ? (
-          <EmptyState title="No qualifications recorded yet" subtitle="Add academic records so the profile shows education context alongside skills and documents." />
-        ) : null}
+      {editingId ? (
+        <ProfilePanel title="Edit qualification" description="Update the selected education row without leaving the register.">
+          <div className="grid gap-4 xl:grid-cols-2">
+            <label className={profileLabelClassName}>
+              <span>Institution</span>
+              <input className={profileFieldClassName} value={editingDraft.institution} onChange={(event) => setEditingDraft((prev) => ({ ...prev, institution: event.target.value }))} />
+            </label>
+            <label className={profileLabelClassName}>
+              <span>Degree / qualification</span>
+              <input className={profileFieldClassName} value={editingDraft.degree} onChange={(event) => setEditingDraft((prev) => ({ ...prev, degree: event.target.value }))} />
+            </label>
+            <label className={profileLabelClassName}>
+              <span>Field of study</span>
+              <input className={profileFieldClassName} value={editingDraft.field_of_study} onChange={(event) => setEditingDraft((prev) => ({ ...prev, field_of_study: event.target.value }))} />
+            </label>
+            <label className={profileLabelClassName}>
+              <span>Grade / score</span>
+              <input className={profileFieldClassName} value={editingDraft.grade} onChange={(event) => setEditingDraft((prev) => ({ ...prev, grade: event.target.value }))} />
+            </label>
+            <label className={profileLabelClassName}>
+              <span>Start date</span>
+              <input className={profileFieldClassName} type="date" value={editingDraft.start_date} onChange={(event) => setEditingDraft((prev) => ({ ...prev, start_date: event.target.value }))} />
+            </label>
+            <label className={profileLabelClassName}>
+              <span>End date</span>
+              <input className={profileFieldClassName} type="date" value={editingDraft.end_date} onChange={(event) => setEditingDraft((prev) => ({ ...prev, end_date: event.target.value }))} />
+            </label>
+          </div>
+          <SectionActionBar>
+            <Button type="button" variant="secondary" className="rounded-full" onClick={() => setEditingId(null)}>
+              Cancel
+            </Button>
+            <Button type="button" className="rounded-full" onClick={saveEdit} disabled={!editingDraft.institution}>
+              Save changes
+            </Button>
+          </SectionActionBar>
+        </ProfilePanel>
+      ) : null}
 
-        {education.map((entry) => (
-          <ProfilePanel key={entry.id} title={entry.institution} description={entry.degree ?? "Qualification"}>
-            {editingId === entry.id ? (
-              <div className="space-y-4">
-                <div className="grid gap-4 xl:grid-cols-2">
-                  <label className={profileLabelClassName}>
-                    <span>Institution</span>
-                    <input className={profileFieldClassName} value={editingDraft.institution} onChange={(event) => setEditingDraft((prev) => ({ ...prev, institution: event.target.value }))} />
-                  </label>
-                  <label className={profileLabelClassName}>
-                    <span>Degree / qualification</span>
-                    <input className={profileFieldClassName} value={editingDraft.degree} onChange={(event) => setEditingDraft((prev) => ({ ...prev, degree: event.target.value }))} />
-                  </label>
-                  <label className={profileLabelClassName}>
-                    <span>Field of study</span>
-                    <input className={profileFieldClassName} value={editingDraft.field_of_study} onChange={(event) => setEditingDraft((prev) => ({ ...prev, field_of_study: event.target.value }))} />
-                  </label>
-                  <label className={profileLabelClassName}>
-                    <span>Grade / score</span>
-                    <input className={profileFieldClassName} value={editingDraft.grade} onChange={(event) => setEditingDraft((prev) => ({ ...prev, grade: event.target.value }))} />
-                  </label>
-                  <label className={profileLabelClassName}>
-                    <span>Start date</span>
-                    <input className={profileFieldClassName} type="date" value={editingDraft.start_date} onChange={(event) => setEditingDraft((prev) => ({ ...prev, start_date: event.target.value }))} />
-                  </label>
-                  <label className={profileLabelClassName}>
-                    <span>End date</span>
-                    <input className={profileFieldClassName} type="date" value={editingDraft.end_date} onChange={(event) => setEditingDraft((prev) => ({ ...prev, end_date: event.target.value }))} />
-                  </label>
-                </div>
-                <SectionActionBar>
-                  <Button type="button" variant="secondary" className="rounded-full" onClick={() => setEditingId(null)}>
-                    Cancel
-                  </Button>
-                  <Button type="button" className="rounded-full" onClick={saveEdit} disabled={!editingDraft.institution}>
-                    Save changes
-                  </Button>
-                </SectionActionBar>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                  <ReadonlyField label="Qualification" value={entry.degree ?? "—"} />
-                  <ReadonlyField label="Field of study" value={entry.field_of_study ?? "—"} />
-                  <ReadonlyField label="Timeline" value={[entry.start_date ?? "—", entry.end_date ?? "Present"].join(" to ")} />
-                  <ReadonlyField label="Grade" value={entry.grade ?? "—"} />
-                </div>
-                {canEdit ? (
-                  <SectionActionBar>
-                    <Button type="button" variant="secondary" className="rounded-full" onClick={() => startEdit(entry)}>
-                      Edit
-                    </Button>
-                    <Button type="button" variant="secondary" className="rounded-full" onClick={() => onDelete(entry.id)}>
-                      Remove
-                    </Button>
-                  </SectionActionBar>
-                ) : null}
-              </div>
-            )}
-          </ProfilePanel>
-        ))}
-      </div>
+      {rows.length === 0 ? (
+        <EmptyState title="No qualifications recorded" subtitle="Add education records so profile completeness and readiness stay current." />
+      ) : (
+        <ProfileTableShell>
+          <table className={profileTableClassName}>
+            <thead className={profileTableHeadClassName}>
+              <tr>
+                <th className="px-4 py-3">Institution</th>
+                <th className="px-4 py-3">Qualification</th>
+                <th className="px-4 py-3">Field</th>
+                <th className="px-4 py-3">Timeline</th>
+                <th className="px-4 py-3">Grade</th>
+                <th className="px-4 py-3">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 bg-white">
+              {rows.map((entry) => (
+                <tr key={entry.id} className="align-top">
+                  <td className={profileTableCellClassName}>
+                    <div className="font-medium text-slate-900">{entry.institution}</div>
+                  </td>
+                  <td className={profileTableCellClassName}>{entry.degree ?? "-"}</td>
+                  <td className={profileTableCellClassName}>{entry.field_of_study ?? "-"}</td>
+                  <td className={profileTableCellClassName}>{formatTimeline(entry.start_date, entry.end_date)}</td>
+                  <td className={profileTableCellClassName}>{entry.grade ?? "-"}</td>
+                  <td className={profileTableActionCellClassName}>
+                    {canEdit ? (
+                      <div className="flex flex-wrap gap-2">
+                        <Button type="button" variant="secondary" size="sm" className="rounded-full" onClick={() => startEdit(entry)}>
+                          Edit
+                        </Button>
+                        <Button type="button" variant="secondary" size="sm" className="rounded-full" onClick={() => void onDelete(entry.id)}>
+                          Remove
+                        </Button>
+                      </div>
+                    ) : (
+                      <span className="text-sm text-slate-400">Read only</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </ProfileTableShell>
+      )}
     </ProfileSectionCard>
   );
 };

@@ -1414,6 +1414,13 @@ export const fetchWorkspaceNotes = async (
   return response;
 };
 
+const invalidateWorkspaceNotesCache = (): void => {
+  invalidateCachedUrls([
+    "/api/workspace/notes?limit=20",
+    "/api/workspace/notes?limit=50",
+  ]);
+};
+
 export const createWorkspaceNote = async (payload: {
   title: string;
   body: string;
@@ -1421,11 +1428,52 @@ export const createWorkspaceNote = async (payload: {
   fileName?: string | null;
   isPinned?: boolean;
 }): Promise<DashboardApiResult<WorkspaceCreateNoteResponse>> => {
-  return postJson<WorkspaceCreateNoteResponse>(
+  const result = await postJson<WorkspaceCreateNoteResponse>(
     "/api/workspace/notes",
     payload as Record<string, unknown>,
     { "Idempotency-Key": crypto.randomUUID() }
   );
+  if (result.ok) {
+    invalidateWorkspaceNotesCache();
+  }
+  return result;
+};
+
+export const updateWorkspaceNote = async (
+  noteId: string,
+  payload: {
+    title: string;
+    body: string;
+    fileUrl?: string | null;
+    fileName?: string | null;
+    isPinned?: boolean;
+  }
+): Promise<DashboardApiResult<{ id: string }>> => {
+  const result = await postJson<{ id: string }>(
+    `/api/workspace/notes/${encodeURIComponent(noteId)}`,
+    payload as Record<string, unknown>,
+    { "Idempotency-Key": crypto.randomUUID() }
+  );
+  if (result.ok) {
+    invalidateWorkspaceNotesCache();
+  }
+  return result;
+};
+
+export const deleteWorkspaceNote = async (
+  noteId: string
+): Promise<DashboardApiResult<{ id: string }>> => {
+  const response = await fetch(`/api/workspace/notes/${encodeURIComponent(noteId)}`, {
+    method: "DELETE",
+    headers: {
+      "Idempotency-Key": crypto.randomUUID(),
+    },
+  });
+  const result = await parseJson<{ id: string }>(response);
+  if (result.ok) {
+    invalidateWorkspaceNotesCache();
+  }
+  return result;
 };
 
 export const fetchWorkspaceChat = async (params: {

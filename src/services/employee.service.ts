@@ -850,10 +850,11 @@ export const addEmployeeDocument = async (
   try {
     await requireEmployeeModuleEntitlement(ctx);
     await requireSelfOrManageEmployees(ctx, employeeId);
+    const admin = createSupabaseAdminClient();
 
-    const { data, error } = await ctx.supabase
+    const { data, error } = await admin
       .from("employee_documents")
-      .insert({ company_id: ctx.companyId, employee_id: employeeId, ...payload })
+      .insert({ company_id: ctx.companyId, employee_id: employeeId, created_by: ctx.userProfileId, updated_by: ctx.userProfileId, ...payload })
       .select("*")
       .single();
 
@@ -876,10 +877,11 @@ export const updateEmployeeDocument = async (
   try {
     await requireEmployeeModuleEntitlement(ctx);
     await requireSelfOrManageEmployees(ctx, employeeId);
+    const admin = createSupabaseAdminClient();
 
-    const { data, error } = await ctx.supabase
+    const { data, error } = await admin
       .from("employee_documents")
-      .update({ ...payload })
+      .update({ ...payload, updated_by: ctx.userProfileId, updated_at: new Date().toISOString() })
       .eq("id", documentId)
       .eq("employee_id", employeeId)
       .eq("company_id", ctx.companyId)
@@ -905,13 +907,16 @@ export const deleteEmployeeDocument = async (
   try {
     await requireEmployeeModuleEntitlement(ctx);
     await requireSelfOrManageEmployees(ctx, employeeId);
+    const admin = createSupabaseAdminClient();
 
-    const { error } = await ctx.supabase
+    const { error } = await admin
       .from("employee_documents")
       .update({
         is_deleted: true,
         deleted_at: new Date().toISOString(),
-        deleted_by: ctx.userProfileId
+        deleted_by: ctx.userProfileId,
+        updated_at: new Date().toISOString(),
+        updated_by: ctx.userProfileId,
       })
       .eq("id", documentId)
       .eq("employee_id", employeeId)

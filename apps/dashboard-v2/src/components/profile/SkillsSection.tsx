@@ -1,17 +1,23 @@
-﻿"use client";
+"use client";
 
-import { useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import type { EmployeeSkill } from "@/lib/types/profile";
 import {
   ProfilePanel,
   ProfileSectionCard,
-  ReadonlyField,
+  ProfileTableShell,
   SectionActionBar,
   profileFieldClassName,
   profileLabelClassName,
+  profileTableActionCellClassName,
+  profileTableCellClassName,
+  profileTableClassName,
+  profileTableHeadClassName,
 } from "@/components/profile/ProfileSectionPrimitives";
+
+const emptyDraft = { skill_name: "", proficiency: "", years_experience: "" };
 
 export const SkillsSection = ({
   skills,
@@ -26,10 +32,12 @@ export const SkillsSection = ({
   onDelete: (skillId: string) => Promise<void>;
   canEdit: boolean;
 }) => {
-  const addFormRef = useRef<HTMLDivElement | null>(null);
-  const [draft, setDraft] = useState({ skill_name: "", proficiency: "", years_experience: "" });
+  const [draft, setDraft] = useState(emptyDraft);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editingDraft, setEditingDraft] = useState({ skill_name: "", proficiency: "", years_experience: "" });
+  const [editingDraft, setEditingDraft] = useState(emptyDraft);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+
+  const rows = useMemo(() => [...skills].sort((a, b) => a.skill_name.localeCompare(b.skill_name)), [skills]);
 
   const handleAdd = async () => {
     if (!draft.skill_name) return;
@@ -38,15 +46,12 @@ export const SkillsSection = ({
       proficiency: draft.proficiency || null,
       years_experience: draft.years_experience ? Number(draft.years_experience) : null,
     });
-    setDraft({ skill_name: "", proficiency: "", years_experience: "" });
-  };
-
-  const focusAddForm = () => {
-    addFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    addFormRef.current?.querySelector("input")?.focus();
+    setDraft(emptyDraft);
+    setShowCreateForm(false);
   };
 
   const startEdit = (skill: EmployeeSkill) => {
+    setShowCreateForm(false);
     setEditingId(skill.id);
     setEditingDraft({
       skill_name: skill.skill_name,
@@ -68,18 +73,18 @@ export const SkillsSection = ({
   return (
     <ProfileSectionCard
       title="Skills"
-      description="Maintain a high-signal inventory of role capabilities, proficiency, and experience depth."
+      description="Track capability signals in one compact inventory instead of a long series of stacked cards."
       actions={
         canEdit ? (
-          <Button type="button" variant="secondary" size="sm" className="rounded-full" onClick={focusAddForm}>
-            Add skill
+          <Button type="button" variant="secondary" size="sm" className="rounded-full" onClick={() => setShowCreateForm((prev) => !prev)}>
+            {showCreateForm ? "Hide form" : "Add skill"}
           </Button>
         ) : undefined
       }
     >
-      {canEdit ? (
-        <ProfilePanel title="Add skill" description="Capture the skill name, proficiency level, and years of experience.">
-          <div ref={addFormRef} className="grid gap-4 xl:grid-cols-3">
+      {showCreateForm && canEdit ? (
+        <ProfilePanel title="Add skill" description="Capture skill name, proficiency, and years of experience.">
+          <div className="grid gap-4 xl:grid-cols-3">
             <label className={profileLabelClassName}>
               <span>Skill</span>
               <input className={profileFieldClassName} value={draft.skill_name} onChange={(event) => setDraft((prev) => ({ ...prev, skill_name: event.target.value }))} />
@@ -94,6 +99,9 @@ export const SkillsSection = ({
             </label>
           </div>
           <SectionActionBar>
+            <Button type="button" variant="secondary" className="rounded-full" onClick={() => setShowCreateForm(false)}>
+              Cancel
+            </Button>
             <Button type="button" className="rounded-full" onClick={handleAdd} disabled={!draft.skill_name}>
               Save skill
             </Button>
@@ -101,60 +109,80 @@ export const SkillsSection = ({
         </ProfilePanel>
       ) : null}
 
-      <div className="space-y-4">
-        {skills.length === 0 ? (
-          <EmptyState title="No skills recorded yet" subtitle="Add capabilities to make project staffing, reviews, and growth planning easier." />
-        ) : null}
+      {editingId ? (
+        <ProfilePanel title="Edit skill" description="Update the selected skill without leaving the table view.">
+          <div className="grid gap-4 xl:grid-cols-3">
+            <label className={profileLabelClassName}>
+              <span>Skill</span>
+              <input className={profileFieldClassName} value={editingDraft.skill_name} onChange={(event) => setEditingDraft((prev) => ({ ...prev, skill_name: event.target.value }))} />
+            </label>
+            <label className={profileLabelClassName}>
+              <span>Proficiency</span>
+              <input className={profileFieldClassName} value={editingDraft.proficiency} onChange={(event) => setEditingDraft((prev) => ({ ...prev, proficiency: event.target.value }))} />
+            </label>
+            <label className={profileLabelClassName}>
+              <span>Years of experience</span>
+              <input className={profileFieldClassName} value={editingDraft.years_experience} onChange={(event) => setEditingDraft((prev) => ({ ...prev, years_experience: event.target.value }))} />
+            </label>
+          </div>
+          <SectionActionBar>
+            <Button type="button" variant="secondary" className="rounded-full" onClick={() => setEditingId(null)}>
+              Cancel
+            </Button>
+            <Button type="button" className="rounded-full" onClick={saveEdit}>
+              Save changes
+            </Button>
+          </SectionActionBar>
+        </ProfilePanel>
+      ) : null}
 
-        {skills.map((skill) => (
-          <ProfilePanel key={skill.id} title={skill.skill_name} description={skill.proficiency ?? "Proficiency not set"}>
-            {editingId === skill.id ? (
-              <div className="space-y-4">
-                <div className="grid gap-4 xl:grid-cols-3">
-                  <label className={profileLabelClassName}>
-                    <span>Skill</span>
-                    <input className={profileFieldClassName} value={editingDraft.skill_name} onChange={(event) => setEditingDraft((prev) => ({ ...prev, skill_name: event.target.value }))} />
-                  </label>
-                  <label className={profileLabelClassName}>
-                    <span>Proficiency</span>
-                    <input className={profileFieldClassName} value={editingDraft.proficiency} onChange={(event) => setEditingDraft((prev) => ({ ...prev, proficiency: event.target.value }))} />
-                  </label>
-                  <label className={profileLabelClassName}>
-                    <span>Years of experience</span>
-                    <input className={profileFieldClassName} value={editingDraft.years_experience} onChange={(event) => setEditingDraft((prev) => ({ ...prev, years_experience: event.target.value }))} />
-                  </label>
-                </div>
-                <SectionActionBar>
-                  <Button type="button" variant="secondary" className="rounded-full" onClick={() => setEditingId(null)}>
-                    Cancel
-                  </Button>
-                  <Button type="button" className="rounded-full" onClick={saveEdit}>
-                    Save changes
-                  </Button>
-                </SectionActionBar>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                  <ReadonlyField label="Skill" value={skill.skill_name} />
-                  <ReadonlyField label="Proficiency" value={skill.proficiency ?? "—"} />
-                  <ReadonlyField label="Experience" value={skill.years_experience !== null && skill.years_experience !== undefined ? `${skill.years_experience} years` : "—"} />
-                </div>
-                {canEdit ? (
-                  <SectionActionBar>
-                    <Button type="button" variant="secondary" className="rounded-full" onClick={() => startEdit(skill)}>
-                      Edit
-                    </Button>
-                    <Button type="button" variant="secondary" className="rounded-full" onClick={() => onDelete(skill.id)}>
-                      Remove
-                    </Button>
-                  </SectionActionBar>
-                ) : null}
-              </div>
-            )}
-          </ProfilePanel>
-        ))}
-      </div>
+      {rows.length === 0 ? (
+        <EmptyState title="No skills recorded" subtitle="Add capability data so the profile can stay useful for staffing, growth, and reviews." />
+      ) : (
+        <ProfileTableShell>
+          <table className={profileTableClassName}>
+            <thead className={profileTableHeadClassName}>
+              <tr>
+                <th className="px-4 py-3">Skill</th>
+                <th className="px-4 py-3">Proficiency</th>
+                <th className="px-4 py-3">Experience</th>
+                <th className="px-4 py-3">Updated</th>
+                <th className="px-4 py-3">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 bg-white">
+              {rows.map((skill) => (
+                <tr key={skill.id} className="align-top">
+                  <td className={profileTableCellClassName}>
+                    <div className="font-medium text-slate-900">{skill.skill_name}</div>
+                  </td>
+                  <td className={profileTableCellClassName}>{skill.proficiency ?? "-"}</td>
+                  <td className={profileTableCellClassName}>
+                    {skill.years_experience !== null && skill.years_experience !== undefined ? `${skill.years_experience} years` : "-"}
+                  </td>
+                  <td className={profileTableCellClassName}>
+                    {skill.updated_at ? new Date(skill.updated_at).toLocaleDateString() : "-"}
+                  </td>
+                  <td className={profileTableActionCellClassName}>
+                    {canEdit ? (
+                      <div className="flex flex-wrap gap-2">
+                        <Button type="button" variant="secondary" size="sm" className="rounded-full" onClick={() => startEdit(skill)}>
+                          Edit
+                        </Button>
+                        <Button type="button" variant="secondary" size="sm" className="rounded-full" onClick={() => void onDelete(skill.id)}>
+                          Remove
+                        </Button>
+                      </div>
+                    ) : (
+                      <span className="text-sm text-slate-400">Read only</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </ProfileTableShell>
+      )}
     </ProfileSectionCard>
   );
 };

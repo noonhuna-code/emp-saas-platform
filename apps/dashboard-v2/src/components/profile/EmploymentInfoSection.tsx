@@ -35,6 +35,7 @@ export const EmploymentInfoSection = ({
   lookups,
   departmentName,
   teamName,
+  supervisorName,
   managerName,
   canEdit,
   onSave,
@@ -43,6 +44,7 @@ export const EmploymentInfoSection = ({
   lookups: EmployeeLookupResponse | null;
   departmentName?: string | null;
   teamName?: string | null;
+  supervisorName?: string | null;
   managerName?: string | null;
   canEdit: boolean;
   onSave: (payload: EmploymentFormState) => Promise<void>;
@@ -200,9 +202,10 @@ export const EmploymentInfoSection = ({
             </label>
           </div>
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <ReadonlyField label="Department" value={departmentName ?? "Unassigned"} />
             <ReadonlyField label="Team" value={teamName ?? "Unassigned"} />
+            <ReadonlyField label="Supervisor" value={supervisorName ?? "None"} />
             <ReadonlyField label="Reporting manager" value={managerName ?? "None"} />
           </div>
         )}

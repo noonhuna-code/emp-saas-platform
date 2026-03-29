@@ -18,7 +18,6 @@ import { ErrorState } from "@/components/states/ErrorState";
 import { LoadingState } from "@/components/states/LoadingState";
 import {
   DashboardRail,
-  FeatureCallout,
   PageContainer,
   PageHeader,
   StatCard,
@@ -149,8 +148,7 @@ export const LeavePageClient = () => {
       <PageHeader
         eyebrow="Leave & swaps"
         title="Leave workspace"
-        description="Apply for leave, review balances, and follow approval progress without leaving the V2 shell."
-        chips={["Leave balances", "Approval progress", "Guided requests", "Employee safe"]}
+        description="Apply for leave, check balances, and track approval progress in one compact workspace."
         actions={
           <>
             <Badge className="rounded-full border-blue-200 bg-blue-50 text-blue-700">
@@ -171,12 +169,6 @@ export const LeavePageClient = () => {
 
       {!loading ? (
         <>
-          <FeatureCallout
-            badge="Approvals"
-            title="Keep leave planning and approvals in one view"
-            description="Balances, request history, and approval stages are presented together so the leave workflow is readable without changing the underlying company-scoped contracts."
-          />
-
           <StatGrid>
             <StatCard label="Applied" value={summary.applied} hint="Open or pending requests" />
             <StatCard label="Approved" value={summary.approved} hint="Approved leave requests" />
@@ -184,8 +176,8 @@ export const LeavePageClient = () => {
             <StatCard label="Remaining" value={summary.totalRemaining} hint="Available balance" />
           </StatGrid>
 
-          <DashboardRail>
-            <SurfacePanel title="Apply for leave" description="Submit a leave request using the existing employee and leave contracts.">
+          <DashboardRail className="items-start xl:grid-cols-[minmax(0,1.28fr)_minmax(320px,0.82fr)]">
+            <SurfacePanel title="Apply for leave" description="Submit a request without leaving the employee workspace.">
               <LeaveApplyForm
                 onSubmit={handleApply}
                 loading={submitting}
@@ -197,7 +189,7 @@ export const LeavePageClient = () => {
             <LeaveBalanceCard balances={balances} />
           </DashboardRail>
 
-          <DashboardRail>
+          <DashboardRail className="items-start xl:grid-cols-[minmax(0,1.22fr)_minmax(320px,0.88fr)]">
             <LeaveHistoryTable
               requests={requests}
               onCancel={handleCancel}

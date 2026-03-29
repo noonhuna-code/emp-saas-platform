@@ -36,7 +36,6 @@ import { ErrorState } from "@/components/states/ErrorState";
 import { LoadingState } from "@/components/states/LoadingState";
 import {
   DashboardRail,
-  FeatureCallout,
   PageContainer,
   PageHeader,
   StatCard,
@@ -166,7 +165,12 @@ export const EmployeeProfileScreen = ({ employeeId }: { employeeId: string }) =>
   const designation = getEmployeeField(profile, "designation");
   const department = profile.department?.name ?? "Unassigned";
   const team = profile.team?.name ?? "No team";
-  const manager = profile.manager?.full_name ?? "No manager assigned";
+  const supervisor = profile.teamLead?.full_name ?? profile.manager?.full_name ?? "No supervisor assigned";
+  const escalatedManager =
+    profile.secondaryManagers?.find((entry) => entry.relation_type === "senior_manager")?.full_name ??
+    profile.primaryManager?.full_name ??
+    profile.manager?.full_name ??
+    "No manager assigned";
   const employmentStatus = getEmployeeField(profile, "employment_status") ?? "active";
   const employeeCode = getEmployeeField(profile, "employee_code") ?? employeeId;
   const profileCompleteness = profile.profileCompletenessScore ?? 0;
@@ -176,7 +180,7 @@ export const EmployeeProfileScreen = ({ employeeId }: { employeeId: string }) =>
       <PageHeader
         eyebrow="Profile"
         title={displayName}
-        description="Manage your personal record, employment details, supporting documents, family data, and skill inventory."
+        description="Manage your record, documents, qualifications, and support data from one compact workspace."
         actions={
           <>
             <Badge className="rounded-full border-blue-200 bg-blue-50 text-blue-700">
@@ -193,12 +197,6 @@ export const EmployeeProfileScreen = ({ employeeId }: { employeeId: string }) =>
             </a>
           </>
         }
-      />
-
-      <FeatureCallout
-        badge="Employee profile"
-        title="Keep core identity, compliance, and skills aligned"
-        description="The profile workspace brings together the current employee record, document readiness, household information, and talent inventory without changing the existing profile contracts."
       />
 
       <EmployeeProfileHeader
@@ -226,8 +224,8 @@ export const EmployeeProfileScreen = ({ employeeId }: { employeeId: string }) =>
               <p className="mt-2 text-sm font-medium text-slate-900">{team}</p>
             </div>
             <div className="rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Reports to</p>
-              <p className="mt-2 text-sm font-medium text-slate-900">{manager}</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Reporting manager</p>
+              <p className="mt-2 text-sm font-medium text-slate-900">{escalatedManager}</p>
             </div>
           </div>
         </SurfacePanel>
@@ -242,8 +240,8 @@ export const EmployeeProfileScreen = ({ employeeId }: { employeeId: string }) =>
 
       {error ? <ErrorState message={error} /> : null}
 
-      <SurfacePanel title="Profile sections" description="Switch between employee data sections without leaving the profile workspace.">
-        <Tabs tabs={TAB_ITEMS} active={activeTab} onChange={setActiveTab} />
+      <SurfacePanel title="Profile sections" description="Switch sections without leaving the employee profile workspace.">
+        <Tabs tabs={TAB_ITEMS} active={activeTab} onChange={setActiveTab} noWrap variant="soft" />
       </SurfacePanel>
 
       {activeTab === "personal" ? (
@@ -263,7 +261,8 @@ export const EmployeeProfileScreen = ({ employeeId }: { employeeId: string }) =>
           lookups={lookups}
           departmentName={profile.department?.name}
           teamName={profile.team?.name}
-          managerName={profile.manager?.full_name}
+          supervisorName={supervisor}
+          managerName={escalatedManager}
           canEdit={canEditEmployment}
           onSave={async (payload) => {
             const result = await updateEmploymentInfo(employeeId, payload);

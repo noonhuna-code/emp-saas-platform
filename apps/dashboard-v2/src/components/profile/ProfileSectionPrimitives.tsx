@@ -12,6 +12,12 @@ export const profileLabelClassName = "grid gap-2 text-sm font-medium text-slate-
 export const profileNestedPanelClassName = "rounded-[20px] border border-slate-200 bg-slate-50/70 p-4";
 export const profileReadonlyTileClassName = "rounded-2xl border border-slate-200 bg-white/90 px-4 py-3 shadow-sm";
 export const profileEmptyStateClassName = "rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 px-4 py-4 text-sm text-slate-600";
+export const profileTableShellClassName = "overflow-hidden rounded-[22px] border border-slate-200 bg-white/95";
+export const profileTableScrollerClassName = "max-h-[360px] overflow-auto";
+export const profileTableClassName = "min-w-full divide-y divide-slate-200 text-sm";
+export const profileTableHeadClassName = "bg-slate-50/90 text-left text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500";
+export const profileTableCellClassName = "px-4 py-3 align-top text-slate-700";
+export const profileTableActionCellClassName = "px-4 py-3 align-top";
 
 export const ProfileSectionCard = ({
   title,
@@ -80,4 +86,10 @@ export const ReadonlyField = ({
 
 export const SectionActionBar = ({ children }: { children: ReactNode }) => (
   <div className="flex flex-wrap justify-end gap-2 pt-1">{children}</div>
+);
+
+export const ProfileTableShell = ({ children, className }: { children: ReactNode; className?: string }) => (
+  <div className={cn(profileTableShellClassName, className)}>
+    <div className={profileTableScrollerClassName}>{children}</div>
+  </div>
 );

@@ -128,6 +128,22 @@ export type EmployeeProfile = {
   department: { id: string; name: string } | null;
   team: { id: string; name: string } | null;
   manager: { id: string; full_name: string } | null;
+  teamLead?: { id: string; full_name: string; employee_code?: string | null } | null;
+  primaryManager?: { id: string; full_name: string; employee_code?: string | null } | null;
+  secondaryManagers?: Array<{ id: string; full_name: string; employee_code?: string | null; relation_type: string }>;
+  reportingLines?: Array<{
+    id: string;
+    company_id: string;
+    employee_id: string;
+    manager_employee_id: string;
+    relation_type: string;
+    is_primary: boolean;
+    effective_from?: string | null;
+    effective_to?: string | null;
+    created_at?: string | null;
+    created_by?: string | null;
+    manager?: { id: string; full_name: string; employee_code?: string | null } | null;
+  }>;
   personalDetails: EmployeePersonalDetails | null;
   sensitiveData: EmployeeSensitiveData | null;
   documents: EmployeeDocument[];

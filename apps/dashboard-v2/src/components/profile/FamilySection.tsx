@@ -1,17 +1,34 @@
-﻿"use client";
+"use client";
 
-import { useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import type { EmployeeFamilyMember } from "@/lib/types/profile";
 import {
   ProfilePanel,
   ProfileSectionCard,
-  ReadonlyField,
+  ProfileTableShell,
   SectionActionBar,
   profileFieldClassName,
   profileLabelClassName,
+  profileTableActionCellClassName,
+  profileTableCellClassName,
+  profileTableClassName,
+  profileTableHeadClassName,
 } from "@/components/profile/ProfileSectionPrimitives";
+
+const emptyDraft = {
+  full_name: "",
+  relationship: "",
+  date_of_birth: "",
+  phone_number: "",
+  is_dependent: false,
+};
+
+const formatDate = (value?: string | null) => {
+  if (!value) return "-";
+  return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", year: "numeric" }).format(new Date(value));
+};
 
 export const FamilySection = ({
   family,
@@ -26,22 +43,12 @@ export const FamilySection = ({
   onDelete: (memberId: string) => Promise<void>;
   canEdit: boolean;
 }) => {
-  const addFormRef = useRef<HTMLDivElement | null>(null);
-  const [draft, setDraft] = useState({
-    full_name: "",
-    relationship: "",
-    date_of_birth: "",
-    phone_number: "",
-    is_dependent: false,
-  });
+  const [draft, setDraft] = useState(emptyDraft);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editingDraft, setEditingDraft] = useState({
-    full_name: "",
-    relationship: "",
-    date_of_birth: "",
-    phone_number: "",
-    is_dependent: false,
-  });
+  const [editingDraft, setEditingDraft] = useState(emptyDraft);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+
+  const rows = useMemo(() => [...family].sort((a, b) => a.full_name.localeCompare(b.full_name)), [family]);
 
   const handleAdd = async () => {
     if (!draft.full_name || !draft.relationship) return;
@@ -52,15 +59,12 @@ export const FamilySection = ({
       phone_number: draft.phone_number || null,
       is_dependent: draft.is_dependent,
     });
-    setDraft({ full_name: "", relationship: "", date_of_birth: "", phone_number: "", is_dependent: false });
-  };
-
-  const focusAddForm = () => {
-    addFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    addFormRef.current?.querySelector("input")?.focus();
+    setDraft(emptyDraft);
+    setShowCreateForm(false);
   };
 
   const startEdit = (member: EmployeeFamilyMember) => {
+    setShowCreateForm(false);
     setEditingId(member.id);
     setEditingDraft({
       full_name: member.full_name,
@@ -86,18 +90,18 @@ export const FamilySection = ({
   return (
     <ProfileSectionCard
       title="Family"
-      description="Dependents and household contacts used for benefits, emergency communication, and policy context."
+      description="Keep dependents and household contacts in a compact register instead of a long card stack."
       actions={
         canEdit ? (
-          <Button type="button" variant="secondary" size="sm" className="rounded-full" onClick={focusAddForm}>
-            Add family member
+          <Button type="button" variant="secondary" size="sm" className="rounded-full" onClick={() => setShowCreateForm((prev) => !prev)}>
+            {showCreateForm ? "Hide form" : "Add family member"}
           </Button>
         ) : undefined
       }
     >
-      {canEdit ? (
-        <ProfilePanel title="Add household record" description="Capture dependents and important family contacts in a consistent format.">
-          <div ref={addFormRef} className="grid gap-4 xl:grid-cols-2">
+      {showCreateForm && canEdit ? (
+        <ProfilePanel title="Add household record" description="Capture one dependent or emergency contact at a time.">
+          <div className="grid gap-4 xl:grid-cols-2">
             <label className={profileLabelClassName}>
               <span>Full name</span>
               <input className={profileFieldClassName} value={draft.full_name} onChange={(event) => setDraft((prev) => ({ ...prev, full_name: event.target.value }))} />
@@ -115,18 +119,19 @@ export const FamilySection = ({
               <input className={profileFieldClassName} value={draft.phone_number} onChange={(event) => setDraft((prev) => ({ ...prev, phone_number: event.target.value }))} />
             </label>
           </div>
-          <div className="pt-3">
-            <label className="inline-flex items-center gap-3 text-sm font-medium text-slate-700">
-              <input
-                className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                type="checkbox"
-                checked={draft.is_dependent}
-                onChange={(event) => setDraft((prev) => ({ ...prev, is_dependent: event.target.checked }))}
-              />
-              Mark as dependent
-            </label>
-          </div>
+          <label className="mt-4 inline-flex items-center gap-3 text-sm font-medium text-slate-700">
+            <input
+              className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+              type="checkbox"
+              checked={draft.is_dependent}
+              onChange={(event) => setDraft((prev) => ({ ...prev, is_dependent: event.target.checked }))}
+            />
+            Mark as dependent
+          </label>
           <SectionActionBar>
+            <Button type="button" variant="secondary" className="rounded-full" onClick={() => setShowCreateForm(false)}>
+              Cancel
+            </Button>
             <Button type="button" className="rounded-full" onClick={handleAdd} disabled={!draft.full_name || !draft.relationship}>
               Save family member
             </Button>
@@ -134,78 +139,91 @@ export const FamilySection = ({
         </ProfilePanel>
       ) : null}
 
-      <div className="space-y-4">
-        {family.length === 0 ? (
-          <EmptyState title="No household records yet" subtitle="Add a family member or dependent to keep contact and benefits records complete." />
-        ) : null}
+      {editingId ? (
+        <ProfilePanel title="Edit household record" description="Update the selected member without leaving the table.">
+          <div className="grid gap-4 xl:grid-cols-2">
+            <label className={profileLabelClassName}>
+              <span>Full name</span>
+              <input className={profileFieldClassName} value={editingDraft.full_name} onChange={(event) => setEditingDraft((prev) => ({ ...prev, full_name: event.target.value }))} />
+            </label>
+            <label className={profileLabelClassName}>
+              <span>Relationship</span>
+              <input className={profileFieldClassName} value={editingDraft.relationship} onChange={(event) => setEditingDraft((prev) => ({ ...prev, relationship: event.target.value }))} />
+            </label>
+            <label className={profileLabelClassName}>
+              <span>Date of birth</span>
+              <input className={profileFieldClassName} type="date" value={editingDraft.date_of_birth} onChange={(event) => setEditingDraft((prev) => ({ ...prev, date_of_birth: event.target.value }))} />
+            </label>
+            <label className={profileLabelClassName}>
+              <span>Phone number</span>
+              <input className={profileFieldClassName} value={editingDraft.phone_number} onChange={(event) => setEditingDraft((prev) => ({ ...prev, phone_number: event.target.value }))} />
+            </label>
+          </div>
+          <label className="mt-4 inline-flex items-center gap-3 text-sm font-medium text-slate-700">
+            <input
+              className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+              type="checkbox"
+              checked={editingDraft.is_dependent}
+              onChange={(event) => setEditingDraft((prev) => ({ ...prev, is_dependent: event.target.checked }))}
+            />
+            Mark as dependent
+          </label>
+          <SectionActionBar>
+            <Button type="button" variant="secondary" className="rounded-full" onClick={() => setEditingId(null)}>
+              Cancel
+            </Button>
+            <Button type="button" className="rounded-full" onClick={saveEdit}>
+              Save changes
+            </Button>
+          </SectionActionBar>
+        </ProfilePanel>
+      ) : null}
 
-        {family.map((member) => (
-          <ProfilePanel
-            key={member.id}
-            title={member.full_name}
-            description={`${member.relationship}${member.is_dependent ? " • Dependent" : ""}`}
-          >
-            {editingId === member.id ? (
-              <div className="space-y-4">
-                <div className="grid gap-4 xl:grid-cols-2">
-                  <label className={profileLabelClassName}>
-                    <span>Full name</span>
-                    <input className={profileFieldClassName} value={editingDraft.full_name} onChange={(event) => setEditingDraft((prev) => ({ ...prev, full_name: event.target.value }))} />
-                  </label>
-                  <label className={profileLabelClassName}>
-                    <span>Relationship</span>
-                    <input className={profileFieldClassName} value={editingDraft.relationship} onChange={(event) => setEditingDraft((prev) => ({ ...prev, relationship: event.target.value }))} />
-                  </label>
-                  <label className={profileLabelClassName}>
-                    <span>Date of birth</span>
-                    <input className={profileFieldClassName} type="date" value={editingDraft.date_of_birth} onChange={(event) => setEditingDraft((prev) => ({ ...prev, date_of_birth: event.target.value }))} />
-                  </label>
-                  <label className={profileLabelClassName}>
-                    <span>Phone number</span>
-                    <input className={profileFieldClassName} value={editingDraft.phone_number} onChange={(event) => setEditingDraft((prev) => ({ ...prev, phone_number: event.target.value }))} />
-                  </label>
-                </div>
-                <label className="inline-flex items-center gap-3 text-sm font-medium text-slate-700">
-                  <input
-                    className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                    type="checkbox"
-                    checked={editingDraft.is_dependent}
-                    onChange={(event) => setEditingDraft((prev) => ({ ...prev, is_dependent: event.target.checked }))}
-                  />
-                  Mark as dependent
-                </label>
-                <SectionActionBar>
-                  <Button type="button" variant="secondary" className="rounded-full" onClick={() => setEditingId(null)}>
-                    Cancel
-                  </Button>
-                  <Button type="button" className="rounded-full" onClick={saveEdit}>
-                    Save changes
-                  </Button>
-                </SectionActionBar>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                  <ReadonlyField label="Relationship" value={member.relationship} />
-                  <ReadonlyField label="Date of birth" value={member.date_of_birth ?? "—"} />
-                  <ReadonlyField label="Phone" value={member.phone_number ?? "—"} />
-                  <ReadonlyField label="Dependent" value={member.is_dependent ? "Yes" : "No"} />
-                </div>
-                {canEdit ? (
-                  <SectionActionBar>
-                    <Button type="button" variant="secondary" className="rounded-full" onClick={() => startEdit(member)}>
-                      Edit
-                    </Button>
-                    <Button type="button" variant="secondary" className="rounded-full" onClick={() => onDelete(member.id)}>
-                      Remove
-                    </Button>
-                  </SectionActionBar>
-                ) : null}
-              </div>
-            )}
-          </ProfilePanel>
-        ))}
-      </div>
+      {rows.length === 0 ? (
+        <EmptyState title="No family members recorded" subtitle="Add dependents or household contacts to keep this register complete." />
+      ) : (
+        <ProfileTableShell>
+          <table className={profileTableClassName}>
+            <thead className={profileTableHeadClassName}>
+              <tr>
+                <th className="px-4 py-3">Name</th>
+                <th className="px-4 py-3">Relationship</th>
+                <th className="px-4 py-3">Date of birth</th>
+                <th className="px-4 py-3">Phone</th>
+                <th className="px-4 py-3">Dependent</th>
+                <th className="px-4 py-3">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 bg-white">
+              {rows.map((member) => (
+                <tr key={member.id} className="align-top">
+                  <td className={profileTableCellClassName}>
+                    <div className="font-medium text-slate-900">{member.full_name}</div>
+                  </td>
+                  <td className={profileTableCellClassName}>{member.relationship}</td>
+                  <td className={profileTableCellClassName}>{formatDate(member.date_of_birth)}</td>
+                  <td className={profileTableCellClassName}>{member.phone_number ?? "-"}</td>
+                  <td className={profileTableCellClassName}>{member.is_dependent ? "Yes" : "No"}</td>
+                  <td className={profileTableActionCellClassName}>
+                    {canEdit ? (
+                      <div className="flex flex-wrap gap-2">
+                        <Button type="button" variant="secondary" size="sm" className="rounded-full" onClick={() => startEdit(member)}>
+                          Edit
+                        </Button>
+                        <Button type="button" variant="secondary" size="sm" className="rounded-full" onClick={() => void onDelete(member.id)}>
+                          Remove
+                        </Button>
+                      </div>
+                    ) : (
+                      <span className="text-sm text-slate-400">Read only</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </ProfileTableShell>
+      )}
     </ProfileSectionCard>
   );
 };
