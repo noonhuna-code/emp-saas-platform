@@ -29,6 +29,50 @@ const prettyCurrentStatus = (status: AttendanceTodayResponse["currentStatus"]): 
   }
 };
 
+const prettyDayState = (state: AttendanceTodayResponse["dayState"]): string => {
+  switch (state) {
+    case "go_active":
+      return "GO Active";
+    case "go_applied":
+      return "GO Applied";
+    case "leave_unpaid":
+      return "Unpaid leave";
+    case "leave_paid":
+      return "Paid leave";
+    case "off_day":
+      return "Off day";
+    default:
+      return state.replace(/_/g, " ");
+  }
+};
+
+const stateDescription = (data: AttendanceTodayResponse): string => {
+  switch (data.dayState) {
+    case "off_day":
+      return "No roster workday is assigned today, so there is no deduction by default.";
+    case "leave_paid":
+      return `Approved ${data.leaveContext?.leave_type_name ?? "paid leave"} covers today.`;
+    case "leave_unpaid":
+      return `Approved ${data.leaveContext?.leave_type_name ?? "unpaid leave"} covers today and counts as a no-pay day.`;
+    case "go_active":
+      return `${data.holidayContext?.holiday_name ?? "Holiday"} is being treated as an extra payable worked day.`;
+    case "go_applied":
+      return `${data.holidayContext?.holiday_name ?? "Holiday"} is being treated as a compensated non-working GO day.`;
+    case "absent":
+      return "This date is marked absent from explicit attendance truth.";
+    case "present":
+      return data.currentStatus === "not_clocked_in"
+        ? "A shift is scheduled today and the clock controls are available."
+        : `${prettyCurrentStatus(data.currentStatus)} for the current workday.`;
+    case "on_break":
+    case "clocked_out":
+    case "late":
+      return "A shift is scheduled today and the clock controls are available.";
+    default:
+      return `${prettyCurrentStatus(data.currentStatus)} for the current workday.`;
+  }
+};
+
 export const TodayAttendanceCard = ({ data }: { data: AttendanceTodayResponse }) => {
   const record = data.record;
   const geoCaptured = data.latestGeoEvent
@@ -40,16 +84,20 @@ export const TodayAttendanceCard = ({ data }: { data: AttendanceTodayResponse })
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="space-y-2">
           <h3 className="text-lg font-semibold tracking-tight text-slate-950 dark:text-slate-50">Current attendance snapshot</h3>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            {prettyCurrentStatus(data.currentStatus)}
-            {data.isOnBreak ? " and currently on break." : " for today’s assigned shift."}
-          </p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">{stateDescription(data)}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <Badge className="rounded-full px-3 py-1.5">{prettyDayState(data.dayState)}</Badge>
+          <Badge className="rounded-full px-3 py-1.5">{data.payrollImpact.replace(/_/g, " ")}</Badge>
           <Badge className="rounded-full px-3 py-1.5">{record?.status ?? "N/A"}</Badge>
           <Badge className="rounded-full px-3 py-1.5">{record?.is_locked ? "Locked" : "Unlocked"}</Badge>
           {(record?.late_minutes ?? 0) > 0 ? <Badge className="rounded-full px-3 py-1.5">Late</Badge> : null}
           {(record?.overtime_minutes ?? 0) > 0 ? <Badge className="rounded-full px-3 py-1.5">Overtime</Badge> : null}
+          {data.lateLoginRequest.exists ? (
+            <Badge className="rounded-full px-3 py-1.5">
+              Late Login {data.lateLoginRequest.status ?? "pending"}
+            </Badge>
+          ) : null}
         </div>
       </div>
 

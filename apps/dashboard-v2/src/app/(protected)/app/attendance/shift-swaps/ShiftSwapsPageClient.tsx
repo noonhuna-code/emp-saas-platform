@@ -34,6 +34,23 @@ const tomorrowDate = () => {
 
 const PAGE_SIZE = 8;
 
+const parseMinutes = (value: string) => {
+  const [hoursText, minutesText] = value.split(":");
+  const hours = Number(hoursText);
+  const minutes = Number(minutesText ?? "0");
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return null;
+  return hours * 60 + minutes;
+};
+
+const isValidPtclSwapTemplate = (template: ShiftTemplate) => {
+  if (template.is_night_shift) return false;
+  const start = parseMinutes(template.start_time);
+  const end = parseMinutes(template.end_time);
+  if (start === null || end === null || end <= start) return false;
+  const duration = end - start;
+  return duration === 8 * 60 && start >= 9 * 60 && end <= 21 * 60;
+};
+
 const ShiftSwapsPageClient = () => {
   const [templates, setTemplates] = useState<ShiftTemplate[]>([]);
   const [mine, setMine] = useState<ShiftSwapRequest[]>([]);
@@ -54,10 +71,15 @@ const ShiftSwapsPageClient = () => {
     reason: "",
   });
 
+  const validTemplates = useMemo(
+    () => templates.filter(isValidPtclSwapTemplate),
+    [templates]
+  );
+
   const selectedTemplateName = useMemo(() => {
-    const selected = templates.find((template) => template.id === form.requestedShiftTemplateId);
+    const selected = validTemplates.find((template) => template.id === form.requestedShiftTemplateId);
     return selected ? `${selected.name} (${selected.start_time}-${selected.end_time})` : "Select shift";
-  }, [templates, form.requestedShiftTemplateId]);
+  }, [validTemplates, form.requestedShiftTemplateId]);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -84,7 +106,10 @@ const ShiftSwapsPageClient = () => {
     setMine(mineResult.data.rows);
     setForm((prev) => ({
       ...prev,
-      requestedShiftTemplateId: prev.requestedShiftTemplateId || templateRows[0]?.id || "",
+      requestedShiftTemplateId:
+        prev.requestedShiftTemplateId && templateRows.some((template) => template.id === prev.requestedShiftTemplateId)
+          ? prev.requestedShiftTemplateId
+          : (templateRows.filter(isValidPtclSwapTemplate)[0]?.id ?? ""),
     }));
 
     const reviewResult = await fetchShiftSwapRequests({ scope: "review", status: "pending", limit: 100 });
@@ -175,7 +200,7 @@ const ShiftSwapsPageClient = () => {
         actions={
           <>
             <Badge className="rounded-full border-blue-200 bg-blue-50 text-blue-700">
-              {templates.length} shift templates
+              {validTemplates.length} valid shift templates
             </Badge>
             <Button variant="secondary" className="rounded-full" onClick={() => void loadData()}>
               Refresh
@@ -229,10 +254,10 @@ const ShiftSwapsPageClient = () => {
                   value={form.requestedShiftTemplateId}
                   onChange={(event) => setForm((prev) => ({ ...prev, requestedShiftTemplateId: event.target.value }))}
                   required
-                  disabled={templates.length === 0}
+                  disabled={validTemplates.length === 0}
                 >
-                  {templates.length === 0 ? <option value="">No shifts available</option> : null}
-                  {templates.map((template) => (
+                  {validTemplates.length === 0 ? <option value="">No valid 8-hour shifts available</option> : null}
+                  {validTemplates.map((template) => (
                     <option key={template.id} value={template.id}>
                       {template.name} ({template.start_time}-{template.end_time})
                     </option>
@@ -251,7 +276,7 @@ const ShiftSwapsPageClient = () => {
                 />
               </label>
               <div className="flex items-end">
-                <Button type="submit" className="w-full rounded-full px-5 xl:w-auto" disabled={submitting || templates.length === 0 || !form.requestedShiftTemplateId}>
+                <Button type="submit" className="w-full rounded-full px-5 xl:w-auto" disabled={submitting || validTemplates.length === 0 || !form.requestedShiftTemplateId}>
                   {submitting ? "Submitting..." : "Submit request"}
                 </Button>
               </div>
@@ -261,6 +286,11 @@ const ShiftSwapsPageClient = () => {
               <span className="text-sm text-slate-600">{selectedTemplateName}</span>
             </div>
             {message ? <p className="mt-3 text-sm text-emerald-700">{message}</p> : null}
+            {validTemplates.length !== templates.length ? (
+              <p className="mt-2 text-xs text-slate-500">
+                Only backend shift templates that are 8 hours and fall within the PTCL 9 AM–9 PM window are shown here.
+              </p>
+            ) : null}
           </SurfacePanel>
 
           <SurfacePanel title="Shift swap history" description="Search your submitted requests without stretching the page.">

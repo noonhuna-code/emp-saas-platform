@@ -8,7 +8,7 @@ import { LoadingState } from "@/components/states/LoadingState";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusChip } from "@/components/ui/StatusChip";
 import { MiniBarChart } from "@/components/shared/Charts";
-import { FeatureCallout, PageContainer, PageHeader } from "@/components/dashboard-v2/PagePrimitives";
+import { PageContainer, PageHeader } from "@/components/dashboard-v2/PagePrimitives";
 
 const todayMonth = () => new Date().toISOString().slice(0, 7);
 
@@ -31,11 +31,31 @@ const monthLabel = (month: string) => {
 };
 
 const eventTone = (event: WorkspaceCalendarEvent): "info" | "success" | "warning" | "danger" | "default" => {
+  if (event.status === "go_active" || event.status === "go_applied") return "warning";
+  if (event.status === "leave_paid") return "success";
+  if (event.status === "leave_unpaid" || event.status === "absent") return "danger";
+  if (event.status === "off_day") return "default";
   if (event.type === "holiday") return "warning";
   if (event.type === "leave") return event.status === "approved" ? "success" : "info";
-  if (event.type === "attendance") return event.status === "absent" ? "danger" : "default";
+  if (event.type === "attendance") return event.status === "late" ? "warning" : "default";
   if (event.type === "shift") return "info";
   return "default";
+};
+
+const compactEventLabel = (event: WorkspaceCalendarEvent): string => {
+  if (event.status === "go_active") return "P · GO";
+  if (event.status === "go_applied") return "GO";
+  if (event.status === "leave_unpaid") return "Unpaid Leave";
+  if (event.status === "leave_paid") return event.title;
+  if (event.status === "absent") return "A";
+  if (event.status === "off_day") return "Off";
+  if (event.status === "late") return "P (Late)";
+  if (event.type === "attendance" && event.status === "present") return "P";
+  if (event.type === "attendance" && event.status === "clocked_out") return "P";
+  if (event.type === "attendance" && event.status === "on_break") return "P";
+  if (event.type === "holiday") return event.title.includes("GO") ? event.title : "Holiday";
+  if (event.type === "shift") return "Shift";
+  return event.title;
 };
 
 const buildFallbackCalendar = (month: string): WorkspaceCalendarResponse => {
@@ -160,12 +180,6 @@ const WorkCalendarPageClient = () => {
         )}
       />
 
-      <FeatureCallout
-        badge="Calendar rhythm"
-        title="One timeline for schedule, leave, and company-wide date pressure."
-        description="This workspace keeps the monthly view practical: upcoming shifts, approved leave, holidays, and company updates stay visible without turning the calendar into a cluttered planning wall."
-      />
-
       {loading ? <LoadingState label="Loading work calendar..." /> : null}
       {!loading && error ? (
         <Card className="rounded-xl border-[color:rgba(245,158,11,0.45)] bg-[rgba(245,158,11,0.08)]">
@@ -245,7 +259,7 @@ const WorkCalendarPageClient = () => {
                       {day.events.length === 0 ? <span className="text-xs text-muted-foreground">No events</span> : null}
                       {day.events.slice(0, 4).map((event) => (
                         <span key={event.id} className={`calendar-event-chip calendar-event-chip--${eventTone(event)}`} title={event.title}>
-                          {event.title}
+                          {compactEventLabel(event)}
                         </span>
                       ))}
                     </div>

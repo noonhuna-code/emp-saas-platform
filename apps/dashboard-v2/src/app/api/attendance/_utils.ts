@@ -42,6 +42,13 @@ export const sanitizeAttendanceServiceError = (error?: string): string => {
     "Already clocked in for today",
     "No open attendance record",
     "No active shift assignment",
+    "No shift scheduled today",
+    "You are on leave today",
+    "You are on unpaid leave today",
+    "Today is a holiday",
+    "You are marked absent today",
+    "Late Login is only available after a late clock-in",
+    "Late Login request already exists for this day",
     "Shift template not found",
     "Attendance record not found",
     "Employee record not found",
@@ -82,6 +89,7 @@ export const mapAttendanceServiceErrorStatus = (error?: string): number => {
   }
   if (
     error === "Correction reason is required" ||
+    error === "Late Login is only available after a late clock-in" ||
     error === "Rejection reason is required" ||
     error.startsWith("Requested ")
   ) {
@@ -91,6 +99,12 @@ export const mapAttendanceServiceErrorStatus = (error?: string): number => {
     error === "Already clocked in for today" ||
     error === "No open attendance record" ||
     error === "No active shift assignment" ||
+    error === "No shift scheduled today" ||
+    error === "You are on leave today" ||
+    error === "You are on unpaid leave today" ||
+    error === "Today is a holiday" ||
+    error === "You are marked absent today" ||
+    error === "Late Login request already exists for this day" ||
     error === "Correction already approved" ||
     error === "Correction already rejected"
   ) {

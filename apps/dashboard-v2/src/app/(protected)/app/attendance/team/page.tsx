@@ -4,7 +4,11 @@ import { AttendanceTeamPageClient } from "./AttendanceTeamPageClient";
 
 export default async function AttendanceTeamPage() {
   const session = await getServerSession();
-  if (!session.permissions.includes("manage_attendance")) {
+  const canViewTeamAttendance =
+    session.permissions.includes("manage_attendance") ||
+    session.permissions.includes("manage_employees") ||
+    session.permissions.includes("manage_company");
+  if (!canViewTeamAttendance) {
     redirect("/403");
   }
 

@@ -20,6 +20,11 @@ const sanitizeClockError = (error?: string): string => {
     "Already on break",
     "No active break",
     "No active shift assignment",
+    "No shift scheduled today",
+    "You are on leave today",
+    "You are on unpaid leave today",
+    "Today is a holiday",
+    "You are marked absent today",
     "Shift template not found",
     "Employee record not found"
   ];

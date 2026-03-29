@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import {
   applyLeaveRequest,
   cancelLeaveRequest,
@@ -163,9 +162,6 @@ export const LeavePageClient = () => {
             <Badge className="rounded-full border-blue-200 bg-blue-50 text-blue-700">
               {leaveTypes.length} leave types
             </Badge>
-            <Link href="/app/attendance/shift-swaps" className="secondary-btn">
-              Shift swaps
-            </Link>
             <Button variant="secondary" className="rounded-full" onClick={() => void load()}>
               Refresh
             </Button>

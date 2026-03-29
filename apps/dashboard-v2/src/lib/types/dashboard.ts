@@ -81,12 +81,18 @@ export type EmployeeDashboardResponse = {
   };
   attendanceToday: {
     status: string;
+    dayState: import("./attendance").AttendanceDayState;
+    payrollImpact: import("./attendance").AttendancePayrollImpact;
+    lateLoginRequest: import("./attendance").AttendanceLateLoginRequest;
     checkIn?: string | null;
     checkOut?: string | null;
     workMinutes?: number | null;
     overtimeMinutes?: number | null;
     lateMinutes?: number | null;
     isOnBreak: boolean;
+    shiftLabel?: string | null;
+    leaveLabel?: string | null;
+    holidayLabel?: string | null;
   } | null;
   leaveBalances: Array<{
     leave_type_id: string;

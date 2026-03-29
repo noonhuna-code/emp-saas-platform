@@ -94,6 +94,7 @@ export type WorkspaceCalendarEvent = {
   type: "holiday" | "leave" | "shift" | "attendance";
   title: string;
   status: string | null;
+  payroll_impact: import("./attendance").AttendancePayrollImpact | null;
   source: "company" | "pakistan_estimated" | "leave" | "shift" | "attendance";
 };
 

@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ServiceContext, ServiceResult } from "../lib/types";
 import { assertEmployeeScope, requirePermission } from "../lib/auth-wrapper";
 import { requirePlanFeature } from "../lib/entitlements";
+import { getAccessibleEmployeeScope } from "./access-scope.service";
 
 export type ClockInPayload = {
   deviceId?: string;
@@ -81,11 +82,72 @@ export type AttendanceTodayRecord = {
   correction_status: string | null;
 };
 
+export type AttendanceDayState =
+  | "go_active"
+  | "go_applied"
+  | "leave_unpaid"
+  | "leave_paid"
+  | "absent"
+  | "off_day"
+  | "present"
+  | "on_break"
+  | "clocked_out"
+  | "late";
+
+export type AttendancePayrollImpact =
+  | "extra_pay_go_active"
+  | "extra_pay_go_applied"
+  | "no_pay_unpaid_leave"
+  | "no_pay_absent"
+  | "paid_leave"
+  | "off_day_no_deduction"
+  | "normal_pay";
+
+export type AttendanceShiftContext = {
+  status: "assigned" | "unassigned" | "off_day";
+  assignment_id: string | null;
+  shift_template_id: string | null;
+  shift_name: string | null;
+  start_time: string | null;
+  end_time: string | null;
+  effective_from: string | null;
+  effective_to: string | null;
+};
+
+export type AttendanceLeaveContext = {
+  request_id: string;
+  leave_type_id: string | null;
+  leave_type_name: string | null;
+  is_paid: boolean;
+  start_date: string;
+  end_date: string;
+  status: string;
+};
+
+export type AttendanceHolidayContext = {
+  holiday_id: string;
+  holiday_name: string;
+  holiday_date: string;
+  go_state: "go_active" | "go_applied" | null;
+};
+
+export type AttendanceLateLoginRequest = {
+  exists: boolean;
+  status: "pending" | "approved" | "rejected" | null;
+  requestId: string | null;
+};
+
 export type AttendanceTodayResponse = {
   employeeId: string;
   todayDate: string;
+  dayState: AttendanceDayState;
+  payrollImpact: AttendancePayrollImpact;
   currentStatus: "not_clocked_in" | "clocked_in" | "on_break" | "clocked_out";
   isOnBreak: boolean;
+  shiftContext: AttendanceShiftContext;
+  leaveContext: AttendanceLeaveContext | null;
+  holidayContext: AttendanceHolidayContext | null;
+  lateLoginRequest: AttendanceLateLoginRequest;
   latestGeoEvent: {
     event_type: string;
     latitude: number;
@@ -127,13 +189,22 @@ export type TeamAttendanceRow = {
   employee_id: string;
   employee_name?: string | null;
   department_id?: string | null;
+  department_name?: string | null;
+  team_id?: string | null;
+  team_name?: string | null;
   attendance_date: string;
   status: string | null;
+  day_state: AttendanceDayState;
+  payroll_impact: AttendancePayrollImpact;
+  leave_type_name: string | null;
+  holiday_name: string | null;
+  shift_name: string | null;
   check_in: string | null;
   check_out: string | null;
   work_minutes: number | null;
   overtime_minutes: number | null;
   late_minutes?: number | null;
+  late_login_request: AttendanceLateLoginRequest;
 };
 
 export type TeamAttendanceResponse = {
@@ -222,6 +293,272 @@ type AttendanceCorrectionRow = {
 };
 
 const MAX_REVIEW_LIMIT = 200;
+
+type AttendanceDayStateClassifierInput = {
+  attendanceDate: string;
+  holiday: {
+    id: string;
+    name: string;
+    date: string;
+  } | null;
+  goAssigned: boolean;
+  leave: AttendanceLeaveContext | null;
+  explicitAbsent: boolean;
+  shiftAssigned: boolean;
+  attendanceStatus: string | null;
+  hasCheckIn: boolean;
+  hasCheckOut: boolean;
+  isOnBreak: boolean;
+  workMinutes: number | null;
+  lateMinutes: number | null;
+  attendanceCheckIn: string | null;
+  shiftStartTime: string | null;
+};
+
+type EmployeeAttendanceScopeRow = {
+  id: string;
+  department_id?: string | null;
+  department_name?: string | null;
+  team_id?: string | null;
+  team_name?: string | null;
+  user_profile_id?: string | null;
+  employee_name?: string | null;
+};
+
+type AttendanceRecordScopeRow = AttendanceTodayRecord & {
+  employee_id: string;
+};
+
+type EmployeeDayStateSnapshot = {
+  employee_id: string;
+  employee_name: string | null;
+  department_id: string | null;
+  department_name: string | null;
+  team_id: string | null;
+  team_name: string | null;
+  attendance_date: string;
+  day_state: AttendanceDayState;
+  payroll_impact: AttendancePayrollImpact;
+  current_status: AttendanceTodayResponse["currentStatus"];
+  is_on_break: boolean;
+  record: AttendanceTodayRecord | null;
+  shift_context: AttendanceShiftContext;
+  leave_context: AttendanceLeaveContext | null;
+  holiday_context: AttendanceHolidayContext | null;
+  late_login_request: AttendanceLateLoginRequest;
+  latestGeoEvent: AttendanceTodayResponse["latestGeoEvent"] | null;
+};
+
+const currentDateText = (): string => new Date().toISOString().slice(0, 10);
+
+const normalizeAttendanceRecord = (
+  row: Partial<AttendanceRecordScopeRow> & { id: string; attendance_date: string; employee_id: string }
+): AttendanceRecordScopeRow => ({
+  id: row.id,
+  employee_id: row.employee_id,
+  attendance_date: row.attendance_date,
+  check_in: row.check_in ?? null,
+  check_out: row.check_out ?? null,
+  status: row.status ?? null,
+  work_minutes: row.work_minutes ?? null,
+  overtime_minutes: row.overtime_minutes ?? null,
+  late_minutes: row.late_minutes ?? null,
+  shift_start_time: row.shift_start_time ?? null,
+  shift_end_time: row.shift_end_time ?? null,
+  early_logout: row.early_logout ?? null,
+  missing_logout: row.missing_logout ?? null,
+  is_locked: Boolean(row.is_locked),
+  correction_status: row.correction_status ?? null
+});
+
+export const deriveAttendanceCurrentStatus = (
+  record: Pick<AttendanceTodayRecord, "check_in" | "check_out"> | null,
+  isOnBreak: boolean
+): AttendanceTodayResponse["currentStatus"] => {
+  if (!record?.check_in) return "not_clocked_in";
+  if (record.check_in && !record.check_out) {
+    return isOnBreak ? "on_break" : "clocked_in";
+  }
+  if (record.check_in && record.check_out) {
+    return "clocked_out";
+  }
+  return "not_clocked_in";
+};
+
+const hasWorkedAttendanceTruth = (
+  input: Pick<AttendanceDayStateClassifierInput, "attendanceStatus" | "hasCheckIn" | "workMinutes">
+): boolean => {
+  if (input.hasCheckIn) return true;
+  if ((input.workMinutes ?? 0) > 0) return true;
+  return ["present", "late", "half_day", "pending"].includes((input.attendanceStatus ?? "").toLowerCase());
+};
+
+const LATE_LOGIN_REASON = "Late Login";
+
+const isLateLoginReason = (reason?: string | null): boolean => {
+  const normalized = (reason ?? "").trim().toLowerCase();
+  return normalized === LATE_LOGIN_REASON.toLowerCase() || normalized.startsWith(`${LATE_LOGIN_REASON.toLowerCase()}\n`);
+};
+
+const parseDateTimeSafe = (value?: string | null): Date | null => {
+  if (!value) return null;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
+const parseTimeOnDate = (dateText: string, timeText?: string | null): Date | null => {
+  if (!timeText) return null;
+  const parsed = new Date(`${dateText}T${timeText}`);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
+const isLateBeyondPtclThreshold = (
+  attendanceDate: string,
+  checkIn: string | null,
+  shiftStartTime: string | null
+): boolean => {
+  const actual = parseDateTimeSafe(checkIn);
+  const shiftStart = parseTimeOnDate(attendanceDate, shiftStartTime);
+  if (!actual || !shiftStart) return false;
+  return actual.getTime() > shiftStart.getTime() + 5 * 60 * 1000;
+};
+
+export const classifyAttendanceDayState = (
+  input: AttendanceDayStateClassifierInput
+): {
+  dayState: AttendanceDayState;
+  payrollImpact: AttendancePayrollImpact;
+  currentStatus: AttendanceTodayResponse["currentStatus"];
+  holidayGoState: AttendanceHolidayContext["go_state"] | null;
+} => {
+  const currentStatus = deriveAttendanceCurrentStatus(
+    input.hasCheckIn || input.hasCheckOut
+      ? {
+          check_in: input.hasCheckIn ? "1" : null,
+          check_out: input.hasCheckOut ? "1" : null
+        }
+      : null,
+    input.isOnBreak
+  );
+  const workedHoliday = input.holiday ? hasWorkedAttendanceTruth(input) : false;
+  const isLate =
+    (input.attendanceStatus ?? "").toLowerCase() === "late"
+    || (input.lateMinutes ?? 0) > 0
+    || isLateBeyondPtclThreshold(input.attendanceDate, input.attendanceCheckIn, input.shiftStartTime);
+
+  if (input.holiday && workedHoliday) {
+    return {
+      dayState: "go_active",
+      payrollImpact: "extra_pay_go_active",
+      currentStatus,
+      holidayGoState: "go_active"
+    };
+  }
+
+  if (input.holiday && input.goAssigned && !workedHoliday) {
+    return {
+      dayState: "go_applied",
+      payrollImpact: "extra_pay_go_applied",
+      currentStatus: "not_clocked_in",
+      holidayGoState: "go_applied"
+    };
+  }
+
+  if (input.leave && !input.leave.is_paid) {
+    return {
+      dayState: "leave_unpaid",
+      payrollImpact: "no_pay_unpaid_leave",
+      currentStatus: "not_clocked_in",
+      holidayGoState: null
+    };
+  }
+
+  if (input.leave && input.leave.is_paid) {
+    return {
+      dayState: "leave_paid",
+      payrollImpact: "paid_leave",
+      currentStatus: "not_clocked_in",
+      holidayGoState: null
+    };
+  }
+
+  if (input.explicitAbsent) {
+    return {
+      dayState: "absent",
+      payrollImpact: "no_pay_absent",
+      currentStatus: "not_clocked_in",
+      holidayGoState: null
+    };
+  }
+
+  if (!input.shiftAssigned) {
+    return {
+      dayState: "off_day",
+      payrollImpact: "off_day_no_deduction",
+      currentStatus: "not_clocked_in",
+      holidayGoState: null
+    };
+  }
+
+  if (isLate) {
+    return {
+      dayState: "late",
+      payrollImpact: "normal_pay",
+      currentStatus,
+      holidayGoState: null
+    };
+  }
+  if (currentStatus === "on_break") {
+    return { dayState: "on_break", payrollImpact: "normal_pay", currentStatus, holidayGoState: null };
+  }
+  if (currentStatus === "clocked_out") {
+    return { dayState: "clocked_out", payrollImpact: "normal_pay", currentStatus, holidayGoState: null };
+  }
+  if (currentStatus === "clocked_in") {
+    return { dayState: "present", payrollImpact: "normal_pay", currentStatus, holidayGoState: null };
+  }
+
+  return {
+    dayState: "present",
+    payrollImpact: "normal_pay",
+    currentStatus: "not_clocked_in",
+    holidayGoState: null
+  };
+};
+
+const buildShiftContext = (shift: {
+  id: string;
+  shift_template_id: string | null;
+  effective_from: string | null;
+  effective_to: string | null;
+  shift_name: string | null;
+  start_time: string | null;
+  end_time: string | null;
+} | null): AttendanceShiftContext => {
+  if (!shift?.id) {
+    return {
+      status: "off_day",
+      assignment_id: null,
+      shift_template_id: null,
+      shift_name: null,
+      start_time: null,
+      end_time: null,
+      effective_from: null,
+      effective_to: null
+    };
+  }
+
+  return {
+    status: "assigned",
+    assignment_id: shift.id,
+    shift_template_id: shift.shift_template_id,
+    shift_name: shift.shift_name,
+    start_time: shift.start_time,
+    end_time: shift.end_time,
+    effective_from: shift.effective_from,
+    effective_to: shift.effective_to
+  };
+};
 
 const getActorProfileId = async (
   client: SupabaseClient,
@@ -680,123 +1017,40 @@ export const getAttendanceToday = async (
       return { ok: false, error: "Employee record not found" };
     }
 
-    const today = new Date().toISOString().slice(0, 10);
-
-    const { data: record, error: recordError } = await ctx.supabase
-      .from("attendance_records")
-      .select(
-        "id, attendance_date, check_in, check_out, status, work_minutes, overtime_minutes, late_minutes, shift_start_time, shift_end_time, early_logout, missing_logout"
-      )
-      .eq("company_id", ctx.companyId)
-      .eq("employee_id", employeeId)
-      .eq("attendance_date", today)
-      .is("is_deleted", false)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (recordError) {
-      return { ok: false, error: "Unable to load attendance status" };
-    }
-
-    const { data: latestGeoEvent } = await ctx.supabase
-      .from("attendance_geo_events")
-      .select("event_type, latitude, longitude, accuracy_meters, source, captured_at")
-      .eq("company_id", ctx.companyId)
-      .eq("employee_id", employeeId)
-      .gte("captured_at", `${today}T00:00:00.000Z`)
-      .lt("captured_at", `${today}T23:59:59.999Z`)
-      .order("captured_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (!record?.id) {
-      return {
-        ok: true,
-        data: {
-          employeeId,
-          todayDate: today,
-          currentStatus: "not_clocked_in",
-          isOnBreak: false,
-          latestGeoEvent: latestGeoEvent
-            ? {
-                event_type: latestGeoEvent.event_type as string,
-                latitude: Number(latestGeoEvent.latitude ?? 0),
-                longitude: Number(latestGeoEvent.longitude ?? 0),
-                accuracy_meters: (latestGeoEvent.accuracy_meters as number | null) ?? null,
-                source: (latestGeoEvent.source as string | null) ?? null,
-                captured_at: latestGeoEvent.captured_at as string
-              }
-            : null,
-          record: null
+    const today = currentDateText();
+    const [snapshot] = await loadEmployeeDateStates(
+      ctx,
+      [
+        {
+          id: employeeId,
+          employee_name: null,
+          department_id: null,
+          department_name: null,
+          team_id: null,
+          team_name: null
         }
-      };
-    }
+      ],
+      today,
+      { includeGeo: true }
+    );
 
-    const { data: openBreak, error: breakError } = await ctx.supabase
-      .from("attendance_breaks")
-      .select("id")
-      .eq("company_id", ctx.companyId)
-      .eq("attendance_id", record.id)
-      .is("break_end", null)
-      .is("is_deleted", false)
-      .limit(1)
-      .maybeSingle();
-
-    if (breakError) {
+    if (!snapshot) {
       return { ok: false, error: "Unable to load attendance status" };
-    }
-
-    const { data: correctionRows } = await ctx.supabase
-      .from("attendance_correction_requests")
-      .select("status, created_at")
-      .eq("company_id", ctx.companyId)
-      .eq("attendance_id", record.id)
-      .is("is_deleted", false)
-      .order("created_at", { ascending: false })
-      .limit(1);
-
-    const latestCorrection = (correctionRows ?? [])[0] as { status?: string | null } | undefined;
-    const isOnBreak = Boolean(openBreak?.id);
-
-    let currentStatus: AttendanceTodayResponse["currentStatus"] = "not_clocked_in";
-    if (record.check_in && !record.check_out) {
-      currentStatus = isOnBreak ? "on_break" : "clocked_in";
-    } else if (record.check_in && record.check_out) {
-      currentStatus = "clocked_out";
     }
 
     const payload: AttendanceTodayResponse = {
       employeeId,
       todayDate: today,
-      currentStatus,
-      isOnBreak,
-      latestGeoEvent: latestGeoEvent
-        ? {
-            event_type: latestGeoEvent.event_type as string,
-            latitude: Number(latestGeoEvent.latitude ?? 0),
-            longitude: Number(latestGeoEvent.longitude ?? 0),
-            accuracy_meters: (latestGeoEvent.accuracy_meters as number | null) ?? null,
-            source: (latestGeoEvent.source as string | null) ?? null,
-            captured_at: latestGeoEvent.captured_at as string
-          }
-        : null,
-      record: {
-        id: record.id,
-        attendance_date: record.attendance_date,
-        check_in: record.check_in ?? null,
-        check_out: record.check_out ?? null,
-        status: record.status ?? null,
-        work_minutes: record.work_minutes ?? null,
-        overtime_minutes: record.overtime_minutes ?? null,
-        late_minutes: record.late_minutes ?? null,
-        shift_start_time: record.shift_start_time ?? null,
-        shift_end_time: record.shift_end_time ?? null,
-        early_logout: record.early_logout ?? null,
-        missing_logout: record.missing_logout ?? null,
-        is_locked: false,
-        correction_status: latestCorrection?.status ?? null
-      }
+      dayState: snapshot.day_state,
+      payrollImpact: snapshot.payroll_impact,
+      currentStatus: snapshot.current_status,
+      isOnBreak: snapshot.is_on_break,
+      shiftContext: snapshot.shift_context,
+      leaveContext: snapshot.leave_context,
+      holidayContext: snapshot.holiday_context,
+      lateLoginRequest: snapshot.late_login_request,
+      latestGeoEvent: snapshot.latestGeoEvent ?? null,
+      record: snapshot.record
     };
 
     return { ok: true, data: payload };
@@ -943,48 +1197,80 @@ export const listTeamAttendanceToday = async (
 ): Promise<ServiceResult<TeamAttendanceResponse>> => {
   try {
     await requireAttendanceEntitlement(ctx);
-    requirePermission("manage_attendance", ctx);
+    if (
+      !ctx.permissions.includes("manage_attendance") &&
+      !ctx.permissions.includes("manage_employees") &&
+      !ctx.permissions.includes("manage_company")
+    ) {
+      requirePermission("manage_attendance", ctx);
+    }
 
-    const today = new Date().toISOString().slice(0, 10);
-    let query = ctx.supabase
-      .from("attendance_records")
-      .select(
-        "id, employee_id, attendance_date, status, check_in, check_out, work_minutes, overtime_minutes, late_minutes, employees!attendance_records_employee_id_fkey(id, department_id, user_profile_id, user_profiles(full_name, avatar_url))"
-      )
+    const today = currentDateText();
+    const scope = await getAccessibleEmployeeScope(ctx);
+    let employeesQuery = ctx.supabase
+      .from("employees")
+      .select("id, department_id, team_id, user_profile_id, departments(name), teams(name), user_profiles(full_name)")
       .eq("company_id", ctx.companyId)
-      .eq("attendance_date", today)
       .is("is_deleted", false);
 
-    if (filters.status) {
-      query = query.eq("status", filters.status);
+    if (!scope.broadAccess) {
+      const scopedIds = Array.from(scope.ids);
+      if (scopedIds.length === 0) {
+        return { ok: true, data: { date: today, rows: [] } };
+      }
+      employeesQuery = employeesQuery.in("id", scopedIds);
     }
     if (filters.departmentId) {
-      query = query.eq("employees.department_id", filters.departmentId);
+      employeesQuery = employeesQuery.eq("department_id", filters.departmentId);
     }
 
-    const { data: rows, error } = await query.order("check_in", { ascending: true });
+    const { data: employeeRows, error } = await employeesQuery.order("id", { ascending: true });
     if (error) {
       return { ok: false, error: "Unable to load team attendance" };
     }
 
-    const mappedRows = (rows ?? []).map((row: any) => {
-      const employee = row.employees as {
-        user_profiles?: { full_name?: string | null } | null;
-        department_id?: string | null;
-      } | null;
-      return {
-        employee_id: row.employee_id as string,
-        employee_name: employee?.user_profiles?.full_name ?? null,
-        department_id: employee?.department_id ?? null,
-        attendance_date: row.attendance_date as string,
-        status: row.status as string | null,
-        check_in: row.check_in as string | null,
-        check_out: row.check_out as string | null,
-        work_minutes: row.work_minutes as number | null,
-        overtime_minutes: row.overtime_minutes as number | null,
-        late_minutes: row.late_minutes as number | null
-      } satisfies TeamAttendanceRow;
-    });
+    const snapshots = await loadEmployeeDateStates(
+      ctx,
+      ((employeeRows ?? []) as Array<any>).map((row) => ({
+        id: row.id as string,
+        employee_name: (row.user_profiles?.full_name as string | null) ?? null,
+        department_id: (row.department_id as string | null) ?? null,
+        department_name: (row.departments?.name as string | null) ?? null,
+        team_id: (row.team_id as string | null) ?? null,
+        team_name: (row.teams?.name as string | null) ?? null
+      })),
+      today
+    );
+
+    const normalizedStatusFilter = (filters.status ?? "").trim().toLowerCase();
+    const mappedRows = snapshots
+      .filter((row) => !normalizedStatusFilter || row.day_state === normalizedStatusFilter || (row.record?.status ?? "").toLowerCase() === normalizedStatusFilter)
+      .sort((left, right) => {
+        const leftName = left.employee_name ?? "";
+        const rightName = right.employee_name ?? "";
+        return leftName.localeCompare(rightName);
+      })
+      .map((row) => ({
+        employee_id: row.employee_id,
+        employee_name: row.employee_name,
+        department_id: row.department_id,
+        department_name: row.department_name,
+        team_id: row.team_id,
+        team_name: row.team_name,
+        attendance_date: row.attendance_date,
+        status: row.record?.status ?? row.day_state,
+        day_state: row.day_state,
+        payroll_impact: row.payroll_impact,
+        leave_type_name: row.leave_context?.leave_type_name ?? null,
+        holiday_name: row.holiday_context?.holiday_name ?? null,
+        shift_name: row.shift_context.shift_name ?? null,
+        check_in: row.record?.check_in ?? null,
+        check_out: row.record?.check_out ?? null,
+        work_minutes: row.record?.work_minutes ?? null,
+        overtime_minutes: row.record?.overtime_minutes ?? null,
+        late_minutes: row.record?.late_minutes ?? null,
+        late_login_request: row.late_login_request
+      } satisfies TeamAttendanceRow));
 
     return { ok: true, data: { date: today, rows: mappedRows } };
   } catch (err) {
@@ -1326,6 +1612,289 @@ export const listShiftSwapRequests = async (
   }
 };
 
+const loadLatestGeoEvent = async (
+  client: SupabaseClient,
+  ctx: ServiceContext,
+  employeeId: string,
+  date: string
+): Promise<AttendanceTodayResponse["latestGeoEvent"]> => {
+  const { data } = await client
+    .from("attendance_geo_events")
+    .select("event_type, latitude, longitude, accuracy_meters, source, captured_at")
+    .eq("company_id", ctx.companyId)
+    .eq("employee_id", employeeId)
+    .gte("captured_at", `${date}T00:00:00.000Z`)
+    .lt("captured_at", `${date}T23:59:59.999Z`)
+    .order("captured_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!data) return null;
+  return {
+    event_type: data.event_type as string,
+    latitude: Number(data.latitude ?? 0),
+    longitude: Number(data.longitude ?? 0),
+    accuracy_meters: (data.accuracy_meters as number | null) ?? null,
+    source: (data.source as string | null) ?? null,
+    captured_at: data.captured_at as string
+  };
+};
+
+const loadEmployeeDateStates = async (
+  ctx: ServiceContext,
+  employeeRows: EmployeeAttendanceScopeRow[],
+  date: string,
+  { includeGeo = false }: { includeGeo?: boolean } = {}
+): Promise<EmployeeDayStateSnapshot[]> => {
+  if (employeeRows.length === 0) {
+    return [];
+  }
+
+  const employeeIds = employeeRows.map((row) => row.id);
+
+  const [attendanceResult, leaveResult, holidayResult, shiftResult] = await Promise.all([
+    ctx.supabase
+      .from("attendance_records")
+      .select(
+        "id, employee_id, attendance_date, check_in, check_out, status, work_minutes, overtime_minutes, late_minutes, shift_start_time, shift_end_time, early_logout, missing_logout"
+      )
+      .eq("company_id", ctx.companyId)
+      .eq("attendance_date", date)
+      .in("employee_id", employeeIds)
+      .is("is_deleted", false)
+      .order("created_at", { ascending: false }),
+    ctx.supabase
+      .from("leave_requests")
+      .select("id, employee_id, leave_type_id, start_date, end_date, status, leave_types(name, is_paid)")
+      .eq("company_id", ctx.companyId)
+      .eq("status", "approved")
+      .in("employee_id", employeeIds)
+      .lte("start_date", date)
+      .gte("end_date", date)
+      .is("is_deleted", false),
+    ctx.supabase
+      .from("company_holidays")
+      .select("id, holiday_date, name")
+      .eq("company_id", ctx.companyId)
+      .eq("holiday_date", date)
+      .eq("is_active", true)
+      .is("is_deleted", false)
+      .limit(1)
+      .maybeSingle(),
+    ctx.supabase
+      .from("employee_shift_assignments")
+      .select("id, employee_id, shift_template_id, effective_from, effective_to, shift_templates(name, start_time, end_time)")
+      .eq("company_id", ctx.companyId)
+      .in("employee_id", employeeIds)
+      .lte("effective_from", date)
+      .or(`effective_to.is.null,effective_to.gte.${date}`)
+      .is("is_deleted", false)
+      .order("effective_from", { ascending: false })
+  ]);
+
+  if (attendanceResult.error) {
+    throw new Error("Unable to load attendance status");
+  }
+  if (leaveResult.error) {
+    throw new Error("Unable to load attendance status");
+  }
+  if (shiftResult.error) {
+    throw new Error("Unable to load attendance status");
+  }
+
+  const latestAttendanceByEmployeeId = new Map<string, AttendanceRecordScopeRow>();
+  for (const row of (attendanceResult.data ?? []) as Array<{
+    id: string;
+    employee_id: string;
+    attendance_date: string;
+    check_in?: string | null;
+    check_out?: string | null;
+    status?: string | null;
+    work_minutes?: number | null;
+    overtime_minutes?: number | null;
+    late_minutes?: number | null;
+    shift_start_time?: string | null;
+    shift_end_time?: string | null;
+    early_logout?: boolean | null;
+    missing_logout?: boolean | null;
+  }>) {
+    if (!latestAttendanceByEmployeeId.has(row.employee_id)) {
+      latestAttendanceByEmployeeId.set(row.employee_id, normalizeAttendanceRecord(row));
+    }
+  }
+
+  const leaveByEmployeeId = new Map<string, AttendanceLeaveContext>();
+  for (const row of (leaveResult.data ?? []) as Array<{
+    id: string;
+    employee_id: string;
+    leave_type_id?: string | null;
+    start_date: string;
+    end_date: string;
+    status: string;
+    leave_types?: { name?: string | null; is_paid?: boolean | null } | null;
+  }>) {
+    if (!leaveByEmployeeId.has(row.employee_id)) {
+      leaveByEmployeeId.set(row.employee_id, {
+        request_id: row.id as string,
+        leave_type_id: (row.leave_type_id as string | null) ?? null,
+        leave_type_name: row.leave_types?.name ?? null,
+        is_paid: row.leave_types?.is_paid !== false,
+        start_date: row.start_date,
+        end_date: row.end_date,
+        status: row.status
+      });
+    }
+  }
+
+  const shiftByEmployeeId = new Map<
+    string,
+    {
+      id: string;
+      shift_template_id: string | null;
+      effective_from: string | null;
+      effective_to: string | null;
+      shift_name: string | null;
+      start_time: string | null;
+      end_time: string | null;
+    }
+  >();
+  for (const row of (shiftResult.data ?? []) as Array<any>) {
+    const employeeId = row.employee_id as string;
+    if (!shiftByEmployeeId.has(employeeId)) {
+      shiftByEmployeeId.set(employeeId, {
+        id: row.id as string,
+        shift_template_id: (row.shift_template_id as string | null) ?? null,
+        effective_from: (row.effective_from as string | null) ?? null,
+        effective_to: (row.effective_to as string | null) ?? null,
+        shift_name: (row.shift_templates?.name as string | null) ?? null,
+        start_time: (row.shift_templates?.start_time as string | null) ?? null,
+        end_time: (row.shift_templates?.end_time as string | null) ?? null
+      });
+    }
+  }
+
+  const attendanceIds = Array.from(latestAttendanceByEmployeeId.values()).map((row) => row.id);
+  const [breaksResult, correctionsResult] = await Promise.all([
+    attendanceIds.length > 0
+      ? ctx.supabase
+          .from("attendance_breaks")
+          .select("attendance_id")
+          .eq("company_id", ctx.companyId)
+          .in("attendance_id", attendanceIds)
+          .is("break_end", null)
+          .is("is_deleted", false)
+      : Promise.resolve({ data: [], error: null }),
+    attendanceIds.length > 0
+      ? ctx.supabase
+          .from("attendance_correction_requests")
+          .select("id, attendance_id, status, reason, created_at")
+          .eq("company_id", ctx.companyId)
+          .in("attendance_id", attendanceIds)
+          .is("is_deleted", false)
+          .order("created_at", { ascending: false })
+      : Promise.resolve({ data: [], error: null })
+  ]);
+
+  if (breaksResult.error || correctionsResult.error) {
+    throw new Error("Unable to load attendance status");
+  }
+
+  const openBreakAttendanceIds = new Set(
+    ((breaksResult.data ?? []) as Array<{ attendance_id: string }>).map((row) => row.attendance_id)
+  );
+  const correctionStatusByAttendanceId = new Map<string, string | null>();
+  const lateLoginRequestByAttendanceId = new Map<string, AttendanceLateLoginRequest>();
+  for (const row of (correctionsResult.data ?? []) as Array<{ id: string; attendance_id: string; status?: string | null; reason?: string | null }>) {
+    if (!correctionStatusByAttendanceId.has(row.attendance_id)) {
+      correctionStatusByAttendanceId.set(row.attendance_id, row.status ?? null);
+    }
+    if (!lateLoginRequestByAttendanceId.has(row.attendance_id) && isLateLoginReason(row.reason)) {
+      lateLoginRequestByAttendanceId.set(row.attendance_id, {
+        exists: true,
+        status: (row.status as "pending" | "approved" | "rejected" | null) ?? null,
+        requestId: row.id
+      });
+    }
+  }
+
+  const holiday = holidayResult.data
+    ? {
+        id: holidayResult.data.id as string,
+        name: holidayResult.data.name as string,
+        date: holidayResult.data.holiday_date as string
+      }
+    : null;
+
+  const snapshots = await Promise.all(
+    employeeRows.map(async (employee) => {
+      const record = latestAttendanceByEmployeeId.get(employee.id) ?? null;
+      const isOnBreak = record ? openBreakAttendanceIds.has(record.id) : false;
+      const leave = leaveByEmployeeId.get(employee.id) ?? null;
+      const shift = shiftByEmployeeId.get(employee.id) ?? null;
+      const goAssigned = (record?.status ?? "").toLowerCase() === "holiday";
+      const classification = classifyAttendanceDayState({
+        attendanceDate: date,
+        holiday,
+        goAssigned,
+        leave,
+        explicitAbsent: (record?.status ?? "").toLowerCase() === "absent",
+        shiftAssigned: Boolean(shift?.id),
+        attendanceStatus: record?.status ?? null,
+        hasCheckIn: Boolean(record?.check_in),
+        hasCheckOut: Boolean(record?.check_out),
+        isOnBreak,
+        workMinutes: record?.work_minutes ?? null,
+        lateMinutes: record?.late_minutes ?? null,
+        attendanceCheckIn: record?.check_in ?? null,
+        shiftStartTime: record?.shift_start_time ?? shift?.start_time ?? null
+      });
+
+      const latestGeoEvent = includeGeo
+        ? await loadLatestGeoEvent(ctx.supabase, ctx, employee.id, date)
+        : null;
+
+      const normalizedRecord = record
+        ? {
+            ...record,
+            correction_status: correctionStatusByAttendanceId.get(record.id) ?? null,
+            is_locked: record.is_locked ?? false
+          }
+        : null;
+
+      return {
+        employee_id: employee.id,
+        employee_name: employee.employee_name ?? null,
+        department_id: employee.department_id ?? null,
+        department_name: employee.department_name ?? null,
+        team_id: employee.team_id ?? null,
+        team_name: employee.team_name ?? null,
+        attendance_date: date,
+        day_state: classification.dayState,
+        payroll_impact: classification.payrollImpact,
+        current_status: classification.currentStatus,
+        is_on_break: isOnBreak,
+        record: normalizedRecord,
+        shift_context: buildShiftContext(shift),
+        leave_context: leave,
+        holiday_context: holiday
+          ? {
+              holiday_id: holiday.id,
+              holiday_name: holiday.name,
+              holiday_date: holiday.date,
+              go_state: classification.holidayGoState
+            }
+          : null,
+        late_login_request: normalizedRecord
+          ? lateLoginRequestByAttendanceId.get(normalizedRecord.id) ?? { exists: false, status: null, requestId: null }
+          : { exists: false, status: null, requestId: null },
+        latestGeoEvent
+      } satisfies EmployeeDayStateSnapshot;
+    })
+  );
+
+  return snapshots;
+};
+
 export const createShiftSwapRequest = async (
   ctx: ServiceContext,
   payload: {
@@ -1623,7 +2192,7 @@ export const clockIn = async (
     await ensureSelfOrManageAttendance(ctx, employeeId);
     assertEmployeeScope(employeeId, ctx);
 
-    const today = new Date().toISOString().slice(0, 10);
+    const today = currentDateText();
 
     const { data: existing } = await ctx.supabase
       .from("attendance_records")
@@ -1636,6 +2205,37 @@ export const clockIn = async (
 
     if (existing?.id) {
       return { ok: false, error: "Already clocked in for today" };
+    }
+
+    const [snapshot] = await loadEmployeeDateStates(
+      ctx,
+      [
+        {
+          id: employeeId,
+          employee_name: null,
+          department_id: null,
+          department_name: null,
+          team_id: null,
+          team_name: null
+        }
+      ],
+      today
+    );
+
+    if (snapshot?.day_state === "leave_unpaid") {
+      return { ok: false, error: "You are on unpaid leave today" };
+    }
+    if (snapshot?.day_state === "leave_paid") {
+      return { ok: false, error: "You are on leave today" };
+    }
+    if (snapshot?.day_state === "go_applied") {
+      return { ok: false, error: "Today is a holiday" };
+    }
+    if (snapshot?.day_state === "absent") {
+      return { ok: false, error: "You are marked absent today" };
+    }
+    if (snapshot?.day_state === "off_day") {
+      return { ok: false, error: "No shift scheduled today" };
     }
 
     const { data: assignment } = await ctx.supabase
@@ -1876,6 +2476,165 @@ export const endBreak = async (
   }
 };
 
+export const assignGoApplied = async (
+  ctx: ServiceContext,
+  payload: {
+    employeeId: string;
+    attendanceDate: string;
+    note?: string | null;
+  }
+): Promise<ServiceResult<{ attendanceId: string }>> => {
+  try {
+    await requireAttendanceEntitlement(ctx);
+    if (
+      !ctx.permissions.includes("manage_attendance")
+      && !ctx.permissions.includes("manage_employees")
+      && !ctx.permissions.includes("manage_company")
+    ) {
+      return { ok: false, error: "Permission denied" };
+    }
+
+    const employeeId = payload.employeeId.trim();
+    const attendanceDate = payload.attendanceDate.trim();
+    if (!employeeId || !attendanceDate || !parseIsoDate(attendanceDate)) {
+      return { ok: false, error: "Employee and valid date are required" };
+    }
+
+    await ensureHierarchyAssignable(ctx, employeeId);
+    assertEmployeeScope(employeeId, ctx);
+
+    const actorProfileId = await getActorProfileId(ctx.supabase, ctx);
+    if (!actorProfileId) {
+      return { ok: false, error: "Actor profile not found" };
+    }
+
+    const { data: holiday, error: holidayError } = await ctx.supabase
+      .from("company_holidays")
+      .select("id, holiday_date, name")
+      .eq("company_id", ctx.companyId)
+      .eq("holiday_date", attendanceDate)
+      .eq("is_active", true)
+      .is("is_deleted", false)
+      .maybeSingle();
+
+    if (holidayError) {
+      return { ok: false, error: holidayError.message };
+    }
+    if (!holiday?.id) {
+      return { ok: false, error: "GO can only be assigned on an active holiday date" };
+    }
+
+    const { data: assignment, error: assignmentError } = await ctx.supabase
+      .from("employee_shift_assignments")
+      .select("shift_template_id, effective_from, effective_to")
+      .eq("company_id", ctx.companyId)
+      .eq("employee_id", employeeId)
+      .lte("effective_from", attendanceDate)
+      .or(`effective_to.is.null,effective_to.gte.${attendanceDate}`)
+      .is("is_deleted", false)
+      .order("effective_from", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (assignmentError) {
+      return { ok: false, error: assignmentError.message };
+    }
+    if (!assignment?.shift_template_id) {
+      return { ok: false, error: "GO assignment requires an active shift assignment" };
+    }
+
+    const { data: shift, error: shiftError } = await ctx.supabase
+      .from("shift_templates")
+      .select("id, start_time, end_time, timezone, grace_minutes, auto_absent_after_minutes, min_half_day_minutes, min_full_day_minutes, is_night_shift")
+      .eq("company_id", ctx.companyId)
+      .eq("id", assignment.shift_template_id)
+      .is("is_deleted", false)
+      .maybeSingle();
+
+    if (shiftError || !shift?.id) {
+      return { ok: false, error: shiftError?.message ?? "Shift template not found" };
+    }
+
+    const { data: existingRecord, error: existingRecordError } = await ctx.supabase
+      .from("attendance_records")
+      .select("id, status, check_in, check_out, work_minutes")
+      .eq("company_id", ctx.companyId)
+      .eq("employee_id", employeeId)
+      .eq("attendance_date", attendanceDate)
+      .is("is_deleted", false)
+      .maybeSingle();
+
+    if (existingRecordError) {
+      return { ok: false, error: existingRecordError.message };
+    }
+
+    const workedHoliday = hasWorkedAttendanceTruth({
+      attendanceStatus: (existingRecord?.status as string | null) ?? null,
+      hasCheckIn: Boolean(existingRecord?.check_in),
+      workMinutes: (existingRecord?.work_minutes as number | null) ?? null
+    });
+    if (workedHoliday) {
+      return { ok: false, error: "Employee already worked on this holiday" };
+    }
+
+    const overrideReason = payload.note?.trim() || `GO Applied assigned for ${holiday.name as string}`;
+
+    if (existingRecord?.id) {
+      const { error: updateError } = await ctx.supabase
+        .from("attendance_records")
+        .update({
+          status: "holiday",
+          approval_status: "approved",
+          marked_by: actorProfileId,
+          override_reason: overrideReason,
+          updated_by: actorProfileId
+        })
+        .eq("id", existingRecord.id)
+        .eq("company_id", ctx.companyId)
+        .is("is_deleted", false);
+
+      if (updateError) {
+        return { ok: false, error: updateError.message };
+      }
+
+      return { ok: true, data: { attendanceId: existingRecord.id as string } };
+    }
+
+    const { data: insertedRecord, error: insertError } = await ctx.supabase
+      .from("attendance_records")
+      .insert({
+        company_id: ctx.companyId,
+        employee_id: employeeId,
+        attendance_date: attendanceDate,
+        shift_template_id: shift.id,
+        shift_start_time: shift.start_time,
+        shift_end_time: shift.end_time,
+        shift_timezone: shift.timezone ?? "UTC",
+        grace_minutes: shift.grace_minutes,
+        auto_absent_after_minutes: shift.auto_absent_after_minutes,
+        min_half_day_minutes: shift.min_half_day_minutes,
+        min_full_day_minutes: shift.min_full_day_minutes,
+        is_night_shift: shift.is_night_shift ?? false,
+        status: "holiday",
+        approval_status: "approved",
+        marked_by: actorProfileId,
+        override_reason: overrideReason,
+        created_by: actorProfileId,
+        updated_by: actorProfileId
+      })
+      .select("id")
+      .single();
+
+    if (insertError || !insertedRecord?.id) {
+      return { ok: false, error: insertError?.message ?? "Unable to assign GO" };
+    }
+
+    return { ok: true, data: { attendanceId: insertedRecord.id as string } };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "GO assignment failed" };
+  }
+};
+
 export function requestAttendanceCorrection(
   ctx: ServiceContext,
   recordId: string,
@@ -1920,6 +2679,48 @@ export async function requestAttendanceCorrection(
     await ensureSelfOrManageAttendance(ctx, attendanceEmployeeId);
     assertEmployeeScope(attendanceEmployeeId, ctx);
     validateRequestedCorrectionTimes(attendance as AttendanceRecordForCorrection, payload);
+
+    const isLateLoginRequest = isLateLoginReason(payload.reason);
+    if (isLateLoginRequest) {
+      const [snapshot] = await loadEmployeeDateStates(
+        ctx,
+        [
+          {
+            id: attendanceEmployeeId,
+            employee_name: null,
+            department_id: null,
+            department_name: null,
+            team_id: null,
+            team_name: null
+          }
+        ],
+        attendance.attendance_date as string
+      );
+
+      if (!snapshot || snapshot.day_state !== "late") {
+        return { ok: false, error: "Late Login is only available after a late clock-in" };
+      }
+
+      const { data: existingLateRequests, error: existingLateRequestsError } = await ctx.supabase
+        .from("attendance_correction_requests")
+        .select("id, reason")
+        .eq("company_id", ctx.companyId)
+        .eq("attendance_id", recordId)
+        .is("is_deleted", false)
+        .order("created_at", { ascending: false });
+
+      if (existingLateRequestsError) {
+        return { ok: false, error: existingLateRequestsError.message };
+      }
+
+      const hasExistingLateLoginRequest = (existingLateRequests ?? []).some((row: { reason?: string | null }) =>
+        isLateLoginReason(row.reason)
+      );
+
+      if (hasExistingLateLoginRequest) {
+        return { ok: false, error: "Late Login request already exists for this day" };
+      }
+    }
 
     const actorProfileId = await getActorProfileId(ctx.supabase, ctx);
     const storedReason = composeStoredCorrectionReason(payload);

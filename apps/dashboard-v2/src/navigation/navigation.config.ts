@@ -107,12 +107,30 @@ export const TENANT_NAVIGATION_ITEMS: NavigationItem[] = [
   }),
   item({
     href: "/app/leave",
-    label: "Leave & Swaps",
+    label: "Leave",
     icon: "calendar-range",
-    description: "Leave planning and shift exchanges",
+    description: "Leave requests, balances, and approval history",
     personas: ["employee", "manager", "admin_ops", "finance", "executive"],
     requiresEmployeeContext: true,
     requiredFeatureKey: "feature.core_leave_management"
+  }),
+  item({
+    href: "/app/shifts",
+    label: "Shifts",
+    icon: "calendar-clock",
+    description: "View assigned shifts across today, 7 days, and 30 days",
+    personas: ["employee", "manager", "admin_ops", "finance", "executive"],
+    requiresEmployeeContext: true,
+    requiredFeatureKey: "feature.core_attendance"
+  }),
+  item({
+    href: "/app/attendance/shift-swaps",
+    label: "Shift Swaps",
+    icon: "refresh-cw",
+    description: "Request or review shift exchange coverage",
+    personas: ["employee", "manager", "admin_ops", "finance", "executive"],
+    requiresEmployeeContext: true,
+    requiredFeatureAnyKeys: ["feature.core_leave_management", "feature.core_attendance"]
   }),
   item({
     href: "/app/calendar",
@@ -293,6 +311,8 @@ export const TENANT_NAVIGATION_GROUPS: NavigationGroup[] = [
     items: [
       byHref("/app/attendance"),
       byHref("/app/leave"),
+      byHref("/app/shifts"),
+      byHref("/app/attendance/shift-swaps"),
       byHref("/app/calendar"),
       byHref("/app/overtime"),
       byHref("/app/loans"),
@@ -374,14 +394,20 @@ export const resolveVisibleNavigationGroups = (
   .filter((group) => group.items.length > 0);
 
 const findActiveNavigationEntry = (pathname: string, groups: NavigationGroup[]) => {
+  let bestMatch: { group: NavigationGroup; item: NavigationItem } | null = null;
+
   for (const group of groups) {
-    const item = group.items.find((entry) => pathname === entry.href || pathname.startsWith(`${entry.href}/`));
-    if (item) {
-      return { group, item };
+    for (const item of group.items) {
+      const matches = pathname === item.href || pathname.startsWith(`${item.href}/`);
+      if (!matches) continue;
+
+      if (!bestMatch || item.href.length > bestMatch.item.href.length) {
+        bestMatch = { group, item };
+      }
     }
   }
 
-  return null;
+  return bestMatch;
 };
 
 const pickVisibleTabs = (hrefs: string[], groups: NavigationGroup[]): ShellHeaderTab[] => {
@@ -490,8 +516,12 @@ export const resolveShellHeaderMeta = (
   if (
     pathname === "/app/attendance" ||
     pathname.startsWith("/app/attendance/") ||
+    pathname === "/app/shifts" ||
+    pathname.startsWith("/app/shifts/") ||
     pathname === "/app/leave" ||
     pathname.startsWith("/app/leave/") ||
+    pathname === "/app/attendance/shift-swaps" ||
+    pathname.startsWith("/app/attendance/shift-swaps/") ||
     pathname === "/app/approvals" ||
     pathname.startsWith("/app/approvals/") ||
     pathname === "/app/payroll" ||
@@ -504,8 +534,8 @@ export const resolveShellHeaderMeta = (
       itemLabel: fallbackItemLabel,
       title: fallbackItemLabel,
       subtitle: fallbackSubtitle,
-      searchPlaceholder: "Search attendance, leave, approvals, payroll, and project workflows",
-      tabs: pickVisibleTabs(["/app/attendance", "/app/leave", "/app/approvals", "/app/payroll", "/app/projects"], visibleGroups)
+      searchPlaceholder: "Search attendance, leave, shift swaps, approvals, payroll, and project workflows",
+      tabs: pickVisibleTabs(["/app/attendance", "/app/leave", "/app/shifts", "/app/attendance/shift-swaps", "/app/approvals", "/app/payroll", "/app/projects"], visibleGroups)
     };
   }
 

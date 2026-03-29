@@ -1,5 +1,6 @@
 import type { ServiceContext, ServiceResult } from "../lib/types";
 import { requirePlanFeature } from "../lib/entitlements";
+import { classifyAttendanceDayState, type AttendancePayrollImpact } from "./attendance.service";
 
 export type WorkspaceResourceRow = {
   id: string;
@@ -62,6 +63,7 @@ export type WorkspaceCalendarEventRow = {
   type: "holiday" | "leave" | "shift" | "attendance";
   title: string;
   status: string | null;
+  payroll_impact: AttendancePayrollImpact | null;
   source: "company" | "pakistan_estimated" | "leave" | "shift" | "attendance";
 };
 
@@ -672,7 +674,7 @@ export const getWorkspaceCalendar = async (
     const leavePromise = leaveFeatureEnabled
       ? ctx.supabase
           .from("leave_requests")
-          .select("id, start_date, end_date, status")
+          .select("id, start_date, end_date, status, leave_types(name, is_paid)")
           .eq("company_id", ctx.companyId)
           .eq("employee_id", employeeId)
           .in("status", ["pending", "approved"])
@@ -742,7 +744,7 @@ export const getWorkspaceCalendar = async (
         .is("is_deleted", false),
       ctx.supabase
         .from("attendance_records")
-        .select("id, attendance_date, status")
+        .select("id, attendance_date, status, check_in, check_out, work_minutes, late_minutes")
         .eq("company_id", ctx.companyId)
         .eq("employee_id", employeeId)
         .gte("attendance_date", rangeStart)
@@ -809,16 +811,6 @@ export const getWorkspaceCalendar = async (
         name: row.name as string,
         source: "company"
       });
-      const dayEvents = dayMap.get(date);
-      if (dayEvents) {
-        dayEvents.push({
-          id: `holiday:${row.id as string}`,
-          type: "holiday",
-          title: row.name as string,
-          status: "holiday",
-          source: "company"
-        });
-      }
     });
 
     for (const holiday of PAKISTAN_ESTIMATED_HOLIDAYS[year] ?? []) {
@@ -829,21 +821,19 @@ export const getWorkspaceCalendar = async (
         name: holiday.name,
         source: "pakistan_estimated"
       });
-      const dayEvents = dayMap.get(holiday.date);
-      if (dayEvents) {
-        dayEvents.push({
-          id: `holiday:pk:${holiday.date}`,
-          type: "holiday",
-          title: holiday.name,
-          status: "holiday",
-          source: "pakistan_estimated"
-        });
-      }
     }
 
     let approvedLeaveDays = 0;
     let pendingLeaveDays = 0;
-    leaveRows.forEach((row) => {
+    const approvedLeaveByDate = new Map<
+      string,
+      {
+        id: string;
+        name: string | null;
+        is_paid: boolean;
+      }
+    >();
+    leaveRows.forEach((row: any) => {
       const status = row.status as string;
       const clamped = clampDateRange(row.start_date as string, row.end_date as string, rangeStart, rangeEnd);
       if (!clamped) return;
@@ -854,17 +844,26 @@ export const getWorkspaceCalendar = async (
       for (const date of dates) {
         const dayEvents = dayMap.get(date);
         if (!dayEvents) continue;
-        dayEvents.push({
-          id: `leave:${row.id as string}:${date}`,
-          type: "leave",
-          title: status === "approved" ? "Approved leave" : "Pending leave request",
-          status,
-          source: "leave"
-        });
+        if (status === "approved") {
+          approvedLeaveByDate.set(date, {
+            id: row.id as string,
+            name: (row.leave_types?.name as string | null) ?? null,
+            is_paid: row.leave_types?.is_paid !== false
+          });
+        } else {
+          dayEvents.push({
+            id: `leave:${row.id as string}:${date}`,
+            type: "leave",
+            title: "Pending leave request",
+            status,
+            payroll_impact: null,
+            source: "leave"
+          });
+        }
       }
     });
 
-    const assignedShiftDates = new Set<string>();
+    const assignedShiftByDate = new Map<string, { id: string; title: string }>();
     shiftRows.forEach((row: any) => {
       const shiftStart = row.effective_from as string;
       const shiftEnd = (row.effective_to as string | null) ?? rangeEnd;
@@ -873,31 +872,124 @@ export const getWorkspaceCalendar = async (
       const shiftName = (row.shift_templates?.name as string | null) ?? "Assigned shift";
       const shiftTime = `${(row.shift_templates?.start_time as string | null) ?? "-"}-${(row.shift_templates?.end_time as string | null) ?? "-"}`;
       for (const date of enumerateDates(clamped.start, clamped.end)) {
-        assignedShiftDates.add(date);
-        const dayEvents = dayMap.get(date);
-        if (!dayEvents) continue;
-        dayEvents.push({
-          id: `shift:${row.id as string}:${date}`,
-          type: "shift",
-          title: `${shiftName} (${shiftTime})`,
-          status: "assigned",
-          source: "shift"
-        });
+        if (!assignedShiftByDate.has(date)) {
+          assignedShiftByDate.set(date, {
+            id: row.id as string,
+            title: `${shiftName} (${shiftTime})`
+          });
+        }
       }
     });
 
-    attendanceRows.forEach((row) => {
+    const attendanceByDate = new Map<string, any>();
+    attendanceRows.forEach((row: any) => {
       const date = row.attendance_date as string;
-      const dayEvents = dayMap.get(date);
-      if (!dayEvents) return;
-      dayEvents.push({
-        id: `attendance:${row.id as string}`,
-        type: "attendance",
-        title: "Attendance recorded",
-        status: (row.status as string | null) ?? null,
-        source: "attendance"
-      });
+      if (!attendanceByDate.has(date)) {
+        attendanceByDate.set(date, row);
+      }
     });
+
+    for (const date of enumerateDates(rangeStart, rangeEnd)) {
+      const dayEvents = dayMap.get(date);
+      if (!dayEvents) continue;
+
+      const holiday = officialHolidayMap.get(date);
+      const approvedLeave = approvedLeaveByDate.get(date) ?? null;
+      const attendance = attendanceByDate.get(date) ?? null;
+      const shift = assignedShiftByDate.get(date) ?? null;
+      const goAssigned = (attendance?.status ?? "").toLowerCase() === "holiday";
+
+      const derived = classifyAttendanceDayState({
+        attendanceDate: date,
+        holiday: holiday ? { id: `holiday:${date}`, name: holiday.name, date } : null,
+        goAssigned,
+        leave: approvedLeave
+          ? {
+              request_id: approvedLeave.id,
+              leave_type_id: null,
+              leave_type_name: approvedLeave.name,
+              is_paid: approvedLeave.is_paid,
+              start_date: date,
+              end_date: date,
+              status: "approved"
+            }
+          : null,
+        explicitAbsent: (attendance?.status ?? "").toLowerCase() === "absent",
+        shiftAssigned: Boolean(shift?.id),
+        attendanceStatus: (attendance?.status as string | null) ?? null,
+        hasCheckIn: Boolean(attendance?.check_in),
+        hasCheckOut: Boolean(attendance?.check_out),
+        isOnBreak: false,
+        workMinutes: (attendance?.work_minutes as number | null) ?? null,
+        lateMinutes: (attendance?.late_minutes as number | null) ?? null,
+        attendanceCheckIn: (attendance?.check_in as string | null) ?? null,
+        shiftStartTime: null
+      });
+
+      if (shift?.id) {
+        dayEvents.push({
+          id: `shift:${shift.id}:${date}`,
+          type: "shift",
+          title: shift.title,
+          status: "assigned",
+          payroll_impact: derived.dayState === "off_day" ? "off_day_no_deduction" : "normal_pay",
+          source: "shift"
+        });
+      }
+
+      if (holiday) {
+        dayEvents.push({
+          id: `holiday:${date}`,
+          type: "holiday",
+          title:
+            derived.dayState === "go_active"
+              ? `${holiday.name} · GO Active`
+              : derived.dayState === "go_applied"
+                ? `${holiday.name} · GO`
+                : holiday.name,
+          status: derived.dayState === "go_active" || derived.dayState === "go_applied" ? derived.dayState : "holiday",
+          payroll_impact: derived.payrollImpact,
+          source: holiday.source
+        });
+      }
+
+      if (approvedLeave) {
+        dayEvents.push({
+          id: `leave:${approvedLeave.id}:${date}`,
+          type: "leave",
+          title: approvedLeave.is_paid
+            ? `${approvedLeave.name ?? "Approved leave"}`
+            : `${approvedLeave.name ?? "Unpaid leave"} · unpaid`,
+          status: derived.dayState,
+          payroll_impact: derived.payrollImpact,
+          source: "leave"
+        });
+      }
+
+      if (!approvedLeave && !holiday) {
+        dayEvents.push({
+          id: `attendance:${attendance?.id ?? date}`,
+          type: "attendance",
+          title:
+            derived.dayState === "off_day"
+              ? "Off day"
+              : derived.dayState === "absent"
+                ? "Absent"
+                : derived.dayState === "late"
+                  ? "Present (Late)"
+                  : derived.dayState === "present"
+                    ? "Present"
+                    : derived.dayState === "clocked_out"
+                      ? "Clocked out"
+                      : derived.dayState === "on_break"
+                        ? "On break"
+                        : "Attendance recorded",
+          status: derived.dayState,
+          payroll_impact: derived.payrollImpact,
+          source: "attendance"
+        });
+      }
+    }
 
     const days: WorkspaceCalendarDayRow[] = Array.from(dayMap.entries())
       .sort(([a], [b]) => a.localeCompare(b))
@@ -925,7 +1017,7 @@ export const getWorkspaceCalendar = async (
           remaining_leaves: Math.max(0, entitledLeaves - usedLeaves),
           approved_leave_days: leaveFeatureEnabled ? approvedLeaveDays : 0,
           pending_leave_days: leaveFeatureEnabled ? pendingLeaveDays : 0,
-          assigned_shift_days: assignedShiftDates.size,
+          assigned_shift_days: assignedShiftByDate.size,
           holidays: officialHolidayMap.size
         },
         official_holidays: Array.from(officialHolidayMap.values()).sort((a, b) => a.date.localeCompare(b.date)),

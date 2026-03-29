@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { AttendanceClockActionState } from "./actions";
-import { fetchAttendanceToday, peekCachedResult } from "@/lib/client/api";
+import { createAttendanceCorrectionRequest, fetchAttendanceToday, peekCachedResult } from "@/lib/client/api";
 import type { AttendanceHistoryRow, AttendanceTodayResponse } from "@/lib/types/attendance";
 import { TodayAttendanceCard } from "@/components/attendance/TodayAttendanceCard";
 import { ClockActions } from "@/components/attendance/ClockActions";
@@ -47,6 +47,48 @@ const prettyCurrentStatus = (status: AttendanceTodayResponse["currentStatus"]): 
   }
 };
 
+const prettyDayState = (state: AttendanceTodayResponse["dayState"]): string => {
+  switch (state) {
+    case "go_active":
+      return "GO Active";
+    case "go_applied":
+      return "GO Applied";
+    case "leave_unpaid":
+      return "Unpaid leave";
+    case "leave_paid":
+      return "Paid leave";
+    case "off_day":
+      return "Off day";
+    default:
+      return state.replace(/_/g, " ");
+  }
+};
+
+const dayStateHint = (data: AttendanceTodayResponse): string => {
+  switch (data.dayState) {
+    case "off_day":
+      return "No roster workday and no deduction by default.";
+    case "leave_paid":
+      return `You are on ${data.leaveContext?.leave_type_name ?? "approved leave"} today.`;
+    case "leave_unpaid":
+      return `You are on ${data.leaveContext?.leave_type_name ?? "unpaid leave"} today.`;
+    case "go_active":
+      return `${data.holidayContext?.holiday_name ?? "Holiday"} worked and treated as extra payable time.`;
+    case "go_applied":
+      return `${data.holidayContext?.holiday_name ?? "Holiday"} is being treated as compensated GO benefit.`;
+    case "absent":
+      return "This day is marked absent from explicit attendance truth.";
+    case "present":
+      return data.currentStatus === "not_clocked_in"
+        ? "A shift is scheduled today and you can clock in when ready."
+        : "Live attendance and payroll-impact state for today.";
+    case "late":
+      return "Late Login Today. Attendance remains late unless the attendance-exception request is approved.";
+    default:
+      return "Live attendance and payroll-impact state for today.";
+  }
+};
+
 export const AttendancePageClient = ({
   clockInAction,
   clockOutAction,
@@ -65,9 +107,12 @@ export const AttendancePageClient = ({
   const [refreshKey, setRefreshKey] = useState(0);
   const [selectedRecord, setSelectedRecord] = useState<AttendanceHistoryRow | null>(null);
   const [correctionDialogOpen, setCorrectionDialogOpen] = useState(false);
+  const [lateLoginBusy, setLateLoginBusy] = useState(false);
+  const [lateLoginMessage, setLateLoginMessage] = useState<string | null>(null);
 
   const loadToday = useCallback(async () => {
     setTodayError(null);
+    setLateLoginMessage(null);
     try {
       const result = await fetchAttendanceToday();
       if (!result.ok || !result.data) {
@@ -92,6 +137,9 @@ export const AttendancePageClient = ({
     if (!todayData) return { canClockIn: false, canClockOut: false, canStartBreak: false, canEndBreak: false };
     const locked = todayData.record?.is_locked ?? false;
     if (locked) return { canClockIn: false, canClockOut: false, canStartBreak: false, canEndBreak: false };
+    if (["off_day", "leave_paid", "leave_unpaid", "go_applied", "absent"].includes(todayData.dayState)) {
+      return { canClockIn: false, canClockOut: false, canStartBreak: false, canEndBreak: false };
+    }
     switch (todayData.currentStatus) {
       case "not_clocked_in":
         return { canClockIn: true, canClockOut: false, canStartBreak: false, canEndBreak: false };
@@ -110,9 +158,9 @@ export const AttendancePageClient = ({
     const geo = todayData?.latestGeoEvent;
     return [
       {
-        label: "Attendance status",
-        value: prettyCurrentStatus(todayData?.currentStatus ?? "not_clocked_in"),
-        hint: record?.is_locked ? "Record locked for edits" : "Live shift state",
+        label: "Day state",
+        value: prettyDayState(todayData?.dayState ?? "present"),
+        hint: record?.is_locked ? "Record locked for edits" : todayData ? dayStateHint(todayData) : "Live shift state",
       },
       {
         label: "Worked today",
@@ -121,18 +169,18 @@ export const AttendancePageClient = ({
       },
       {
         label: "Shift start",
-        value: record?.shift_start_time ?? "-",
-        hint: record?.shift_end_time ? `Ends ${record.shift_end_time}` : "No shift assigned",
+        value: todayData?.shiftContext.start_time ?? record?.shift_start_time ?? "-",
+        hint: todayData?.shiftContext.end_time ? `Ends ${todayData.shiftContext.end_time}` : "No shift assigned",
       },
       {
-        label: "Break status",
-        value: todayData?.isOnBreak ? "On break" : record?.check_in && !record?.check_out ? "Available" : "Inactive",
-        hint: todayData?.isOnBreak ? "Resume from the clock actions rail" : "Start a break after you clock in",
+        label: "Clock status",
+        value: prettyCurrentStatus(todayData?.currentStatus ?? "not_clocked_in"),
+        hint: todayData?.isOnBreak ? "Resume from the clock actions rail" : "Use attendance controls when the day is active",
       },
       {
-        label: "Geo capture",
-        value: geo ? `${geo.latitude.toFixed(4)}, ${geo.longitude.toFixed(4)}` : "Pending",
-        hint: geo ? "Latest coordinates captured" : "Capture before clocking",
+        label: "Payroll impact",
+        value: (todayData?.payrollImpact ?? "normal_pay").replace(/_/g, " "),
+        hint: geo ? `Geo captured ${geo.latitude.toFixed(4)}, ${geo.longitude.toFixed(4)}` : "Geo not captured yet",
       },
     ];
   }, [todayData]);
@@ -150,6 +198,30 @@ export const AttendancePageClient = ({
     setRefreshKey((value) => value + 1);
   }, []);
 
+  const handleLateLoginRequest = useCallback(async () => {
+    if (!todayData?.record?.id || todayData.dayState !== "late") return;
+    setLateLoginBusy(true);
+    setTodayError(null);
+    setLateLoginMessage(null);
+    try {
+      const result = await createAttendanceCorrectionRequest({
+        attendanceId: todayData.record.id,
+        reason: "Late Login",
+        note: "Late Login",
+      });
+      if (!result.ok) {
+        setTodayError(result.error ?? "Unable to submit Late Login request");
+        return;
+      }
+      setLateLoginMessage("Late Login request submitted.");
+      setRefreshKey((value) => value + 1);
+    } catch (error) {
+      setTodayError(error instanceof Error ? error.message : "Unable to submit Late Login request");
+    } finally {
+      setLateLoginBusy(false);
+    }
+  }, [todayData]);
+
   return (
     <PageContainer>
       <PageHeader
@@ -161,6 +233,22 @@ export const AttendancePageClient = ({
             <Badge className="rounded-full border-blue-200 bg-blue-50 text-blue-700">
               Today {todayData.todayDate}
             </Badge>
+            {todayData.dayState === "late" ? (
+              todayData.lateLoginRequest.exists ? (
+                <Badge className="rounded-full border-amber-200 bg-amber-50 text-amber-700">
+                  Late Login {todayData.lateLoginRequest.status ?? "pending"}
+                </Badge>
+              ) : (
+                <Button
+                  variant="secondary"
+                  className="rounded-full"
+                  disabled={lateLoginBusy || !todayData.record?.id}
+                  onClick={() => void handleLateLoginRequest()}
+                >
+                  {lateLoginBusy ? "Submitting..." : "Request Late Login"}
+                </Button>
+              )
+            ) : null}
             <Button variant="secondary" className="rounded-full" onClick={() => setCorrectionDialogOpen(true)}>
               Request correction
             </Button>
@@ -198,6 +286,17 @@ export const AttendancePageClient = ({
                 endBreakAction={endBreakAction}
                 onCompleted={handleClockActionComplete}
               />
+              {todayData.dayState === "late" ? (
+                <div className="rounded-2xl border border-amber-200 bg-amber-50/80 p-4 text-sm text-amber-800">
+                  <p className="font-medium">Late Login Today</p>
+                  <p className="mt-1">
+                    {todayData.lateLoginRequest.exists
+                      ? `Request status: ${todayData.lateLoginRequest.status ?? "pending"}`
+                      : "You can submit one attendance-exception request for this late clock-in."}
+                  </p>
+                  {lateLoginMessage ? <p className="mt-2 text-emerald-700">{lateLoginMessage}</p> : null}
+                </div>
+              ) : null}
             </SurfacePanel>
           </DashboardRail>
 

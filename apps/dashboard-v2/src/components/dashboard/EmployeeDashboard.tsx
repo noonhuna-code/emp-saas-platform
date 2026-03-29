@@ -144,6 +144,12 @@ export const EmployeeDashboard = ({
     const status = attendance?.status ?? "not_clocked_in";
     return status.replace(/_/g, " ");
   }, [attendance?.status]);
+  const dayState = useMemo(() => {
+    const status = attendance?.dayState ?? "present";
+    if (status === "go_active") return "GO Active";
+    if (status === "go_applied") return "GO Applied";
+    return status.replace(/_/g, " ");
+  }, [attendance?.dayState]);
   const isLate = (attendance?.lateMinutes ?? 0) > 0;
 
   const leave = getLeaveBreakdown(data?.leaveBalances ?? []);
@@ -226,9 +232,24 @@ export const EmployeeDashboard = ({
               <div className="grid gap-3 sm:grid-cols-2">
                 <StatePanel title="Attendance" description={isLate ? "Late mark detected for today" : "Shift state is currently healthy"} className="border-slate-200 bg-slate-50/80 shadow-none">
                   <SignalRow
-                    label="Current status"
+                    label="Day state"
+                    value={<StatusBadge status={dayState} tone={attendance?.payrollImpact?.startsWith("no_pay") ? "warning" : "info"} />}
+                    tone={attendance?.payrollImpact?.startsWith("no_pay") ? "warning" : "info"}
+                  />
+                  <SignalRow
+                    label="Clock status"
                     value={<StatusBadge status={attendanceStatus} tone={isLate ? "warning" : "info"} />}
                     tone={isLate ? "warning" : "info"}
+                  />
+                  <SignalRow
+                    label="Late Login"
+                    value={
+                      attendance?.lateLoginRequest.exists
+                        ? attendance.lateLoginRequest.status ?? "pending"
+                        : isLate
+                          ? "Request available"
+                          : "Not required"
+                    }
                   />
                   <SignalRow label="Worked today" value={formatMinutes(attendance?.workMinutes)} />
                 </StatePanel>
@@ -286,8 +307,8 @@ export const EmployeeDashboard = ({
             <StatGrid>
               <StatCard
                 label="Today's shift"
-                value={shift ? `${shift.start_time} - ${shift.end_time}` : "No shift"}
-                hint={shift ? shift.shift_name : "No active shift assignment"}
+                value={attendance?.shiftLabel ? attendance.shiftLabel : shift ? `${shift.start_time} - ${shift.end_time}` : "No shift"}
+                hint={attendance?.dayState === "off_day" ? "Off day with no default deduction" : shift ? shift.shift_name : "No active shift assignment"}
               />
               <StatCard
                 label="Daily break"

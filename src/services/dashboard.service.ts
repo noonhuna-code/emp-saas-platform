@@ -2,6 +2,7 @@ import type { ServiceContext, ServiceResult } from "../lib/types";
 import { requirePermission } from "../lib/auth-wrapper";
 import { requireAnyPlanFeature } from "../lib/entitlements";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { getAttendanceToday, type AttendanceDayState, type AttendancePayrollImpact } from "./attendance.service";
 
 export type EmployeeDashboardData = {
   workspace: {
@@ -86,12 +87,18 @@ export type EmployeeDashboardData = {
   };
   attendanceToday: {
     status: string;
+    dayState: AttendanceDayState;
+    payrollImpact: AttendancePayrollImpact;
+    lateLoginRequest: import("./attendance.service").AttendanceLateLoginRequest;
     checkIn?: string | null;
     checkOut?: string | null;
     workMinutes?: number | null;
     overtimeMinutes?: number | null;
     lateMinutes?: number | null;
     isOnBreak: boolean;
+    shiftLabel?: string | null;
+    leaveLabel?: string | null;
+    holidayLabel?: string | null;
   } | null;
   leaveBalances: Array<{
     leave_type_id: string;
@@ -226,15 +233,8 @@ export const getEmployeeDashboard = async (ctx: ServiceContext, options?: { incl
     }
 
     const today = new Date().toISOString().slice(0, 10);
-    const [attendanceRecord, leaveBalances, employeeRecord, companyInfo] = await Promise.all([
-      ctx.supabase
-        .from("attendance_records")
-        .select("id, check_in, check_out, work_minutes, overtime_minutes, late_minutes")
-        .eq("company_id", ctx.companyId)
-        .eq("employee_id", employeeId)
-        .eq("attendance_date", today)
-        .is("is_deleted", false)
-        .maybeSingle(),
+    const attendanceTodayResult = await getAttendanceToday(ctx);
+    const [leaveBalances, employeeRecord, companyInfo] = await Promise.all([
       ctx.supabase
         .from("leave_balances")
         .select("leave_type_id, year, entitled_days, used_days")
@@ -593,20 +593,8 @@ export const getEmployeeDashboard = async (ctx: ServiceContext, options?: { incl
       (chatParticipants.data ?? []).map((row: any) => [row.id as string, (row.user_profiles?.full_name as string | null) ?? null])
     );
 
-    const breakRecord = attendanceRecord.data?.id
-      ? await ctx.supabase
-          .from("attendance_breaks")
-          .select("id")
-          .eq("company_id", ctx.companyId)
-          .eq("attendance_id", attendanceRecord.data.id as string)
-          .is("break_end", null)
-          .is("is_deleted", false)
-          .limit(1)
-          .maybeSingle()
-      : { data: null };
-
-    const isOnBreak = Boolean(breakRecord.data?.id);
-    const record = attendanceRecord.data;
+    const attendanceToday = attendanceTodayResult.ok ? attendanceTodayResult.data ?? null : null;
+    const record = attendanceToday?.record ?? null;
 
     const dataPayload: EmployeeDashboardData = {
         workspace: {
@@ -699,15 +687,37 @@ export const getEmployeeDashboard = async (ctx: ServiceContext, options?: { incl
         },
         attendanceToday: record
           ? {
-              status: computeAttendanceStatus(record, isOnBreak),
+              status: attendanceToday?.currentStatus ?? computeAttendanceStatus(record, Boolean(attendanceToday?.isOnBreak)),
+              dayState: attendanceToday?.dayState ?? "present",
+              payrollImpact: attendanceToday?.payrollImpact ?? "normal_pay",
+              lateLoginRequest: attendanceToday?.lateLoginRequest ?? { exists: false, status: null, requestId: null },
               checkIn: record.check_in,
               checkOut: record.check_out,
               workMinutes: record.work_minutes,
               overtimeMinutes: record.overtime_minutes,
               lateMinutes: record.late_minutes,
-              isOnBreak
+              isOnBreak: Boolean(attendanceToday?.isOnBreak),
+              shiftLabel: attendanceToday?.shiftContext.shift_name ?? null,
+              leaveLabel: attendanceToday?.leaveContext?.leave_type_name ?? null,
+              holidayLabel: attendanceToday?.holidayContext?.holiday_name ?? null
             }
-          : null,
+          : attendanceToday
+            ? {
+                status: attendanceToday.currentStatus,
+                dayState: attendanceToday.dayState,
+                payrollImpact: attendanceToday.payrollImpact,
+                lateLoginRequest: attendanceToday.lateLoginRequest,
+                checkIn: null,
+                checkOut: null,
+                workMinutes: null,
+                overtimeMinutes: null,
+                lateMinutes: null,
+                isOnBreak: attendanceToday.isOnBreak,
+                shiftLabel: attendanceToday.shiftContext.shift_name ?? null,
+                leaveLabel: attendanceToday.leaveContext?.leave_type_name ?? null,
+                holidayLabel: attendanceToday.holidayContext?.holiday_name ?? null
+              }
+            : null,
         leaveBalances: (leaveBalances.data ?? []) as EmployeeDashboardData["leaveBalances"],
         upcomingShifts,
         recentPayslips: (payslips.data ?? []).map((row) => ({

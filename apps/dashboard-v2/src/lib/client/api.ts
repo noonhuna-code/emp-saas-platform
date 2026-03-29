@@ -853,7 +853,23 @@ export const fetchTeamAttendance = async (params: {
 export const createAttendanceCorrectionRequest = async (
   payload: AttendanceCorrectionRequestInput
 ): Promise<DashboardApiResult<AttendanceCorrectionRequestResponse>> => {
-  return postJson<AttendanceCorrectionRequestResponse>("/api/attendance/correction-request", payload);
+  return postJson<AttendanceCorrectionRequestResponse>(
+    "/api/attendance/correction-request",
+    payload,
+    { "Idempotency-Key": crypto.randomUUID() }
+  );
+};
+
+export const assignGoApplied = async (payload: {
+  employeeId: string;
+  attendanceDate: string;
+  note?: string | null;
+}): Promise<DashboardApiResult<{ attendanceId: string }>> => {
+  return postJson<{ attendanceId: string }>(
+    "/api/attendance/go-assign",
+    payload as Record<string, unknown>,
+    { "Idempotency-Key": crypto.randomUUID() }
+  );
 };
 
 export const fetchAttendanceReviewQueue = async (params: {
