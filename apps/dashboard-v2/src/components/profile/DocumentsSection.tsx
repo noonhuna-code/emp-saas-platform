@@ -1,22 +1,23 @@
 "use client";
 
-import { Fragment, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import { FilePenLine, FolderOpen, Search, Trash2, Upload } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { cn } from "@/lib/utils";
-import type { EmployeeDocument, EmployeeDocumentVersion } from "@/lib/types/profile";
+import type { EmployeeDocument } from "@/lib/types/profile";
 import {
   fetchEmployeeDocumentDownloadUrl,
-  fetchEmployeeDocumentVersions,
   uploadEmployeeDocumentVersion,
 } from "@/lib/client/api";
 import {
   ProfilePanel,
   ProfileSectionCard,
+  ProfileTablePagination,
   ProfileTableShell,
+  ProfileTableToolbar,
   SectionActionBar,
-  profileEmptyStateClassName,
   profileFieldClassName,
   profileLabelClassName,
   profileTableActionCellClassName,
@@ -45,6 +46,8 @@ const emptyDraft = {
   status: "",
 };
 
+const PAGE_SIZE = 6;
+
 const formatDate = (value?: string | null) => {
   if (!value) return "-";
   return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", year: "numeric" }).format(new Date(value));
@@ -70,6 +73,9 @@ const getExpiryStatus = (
   return { label: "Active", tone: "success" };
 };
 
+const iconActionClassName =
+  "h-9 w-9 rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700";
+
 export const DocumentsSection = ({
   employeeId,
   documents,
@@ -81,32 +87,55 @@ export const DocumentsSection = ({
 }: {
   employeeId: string;
   documents: EmployeeDocument[];
-  onAdd: (payload: DocumentPayload) => Promise<void>;
+  onAdd: (payload: DocumentPayload) => Promise<EmployeeDocument | null>;
   onUpdate: (documentId: string, payload: DocumentPayload) => Promise<void>;
   onDelete: (documentId: string) => Promise<void>;
   onRefresh?: () => Promise<void>;
   canEdit: boolean;
 }) => {
   const [draft, setDraft] = useState(emptyDraft);
+  const [draftFile, setDraftFile] = useState<File | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingDraft, setEditingDraft] = useState(emptyDraft);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [uploadingId, setUploadingId] = useState<string | null>(null);
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-  const [versionMap, setVersionMap] = useState<Record<string, EmployeeDocumentVersion[]>>({});
   const [actionError, setActionError] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
 
   const sortedDocuments = useMemo(
-    () => [...documents].sort((a, b) => `${a.document_type}${a.document_name ?? ""}`.localeCompare(`${b.document_type}${b.document_name ?? ""}`)),
+    () =>
+      [...documents].sort((a, b) =>
+        `${a.document_type}${a.document_name ?? ""}`.localeCompare(`${b.document_type}${b.document_name ?? ""}`),
+      ),
     [documents],
   );
 
+  const filteredDocuments = useMemo(() => {
+    const normalized = query.trim().toLowerCase();
+    if (!normalized) return sortedDocuments;
+    return sortedDocuments.filter((doc) =>
+      [doc.document_type, doc.document_name, doc.document_number, doc.status]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(normalized)),
+    );
+  }, [query, sortedDocuments]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredDocuments.length / PAGE_SIZE));
+  const pageRows = filteredDocuments.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
   const selectedDocument = editingId ? sortedDocuments.find((entry) => entry.id === editingId) ?? null : null;
+
+  const resetCreateForm = () => {
+    setDraft(emptyDraft);
+    setDraftFile(null);
+    setShowCreateForm(false);
+  };
 
   const handleAdd = async () => {
     if (!draft.document_type) return;
     setActionError(null);
-    await onAdd({
+    const createdDocument = await onAdd({
       document_type: draft.document_type,
       document_name: draft.document_name || null,
       document_number: draft.document_number || null,
@@ -115,8 +144,25 @@ export const DocumentsSection = ({
       expires_at: draft.expires_at || null,
       status: draft.status || null,
     });
-    setDraft(emptyDraft);
-    setShowCreateForm(false);
+
+    if (!createdDocument) {
+      setActionError("Unable to create document");
+      return;
+    }
+
+    if (draftFile) {
+      setUploadingId(createdDocument.id);
+      const result = await uploadEmployeeDocumentVersion(employeeId, createdDocument.id, draftFile);
+      setUploadingId(null);
+      if (!result.ok) {
+        setActionError(result.error ?? "Unable to upload document");
+        await onRefresh?.();
+        return;
+      }
+      await onRefresh?.();
+    }
+
+    resetCreateForm();
   };
 
   const startEdit = (doc: EmployeeDocument) => {
@@ -149,23 +195,6 @@ export const DocumentsSection = ({
     setEditingId(null);
   };
 
-  const loadVersions = async (docId: string) => {
-    const result = await fetchEmployeeDocumentVersions(employeeId, docId);
-    if (result.ok) {
-      setVersionMap((prev) => ({ ...prev, [docId]: result.data?.versions ?? [] }));
-    } else {
-      setActionError(result.error ?? "Unable to load document versions");
-    }
-  };
-
-  const handleToggleVersions = async (docId: string) => {
-    const next = !expanded[docId];
-    setExpanded((prev) => ({ ...prev, [docId]: next }));
-    if (next) {
-      await loadVersions(docId);
-    }
-  };
-
   const handleUpload = async (docId: string, file: File) => {
     setActionError(null);
     setUploadingId(docId);
@@ -176,14 +205,13 @@ export const DocumentsSection = ({
       return;
     }
     await onRefresh?.();
-    await loadVersions(docId);
     setUploadingId(null);
   };
 
-  const handleOpen = async (doc: EmployeeDocument, versionId?: string) => {
+  const handleOpen = async (doc: EmployeeDocument) => {
     setActionError(null);
-    if (doc.storage_path || versionId) {
-      const result = await fetchEmployeeDocumentDownloadUrl(employeeId, doc.id, versionId);
+    if (doc.storage_path) {
+      const result = await fetchEmployeeDocumentDownloadUrl(employeeId, doc.id);
       if (result.ok && result.data?.url) {
         window.open(result.data.url, "_blank", "noopener,noreferrer");
         return;
@@ -203,7 +231,7 @@ export const DocumentsSection = ({
   return (
     <ProfileSectionCard
       title="Documents"
-      description="Keep document records in one compact register with quick open, replace, version history, and delete actions."
+      description="Manage employee files in one searchable register with direct upload, open, replace, edit, and delete actions."
       actions={
         canEdit ? (
           <Button
@@ -226,7 +254,7 @@ export const DocumentsSection = ({
       ) : null}
 
       {showCreateForm && canEdit ? (
-        <ProfilePanel title="Register document" description="Create the record first, then upload the active file from the table.">
+        <ProfilePanel title="Register document" description="Save the record and attach the active file in the same step.">
           <div className="grid gap-4 xl:grid-cols-2">
             <label className={profileLabelClassName}>
               <span>Document type</span>
@@ -252,17 +280,25 @@ export const DocumentsSection = ({
               <span>Expires at</span>
               <input className={profileFieldClassName} type="date" value={draft.expires_at} onChange={(event) => setDraft((prev) => ({ ...prev, expires_at: event.target.value }))} />
             </label>
-            <label className={`${profileLabelClassName} xl:col-span-2`}>
+            <label className={profileLabelClassName}>
+              <span>Attach file</span>
+              <input
+                className={cn(profileFieldClassName, "h-auto py-2 file:mr-3 file:rounded-full file:border-0 file:bg-blue-50 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-blue-700")}
+                type="file"
+                onChange={(event) => setDraftFile(event.target.files?.[0] ?? null)}
+              />
+            </label>
+            <label className={profileLabelClassName}>
               <span>External file URL</span>
               <input className={profileFieldClassName} value={draft.file_url} onChange={(event) => setDraft((prev) => ({ ...prev, file_url: event.target.value }))} />
             </label>
           </div>
           <SectionActionBar>
-            <Button type="button" variant="secondary" className="rounded-full" onClick={() => setShowCreateForm(false)}>
+            <Button type="button" variant="secondary" className="rounded-full" onClick={resetCreateForm}>
               Cancel
             </Button>
-            <Button type="button" className="rounded-full" onClick={handleAdd} disabled={!draft.document_type}>
-              Save document
+            <Button type="button" className="rounded-full" onClick={handleAdd} disabled={!draft.document_type || uploadingId !== null}>
+              {uploadingId ? "Uploading..." : "Save document"}
             </Button>
           </SectionActionBar>
         </ProfilePanel>
@@ -311,29 +347,37 @@ export const DocumentsSection = ({
         </ProfilePanel>
       ) : null}
 
-      {sortedDocuments.length === 0 ? (
-        <EmptyState title="No documents uploaded" subtitle="Add a document record, then upload the active file from the same table row." />
+      <ProfileTableToolbar
+        query={query}
+        onQueryChange={(value) => {
+          setQuery(value);
+          setPage(1);
+        }}
+        placeholder="Search document name, type, number, or status"
+        countLabel={`${filteredDocuments.length} documents`}
+      />
+
+      {filteredDocuments.length === 0 ? (
+        <EmptyState title="No matching documents" subtitle={documents.length === 0 ? "Add a document record and attach the active file from the same form." : "Try a different search term or clear the filter."} />
       ) : (
-        <ProfileTableShell className="shadow-[0_12px_40px_rgba(15,23,42,0.04)]">
-          <table className={profileTableClassName}>
-            <thead className={profileTableHeadClassName}>
-              <tr>
-                <th className="px-4 py-3">Type</th>
-                <th className="px-4 py-3">Name</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Expiry</th>
-                <th className="px-4 py-3">File</th>
-                <th className="px-4 py-3">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 bg-white">
-              {sortedDocuments.map((doc) => {
-                const expiry = getExpiryStatus(doc.expires_at);
-                const versions = versionMap[doc.id] ?? [];
-                const showVersions = expanded[doc.id];
-                return (
-                  <Fragment key={doc.id}>
-                    <tr className="align-top">
+        <>
+          <ProfileTableShell className="shadow-[0_12px_40px_rgba(15,23,42,0.04)]">
+            <table className={profileTableClassName}>
+              <thead className={profileTableHeadClassName}>
+                <tr>
+                  <th className="px-4 py-3">Type</th>
+                  <th className="px-4 py-3">Name</th>
+                  <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3">Expiry</th>
+                  <th className="px-4 py-3">File</th>
+                  <th className="px-4 py-3">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 bg-white">
+                {pageRows.map((doc) => {
+                  const expiry = getExpiryStatus(doc.expires_at);
+                  return (
+                    <tr key={doc.id} className="align-top">
                       <td className={profileTableCellClassName}>
                         <div className="space-y-1">
                           <p className="font-medium text-slate-900">{doc.document_type}</p>
@@ -351,25 +395,25 @@ export const DocumentsSection = ({
                       <td className={profileTableCellClassName}>
                         <div className="space-y-1">
                           <p className="text-sm font-medium text-slate-900">
-                            {doc.storage_path ? "Vault file" : doc.file_url ? "External link" : "No file"}
+                            {doc.storage_path ? "Uploaded file" : doc.file_url ? "External link" : "No file"}
                           </p>
                           <p className="text-xs text-slate-500">
-                            v{doc.current_version ?? 0}
-                            {doc.storage_size ? ` · ${formatBytes(doc.storage_size)}` : ""}
+                            {doc.storage_size ? formatBytes(doc.storage_size) : "Ready"}
                           </p>
                         </div>
                       </td>
                       <td className={profileTableActionCellClassName}>
-                        <div className="flex flex-wrap gap-2">
-                          <Button type="button" variant="secondary" size="sm" className="rounded-full" onClick={() => void handleOpen(doc)}>
-                            Open
-                          </Button>
-                          <Button type="button" variant="secondary" size="sm" className="rounded-full" onClick={() => void handleToggleVersions(doc.id)}>
-                            {showVersions ? "Hide versions" : "Versions"}
+                        <div className="flex items-center gap-2 whitespace-nowrap">
+                          <Button type="button" variant="secondary" size="icon" className={iconActionClassName} onClick={() => void handleOpen(doc)} title="Open document" aria-label="Open document">
+                            <FolderOpen className="h-4 w-4" />
                           </Button>
                           {canEdit ? (
-                            <label className={cn(buttonVariants({ variant: "secondary", size: "sm" }), "cursor-pointer rounded-full")}>
-                              {uploadingId === doc.id ? "Uploading..." : "Replace"}
+                            <label
+                              className={cn(buttonVariants({ variant: "secondary", size: "icon" }), iconActionClassName, "cursor-pointer")}
+                              title="Replace file"
+                              aria-label="Replace file"
+                            >
+                              {uploadingId === doc.id ? <Search className="h-4 w-4 animate-pulse" /> : <Upload className="h-4 w-4" />}
                               <input
                                 type="file"
                                 hidden
@@ -383,53 +427,32 @@ export const DocumentsSection = ({
                             </label>
                           ) : null}
                           {canEdit ? (
-                            <Button type="button" variant="secondary" size="sm" className="rounded-full" onClick={() => startEdit(doc)}>
-                              Edit
+                            <Button type="button" variant="secondary" size="icon" className={iconActionClassName} onClick={() => startEdit(doc)} title="Edit metadata" aria-label="Edit metadata">
+                              <FilePenLine className="h-4 w-4" />
                             </Button>
                           ) : null}
                           {canEdit ? (
-                            <Button type="button" variant="secondary" size="sm" className="rounded-full" onClick={() => void onDelete(doc.id)}>
-                              Delete
+                            <Button type="button" variant="secondary" size="icon" className={iconActionClassName} onClick={() => void onDelete(doc.id)} title="Delete document" aria-label="Delete document">
+                              <Trash2 className="h-4 w-4" />
                             </Button>
                           ) : null}
                         </div>
                       </td>
                     </tr>
-                    {showVersions ? (
-                      <tr>
-                        <td colSpan={6} className="px-4 py-4">
-                          <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 p-4">
-                            {versions.length === 0 ? (
-                              <div className={profileEmptyStateClassName}>No version history available yet.</div>
-                            ) : (
-                              <div className="space-y-2">
-                                {versions.map((version) => (
-                                  <div key={version.id} className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-                                    <div className="space-y-1">
-                                      <p className="text-sm font-medium text-slate-900">
-                                        v{version.version_number} · {version.file_name}
-                                      </p>
-                                      <p className="text-xs text-slate-500">
-                                        {formatDate(version.uploaded_at)} · {formatBytes(version.storage_size)}
-                                      </p>
-                                    </div>
-                                    <Button type="button" variant="secondary" size="sm" className="rounded-full" onClick={() => void handleOpen(doc, version.id)}>
-                                      Open version
-                                    </Button>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ) : null}
-                  </Fragment>
-                );
-              })}
-            </tbody>
-          </table>
-        </ProfileTableShell>
+                  );
+                })}
+              </tbody>
+            </table>
+          </ProfileTableShell>
+
+          <ProfileTablePagination
+            page={page}
+            totalPages={totalPages}
+            countLabel={`Showing ${pageRows.length} of ${filteredDocuments.length} documents`}
+            onPrevious={() => setPage((value) => Math.max(1, value - 1))}
+            onNext={() => setPage((value) => Math.min(totalPages, value + 1))}
+          />
+        </>
       )}
     </ProfileSectionCard>
   );

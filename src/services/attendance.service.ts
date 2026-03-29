@@ -18,6 +18,10 @@ export type ClockOutPayload = {
   geoAccuracy?: number | null;
 };
 
+export type AttendanceBreakPayload = {
+  note?: string | null;
+};
+
 export type AttendanceCorrectionRequestPayload = {
   requested_clock_in?: string | null;
   requested_clock_out?: string | null;
@@ -419,6 +423,77 @@ const ensureSelfOrManageAttendance = async (
   }
 
   throw new Error("Permission denied");
+};
+
+const loadOpenAttendanceRecordForToday = async (
+  client: SupabaseClient,
+  ctx: ServiceContext,
+  employeeId: string
+): Promise<{
+  id: string;
+  check_in: string | null;
+  check_out: string | null;
+  is_locked?: boolean | null;
+} | null> => {
+  const today = new Date().toISOString().slice(0, 10);
+  const { data, error } = await client
+    .from("attendance_records")
+    .select("id, check_in, check_out, is_locked")
+    .eq("company_id", ctx.companyId)
+    .eq("employee_id", employeeId)
+    .eq("attendance_date", today)
+    .is("is_deleted", false)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  if (!data?.id) {
+    return null;
+  }
+
+  return {
+    id: data.id as string,
+    check_in: (data.check_in as string | null) ?? null,
+    check_out: (data.check_out as string | null) ?? null,
+    is_locked: (data.is_locked as boolean | null) ?? null,
+  };
+};
+
+const loadOpenBreak = async (
+  client: SupabaseClient,
+  ctx: ServiceContext,
+  attendanceId: string
+): Promise<{
+  id: string;
+  break_start: string;
+} | null> => {
+  const { data, error } = await client
+    .from("attendance_breaks")
+    .select("id, break_start")
+    .eq("company_id", ctx.companyId)
+    .eq("attendance_id", attendanceId)
+    .is("break_end", null)
+    .is("is_deleted", false)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  if (!data?.id) {
+    return null;
+  }
+
+  return {
+    id: data.id as string,
+    break_start: data.break_start as string,
+  };
 };
 
 const requireShiftSwapReviewAccess = (ctx: ServiceContext): void => {
@@ -1691,6 +1766,113 @@ export const clockOut = async (
     return { ok: true, data: { attendanceId: record.id } };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "Clock-out error" };
+  }
+};
+
+export const startBreak = async (
+  ctx: ServiceContext,
+  employeeId: string,
+  _payload: AttendanceBreakPayload = {}
+): Promise<ServiceResult<{ breakId: string; attendanceId: string }>> => {
+  try {
+    await requireAttendanceEntitlement(ctx);
+    await ensureSelfOrManageAttendance(ctx, employeeId);
+
+    const attendanceRecord = await loadOpenAttendanceRecordForToday(ctx.supabase, ctx, employeeId);
+    if (!attendanceRecord?.id || !attendanceRecord.check_in || attendanceRecord.check_out) {
+      return { ok: false, error: "No open attendance record" };
+    }
+    if (attendanceRecord.is_locked) {
+      return { ok: false, error: "Attendance record is locked" };
+    }
+
+    const openBreak = await loadOpenBreak(ctx.supabase, ctx, attendanceRecord.id);
+    if (openBreak?.id) {
+      return { ok: false, error: "Already on break" };
+    }
+
+    const actorProfileId = await getActorProfileId(ctx.supabase, ctx);
+    const now = new Date().toISOString();
+    const { data, error } = await ctx.supabase
+      .from("attendance_breaks")
+      .insert({
+        company_id: ctx.companyId,
+        attendance_id: attendanceRecord.id,
+        break_start: now,
+        created_by: actorProfileId,
+        updated_by: actorProfileId,
+      })
+      .select("id")
+      .single();
+
+    if (error || !data?.id) {
+      return { ok: false, error: error?.message ?? "Unable to start break" };
+    }
+
+    return {
+      ok: true,
+      data: {
+        breakId: data.id as string,
+        attendanceId: attendanceRecord.id,
+      },
+    };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Unable to start break" };
+  }
+};
+
+export const endBreak = async (
+  ctx: ServiceContext,
+  employeeId: string,
+  _payload: AttendanceBreakPayload = {}
+): Promise<ServiceResult<{ breakId: string; attendanceId: string }>> => {
+  try {
+    await requireAttendanceEntitlement(ctx);
+    await ensureSelfOrManageAttendance(ctx, employeeId);
+
+    const attendanceRecord = await loadOpenAttendanceRecordForToday(ctx.supabase, ctx, employeeId);
+    if (!attendanceRecord?.id || !attendanceRecord.check_in || attendanceRecord.check_out) {
+      return { ok: false, error: "No open attendance record" };
+    }
+    if (attendanceRecord.is_locked) {
+      return { ok: false, error: "Attendance record is locked" };
+    }
+
+    const openBreak = await loadOpenBreak(ctx.supabase, ctx, attendanceRecord.id);
+    if (!openBreak?.id) {
+      return { ok: false, error: "No active break" };
+    }
+
+    const actorProfileId = await getActorProfileId(ctx.supabase, ctx);
+    const breakStart = new Date(openBreak.break_start);
+    const breakEnd = new Date();
+    const breakMinutes = Math.max(0, Math.round((breakEnd.getTime() - breakStart.getTime()) / 60000));
+
+    const { error } = await ctx.supabase
+      .from("attendance_breaks")
+      .update({
+        break_end: breakEnd.toISOString(),
+        break_minutes: breakMinutes,
+        updated_by: actorProfileId,
+      })
+      .eq("id", openBreak.id)
+      .eq("company_id", ctx.companyId)
+      .is("break_end", null)
+      .is("is_deleted", false);
+
+    if (error) {
+      return { ok: false, error: error.message };
+    }
+
+    return {
+      ok: true,
+      data: {
+        breakId: openBreak.id,
+        attendanceId: attendanceRecord.id,
+      },
+    };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Unable to end break" };
   }
 };
 

@@ -12,7 +12,6 @@ import { ErrorState } from "@/components/states/ErrorState";
 import { LoadingState } from "@/components/states/LoadingState";
 import {
   DashboardRail,
-  FeatureCallout,
   PageContainer,
   PageHeader,
   StatCard,
@@ -51,9 +50,13 @@ const prettyCurrentStatus = (status: AttendanceTodayResponse["currentStatus"]): 
 export const AttendancePageClient = ({
   clockInAction,
   clockOutAction,
+  startBreakAction,
+  endBreakAction,
 }: {
   clockInAction: ClockActionFn;
   clockOutAction: ClockActionFn;
+  startBreakAction: ClockActionFn;
+  endBreakAction: ClockActionFn;
 }) => {
   const cachedToday = peekCachedResult<AttendanceTodayResponse>("/api/attendance/today");
   const [todayData, setTodayData] = useState<AttendanceTodayResponse | null>(cachedToday?.ok ? (cachedToday.data ?? null) : null);
@@ -86,18 +89,19 @@ export const AttendancePageClient = ({
   }, [loadToday, refreshKey]);
 
   const actionDisabledState = useMemo(() => {
-    if (!todayData) return { canClockIn: false, canClockOut: false };
+    if (!todayData) return { canClockIn: false, canClockOut: false, canStartBreak: false, canEndBreak: false };
     const locked = todayData.record?.is_locked ?? false;
-    if (locked) return { canClockIn: false, canClockOut: false };
+    if (locked) return { canClockIn: false, canClockOut: false, canStartBreak: false, canEndBreak: false };
     switch (todayData.currentStatus) {
       case "not_clocked_in":
-        return { canClockIn: true, canClockOut: false };
+        return { canClockIn: true, canClockOut: false, canStartBreak: false, canEndBreak: false };
       case "clocked_in":
+        return { canClockIn: false, canClockOut: true, canStartBreak: true, canEndBreak: false };
       case "on_break":
-        return { canClockIn: false, canClockOut: true };
+        return { canClockIn: false, canClockOut: true, canStartBreak: false, canEndBreak: true };
       case "clocked_out":
       default:
-        return { canClockIn: false, canClockOut: false };
+        return { canClockIn: false, canClockOut: false, canStartBreak: false, canEndBreak: false };
     }
   }, [todayData]);
 
@@ -119,6 +123,11 @@ export const AttendancePageClient = ({
         label: "Shift start",
         value: record?.shift_start_time ?? "-",
         hint: record?.shift_end_time ? `Ends ${record.shift_end_time}` : "No shift assigned",
+      },
+      {
+        label: "Break status",
+        value: todayData?.isOnBreak ? "On break" : record?.check_in && !record?.check_out ? "Available" : "Inactive",
+        hint: todayData?.isOnBreak ? "Resume from the clock actions rail" : "Start a break after you clock in",
       },
       {
         label: "Geo capture",
@@ -145,9 +154,8 @@ export const AttendancePageClient = ({
     <PageContainer>
       <PageHeader
         eyebrow="Attendance"
-        title="Attendance command center"
+        title="Attendance workspace"
         description="Track clock events, geo verification, and correction requests from one focused workspace."
-        chips={["Clock events", "Geo verification", "Correction ready", "Daily operations"]}
         actions={todayData ? (
           <>
             <Badge className="rounded-full border-blue-200 bg-blue-50 text-blue-700">
@@ -165,12 +173,6 @@ export const AttendancePageClient = ({
 
       {!loadingToday && !todayError && todayData ? (
         <>
-          <FeatureCallout
-            badge="Daily operations"
-            title="Run today’s shift with less friction"
-            description="Clock state, geo verification, and your current attendance signal are grouped together so the daily workflow stays fast and visible."
-          />
-
           <StatGrid>
             {overview.map((item) => (
               <StatCard key={item.label} label={item.label} value={item.value} hint={item.hint} />
@@ -188,8 +190,12 @@ export const AttendancePageClient = ({
                 locked={todayData.record?.is_locked ?? false}
                 canClockIn={actionDisabledState.canClockIn}
                 canClockOut={actionDisabledState.canClockOut}
+                canStartBreak={actionDisabledState.canStartBreak}
+                canEndBreak={actionDisabledState.canEndBreak}
                 clockInAction={clockInAction}
                 clockOutAction={clockOutAction}
+                startBreakAction={startBreakAction}
+                endBreakAction={endBreakAction}
                 onCompleted={handleClockActionComplete}
               />
             </SurfacePanel>

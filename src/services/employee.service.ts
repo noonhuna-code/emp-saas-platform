@@ -511,6 +511,26 @@ const loadHierarchyIdentityMap = async (ctx: ServiceContext, employeeIds: string
 
   return new Map(rows.map((row) => [row.id, buildIdentitySummary(row, namesByEmployeeId)]));
 };
+
+const loadDirectManagerIdentity = async (
+  ctx: ServiceContext,
+  employeeId: string
+): Promise<HierarchyIdentity | null> => {
+  const { data: managerRow, error } = await ctx.supabase
+    .from("employees")
+    .select("manager_id")
+    .eq("company_id", ctx.companyId)
+    .eq("id", employeeId)
+    .is("is_deleted", false)
+    .maybeSingle();
+
+  if (error || !managerRow?.manager_id) {
+    return null;
+  }
+
+  const identityMap = await loadHierarchyIdentityMap(ctx, [managerRow.manager_id as string]);
+  return identityMap.get(managerRow.manager_id as string) ?? null;
+};
 export const getEmployeeProfile = async (
   ctx: ServiceContext,
   employeeId: string
@@ -612,11 +632,16 @@ export const getEmployeeProfile = async (
 
     const hierarchyIdentities = await loadHierarchyIdentityMap(ctx, Array.from(hierarchyIds));
 
+    const teamLeadIdentity = team?.team_lead_id ? hierarchyIdentities.get(team.team_lead_id) ?? null : null;
     const explicitPrimaryManager = reportingLines.find((line) => line.is_primary) ?? null;
     const primaryManager = explicitPrimaryManager
       ? hierarchyIdentities.get(explicitPrimaryManager.manager_employee_id) ?? null
       : employee.manager_id
         ? hierarchyIdentities.get(employee.manager_id) ?? null
+        : null;
+    const escalatedManager =
+      teamLeadIdentity && (!primaryManager || primaryManager.id === teamLeadIdentity.id)
+        ? await loadDirectManagerIdentity(ctx, teamLeadIdentity.id)
         : null;
 
     const secondaryManagers = reportingLines
@@ -653,7 +678,11 @@ export const getEmployeeProfile = async (
         : null,
     }));
 
-    const managerSummary = primaryManager ? { id: primaryManager.id, full_name: primaryManager.full_name } : null;
+    const managerSummary = escalatedManager
+      ? { id: escalatedManager.id, full_name: escalatedManager.full_name }
+      : primaryManager
+        ? { id: primaryManager.id, full_name: primaryManager.full_name }
+        : null;
     const personalDetails = personalResult.data
       ? ({
           ...(personalResult.data as EmployeePersonalDetails),
@@ -695,7 +724,7 @@ export const getEmployeeProfile = async (
         team: team ? { id: team.id, name: team.name } : null,
         manager: managerSummary,
         departmentHead: department?.head_employee_id ? hierarchyIdentities.get(department.head_employee_id) ?? null : null,
-        teamLead: team?.team_lead_id ? hierarchyIdentities.get(team.team_lead_id) ?? null : null,
+        teamLead: teamLeadIdentity,
         primaryManager,
         secondaryManagers,
         reportingLines: reportingLineSummaries,

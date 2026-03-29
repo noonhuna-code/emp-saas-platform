@@ -1,4 +1,6 @@
-﻿import type { ReactNode } from "react";
+import type { ReactNode } from "react";
+import { Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
@@ -18,6 +20,9 @@ export const profileTableClassName = "min-w-full divide-y divide-slate-200 text-
 export const profileTableHeadClassName = "bg-slate-50/90 text-left text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500";
 export const profileTableCellClassName = "px-4 py-3 align-top text-slate-700";
 export const profileTableActionCellClassName = "px-4 py-3 align-top";
+export const profileTableToolbarClassName = "flex flex-col gap-3 rounded-[20px] border border-slate-200 bg-slate-50/80 px-4 py-3 md:flex-row md:items-center md:justify-between";
+export const profileTableSearchClassName =
+  "h-10 w-full rounded-2xl border border-slate-200 bg-white pl-10 pr-3 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 md:max-w-sm";
 
 export const ProfileSectionCard = ({
   title,
@@ -91,5 +96,68 @@ export const SectionActionBar = ({ children }: { children: ReactNode }) => (
 export const ProfileTableShell = ({ children, className }: { children: ReactNode; className?: string }) => (
   <div className={cn(profileTableShellClassName, className)}>
     <div className={profileTableScrollerClassName}>{children}</div>
+  </div>
+);
+
+export const ProfileTableToolbar = ({
+  query,
+  onQueryChange,
+  placeholder = "Search records",
+  countLabel,
+  actions,
+}: {
+  query: string;
+  onQueryChange: (value: string) => void;
+  placeholder?: string;
+  countLabel?: string;
+  actions?: ReactNode;
+}) => (
+  <div className={profileTableToolbarClassName}>
+    <div className="relative w-full md:max-w-sm">
+      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+      <input
+        className={profileTableSearchClassName}
+        value={query}
+        onChange={(event) => onQueryChange(event.target.value)}
+        placeholder={placeholder}
+      />
+    </div>
+    <div className="flex flex-wrap items-center gap-2 md:justify-end">
+      {countLabel ? (
+        <span className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600">
+          {countLabel}
+        </span>
+      ) : null}
+      {actions}
+    </div>
+  </div>
+);
+
+export const ProfileTablePagination = ({
+  page,
+  totalPages,
+  countLabel,
+  onPrevious,
+  onNext,
+}: {
+  page: number;
+  totalPages: number;
+  countLabel?: string;
+  onPrevious: () => void;
+  onNext: () => void;
+}) => (
+  <div className="flex flex-wrap items-center justify-between gap-3 rounded-[20px] border border-slate-200 bg-slate-50/70 px-4 py-3">
+    <span className="text-sm text-slate-500">{countLabel ?? `Page ${page} of ${totalPages}`}</span>
+    <div className="flex items-center gap-2">
+      <Button type="button" variant="secondary" size="sm" className="rounded-full" onClick={onPrevious} disabled={page <= 1}>
+        Previous
+      </Button>
+      <span className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+        {page} / {totalPages}
+      </span>
+      <Button type="button" variant="secondary" size="sm" className="rounded-full" onClick={onNext} disabled={page >= totalPages}>
+        Next
+      </Button>
+    </div>
   </div>
 );

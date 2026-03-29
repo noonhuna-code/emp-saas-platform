@@ -24,20 +24,30 @@ export const ClockActions = ({
   locked,
   canClockIn,
   canClockOut,
+  canStartBreak,
+  canEndBreak,
   clockInAction,
   clockOutAction,
+  startBreakAction,
+  endBreakAction,
   onCompleted
 }: {
   employeeId: string;
   locked: boolean;
   canClockIn: boolean;
   canClockOut: boolean;
+  canStartBreak: boolean;
+  canEndBreak: boolean;
   clockInAction: ClockServerAction;
   clockOutAction: ClockServerAction;
+  startBreakAction: ClockServerAction;
+  endBreakAction: ClockServerAction;
   onCompleted?: () => void;
 }) => {
   const [clockInState, clockInFormAction, clockInPending] = useActionState(clockInAction, INITIAL_STATE);
   const [clockOutState, clockOutFormAction, clockOutPending] = useActionState(clockOutAction, INITIAL_STATE);
+  const [startBreakState, startBreakFormAction, startBreakPending] = useActionState(startBreakAction, INITIAL_STATE);
+  const [endBreakState, endBreakFormAction, endBreakPending] = useActionState(endBreakAction, INITIAL_STATE);
   const [geoStatus, setGeoStatus] = useState<"idle" | "capturing" | "ready" | "error">("idle");
   const [geoError, setGeoError] = useState<string | null>(null);
   const [geoPoint, setGeoPoint] = useState<{ latitude: number; longitude: number; accuracy: number | null } | null>(null);
@@ -54,8 +64,20 @@ export const ClockActions = ({
     }
   }, [clockOutState, onCompleted]);
 
-  const disabledAll = locked || clockInPending || clockOutPending || !employeeId;
-  const latestError = clockOutState.error || clockInState.error || null;
+  useEffect(() => {
+    if (startBreakState.ok && startBreakState.completedAt) {
+      onCompleted?.();
+    }
+  }, [startBreakState, onCompleted]);
+
+  useEffect(() => {
+    if (endBreakState.ok && endBreakState.completedAt) {
+      onCompleted?.();
+    }
+  }, [endBreakState, onCompleted]);
+
+  const disabledAll = locked || clockInPending || clockOutPending || startBreakPending || endBreakPending || !employeeId;
+  const latestError = endBreakState.error || startBreakState.error || clockOutState.error || clockInState.error || null;
 
   const guidance = useMemo(() => {
     if (!latestError) return null;
@@ -132,6 +154,20 @@ export const ClockActions = ({
           </Button>
         </form>
 
+        <form action={startBreakFormAction}>
+          <input type="hidden" name="employeeId" value={employeeId} />
+          <Button variant="secondary" type="submit" disabled={disabledAll || !canStartBreak}>
+            {startBreakPending ? "Starting break..." : "Start break"}
+          </Button>
+        </form>
+
+        <form action={endBreakFormAction}>
+          <input type="hidden" name="employeeId" value={employeeId} />
+          <Button variant="secondary" type="submit" disabled={disabledAll || !canEndBreak}>
+            {endBreakPending ? "Ending break..." : "End break"}
+          </Button>
+        </form>
+
         <Button type="button" variant="ghost" onClick={captureLocation} disabled={disabledAll || geoStatus === "capturing"}>
           <MapPin className="h-4 w-4" />
           {geoStatus === "capturing" ? "Locating…" : "Capture location"}
@@ -163,6 +199,8 @@ export const ClockActions = ({
 
       {!latestError && clockInState.ok ? <p className="text-sm text-slate-500 dark:text-slate-400">Clock-in completed.</p> : null}
       {!latestError && clockOutState.ok ? <p className="text-sm text-slate-500 dark:text-slate-400">Clock-out completed.</p> : null}
+      {!latestError && startBreakState.ok ? <p className="text-sm text-slate-500 dark:text-slate-400">Break started.</p> : null}
+      {!latestError && endBreakState.ok ? <p className="text-sm text-slate-500 dark:text-slate-400">Break ended.</p> : null}
     </div>
   );
 };

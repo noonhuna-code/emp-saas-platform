@@ -577,11 +577,11 @@ export const updateEmployeeDocument = async (
 export const deleteEmployeeDocument = async (
   employeeId: string,
   documentId: string
-): Promise<DashboardApiResult<EmployeeProfileResponse>> => {
+): Promise<DashboardApiResult<{ id: string }>> => {
   const response = await fetch(`/api/employees/${employeeId}/documents/${documentId}`, {
     method: "DELETE"
   });
-  return parseJson<EmployeeProfileResponse>(response);
+  return parseJson<{ id: string }>(response);
 };
 
 export const fetchEmployeeDocumentVersions = async (

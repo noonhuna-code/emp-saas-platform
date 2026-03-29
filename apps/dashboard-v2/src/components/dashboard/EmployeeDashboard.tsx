@@ -290,6 +290,11 @@ export const EmployeeDashboard = ({
                 hint={shift ? shift.shift_name : "No active shift assignment"}
               />
               <StatCard
+                label="Daily break"
+                value={attendance?.status === "on_break" ? "On break" : attendance?.checkIn ? "Available" : "Inactive"}
+                hint={attendance?.status === "on_break" ? "Resume from the attendance workspace" : "Use attendance to start or end breaks"}
+              />
+              <StatCard
                 label="Work logged"
                 value={formatMinutes(attendance?.workMinutes)}
                 hint={attendance?.checkIn ? `Checked in ${attendance.checkIn}` : "No check-in recorded yet"}

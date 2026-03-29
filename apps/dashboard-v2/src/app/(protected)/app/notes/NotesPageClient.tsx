@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { FilePenLine, FolderOpen, Trash2 } from "lucide-react";
 import {
   addEmployeeDocument,
   createWorkspaceNote,
@@ -25,7 +26,9 @@ import {
 } from "@/components/dashboard-v2/PagePrimitives";
 import {
   ProfilePanel,
+  ProfileTablePagination,
   ProfileTableShell,
+  ProfileTableToolbar,
   SectionActionBar,
   profileFieldClassName,
   profileLabelClassName,
@@ -45,6 +48,9 @@ const emptyForm = {
 };
 
 const INTERNAL_DOWNLOAD_PATH = /^\/api\/employees\/([^/]+)\/documents\/([^/?]+)\/download(?:\?.*)?$/i;
+const PAGE_SIZE = 8;
+const iconActionClassName =
+  "h-9 w-9 rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700";
 
 const NotesPageClient = () => {
   const cachedNotes = peekCachedResult<{ rows: WorkspaceNote[] }>("/api/workspace/notes?limit=50");
@@ -60,6 +66,8 @@ const NotesPageClient = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingFile, setEditingFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
 
   const load = async (showLoading = true) => {
     if (showLoading) setLoading(true);
@@ -243,69 +251,100 @@ const NotesPageClient = () => {
     }
   };
 
+  const filteredRows = useMemo(() => {
+    const normalized = query.trim().toLowerCase();
+    if (!normalized) return rows;
+    return rows.filter((row) =>
+      [row.title, row.body, row.file_name]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(normalized)),
+    );
+  }, [query, rows]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
+  const pageRows = filteredRows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
   return (
     <PageContainer>
       <PageHeader
         eyebrow="Notes"
         title="Notes workspace"
-        description="Keep personal notes and attached files in one compact register."
+        description="Keep notes and attachments in one compact searchable register."
       />
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.3fr)_minmax(360px,0.92fr)]">
-        <SurfacePanel title="My saved notes" description="Compact note table with attachment, pin, edit, and delete actions.">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.34fr)_minmax(360px,0.9fr)]">
+        <SurfacePanel title="My saved notes" description="Search, open, edit, and clear notes without stretching the page.">
           {loading ? <LoadingState label="Loading notes..." /> : null}
           {!loading && error ? <ErrorState message={error} /> : null}
           {!loading && !error ? (
             rows.length === 0 ? (
               <EmptyState title="No notes saved yet" subtitle="Create a note to keep quick context and files close to your workspace." />
             ) : (
-              <ProfileTableShell>
-                <table className={profileTableClassName}>
-                  <thead className={profileTableHeadClassName}>
-                    <tr>
-                      <th className="px-4 py-3">Title</th>
-                      <th className="px-4 py-3">Body</th>
-                      <th className="px-4 py-3">Attachment</th>
-                      <th className="px-4 py-3">Updated</th>
-                      <th className="px-4 py-3">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 bg-white">
-                    {rows.map((row) => (
-                      <tr key={row.id} className="align-top">
-                        <td className={profileTableCellClassName}>
-                          <div className="space-y-1">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span className="font-medium text-slate-900">{row.title}</span>
-                              {row.is_pinned ? <StatusChip label="Pinned" compact tone="info" /> : null}
-                            </div>
-                          </div>
-                        </td>
-                        <td className={profileTableCellClassName}>
-                          <p className="max-w-[34rem] whitespace-pre-wrap text-sm text-slate-600">{row.body}</p>
-                        </td>
-                        <td className={profileTableCellClassName}>{row.file_name ?? "No file"}</td>
-                        <td className={profileTableCellClassName}>{new Date(row.updated_at).toLocaleString()}</td>
-                        <td className={profileTableActionCellClassName}>
-                          <div className="flex flex-wrap gap-2">
-                            {row.file_url ? (
-                              <Button type="button" variant="secondary" size="sm" className="rounded-full" onClick={() => void handleOpenAttachment(row)}>
-                                Open
-                              </Button>
-                            ) : null}
-                            <Button type="button" variant="secondary" size="sm" className="rounded-full" onClick={() => startEdit(row)}>
-                              Edit
-                            </Button>
-                            <Button type="button" variant="secondary" size="sm" className="rounded-full" onClick={() => void handleDelete(row.id)} disabled={submitting}>
-                              Delete
-                            </Button>
-                          </div>
-                        </td>
+              <div className="space-y-4">
+                <ProfileTableToolbar
+                  query={query}
+                  onQueryChange={(value) => {
+                    setQuery(value);
+                    setPage(1);
+                  }}
+                  placeholder="Search title, content, or file"
+                  countLabel={`${filteredRows.length} notes`}
+                />
+                <ProfileTableShell>
+                  <table className={profileTableClassName}>
+                    <thead className={profileTableHeadClassName}>
+                      <tr>
+                        <th className="px-4 py-3">Title</th>
+                        <th className="px-4 py-3">Preview</th>
+                        <th className="px-4 py-3">Attachment</th>
+                        <th className="px-4 py-3">Updated</th>
+                        <th className="px-4 py-3">Actions</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </ProfileTableShell>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 bg-white">
+                      {pageRows.map((row) => (
+                        <tr key={row.id} className="align-top">
+                          <td className={profileTableCellClassName}>
+                            <div className="space-y-1">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="font-medium text-slate-900">{row.title}</span>
+                                {row.is_pinned ? <StatusChip label="Pinned" compact tone="info" /> : null}
+                              </div>
+                            </div>
+                          </td>
+                          <td className={profileTableCellClassName}>
+                            <p className="max-w-[24rem] truncate text-sm text-slate-600">{row.body}</p>
+                          </td>
+                          <td className={profileTableCellClassName}>{row.file_name ?? "No file"}</td>
+                          <td className={profileTableCellClassName}>{new Date(row.updated_at).toLocaleString()}</td>
+                          <td className={profileTableActionCellClassName}>
+                            <div className="flex items-center gap-2 whitespace-nowrap">
+                              {row.file_url ? (
+                                <Button type="button" variant="secondary" size="icon" className={iconActionClassName} onClick={() => void handleOpenAttachment(row)} title="Open attachment" aria-label="Open attachment">
+                                  <FolderOpen className="h-4 w-4" />
+                                </Button>
+                              ) : null}
+                              <Button type="button" variant="secondary" size="icon" className={iconActionClassName} onClick={() => startEdit(row)} title="Edit note" aria-label="Edit note">
+                                <FilePenLine className="h-4 w-4" />
+                              </Button>
+                              <Button type="button" variant="secondary" size="icon" className={iconActionClassName} onClick={() => void handleDelete(row.id)} disabled={submitting} title="Delete note" aria-label="Delete note">
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </ProfileTableShell>
+                <ProfileTablePagination
+                  page={page}
+                  totalPages={totalPages}
+                  countLabel={`Showing ${pageRows.length} of ${filteredRows.length} notes`}
+                  onPrevious={() => setPage((value) => Math.max(1, value - 1))}
+                  onNext={() => setPage((value) => Math.min(totalPages, value + 1))}
+                />
+              </div>
             )
           ) : null}
         </SurfacePanel>
@@ -314,7 +353,7 @@ const NotesPageClient = () => {
           title={editingId ? "Edit note" : "Add note"}
           description={editingId ? "Update content or replace the attachment for the selected note." : "Create a note and optionally attach one file."}
         >
-          <ProfilePanel title={editingId ? "Selected note" : "New note"} description="This form uses the same note contract and attachment flow already active in the workspace.">
+          <ProfilePanel title={editingId ? "Selected note" : "New note"} description="This uses the same live note and attachment contracts already active in the workspace.">
             <form className="space-y-4" onSubmit={onSubmit}>
               <label className={profileLabelClassName}>
                 <span>Title</span>

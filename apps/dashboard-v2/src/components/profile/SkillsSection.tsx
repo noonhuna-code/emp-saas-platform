@@ -7,7 +7,9 @@ import type { EmployeeSkill } from "@/lib/types/profile";
 import {
   ProfilePanel,
   ProfileSectionCard,
+  ProfileTablePagination,
   ProfileTableShell,
+  ProfileTableToolbar,
   SectionActionBar,
   profileFieldClassName,
   profileLabelClassName,
@@ -18,6 +20,7 @@ import {
 } from "@/components/profile/ProfileSectionPrimitives";
 
 const emptyDraft = { skill_name: "", proficiency: "", years_experience: "" };
+const PAGE_SIZE = 6;
 
 export const SkillsSection = ({
   skills,
@@ -36,8 +39,21 @@ export const SkillsSection = ({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingDraft, setEditingDraft] = useState(emptyDraft);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
 
   const rows = useMemo(() => [...skills].sort((a, b) => a.skill_name.localeCompare(b.skill_name)), [skills]);
+  const filteredRows = useMemo(() => {
+    const normalized = query.trim().toLowerCase();
+    if (!normalized) return rows;
+    return rows.filter((skill) =>
+      [skill.skill_name, skill.proficiency]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(normalized)),
+    );
+  }, [query, rows]);
+  const totalPages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
+  const pageRows = filteredRows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const handleAdd = async () => {
     if (!draft.skill_name) return;
@@ -73,7 +89,7 @@ export const SkillsSection = ({
   return (
     <ProfileSectionCard
       title="Skills"
-      description="Track capability signals in one compact inventory instead of a long series of stacked cards."
+      description="Track capability signals in one searchable inventory instead of a long series of stacked cards."
       actions={
         canEdit ? (
           <Button type="button" variant="secondary" size="sm" className="rounded-full" onClick={() => setShowCreateForm((prev) => !prev)}>
@@ -136,52 +152,71 @@ export const SkillsSection = ({
         </ProfilePanel>
       ) : null}
 
-      {rows.length === 0 ? (
-        <EmptyState title="No skills recorded" subtitle="Add capability data so the profile can stay useful for staffing, growth, and reviews." />
+      <ProfileTableToolbar
+        query={query}
+        onQueryChange={(value) => {
+          setQuery(value);
+          setPage(1);
+        }}
+        placeholder="Search skill or proficiency"
+        countLabel={`${filteredRows.length} skills`}
+      />
+
+      {filteredRows.length === 0 ? (
+        <EmptyState title="No matching skills" subtitle={skills.length === 0 ? "Add capability data so the profile can stay useful for staffing, growth, and reviews." : "Try a different search term or clear the filter."} />
       ) : (
-        <ProfileTableShell>
-          <table className={profileTableClassName}>
-            <thead className={profileTableHeadClassName}>
-              <tr>
-                <th className="px-4 py-3">Skill</th>
-                <th className="px-4 py-3">Proficiency</th>
-                <th className="px-4 py-3">Experience</th>
-                <th className="px-4 py-3">Updated</th>
-                <th className="px-4 py-3">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 bg-white">
-              {rows.map((skill) => (
-                <tr key={skill.id} className="align-top">
-                  <td className={profileTableCellClassName}>
-                    <div className="font-medium text-slate-900">{skill.skill_name}</div>
-                  </td>
-                  <td className={profileTableCellClassName}>{skill.proficiency ?? "-"}</td>
-                  <td className={profileTableCellClassName}>
-                    {skill.years_experience !== null && skill.years_experience !== undefined ? `${skill.years_experience} years` : "-"}
-                  </td>
-                  <td className={profileTableCellClassName}>
-                    {skill.updated_at ? new Date(skill.updated_at).toLocaleDateString() : "-"}
-                  </td>
-                  <td className={profileTableActionCellClassName}>
-                    {canEdit ? (
-                      <div className="flex flex-wrap gap-2">
-                        <Button type="button" variant="secondary" size="sm" className="rounded-full" onClick={() => startEdit(skill)}>
-                          Edit
-                        </Button>
-                        <Button type="button" variant="secondary" size="sm" className="rounded-full" onClick={() => void onDelete(skill.id)}>
-                          Remove
-                        </Button>
-                      </div>
-                    ) : (
-                      <span className="text-sm text-slate-400">Read only</span>
-                    )}
-                  </td>
+        <>
+          <ProfileTableShell>
+            <table className={profileTableClassName}>
+              <thead className={profileTableHeadClassName}>
+                <tr>
+                  <th className="px-4 py-3">Skill</th>
+                  <th className="px-4 py-3">Proficiency</th>
+                  <th className="px-4 py-3">Experience</th>
+                  <th className="px-4 py-3">Updated</th>
+                  <th className="px-4 py-3">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </ProfileTableShell>
+              </thead>
+              <tbody className="divide-y divide-slate-100 bg-white">
+                {pageRows.map((skill) => (
+                  <tr key={skill.id} className="align-top">
+                    <td className={profileTableCellClassName}>
+                      <div className="font-medium text-slate-900">{skill.skill_name}</div>
+                    </td>
+                    <td className={profileTableCellClassName}>{skill.proficiency ?? "-"}</td>
+                    <td className={profileTableCellClassName}>
+                      {skill.years_experience !== null && skill.years_experience !== undefined ? `${skill.years_experience} years` : "-"}
+                    </td>
+                    <td className={profileTableCellClassName}>
+                      {skill.updated_at ? new Date(skill.updated_at).toLocaleDateString() : "-"}
+                    </td>
+                    <td className={profileTableActionCellClassName}>
+                      {canEdit ? (
+                        <div className="flex flex-nowrap gap-2">
+                          <Button type="button" variant="secondary" size="sm" className="rounded-full" onClick={() => startEdit(skill)}>
+                            Edit
+                          </Button>
+                          <Button type="button" variant="secondary" size="sm" className="rounded-full" onClick={() => void onDelete(skill.id)}>
+                            Remove
+                          </Button>
+                        </div>
+                      ) : (
+                        <span className="text-sm text-slate-400">Read only</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </ProfileTableShell>
+          <ProfileTablePagination
+            page={page}
+            totalPages={totalPages}
+            countLabel={`Showing ${pageRows.length} of ${filteredRows.length} skills`}
+            onPrevious={() => setPage((value) => Math.max(1, value - 1))}
+            onNext={() => setPage((value) => Math.min(totalPages, value + 1))}
+          />
+        </>
       )}
     </ProfileSectionCard>
   );

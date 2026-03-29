@@ -165,11 +165,11 @@ export const EmployeeProfileScreen = ({ employeeId }: { employeeId: string }) =>
   const designation = getEmployeeField(profile, "designation");
   const department = profile.department?.name ?? "Unassigned";
   const team = profile.team?.name ?? "No team";
-  const supervisor = profile.teamLead?.full_name ?? profile.manager?.full_name ?? "No supervisor assigned";
+  const supervisor = profile.teamLead?.full_name ?? "No supervisor assigned";
   const escalatedManager =
+    profile.manager?.full_name ??
     profile.secondaryManagers?.find((entry) => entry.relation_type === "senior_manager")?.full_name ??
     profile.primaryManager?.full_name ??
-    profile.manager?.full_name ??
     "No manager assigned";
   const employmentStatus = getEmployeeField(profile, "employment_status") ?? "active";
   const employeeCode = getEmployeeField(profile, "employee_code") ?? employeeId;
@@ -289,8 +289,12 @@ export const EmployeeProfileScreen = ({ employeeId }: { employeeId: string }) =>
           documents={profile.documents}
           canEdit={canEditSelfSections}
           onAdd={async (payload) => {
+            const existingIds = new Set(profile.documents.map((entry) => entry.id));
             const result = await addEmployeeDocument(employeeId, payload);
-            applyUpdateResult(result, "Unable to add document");
+            if (!applyUpdateResult(result, "Unable to add document") || !result.data) {
+              return null;
+            }
+            return result.data.profile.documents.find((entry) => !existingIds.has(entry.id)) ?? result.data.profile.documents.at(-1) ?? null;
           }}
           onUpdate={async (docId, payload) => {
             const result = await updateEmployeeDocument(employeeId, docId, payload);
@@ -298,7 +302,11 @@ export const EmployeeProfileScreen = ({ employeeId }: { employeeId: string }) =>
           }}
           onDelete={async (docId) => {
             const result = await deleteEmployeeDocument(employeeId, docId);
-            applyUpdateResult(result, "Unable to remove document");
+            if (!result.ok) {
+              setError(result.error ?? "Unable to remove document");
+              return;
+            }
+            await refreshProfile();
           }}
           onRefresh={refreshProfile}
         />

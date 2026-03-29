@@ -1,7 +1,7 @@
 ﻿"use server";
 
 import { revalidatePath } from "next/cache";
-import { clockIn, clockOut } from "@emp/services/attendance.service";
+import { clockIn, clockOut, endBreak, startBreak } from "@emp/services/attendance.service";
 import { buildServiceContext } from "@/lib/server/service-context";
 
 export type AttendanceClockActionState = {
@@ -17,6 +17,8 @@ const sanitizeClockError = (error?: string): string => {
   const knownSafe = [
     "Already clocked in for today",
     "No open attendance record",
+    "Already on break",
+    "No active break",
     "No active shift assignment",
     "Shift template not found",
     "Employee record not found"
@@ -102,6 +104,64 @@ export async function clockOutAction(
     }
 
     revalidatePath("/app/attendance");
+    return buildActionResult(true, { attendanceId: result.data?.attendanceId });
+  } catch (error) {
+    const message =
+      error instanceof Error && error.message === "Authenticated company-scoped session required"
+        ? "Authentication required"
+        : "Attendance action failed";
+
+    return buildActionResult(false, { error: message });
+  }
+}
+
+export async function startBreakAction(
+  _prevState: AttendanceClockActionState,
+  formData: FormData
+): Promise<AttendanceClockActionState> {
+  try {
+    const employeeId = String(formData.get("employeeId") ?? "").trim();
+    if (!employeeId) {
+      return buildActionResult(false, { error: "Employee id is required" });
+    }
+
+    const ctx = await buildServiceContext();
+    const result = await startBreak(ctx, employeeId);
+    if (!result.ok) {
+      return buildActionResult(false, { error: sanitizeClockError(result.error) });
+    }
+
+    revalidatePath("/app/attendance");
+    revalidatePath("/app/dashboard");
+    return buildActionResult(true, { attendanceId: result.data?.attendanceId });
+  } catch (error) {
+    const message =
+      error instanceof Error && error.message === "Authenticated company-scoped session required"
+        ? "Authentication required"
+        : "Attendance action failed";
+
+    return buildActionResult(false, { error: message });
+  }
+}
+
+export async function endBreakAction(
+  _prevState: AttendanceClockActionState,
+  formData: FormData
+): Promise<AttendanceClockActionState> {
+  try {
+    const employeeId = String(formData.get("employeeId") ?? "").trim();
+    if (!employeeId) {
+      return buildActionResult(false, { error: "Employee id is required" });
+    }
+
+    const ctx = await buildServiceContext();
+    const result = await endBreak(ctx, employeeId);
+    if (!result.ok) {
+      return buildActionResult(false, { error: sanitizeClockError(result.error) });
+    }
+
+    revalidatePath("/app/attendance");
+    revalidatePath("/app/dashboard");
     return buildActionResult(true, { attendanceId: result.data?.attendanceId });
   } catch (error) {
     const message =

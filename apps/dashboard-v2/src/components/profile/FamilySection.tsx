@@ -7,7 +7,9 @@ import type { EmployeeFamilyMember } from "@/lib/types/profile";
 import {
   ProfilePanel,
   ProfileSectionCard,
+  ProfileTablePagination,
   ProfileTableShell,
+  ProfileTableToolbar,
   SectionActionBar,
   profileFieldClassName,
   profileLabelClassName,
@@ -24,6 +26,8 @@ const emptyDraft = {
   phone_number: "",
   is_dependent: false,
 };
+
+const PAGE_SIZE = 6;
 
 const formatDate = (value?: string | null) => {
   if (!value) return "-";
@@ -47,8 +51,21 @@ export const FamilySection = ({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingDraft, setEditingDraft] = useState(emptyDraft);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
 
   const rows = useMemo(() => [...family].sort((a, b) => a.full_name.localeCompare(b.full_name)), [family]);
+  const filteredRows = useMemo(() => {
+    const normalized = query.trim().toLowerCase();
+    if (!normalized) return rows;
+    return rows.filter((member) =>
+      [member.full_name, member.relationship, member.phone_number]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(normalized)),
+    );
+  }, [query, rows]);
+  const totalPages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
+  const pageRows = filteredRows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const handleAdd = async () => {
     if (!draft.full_name || !draft.relationship) return;
@@ -90,7 +107,7 @@ export const FamilySection = ({
   return (
     <ProfileSectionCard
       title="Family"
-      description="Keep dependents and household contacts in a compact register instead of a long card stack."
+      description="Keep dependents and household contacts in a searchable register instead of a long card stack."
       actions={
         canEdit ? (
           <Button type="button" variant="secondary" size="sm" className="rounded-full" onClick={() => setShowCreateForm((prev) => !prev)}>
@@ -179,50 +196,69 @@ export const FamilySection = ({
         </ProfilePanel>
       ) : null}
 
-      {rows.length === 0 ? (
-        <EmptyState title="No family members recorded" subtitle="Add dependents or household contacts to keep this register complete." />
+      <ProfileTableToolbar
+        query={query}
+        onQueryChange={(value) => {
+          setQuery(value);
+          setPage(1);
+        }}
+        placeholder="Search family name, relationship, or phone"
+        countLabel={`${filteredRows.length} records`}
+      />
+
+      {filteredRows.length === 0 ? (
+        <EmptyState title="No matching household records" subtitle={family.length === 0 ? "Add dependents or household contacts to keep this register complete." : "Try a different search term or clear the filter."} />
       ) : (
-        <ProfileTableShell>
-          <table className={profileTableClassName}>
-            <thead className={profileTableHeadClassName}>
-              <tr>
-                <th className="px-4 py-3">Name</th>
-                <th className="px-4 py-3">Relationship</th>
-                <th className="px-4 py-3">Date of birth</th>
-                <th className="px-4 py-3">Phone</th>
-                <th className="px-4 py-3">Dependent</th>
-                <th className="px-4 py-3">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 bg-white">
-              {rows.map((member) => (
-                <tr key={member.id} className="align-top">
-                  <td className={profileTableCellClassName}>
-                    <div className="font-medium text-slate-900">{member.full_name}</div>
-                  </td>
-                  <td className={profileTableCellClassName}>{member.relationship}</td>
-                  <td className={profileTableCellClassName}>{formatDate(member.date_of_birth)}</td>
-                  <td className={profileTableCellClassName}>{member.phone_number ?? "-"}</td>
-                  <td className={profileTableCellClassName}>{member.is_dependent ? "Yes" : "No"}</td>
-                  <td className={profileTableActionCellClassName}>
-                    {canEdit ? (
-                      <div className="flex flex-wrap gap-2">
-                        <Button type="button" variant="secondary" size="sm" className="rounded-full" onClick={() => startEdit(member)}>
-                          Edit
-                        </Button>
-                        <Button type="button" variant="secondary" size="sm" className="rounded-full" onClick={() => void onDelete(member.id)}>
-                          Remove
-                        </Button>
-                      </div>
-                    ) : (
-                      <span className="text-sm text-slate-400">Read only</span>
-                    )}
-                  </td>
+        <>
+          <ProfileTableShell>
+            <table className={profileTableClassName}>
+              <thead className={profileTableHeadClassName}>
+                <tr>
+                  <th className="px-4 py-3">Name</th>
+                  <th className="px-4 py-3">Relationship</th>
+                  <th className="px-4 py-3">Date of birth</th>
+                  <th className="px-4 py-3">Phone</th>
+                  <th className="px-4 py-3">Dependent</th>
+                  <th className="px-4 py-3">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </ProfileTableShell>
+              </thead>
+              <tbody className="divide-y divide-slate-100 bg-white">
+                {pageRows.map((member) => (
+                  <tr key={member.id} className="align-top">
+                    <td className={profileTableCellClassName}>
+                      <div className="font-medium text-slate-900">{member.full_name}</div>
+                    </td>
+                    <td className={profileTableCellClassName}>{member.relationship}</td>
+                    <td className={profileTableCellClassName}>{formatDate(member.date_of_birth)}</td>
+                    <td className={profileTableCellClassName}>{member.phone_number ?? "-"}</td>
+                    <td className={profileTableCellClassName}>{member.is_dependent ? "Yes" : "No"}</td>
+                    <td className={profileTableActionCellClassName}>
+                      {canEdit ? (
+                        <div className="flex flex-nowrap gap-2">
+                          <Button type="button" variant="secondary" size="sm" className="rounded-full" onClick={() => startEdit(member)}>
+                            Edit
+                          </Button>
+                          <Button type="button" variant="secondary" size="sm" className="rounded-full" onClick={() => void onDelete(member.id)}>
+                            Remove
+                          </Button>
+                        </div>
+                      ) : (
+                        <span className="text-sm text-slate-400">Read only</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </ProfileTableShell>
+          <ProfileTablePagination
+            page={page}
+            totalPages={totalPages}
+            countLabel={`Showing ${pageRows.length} of ${filteredRows.length} records`}
+            onPrevious={() => setPage((value) => Math.max(1, value - 1))}
+            onNext={() => setPage((value) => Math.min(totalPages, value + 1))}
+          />
+        </>
       )}
     </ProfileSectionCard>
   );

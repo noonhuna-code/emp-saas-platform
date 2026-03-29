@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getServerSession } from "@/lib/server/auth";
-import { clockInAction, clockOutAction } from "./actions";
+import { clockInAction, clockOutAction, endBreakAction, startBreakAction } from "./actions";
 import { AttendancePageClient } from "./AttendancePageClient";
 
 export default async function AttendancePage() {
@@ -19,5 +19,12 @@ export default async function AttendancePage() {
     redirect("/403");
   }
 
-  return <AttendancePageClient clockInAction={clockInAction} clockOutAction={clockOutAction} />;
+  return (
+    <AttendancePageClient
+      clockInAction={clockInAction}
+      clockOutAction={clockOutAction}
+      startBreakAction={startBreakAction}
+      endBreakAction={endBreakAction}
+    />
+  );
 }

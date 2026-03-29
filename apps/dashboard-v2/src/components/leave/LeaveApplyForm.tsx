@@ -58,135 +58,119 @@ export const LeaveApplyForm = ({
 
   return (
     <form className="space-y-4" onSubmit={submit}>
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.18fr)_280px]">
-        <div className="space-y-4">
-          <div className={panelClassName}>
-            <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.65fr)_320px]">
+        <div className={panelClassName}>
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_180px_180px_minmax(0,1.2fr)]">
+            <label className={labelClassName}>
+              <span>Leave type</span>
+              <select
+                className={fieldClassName}
+                value={payload.leave_type_id}
+                onChange={(event) => setPayload((prev) => ({ ...prev, leave_type_id: event.target.value }))}
+                required
+              >
+                <option value="">Select leave type</option>
+                {leaveTypeOptions.map((type) => (
+                  <option key={type.id} value={type.id}>
+                    {type.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className={labelClassName}>
+              <span>Start date</span>
+              <input
+                className={fieldClassName}
+                type="date"
+                value={payload.start_date}
+                onChange={(event) => setPayload((prev) => ({ ...prev, start_date: event.target.value }))}
+                required
+              />
+            </label>
+
+            <label className={labelClassName}>
+              <span>End date</span>
+              <input
+                className={fieldClassName}
+                type="date"
+                value={payload.end_date}
+                onChange={(event) => setPayload((prev) => ({ ...prev, end_date: event.target.value }))}
+                required
+              />
+            </label>
+
+            <label className={labelClassName}>
+              <span>Reason</span>
+              <input
+                className={fieldClassName}
+                value={payload.reason ?? ""}
+                placeholder="Short reason"
+                onChange={(event) => setPayload((prev) => ({ ...prev, reason: event.target.value }))}
+              />
+            </label>
+          </div>
+
+          <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_220px] xl:items-end">
+            <label className="inline-flex items-center gap-3 text-sm font-medium text-slate-700">
+              <input
+                className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                type="checkbox"
+                checked={payload.is_half_day ?? false}
+                onChange={(event) => setPayload((prev) => ({ ...prev, is_half_day: event.target.checked }))}
+              />
+              Submit as half day
+            </label>
+
+            {payload.is_half_day ? (
               <label className={labelClassName}>
-                <span>Leave type</span>
+                <span>Half day slot</span>
                 <select
                   className={fieldClassName}
-                  value={payload.leave_type_id}
-                  onChange={(event) => setPayload((prev) => ({ ...prev, leave_type_id: event.target.value }))}
+                  value={payload.half_day_type ?? ""}
+                  onChange={(event) =>
+                    setPayload((prev) => ({
+                      ...prev,
+                      half_day_type: event.target.value as "first_half" | "second_half",
+                    }))
+                  }
                   required
                 >
-                  <option value="">Select leave type</option>
-                  {leaveTypeOptions.map((type) => (
-                    <option key={type.id} value={type.id}>
-                      {type.name}
-                    </option>
-                  ))}
+                  <option value="">Select slot</option>
+                  <option value="first_half">First half</option>
+                  <option value="second_half">Second half</option>
                 </select>
               </label>
-
-              <label className={labelClassName}>
-                <span>Reason</span>
-                <input
-                  className={fieldClassName}
-                  value={payload.reason ?? ""}
-                  placeholder="Short reason"
-                  onChange={(event) => setPayload((prev) => ({ ...prev, reason: event.target.value }))}
-                />
-              </label>
-
-              <label className={labelClassName}>
-                <span>Start date</span>
-                <input
-                  className={fieldClassName}
-                  type="date"
-                  value={payload.start_date}
-                  onChange={(event) => setPayload((prev) => ({ ...prev, start_date: event.target.value }))}
-                  required
-                />
-              </label>
-
-              <label className={labelClassName}>
-                <span>End date</span>
-                <input
-                  className={fieldClassName}
-                  type="date"
-                  value={payload.end_date}
-                  onChange={(event) => setPayload((prev) => ({ ...prev, end_date: event.target.value }))}
-                  required
-                />
-              </label>
-            </div>
-          </div>
-
-          <div className={panelClassName}>
-            <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_220px] md:items-end">
-              <label className="grid gap-2 text-sm font-medium text-slate-700">
-                <span className="inline-flex items-center gap-3">
-                  <input
-                    className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                    type="checkbox"
-                    checked={payload.is_half_day ?? false}
-                    onChange={(event) => setPayload((prev) => ({ ...prev, is_half_day: event.target.checked }))}
-                  />
-                  Submit as half day
-                </span>
-              </label>
-
-              {payload.is_half_day ? (
-                <label className={labelClassName}>
-                  <span>Half day slot</span>
-                  <select
-                    className={fieldClassName}
-                    value={payload.half_day_type ?? ""}
-                    onChange={(event) =>
-                      setPayload((prev) => ({
-                        ...prev,
-                        half_day_type: event.target.value as "first_half" | "second_half",
-                      }))
-                    }
-                    required
-                  >
-                    <option value="">Select slot</option>
-                    <option value="first_half">First half</option>
-                    <option value="second_half">Second half</option>
-                  </select>
-                </label>
-              ) : (
-                <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-500">
-                  Full-day request
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          <div className={panelClassName}>
-            <p className="text-sm font-semibold text-slate-900">Balance preview</p>
-            {selectedBalance ? (
-              <div className="mt-3 space-y-3">
-                <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Entitled</p>
-                  <p className="mt-2 text-lg font-semibold text-slate-950">{selectedBalance.entitled_days} days</p>
-                </div>
-                <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Used</p>
-                  <p className="mt-2 text-lg font-semibold text-slate-950">{selectedBalance.used_days} days</p>
-                </div>
-                <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Remaining</p>
-                  <p className="mt-2 text-lg font-semibold text-slate-950">{selectedBalance.remaining_days} days</p>
-                </div>
-              </div>
             ) : (
-              <div className="mt-3 rounded-2xl border border-dashed border-slate-200 bg-white px-4 py-4 text-sm text-slate-500">
-                Select a leave type to preview the balance.
+              <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-500">
+                Full-day request
               </div>
             )}
           </div>
+        </div>
 
-          <div className={panelClassName}>
-            <p className="text-sm font-semibold text-slate-900">Submission checks</p>
-            <ul className="mt-3 space-y-2 text-sm text-slate-600">
-              <li>Request routes through the active approval chain.</li>
-              <li>Eligible leave types follow the employee profile and current balances.</li>
-            </ul>
-          </div>
+        <div className={panelClassName}>
+          <p className="text-sm font-semibold text-slate-900">Balance preview</p>
+          {selectedBalance ? (
+            <div className="mt-3 grid gap-3">
+              <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Entitled</p>
+                <p className="mt-2 text-lg font-semibold text-slate-950">{selectedBalance.entitled_days} days</p>
+              </div>
+              <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Used</p>
+                <p className="mt-2 text-lg font-semibold text-slate-950">{selectedBalance.used_days} days</p>
+              </div>
+              <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Remaining</p>
+                <p className="mt-2 text-lg font-semibold text-slate-950">{selectedBalance.remaining_days} days</p>
+              </div>
+            </div>
+          ) : (
+            <div className="mt-3 rounded-2xl border border-dashed border-slate-200 bg-white px-4 py-4 text-sm text-slate-500">
+              Select a leave type to preview the current balance.
+            </div>
+          )}
         </div>
       </div>
 

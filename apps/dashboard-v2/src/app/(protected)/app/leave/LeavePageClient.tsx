@@ -1,6 +1,7 @@
-﻿"use client";
+"use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import {
   applyLeaveRequest,
   cancelLeaveRequest,
@@ -14,6 +15,7 @@ import { LeaveBalanceCard } from "@/components/leave/LeaveBalanceCard";
 import { LeaveApplyForm } from "@/components/leave/LeaveApplyForm";
 import { LeaveHistoryTable } from "@/components/leave/LeaveHistoryTable";
 import { LeaveStatusTimeline } from "@/components/leave/LeaveStatusTimeline";
+import { Tabs } from "@/components/shared/Tabs";
 import { ErrorState } from "@/components/states/ErrorState";
 import { LoadingState } from "@/components/states/LoadingState";
 import {
@@ -26,7 +28,12 @@ import {
 } from "@/components/dashboard-v2/PagePrimitives";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import Link from "next/link";
+
+const TAB_ITEMS = [
+  { id: "apply", label: "Apply for leave" },
+  { id: "balances", label: "Leave balances" },
+  { id: "history", label: "Leave history" },
+];
 
 export const LeavePageClient = () => {
   const [balances, setBalances] = useState<LeaveBalance[]>([]);
@@ -40,6 +47,7 @@ export const LeavePageClient = () => {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [employeeId, setEmployeeId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("apply");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -118,6 +126,7 @@ export const LeavePageClient = () => {
         setError(result.error ?? "Leave request failed");
       } else {
         await load();
+        setActiveTab("apply");
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Leave request failed");
@@ -148,7 +157,7 @@ export const LeavePageClient = () => {
       <PageHeader
         eyebrow="Leave & swaps"
         title="Leave workspace"
-        description="Apply for leave, check balances, and track approval progress in one compact workspace."
+        description="Manage requests, balances, and approval progress from one focused lane."
         actions={
           <>
             <Badge className="rounded-full border-blue-200 bg-blue-50 text-blue-700">
@@ -176,20 +185,30 @@ export const LeavePageClient = () => {
             <StatCard label="Remaining" value={summary.totalRemaining} hint="Available balance" />
           </StatGrid>
 
-          <DashboardRail className="items-start xl:grid-cols-[minmax(0,1.28fr)_minmax(320px,0.82fr)]">
-            <SurfacePanel title="Apply for leave" description="Submit a request without leaving the employee workspace.">
-              <LeaveApplyForm
-                onSubmit={handleApply}
-                loading={submitting}
-                employeeId={employeeId}
-                balances={balances}
-                leaveTypes={leaveTypes}
-              />
-            </SurfacePanel>
-            <LeaveBalanceCard balances={balances} />
-          </DashboardRail>
+          <SurfacePanel title="Leave workspace sections" description="Move between applying, balances, and history without a long stacked page.">
+            <Tabs tabs={TAB_ITEMS} active={activeTab} onChange={setActiveTab} noWrap variant="soft" />
+          </SurfacePanel>
 
-          <DashboardRail className="items-start xl:grid-cols-[minmax(0,1.22fr)_minmax(320px,0.88fr)]">
+          {activeTab === "apply" ? (
+            <DashboardRail className="items-start xl:grid-cols-[minmax(0,1.45fr)_360px]">
+              <SurfacePanel title="Apply for leave" description="Submit one request without leaving the employee workspace.">
+                <LeaveApplyForm
+                  onSubmit={handleApply}
+                  loading={submitting}
+                  employeeId={employeeId}
+                  balances={balances}
+                  leaveTypes={leaveTypes}
+                />
+              </SurfacePanel>
+              <SurfacePanel title="Request timeline" description="Latest stage and next approver for the most recent request.">
+                <LeaveStatusTimeline request={selectedRequest} />
+              </SurfacePanel>
+            </DashboardRail>
+          ) : null}
+
+          {activeTab === "balances" ? <LeaveBalanceCard balances={balances} /> : null}
+
+          {activeTab === "history" ? (
             <LeaveHistoryTable
               requests={requests}
               onCancel={handleCancel}
@@ -198,11 +217,9 @@ export const LeavePageClient = () => {
               hasNext={historyHasNext}
               onPageChange={setHistoryPage}
             />
-            <LeaveStatusTimeline request={selectedRequest} />
-          </DashboardRail>
+          ) : null}
         </>
       ) : null}
     </PageContainer>
   );
 };
-

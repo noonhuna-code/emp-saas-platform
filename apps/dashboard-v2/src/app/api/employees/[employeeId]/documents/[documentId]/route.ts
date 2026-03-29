@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { deleteEmployeeDocument, getEmployeeProfile, updateEmployeeDocument, type EmployeeDocumentInput } from "@emp/services/employee.service";
+import { deleteEmployeeDocument, getEmployeeProfile, type EmployeeDocumentInput, updateEmployeeDocument } from "@emp/services/employee.service";
 import { beginRoute, finalizeRoute } from "@/lib/server/route-helpers";
 import { handleRouteError, jsonError, mapServiceErrorStatus, sanitizeServiceError } from "@/lib/server/api-errors";
 
@@ -75,20 +75,7 @@ export async function DELETE(
       );
     }
 
-    const profileResult = await getEmployeeProfile(route.ctx, employeeId);
-    if (!profileResult.ok || !profileResult.data) {
-      return finalizeRoute(
-        route,
-        endpoint,
-        jsonError(
-          sanitizeServiceError(profileResult.error, "Unable to load updated profile"),
-          mapServiceErrorStatus(profileResult.error),
-          route.requestId
-        )
-      );
-    }
-
-    return finalizeRoute(route, endpoint, NextResponse.json({ ok: true, data: { profile: profileResult.data } }, { status: 200 }));
+    return finalizeRoute(route, endpoint, NextResponse.json({ ok: true, data: { id: documentId } }, { status: 200 }));
   } catch (error) {
     return finalizeRoute(route, endpoint, handleRouteError(error, "Unable to delete document", route.requestId));
   }

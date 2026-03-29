@@ -21,6 +21,7 @@ import {
 } from "@/components/dashboard-v2/PagePrimitives";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ProfileTablePagination, ProfileTableShell, ProfileTableToolbar } from "@/components/profile/ProfileSectionPrimitives";
 
 const fieldClassName =
   "h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-100";
@@ -30,6 +31,8 @@ const tomorrowDate = () => {
   date.setDate(date.getDate() + 1);
   return date.toISOString().slice(0, 10);
 };
+
+const PAGE_SIZE = 8;
 
 const ShiftSwapsPageClient = () => {
   const [templates, setTemplates] = useState<ShiftTemplate[]>([]);
@@ -41,6 +44,10 @@ const ShiftSwapsPageClient = () => {
   const [error, setError] = useState<string | null>(null);
   const [templateWarning, setTemplateWarning] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+  const [reviewQuery, setReviewQuery] = useState("");
+  const [page, setPage] = useState(1);
+  const [reviewPage, setReviewPage] = useState(1);
   const [form, setForm] = useState({
     attendanceDate: tomorrowDate(),
     requestedShiftTemplateId: "",
@@ -136,13 +143,35 @@ const ShiftSwapsPageClient = () => {
   };
 
   const pendingMine = useMemo(() => mine.filter((row) => row.status === "pending").length, [mine]);
+  const filteredMine = useMemo(() => {
+    const normalized = query.trim().toLowerCase();
+    if (!normalized) return mine;
+    return mine.filter((row) =>
+      [row.attendance_date, row.old_shift_name, row.requested_shift_name, row.reason, row.status]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(normalized)),
+    );
+  }, [mine, query]);
+  const filteredReview = useMemo(() => {
+    const normalized = reviewQuery.trim().toLowerCase();
+    if (!normalized) return reviewQueue;
+    return reviewQueue.filter((row) =>
+      [row.employee_name, row.attendance_date, row.old_shift_name, row.requested_shift_name, row.reason, row.status]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(normalized)),
+    );
+  }, [reviewQuery, reviewQueue]);
+  const mineTotalPages = Math.max(1, Math.ceil(filteredMine.length / PAGE_SIZE));
+  const reviewTotalPages = Math.max(1, Math.ceil(filteredReview.length / PAGE_SIZE));
+  const mineRows = filteredMine.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const reviewRows = filteredReview.slice((reviewPage - 1) * PAGE_SIZE, reviewPage * PAGE_SIZE);
 
   return (
     <PageContainer>
       <PageHeader
-        eyebrow="Shift swaps"
+        eyebrow="Leave & swaps"
         title="Shift swap workspace"
-        description="Request a schedule exchange, track your queue, and review team coverage from one compact lane."
+        description="Request, track, and review swaps from one compact register."
         actions={
           <>
             <Badge className="rounded-full border-blue-200 bg-blue-50 text-blue-700">
@@ -160,7 +189,7 @@ const ShiftSwapsPageClient = () => {
         <ErrorState
           message={
             error.toLowerCase().includes("permission")
-              ? "You do not currently have shift swap access. Contact HR/Admin to confirm attendance permissions and shift scope."
+              ? "You do not currently have shift swap access. Contact HR or your lead to confirm attendance scope."
               : error
           }
         />
@@ -181,102 +210,130 @@ const ShiftSwapsPageClient = () => {
             </SurfacePanel>
           ) : null}
 
-          <div className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.9fr)]">
-            <SurfacePanel title="Request shift swap" description="Submit a swap request against a live shift template.">
-              <form className="grid gap-4 md:grid-cols-3" onSubmit={onCreate}>
-                <label className="grid gap-1.5 text-sm">
-                  Requested date
-                  <input
-                    className={fieldClassName}
-                    type="date"
-                    value={form.attendanceDate}
-                    onChange={(event) => setForm((prev) => ({ ...prev, attendanceDate: event.target.value }))}
-                    required
-                  />
-                </label>
-                <label className="grid gap-1.5 text-sm">
-                  Target shift
-                  <select
-                    className={fieldClassName}
-                    value={form.requestedShiftTemplateId}
-                    onChange={(event) => setForm((prev) => ({ ...prev, requestedShiftTemplateId: event.target.value }))}
-                    required
-                    disabled={templates.length === 0}
-                  >
-                    {templates.length === 0 ? <option value="">No shifts available</option> : null}
-                    {templates.map((template) => (
-                      <option key={template.id} value={template.id}>
-                        {template.name} ({template.start_time}-{template.end_time})
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="grid gap-1.5 text-sm">
-                  Reason
-                  <input
-                    className={fieldClassName}
-                    type="text"
-                    value={form.reason}
-                    onChange={(event) => setForm((prev) => ({ ...prev, reason: event.target.value }))}
-                    placeholder="Short reason"
-                    required
-                  />
-                </label>
-                <div className="flex flex-col justify-end gap-2 md:col-span-3">
-                  <Button type="submit" className="w-fit rounded-full px-5" disabled={submitting || templates.length === 0 || !form.requestedShiftTemplateId}>
-                    {submitting ? "Submitting..." : "Submit request"}
-                  </Button>
-                  <span className="text-xs text-muted-foreground">{selectedTemplateName}</span>
-                </div>
-              </form>
-              {message ? <p className="mt-3 text-sm text-emerald-700">{message}</p> : null}
-            </SurfacePanel>
+          <SurfacePanel title="Request shift swap" description="Keep the request form on one row and your target shift visible.">
+            <form className="grid gap-4 xl:grid-cols-[180px_260px_minmax(0,1fr)_auto]" onSubmit={onCreate}>
+              <label className="grid gap-1.5 text-sm">
+                Requested date
+                <input
+                  className={fieldClassName}
+                  type="date"
+                  value={form.attendanceDate}
+                  onChange={(event) => setForm((prev) => ({ ...prev, attendanceDate: event.target.value }))}
+                  required
+                />
+              </label>
+              <label className="grid gap-1.5 text-sm">
+                Target shift
+                <select
+                  className={fieldClassName}
+                  value={form.requestedShiftTemplateId}
+                  onChange={(event) => setForm((prev) => ({ ...prev, requestedShiftTemplateId: event.target.value }))}
+                  required
+                  disabled={templates.length === 0}
+                >
+                  {templates.length === 0 ? <option value="">No shifts available</option> : null}
+                  {templates.map((template) => (
+                    <option key={template.id} value={template.id}>
+                      {template.name} ({template.start_time}-{template.end_time})
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="grid gap-1.5 text-sm">
+                Reason
+                <input
+                  className={fieldClassName}
+                  type="text"
+                  value={form.reason}
+                  onChange={(event) => setForm((prev) => ({ ...prev, reason: event.target.value }))}
+                  placeholder="Short reason"
+                  required
+                />
+              </label>
+              <div className="flex items-end">
+                <Button type="submit" className="w-full rounded-full px-5 xl:w-auto" disabled={submitting || templates.length === 0 || !form.requestedShiftTemplateId}>
+                  {submitting ? "Submitting..." : "Submit request"}
+                </Button>
+              </div>
+            </form>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-600">Selected shift</span>
+              <span className="text-sm text-slate-600">{selectedTemplateName}</span>
+            </div>
+            {message ? <p className="mt-3 text-sm text-emerald-700">{message}</p> : null}
+          </SurfacePanel>
 
-            <SurfacePanel title="My requests" description="Track the status of the swaps you already submitted.">
-              {mine.length === 0 ? <EmptyState title="No shift swap requests" subtitle="Submit a request to swap your shift." compact /> : null}
-              {mine.length > 0 ? (
-                <div className="overflow-hidden rounded-[22px] border border-slate-200">
-                  <div className="max-h-[360px] overflow-auto">
-                    <table className="min-w-full divide-y divide-slate-200 text-sm">
-                      <thead className="bg-slate-50/80 text-left text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-                        <tr>
-                          <th className="px-4 py-3">Date</th>
-                          <th className="px-4 py-3">Current shift</th>
-                          <th className="px-4 py-3">Requested shift</th>
-                          <th className="px-4 py-3">Status</th>
-                          <th className="px-4 py-3">Created</th>
+          <SurfacePanel title="Shift swap history" description="Search your submitted requests without stretching the page.">
+            {mine.length === 0 ? <EmptyState title="No shift swap requests" subtitle="Submit a request to swap your shift." compact /> : null}
+            {mine.length > 0 ? (
+              <div className="space-y-4">
+                <ProfileTableToolbar
+                  query={query}
+                  onQueryChange={(value) => {
+                    setQuery(value);
+                    setPage(1);
+                  }}
+                  placeholder="Search date, shift, reason, or status"
+                  countLabel={`${filteredMine.length} requests`}
+                />
+                <ProfileTableShell>
+                  <table className="min-w-full divide-y divide-slate-200 text-sm">
+                    <thead className="bg-slate-50/80 text-left text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                      <tr>
+                        <th className="px-4 py-3">Date</th>
+                        <th className="px-4 py-3">Current shift</th>
+                        <th className="px-4 py-3">Requested shift</th>
+                        <th className="px-4 py-3">Reason</th>
+                        <th className="px-4 py-3">Status</th>
+                        <th className="px-4 py-3">Created</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 bg-white text-slate-700">
+                      {mineRows.map((row) => (
+                        <tr key={row.id}>
+                          <td className="px-4 py-3">{row.attendance_date}</td>
+                          <td className="px-4 py-3">{row.old_shift_name ?? row.old_shift_template_id}</td>
+                          <td className="px-4 py-3">{row.requested_shift_name ?? row.requested_shift_template_id}</td>
+                          <td className="px-4 py-3 text-slate-500">{row.reason}</td>
+                          <td className="px-4 py-3">
+                            <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-700">{row.status}</span>
+                          </td>
+                          <td className="px-4 py-3 text-slate-500">{new Date(row.created_at).toLocaleString()}</td>
                         </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100 bg-white text-slate-700">
-                        {mine.map((row) => (
-                          <tr key={row.id}>
-                            <td className="px-4 py-3">{row.attendance_date}</td>
-                            <td className="px-4 py-3">{row.old_shift_name ?? row.old_shift_template_id}</td>
-                            <td className="px-4 py-3">{row.requested_shift_name ?? row.requested_shift_template_id}</td>
-                            <td className="px-4 py-3">
-                              <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-700">{row.status}</span>
-                            </td>
-                            <td className="px-4 py-3 text-slate-500">{new Date(row.created_at).toLocaleString()}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              ) : null}
-            </SurfacePanel>
-          </div>
+                      ))}
+                    </tbody>
+                  </table>
+                </ProfileTableShell>
+                <ProfileTablePagination
+                  page={page}
+                  totalPages={mineTotalPages}
+                  countLabel={`Showing ${mineRows.length} of ${filteredMine.length} requests`}
+                  onPrevious={() => setPage((value) => Math.max(1, value - 1))}
+                  onNext={() => setPage((value) => Math.min(mineTotalPages, value + 1))}
+                />
+              </div>
+            ) : null}
+          </SurfacePanel>
 
           {canReview ? (
             <SurfacePanel
               title="Review queue"
-              description="Approve or reject only the requests that are currently waiting on your review."
+              description="Approve or reject only the requests currently waiting on your review."
               actions={<span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700">Pending {reviewQueue.length}</span>}
             >
               {reviewQueue.length === 0 ? <EmptyState title="No pending requests" subtitle="The review queue is clear." compact /> : null}
               {reviewQueue.length > 0 ? (
-                <div className="overflow-hidden rounded-[22px] border border-slate-200">
-                  <div className="max-h-[360px] overflow-auto">
+                <div className="space-y-4">
+                  <ProfileTableToolbar
+                    query={reviewQuery}
+                    onQueryChange={(value) => {
+                      setReviewQuery(value);
+                      setReviewPage(1);
+                    }}
+                    placeholder="Search employee, date, shift, or reason"
+                    countLabel={`${filteredReview.length} requests`}
+                  />
+                  <ProfileTableShell>
                     <table className="min-w-full divide-y divide-slate-200 text-sm">
                       <thead className="bg-slate-50/80 text-left text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
                         <tr>
@@ -289,7 +346,7 @@ const ShiftSwapsPageClient = () => {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 bg-white text-slate-700">
-                        {reviewQueue.map((row) => (
+                        {reviewRows.map((row) => (
                           <tr key={row.id}>
                             <td className="px-4 py-3 font-medium text-slate-900">{row.employee_name ?? row.employee_id}</td>
                             <td className="px-4 py-3">{row.attendance_date}</td>
@@ -297,7 +354,7 @@ const ShiftSwapsPageClient = () => {
                             <td className="px-4 py-3">{row.requested_shift_name ?? row.requested_shift_template_id}</td>
                             <td className="px-4 py-3 text-slate-500">{row.reason}</td>
                             <td className="px-4 py-3">
-                              <div className="flex flex-wrap gap-2">
+                              <div className="flex flex-nowrap gap-2">
                                 <Button type="button" className="rounded-full px-4" onClick={() => void onReview(row.id, "approved")} disabled={submitting}>
                                   Approve
                                 </Button>
@@ -310,7 +367,14 @@ const ShiftSwapsPageClient = () => {
                         ))}
                       </tbody>
                     </table>
-                  </div>
+                  </ProfileTableShell>
+                  <ProfileTablePagination
+                    page={reviewPage}
+                    totalPages={reviewTotalPages}
+                    countLabel={`Showing ${reviewRows.length} of ${filteredReview.length} review rows`}
+                    onPrevious={() => setReviewPage((value) => Math.max(1, value - 1))}
+                    onNext={() => setReviewPage((value) => Math.min(reviewTotalPages, value + 1))}
+                  />
                 </div>
               ) : null}
             </SurfacePanel>

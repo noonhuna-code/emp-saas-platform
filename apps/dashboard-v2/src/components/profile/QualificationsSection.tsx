@@ -7,7 +7,9 @@ import type { EmployeeEducation } from "@/lib/types/profile";
 import {
   ProfilePanel,
   ProfileSectionCard,
+  ProfileTablePagination,
   ProfileTableShell,
+  ProfileTableToolbar,
   SectionActionBar,
   profileFieldClassName,
   profileLabelClassName,
@@ -35,10 +37,12 @@ const emptyDraft: QualificationDraft = {
   grade: "",
 };
 
+const PAGE_SIZE = 6;
+
 const formatTimeline = (start?: string | null, end?: string | null) => {
-  const left = start ? new Date(start).toLocaleDateString() : "—";
+  const left = start ? new Date(start).toLocaleDateString() : "-";
   const right = end ? new Date(end).toLocaleDateString() : "Present";
-  return `${left} — ${right}`;
+  return `${left} - ${right}`;
 };
 
 export const QualificationsSection = ({
@@ -58,8 +62,21 @@ export const QualificationsSection = ({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingDraft, setEditingDraft] = useState<QualificationDraft>(emptyDraft);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
 
   const rows = useMemo(() => [...education].sort((a, b) => a.institution.localeCompare(b.institution)), [education]);
+  const filteredRows = useMemo(() => {
+    const normalized = query.trim().toLowerCase();
+    if (!normalized) return rows;
+    return rows.filter((entry) =>
+      [entry.institution, entry.degree, entry.field_of_study, entry.grade]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(normalized)),
+    );
+  }, [query, rows]);
+  const totalPages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
+  const pageRows = filteredRows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const handleAdd = async () => {
     if (!draft.institution) return;
@@ -104,7 +121,7 @@ export const QualificationsSection = ({
   return (
     <ProfileSectionCard
       title="Qualifications"
-      description="Keep education history in one dense register with less page travel and clearer comparisons."
+      description="Keep education history in one searchable register with less page travel and clearer comparisons."
       actions={
         canEdit ? (
           <Button type="button" variant="secondary" size="sm" className="rounded-full" onClick={() => setShowCreateForm((prev) => !prev)}>
@@ -191,50 +208,69 @@ export const QualificationsSection = ({
         </ProfilePanel>
       ) : null}
 
-      {rows.length === 0 ? (
-        <EmptyState title="No qualifications recorded" subtitle="Add education records so profile completeness and readiness stay current." />
+      <ProfileTableToolbar
+        query={query}
+        onQueryChange={(value) => {
+          setQuery(value);
+          setPage(1);
+        }}
+        placeholder="Search institution, qualification, or field"
+        countLabel={`${filteredRows.length} qualifications`}
+      />
+
+      {filteredRows.length === 0 ? (
+        <EmptyState title="No matching qualifications" subtitle={education.length === 0 ? "Add education records so profile completeness and readiness stay current." : "Try a different search term or clear the filter."} />
       ) : (
-        <ProfileTableShell>
-          <table className={profileTableClassName}>
-            <thead className={profileTableHeadClassName}>
-              <tr>
-                <th className="px-4 py-3">Institution</th>
-                <th className="px-4 py-3">Qualification</th>
-                <th className="px-4 py-3">Field</th>
-                <th className="px-4 py-3">Timeline</th>
-                <th className="px-4 py-3">Grade</th>
-                <th className="px-4 py-3">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 bg-white">
-              {rows.map((entry) => (
-                <tr key={entry.id} className="align-top">
-                  <td className={profileTableCellClassName}>
-                    <div className="font-medium text-slate-900">{entry.institution}</div>
-                  </td>
-                  <td className={profileTableCellClassName}>{entry.degree ?? "-"}</td>
-                  <td className={profileTableCellClassName}>{entry.field_of_study ?? "-"}</td>
-                  <td className={profileTableCellClassName}>{formatTimeline(entry.start_date, entry.end_date)}</td>
-                  <td className={profileTableCellClassName}>{entry.grade ?? "-"}</td>
-                  <td className={profileTableActionCellClassName}>
-                    {canEdit ? (
-                      <div className="flex flex-wrap gap-2">
-                        <Button type="button" variant="secondary" size="sm" className="rounded-full" onClick={() => startEdit(entry)}>
-                          Edit
-                        </Button>
-                        <Button type="button" variant="secondary" size="sm" className="rounded-full" onClick={() => void onDelete(entry.id)}>
-                          Remove
-                        </Button>
-                      </div>
-                    ) : (
-                      <span className="text-sm text-slate-400">Read only</span>
-                    )}
-                  </td>
+        <>
+          <ProfileTableShell>
+            <table className={profileTableClassName}>
+              <thead className={profileTableHeadClassName}>
+                <tr>
+                  <th className="px-4 py-3">Institution</th>
+                  <th className="px-4 py-3">Qualification</th>
+                  <th className="px-4 py-3">Field</th>
+                  <th className="px-4 py-3">Timeline</th>
+                  <th className="px-4 py-3">Grade</th>
+                  <th className="px-4 py-3">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </ProfileTableShell>
+              </thead>
+              <tbody className="divide-y divide-slate-100 bg-white">
+                {pageRows.map((entry) => (
+                  <tr key={entry.id} className="align-top">
+                    <td className={profileTableCellClassName}>
+                      <div className="font-medium text-slate-900">{entry.institution}</div>
+                    </td>
+                    <td className={profileTableCellClassName}>{entry.degree ?? "-"}</td>
+                    <td className={profileTableCellClassName}>{entry.field_of_study ?? "-"}</td>
+                    <td className={profileTableCellClassName}>{formatTimeline(entry.start_date, entry.end_date)}</td>
+                    <td className={profileTableCellClassName}>{entry.grade ?? "-"}</td>
+                    <td className={profileTableActionCellClassName}>
+                      {canEdit ? (
+                        <div className="flex flex-nowrap gap-2">
+                          <Button type="button" variant="secondary" size="sm" className="rounded-full" onClick={() => startEdit(entry)}>
+                            Edit
+                          </Button>
+                          <Button type="button" variant="secondary" size="sm" className="rounded-full" onClick={() => void onDelete(entry.id)}>
+                            Remove
+                          </Button>
+                        </div>
+                      ) : (
+                        <span className="text-sm text-slate-400">Read only</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </ProfileTableShell>
+          <ProfileTablePagination
+            page={page}
+            totalPages={totalPages}
+            countLabel={`Showing ${pageRows.length} of ${filteredRows.length} qualifications`}
+            onPrevious={() => setPage((value) => Math.max(1, value - 1))}
+            onNext={() => setPage((value) => Math.min(totalPages, value + 1))}
+          />
+        </>
       )}
     </ProfileSectionCard>
   );
