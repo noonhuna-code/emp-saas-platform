@@ -4,6 +4,8 @@ This file is the normalized source artifact created for the AtoZ requirement in 
 
 No workbook or existing `AtoZ` / `PlanMatrix` spreadsheet source file was present in the repository, so this document and its matching JSON companion were created as the update target instead of silently skipping the requirement.
 
+The exact file named `Product_PlanMatrix_FINALIZED_AtoZ` is not present in this repository. The PTCL operations status below was updated in this companion artifact instead of pretending a missing workbook was edited.
+
 ## Phase 1 Status
 
 - Status: implemented foundation
@@ -60,3 +62,28 @@ No workbook or existing `AtoZ` / `PlanMatrix` spreadsheet source file was presen
 - Add approval-resolution services that consume `approval_routing_rules`
 - Add position planning UI, org graph drilldown, and assignment history UI
 - Add import/export flow from this normalized artifact into a workbook if a spreadsheet becomes the required delivery format
+
+## PTCL Operations Pass Status
+
+- Status: implemented and deployed
+- Scope: `apps/dashboard-v2` attendance/day-state logic, calendar alignment, shifts visibility, GO assignment flow, Late Login requests, settings tables
+- Validation: `lint`, `typecheck`, `build` passed for `apps/dashboard-v2`
+- Deployment: live on the dashboard Vercel production alias
+- Workbook state: exact requested workbook file still not present in repo
+
+| Area | Capability | PTCL status | Evidence / implementation |
+| --- | --- | --- | --- |
+| Attendance day-state classifier | Explicit PTCL states for `present`, `on_break`, `clocked_out`, `late`, `absent`, `off_day`, `leave_paid`, `leave_unpaid`, `go_active`, `go_applied` | Done | Shared classifier updated in services and consumed by attendance, dashboard, team view, and calendar |
+| Absent handling | `absent` only from explicit attendance truth | Done | Never inferred from missing shift or missing attendance |
+| Off day handling | `off_day` separate from `absent` and non-deduction by default | Done | Shift/roster truth maps to `off_day` |
+| Late Login trigger | Late after shift start + 5 minutes | Done | Derived from shift assignment truth + actual clock-in |
+| Late Login request flow | Attendance-exception request using existing correction workflow | Done | Reused `attendance_correction_requests` with `Late Login` reason and one-request-per-day guard |
+| Leadership late visibility | Team lead / leadership can see `late` and request status | Done | Team attendance/workforce rows include late-login request state |
+| GO Active | Holiday + worked attendance | Done | Derived from `company_holidays` + worked attendance truth |
+| GO Applied | Explicit employee holiday-off assignment by leadership only | Done | Reused `attendance_records.status = 'holiday'` plus guarded GO assignment route |
+| Unpaid Leave contract | Real leave type with `is_paid = false` | Done | Migration created, backfill migration created, and remote DB push completed |
+| Employee shifts visibility | Dedicated employee shifts view for Today / 7 days / 30 days | Done | New `/app/shifts` page added and linked in Workday nav |
+| Shift swap option control | Uses real PTCL-valid 8-hour templates in 9 AM–9 PM window | Done | Filtered from real `shift_templates`, not hardcoded |
+| Calendar state labels | Compact labels for `P`, `P (Late)`, `A`, `GO`, `P · GO`, `Off`, `Unpaid Leave`, leave labels | Done | Calendar shaping updated to reuse classifier truth |
+| Settings tables | Active sessions and known devices converted to compact searchable tables | Done | Settings visibility surface updated |
+| Live authenticated PTCL browser QA | Employee/supervisor authenticated runtime verification | Partial / pending | Code deployed, backend truth checked, but authenticated PTCL browser session QA was not completed from terminal |

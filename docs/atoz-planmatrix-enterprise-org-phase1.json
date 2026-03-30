@@ -1,11 +1,12 @@
 {
   "artifact": "AtoZ / PlanMatrix Companion",
-  "version": "phase1-enterprise-org-foundation",
-  "generated_on": "2026-03-19",
+  "version": "phase1-enterprise-org-foundation-plus-ptcl-operations",
+  "generated_on": "2026-03-30",
   "status": "implemented-in-repo",
   "notes": [
     "No workbook or existing AtoZ/PlanMatrix source file was present in the repository during this implementation pass.",
-    "This normalized companion artifact is the source-of-truth substitute for future workbook export or manual spreadsheet sync."
+    "This normalized companion artifact is the source-of-truth substitute for future workbook export or manual spreadsheet sync.",
+    "The exact file Product_PlanMatrix_FINALIZED_AtoZ is not present in the repository, so PTCL operations status was recorded in this companion artifact."
   ],
   "capabilities": [
     {
@@ -115,5 +116,122 @@
     "ui_surface",
     "validation_status",
     "next_phase"
+  ],
+  "ptcl_operations_pass": {
+    "status": "implemented_and_deployed",
+    "scope": [
+      "attendance/day-state modeling",
+      "leadership visibility",
+      "late login requests",
+      "GO assignment flow",
+      "calendar alignment",
+      "employee shifts visibility",
+      "settings session/device tables"
+    ],
+    "validation": {
+      "lint": "passed_with_existing_warnings_only",
+      "typecheck": "passed",
+      "build": "passed"
+    },
+    "deployment": {
+      "branch": "codex/web-final-premium",
+      "app_commit": "30226b7",
+      "db_backfill_commit": "5295d5e",
+      "active_alias": "https://dashboard-one-ecru-83.vercel.app"
+    },
+    "capabilities": [
+      {
+        "area": "Attendance day-state classifier",
+        "status": "done",
+        "implementation": [
+          "Shared classifier now returns present, on_break, clocked_out, late, absent, off_day, leave_paid, leave_unpaid, go_active, and go_applied",
+          "Classifier is reused by attendance, dashboard, leadership views, and calendar"
+        ]
+      },
+      {
+        "area": "Absent handling",
+        "status": "done",
+        "implementation": [
+          "Absent is explicit-only and never inferred from missing shift or missing attendance"
+        ]
+      },
+      {
+        "area": "Off day handling",
+        "status": "done",
+        "implementation": [
+          "No-shift roster truth resolves to off_day without default deduction"
+        ]
+      },
+      {
+        "area": "Late Login",
+        "status": "done",
+        "implementation": [
+          "Late triggers after shift start plus 5 minutes",
+          "Late Login requests reuse attendance_correction_requests",
+          "Only one Late Login request per day is allowed"
+        ]
+      },
+      {
+        "area": "Leadership late visibility",
+        "status": "done",
+        "implementation": [
+          "Team attendance rows include late-login request existence and status"
+        ]
+      },
+      {
+        "area": "GO Active and GO Applied",
+        "status": "done",
+        "implementation": [
+          "GO Active derives from company holiday plus worked attendance",
+          "GO Applied uses explicit attendance_records holiday marking through leadership assignment"
+        ]
+      },
+      {
+        "area": "Unpaid Leave contract",
+        "status": "done",
+        "implementation": [
+          "Unpaid Leave added as real leave_types contract",
+          "Zero-day leave balances backfilled for active employees",
+          "Remote Supabase migrations applied"
+        ]
+      },
+      {
+        "area": "Employee shifts visibility",
+        "status": "done",
+        "implementation": [
+          "Dedicated /app/shifts page added with Today, 7 day, and 30 day views"
+        ]
+      },
+      {
+        "area": "Shift swap template filtering",
+        "status": "done",
+        "implementation": [
+          "Uses real shift_templates only",
+          "Restricts options to valid 8-hour PTCL operating-window templates"
+        ]
+      },
+      {
+        "area": "Calendar labels",
+        "status": "done",
+        "implementation": [
+          "Compact labels now reflect classifier truth for P, P (Late), A, GO, P · GO, Off, Unpaid Leave, and paid leave labels"
+        ]
+      },
+      {
+        "area": "Settings tables",
+        "status": "done",
+        "implementation": [
+          "Active sessions and known devices use compact searchable table treatment"
+        ]
+      },
+      {
+        "area": "Authenticated PTCL browser QA",
+        "status": "partial_pending",
+        "implementation": [
+          "Backend truth and deployment were verified",
+          "Authenticated browser session QA was not completed from terminal for this pass"
+        ]
+      }
+    ]
   ]
 }
