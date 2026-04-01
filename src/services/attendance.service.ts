@@ -751,6 +751,11 @@ const requireSelfAttendanceAccess = async (ctx: ServiceContext): Promise<void> =
     return;
   }
 
+  const currentEmployeeId = await resolveCurrentEmployeeId(ctx.supabase, ctx);
+  if (currentEmployeeId) {
+    return;
+  }
+
   throw new Error("Missing permission: view_attendance");
 };
 
