@@ -76,8 +76,18 @@ export const ClockActions = ({
     }
   }, [endBreakState, onCompleted]);
 
+  const latestActionState = useMemo(() => {
+    const states = [clockInState, clockOutState, startBreakState, endBreakState].filter(
+      (state) => typeof state.completedAt === "number"
+    );
+    if (states.length === 0) return null;
+    return states.reduce((latest, state) =>
+      (state.completedAt ?? 0) > (latest.completedAt ?? 0) ? state : latest
+    );
+  }, [clockInState, clockOutState, startBreakState, endBreakState]);
+
   const disabledAll = locked || clockInPending || clockOutPending || startBreakPending || endBreakPending || !employeeId;
-  const latestError = endBreakState.error || startBreakState.error || clockOutState.error || clockInState.error || null;
+  const latestError = latestActionState && !latestActionState.ok ? latestActionState.error ?? null : null;
 
   const guidance = useMemo(() => {
     if (!latestError) return null;
@@ -197,10 +207,10 @@ export const ClockActions = ({
         </div>
       ) : null}
 
-      {!latestError && clockInState.ok ? <p className="text-sm text-slate-500 dark:text-slate-400">Clock-in completed.</p> : null}
-      {!latestError && clockOutState.ok ? <p className="text-sm text-slate-500 dark:text-slate-400">Clock-out completed.</p> : null}
-      {!latestError && startBreakState.ok ? <p className="text-sm text-slate-500 dark:text-slate-400">Break started.</p> : null}
-      {!latestError && endBreakState.ok ? <p className="text-sm text-slate-500 dark:text-slate-400">Break ended.</p> : null}
+      {!latestError && latestActionState?.ok && latestActionState === clockInState ? <p className="text-sm text-slate-500 dark:text-slate-400">Clock-in completed.</p> : null}
+      {!latestError && latestActionState?.ok && latestActionState === clockOutState ? <p className="text-sm text-slate-500 dark:text-slate-400">Clock-out completed.</p> : null}
+      {!latestError && latestActionState?.ok && latestActionState === startBreakState ? <p className="text-sm text-slate-500 dark:text-slate-400">Break started.</p> : null}
+      {!latestError && latestActionState?.ok && latestActionState === endBreakState ? <p className="text-sm text-slate-500 dark:text-slate-400">Break ended.</p> : null}
     </div>
   );
 };
