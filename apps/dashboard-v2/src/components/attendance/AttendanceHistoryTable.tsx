@@ -38,6 +38,23 @@ const formatMinutes = (value: number | null | undefined): string => {
   return `${hours}h ${minutes}m`;
 };
 
+const computeLiveWorkedMinutes = (checkIn: string | null | undefined, checkOut: string | null | undefined): number | null => {
+  if (!checkIn || checkOut) return null;
+  const startedAt = new Date(checkIn);
+  if (Number.isNaN(startedAt.getTime())) return null;
+  const elapsed = Math.max(0, Math.floor((Date.now() - startedAt.getTime()) / 60000));
+  return elapsed;
+};
+
+const presentStatusLabel = (row: AttendanceHistoryRow): string => {
+  if (row.is_absent) return "Absent";
+  if (row.is_late) return "Late";
+  if (row.check_in && !row.check_out) return "Clocked in";
+  if (row.check_in && row.check_out) return "Clocked out";
+  if (!row.status) return "-";
+  return row.status.replace(/_/g, " ");
+};
+
 export const AttendanceHistoryTable = ({
   refreshKey,
   onRequestCorrection
@@ -115,7 +132,7 @@ export const AttendanceHistoryTable = ({
 
   return (
     <div className="space-y-5">
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_220px_220px_220px]">
+      <div className="grid gap-4 xl:grid-cols-[minmax(280px,1.2fr)_220px_220px_220px]">
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <input
@@ -180,13 +197,13 @@ export const AttendanceHistoryTable = ({
                     </td>
                     <td className="px-4 py-3 align-top">
                       <div className="space-y-1">
-                        <Badge className="rounded-full px-2.5 py-1">{row.status ?? "-"}</Badge>
+                        <Badge className="rounded-full px-2.5 py-1">{presentStatusLabel(row)}</Badge>
                         {row.is_absent ? <div className="text-xs text-red-600">Absent</div> : null}
                         {!row.is_absent && row.is_late ? <div className="text-xs text-amber-600">Late</div> : null}
                       </div>
                     </td>
                     <td className="px-4 py-3 align-top">
-                      <div>{formatMinutes(row.work_minutes)}</div>
+                      <div>{formatMinutes(row.work_minutes ?? computeLiveWorkedMinutes(row.check_in, row.check_out))}</div>
                       <div className="text-slate-500">OT: {formatMinutes(row.overtime_minutes)}</div>
                     </td>
                     <td className="px-4 py-3 align-top">{row.correction_status ?? "-"}</td>

@@ -25,6 +25,12 @@ const prettify = (value: string | null | undefined): string => {
   }
 };
 
+const prettifyAttendanceStatus = (value: string | null | undefined): string => {
+  if (!value) return "-";
+  if (value === "pending") return "Clocked in";
+  return prettify(value);
+};
+
 export const TeamAttendanceTable = ({
   rows,
   onAssignGo,
@@ -108,7 +114,8 @@ export const TeamAttendanceTable = ({
                   {row.late_login_request.exists ? prettify(row.late_login_request.status) : "-"}
                 </td>
                 <td className="px-4 py-3 text-slate-600">
-                  {row.leave_type_name ?? row.holiday_name ?? row.shift_name ?? "-"}
+                  <div>{row.leave_type_name ?? row.holiday_name ?? row.shift_name ?? "-"}</div>
+                  <div className="text-xs text-slate-400">{prettifyAttendanceStatus(row.status)}</div>
                 </td>
                 <td className="px-4 py-3">
                   {onAssignGo && row.holiday_name && row.day_state !== "go_active" && row.day_state !== "go_applied" ? (

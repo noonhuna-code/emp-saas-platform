@@ -15,6 +15,28 @@ const formatMinutes = (value: number | null | undefined): string => {
   return `${hours}h ${minutes}m`;
 };
 
+const computeLiveWorkedMinutes = (checkIn: string | null | undefined, checkOut: string | null | undefined): number | null => {
+  if (!checkIn || checkOut) return null;
+  const startedAt = new Date(checkIn);
+  if (Number.isNaN(startedAt.getTime())) return null;
+  return Math.max(0, Math.floor((Date.now() - startedAt.getTime()) / 60000));
+};
+
+const prettyRecordStatus = (data: AttendanceTodayResponse): string => {
+  if (data.dayState === "absent") return "Absent";
+  if (data.dayState === "late") return "Late";
+  switch (data.currentStatus) {
+    case "clocked_in":
+      return "Clocked in";
+    case "on_break":
+      return "On break";
+    case "clocked_out":
+      return "Clocked out";
+    default:
+      return data.record?.status ?? "N/A";
+  }
+};
+
 const prettyCurrentStatus = (status: AttendanceTodayResponse["currentStatus"]): string => {
   switch (status) {
     case "clocked_in":
@@ -89,7 +111,7 @@ export const TodayAttendanceCard = ({ data }: { data: AttendanceTodayResponse })
         <div className="flex flex-wrap items-center gap-2">
           <Badge className="rounded-full px-3 py-1.5">{prettyDayState(data.dayState)}</Badge>
           <Badge className="rounded-full px-3 py-1.5">{data.payrollImpact.replace(/_/g, " ")}</Badge>
-          <Badge className="rounded-full px-3 py-1.5">{record?.status ?? "N/A"}</Badge>
+          <Badge className="rounded-full px-3 py-1.5">{prettyRecordStatus(data)}</Badge>
           <Badge className="rounded-full px-3 py-1.5">{record?.is_locked ? "Locked" : "Unlocked"}</Badge>
           {(record?.late_minutes ?? 0) > 0 ? <Badge className="rounded-full px-3 py-1.5">Late</Badge> : null}
           {(record?.overtime_minutes ?? 0) > 0 ? <Badge className="rounded-full px-3 py-1.5">Overtime</Badge> : null}
@@ -112,7 +134,7 @@ export const TodayAttendanceCard = ({ data }: { data: AttendanceTodayResponse })
         </div>
         <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4 dark:border-slate-800 dark:bg-slate-900/60">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">Worked today</p>
-          <p className="mt-2 text-base font-medium text-slate-950 dark:text-slate-50">{formatMinutes(record?.work_minutes)}</p>
+          <p className="mt-2 text-base font-medium text-slate-950 dark:text-slate-50">{formatMinutes(record?.work_minutes ?? computeLiveWorkedMinutes(record?.check_in, record?.check_out))}</p>
         </div>
         <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4 dark:border-slate-800 dark:bg-slate-900/60">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">Overtime</p>

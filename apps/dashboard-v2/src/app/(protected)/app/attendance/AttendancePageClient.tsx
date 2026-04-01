@@ -33,6 +33,13 @@ const formatMinutes = (value: number | null | undefined): string => {
   return `${hours}h ${minutes}m`;
 };
 
+const computeLiveWorkedMinutes = (checkIn: string | null | undefined, checkOut: string | null | undefined): number | null => {
+  if (!checkIn || checkOut) return null;
+  const startedAt = new Date(checkIn);
+  if (Number.isNaN(startedAt.getTime())) return null;
+  return Math.max(0, Math.floor((Date.now() - startedAt.getTime()) / 60000));
+};
+
 const prettyCurrentStatus = (status: AttendanceTodayResponse["currentStatus"]): string => {
   switch (status) {
     case "clocked_in":
@@ -164,7 +171,7 @@ export const AttendancePageClient = ({
       },
       {
         label: "Worked today",
-        value: formatMinutes(record?.work_minutes),
+        value: formatMinutes(record?.work_minutes ?? computeLiveWorkedMinutes(record?.check_in, record?.check_out)),
         hint: `Overtime ${formatMinutes(record?.overtime_minutes)}`,
       },
       {
