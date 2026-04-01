@@ -893,6 +893,7 @@ const recordAttendanceGeoEvent = async (
     geoAccuracy?: number | null;
   }
 ): Promise<void> => {
+  const writeClient = createSupabaseAdminClient();
   const latitude = parseGeoNumber(payload.geoLatitude);
   const longitude = parseGeoNumber(payload.geoLongitude);
   if (latitude === null || longitude === null) return;
@@ -900,7 +901,7 @@ const recordAttendanceGeoEvent = async (
   const actorProfileId = await getActorProfileId(ctx.supabase, ctx);
   if (!actorProfileId) return;
 
-  await ctx.supabase.from("attendance_geo_events").insert({
+  await writeClient.from("attendance_geo_events").insert({
     company_id: ctx.companyId,
     employee_id: payload.employeeId,
     attendance_id: payload.attendanceId,
@@ -2216,10 +2217,11 @@ export const clockIn = async (
     await requireSelfAttendanceAccess(ctx);
     await ensureSelfOrManageAttendance(ctx, employeeId);
     assertEmployeeScope(employeeId, ctx);
+    const writeClient = createSupabaseAdminClient();
 
     const today = currentDateText();
 
-    const { data: existing } = await ctx.supabase
+    const { data: existing } = await writeClient
       .from("attendance_records")
       .select("id")
       .eq("company_id", ctx.companyId)
@@ -2263,7 +2265,7 @@ export const clockIn = async (
       return { ok: false, error: "No shift scheduled today" };
     }
 
-    const { data: assignment } = await ctx.supabase
+    const { data: assignment } = await writeClient
       .from("employee_shift_assignments")
       .select("shift_template_id, effective_from, effective_to")
       .eq("employee_id", employeeId)
@@ -2279,7 +2281,7 @@ export const clockIn = async (
       return { ok: false, error: "No active shift assignment" };
     }
 
-    const { data: shift, error: shiftError } = await ctx.supabase
+    const { data: shift, error: shiftError } = await writeClient
       .from("shift_templates")
       .select(
         "id, start_time, end_time, timezone, grace_minutes, auto_absent_after_minutes, min_half_day_minutes, min_full_day_minutes, is_night_shift"
@@ -2293,7 +2295,7 @@ export const clockIn = async (
       return { ok: false, error: shiftError?.message ?? "Shift template not found" };
     }
 
-    const { data, error } = await ctx.supabase
+    const { data, error } = await writeClient
       .from("attendance_records")
       .insert({
         company_id: ctx.companyId,
@@ -2345,9 +2347,10 @@ export const clockOut = async (
     await requireSelfAttendanceAccess(ctx);
     await ensureSelfOrManageAttendance(ctx, employeeId);
     assertEmployeeScope(employeeId, ctx);
+    const writeClient = createSupabaseAdminClient();
     const today = new Date().toISOString().slice(0, 10);
 
-    const { data: record } = await ctx.supabase
+    const { data: record } = await writeClient
       .from("attendance_records")
       .select("id")
       .eq("company_id", ctx.companyId)
@@ -2363,7 +2366,7 @@ export const clockOut = async (
       return { ok: false, error: "No open attendance record" };
     }
 
-    const { error: updateError } = await ctx.supabase
+    const { error: updateError } = await writeClient
       .from("attendance_records")
       .update({
         check_out: new Date().toISOString()
@@ -2376,7 +2379,7 @@ export const clockOut = async (
       return { ok: false, error: updateError.message };
     }
 
-    await applyAttendanceStatusRecalculation(ctx.supabase, ctx, record.id);
+    await applyAttendanceStatusRecalculation(writeClient, ctx, record.id);
 
     await recordAttendanceGeoEvent(ctx, {
       attendanceId: record.id as string,
@@ -2402,8 +2405,9 @@ export const startBreak = async (
   try {
     await requireAttendanceEntitlement(ctx);
     await ensureSelfOrManageAttendance(ctx, employeeId);
+    const writeClient = createSupabaseAdminClient();
 
-    const attendanceRecord = await loadOpenAttendanceRecordForToday(ctx.supabase, ctx, employeeId);
+    const attendanceRecord = await loadOpenAttendanceRecordForToday(writeClient, ctx, employeeId);
     if (!attendanceRecord?.id || !attendanceRecord.check_in || attendanceRecord.check_out) {
       return { ok: false, error: "No open attendance record" };
     }
@@ -2411,14 +2415,14 @@ export const startBreak = async (
       return { ok: false, error: "Attendance record is locked" };
     }
 
-    const openBreak = await loadOpenBreak(ctx.supabase, ctx, attendanceRecord.id);
+    const openBreak = await loadOpenBreak(writeClient, ctx, attendanceRecord.id);
     if (openBreak?.id) {
       return { ok: false, error: "Already on break" };
     }
 
     const actorProfileId = await getActorProfileId(ctx.supabase, ctx);
     const now = new Date().toISOString();
-    const { data, error } = await ctx.supabase
+    const { data, error } = await writeClient
       .from("attendance_breaks")
       .insert({
         company_id: ctx.companyId,
@@ -2454,8 +2458,9 @@ export const endBreak = async (
   try {
     await requireAttendanceEntitlement(ctx);
     await ensureSelfOrManageAttendance(ctx, employeeId);
+    const writeClient = createSupabaseAdminClient();
 
-    const attendanceRecord = await loadOpenAttendanceRecordForToday(ctx.supabase, ctx, employeeId);
+    const attendanceRecord = await loadOpenAttendanceRecordForToday(writeClient, ctx, employeeId);
     if (!attendanceRecord?.id || !attendanceRecord.check_in || attendanceRecord.check_out) {
       return { ok: false, error: "No open attendance record" };
     }
@@ -2463,7 +2468,7 @@ export const endBreak = async (
       return { ok: false, error: "Attendance record is locked" };
     }
 
-    const openBreak = await loadOpenBreak(ctx.supabase, ctx, attendanceRecord.id);
+    const openBreak = await loadOpenBreak(writeClient, ctx, attendanceRecord.id);
     if (!openBreak?.id) {
       return { ok: false, error: "No active break" };
     }
@@ -2473,7 +2478,7 @@ export const endBreak = async (
     const breakEnd = new Date();
     const breakMinutes = Math.max(0, Math.round((breakEnd.getTime() - breakStart.getTime()) / 60000));
 
-    const { error } = await ctx.supabase
+    const { error } = await writeClient
       .from("attendance_breaks")
       .update({
         break_end: breakEnd.toISOString(),
@@ -2511,6 +2516,7 @@ export const assignGoApplied = async (
 ): Promise<ServiceResult<{ attendanceId: string }>> => {
   try {
     await requireAttendanceEntitlement(ctx);
+    const writeClient = createSupabaseAdminClient();
     if (
       !ctx.permissions.includes("manage_attendance")
       && !ctx.permissions.includes("manage_employees")
@@ -2568,7 +2574,7 @@ export const assignGoApplied = async (
       return { ok: false, error: "GO assignment requires an active shift assignment" };
     }
 
-    const { data: shift, error: shiftError } = await ctx.supabase
+    const { data: shift, error: shiftError } = await writeClient
       .from("shift_templates")
       .select("id, start_time, end_time, timezone, grace_minutes, auto_absent_after_minutes, min_half_day_minutes, min_full_day_minutes, is_night_shift")
       .eq("company_id", ctx.companyId)
@@ -2678,6 +2684,7 @@ export async function requestAttendanceCorrection(
   try {
     await requireAttendanceEntitlement(ctx);
     await requireSelfAttendanceAccess(ctx);
+    const writeClient = createSupabaseAdminClient();
 
     const payload = normalizeCorrectionRequestInput(reasonOrPayload);
     if (!payload.reason || !payload.reason.trim()) {
@@ -2750,7 +2757,7 @@ export async function requestAttendanceCorrection(
     const actorProfileId = await getActorProfileId(ctx.supabase, ctx);
     const storedReason = composeStoredCorrectionReason(payload);
 
-    const { data, error } = await ctx.supabase
+    const { data, error } = await writeClient
       .from("attendance_correction_requests")
       .insert({
         company_id: ctx.companyId,
