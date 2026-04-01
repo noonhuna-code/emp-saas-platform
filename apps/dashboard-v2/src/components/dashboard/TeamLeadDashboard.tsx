@@ -38,6 +38,7 @@ export const TeamLeadDashboard = () => {
         actions={(
           <>
             <Link href="/app/attendance/team" className="primary-btn">Team Attendance</Link>
+            <Link href="/app/attendance/review" className="secondary-btn">Attendance Review</Link>
             <Link href="/app/approvals" className="secondary-btn">Approvals</Link>
             <Link href="/app/employees" className="secondary-btn">Directory</Link>
           </>
@@ -91,6 +92,7 @@ export const TeamLeadDashboard = () => {
             <QuickActionGrid
               actions={[
                 { label: "Team attendance", href: "/app/attendance/team", caption: "Coverage and late marks" },
+                { label: "Attendance review", href: "/app/attendance/review", caption: "Late Login and corrections" },
                 { label: "Shift swaps", href: "/app/attendance/shift-swaps", caption: "Requests and decisions" },
                 { label: "Approvals queue", href: "/app/approvals", caption: "Operational blockers" },
                 { label: "Team chat", href: "/app/chat", caption: "Coordination and updates" }

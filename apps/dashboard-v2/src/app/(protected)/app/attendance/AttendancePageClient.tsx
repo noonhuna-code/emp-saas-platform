@@ -210,13 +210,24 @@ export const AttendancePageClient = ({
         note: "Late Login",
       });
       if (!result.ok) {
+        if (result.error === "Late Login request already exists for this day") {
+          setLateLoginMessage("Late Login request already exists for today.");
+          setRefreshKey((value) => value + 1);
+          return;
+        }
         setTodayError(result.error ?? "Unable to submit Late Login request");
         return;
       }
       setLateLoginMessage("Late Login request submitted.");
       setRefreshKey((value) => value + 1);
     } catch (error) {
-      setTodayError(error instanceof Error ? error.message : "Unable to submit Late Login request");
+      const message = error instanceof Error ? error.message : "Unable to submit Late Login request";
+      if (message === "Late Login request already exists for this day") {
+        setLateLoginMessage("Late Login request already exists for today.");
+        setRefreshKey((value) => value + 1);
+        return;
+      }
+      setTodayError(message);
     } finally {
       setLateLoginBusy(false);
     }
@@ -257,10 +268,15 @@ export const AttendancePageClient = ({
       />
 
       {loadingToday ? <LoadingState label="Loading attendance command center" /> : null}
-      {!loadingToday && todayError ? <ErrorState message={todayError} /> : null}
+      {!loadingToday && todayError && !todayData ? <ErrorState message={todayError} /> : null}
 
-      {!loadingToday && !todayError && todayData ? (
+      {!loadingToday && todayData ? (
         <>
+          {todayError ? (
+            <div className="rounded-2xl border border-amber-200 bg-amber-50/80 px-4 py-3 text-sm text-amber-800">
+              {todayError}
+            </div>
+          ) : null}
           <StatGrid>
             {overview.map((item) => (
               <StatCard key={item.label} label={item.label} value={item.value} hint={item.hint} />

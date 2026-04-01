@@ -16,7 +16,7 @@ export const AttendanceReviewPageClient = ({
           <div>
             <h1 style={{ margin: 0 }}>Attendance Correction Review</h1>
             <p className="muted" style={{ margin: "6px 0 0" }}>
-              Manager review queue for pending attendance correction requests.
+              Team lead and manager review queue for pending attendance correction requests.
             </p>
           </div>
           <span className="badge">Pending only</span>
