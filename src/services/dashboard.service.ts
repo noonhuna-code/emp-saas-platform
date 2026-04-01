@@ -215,6 +215,10 @@ type EmployeeDashboardCacheEntry = {
 };
 const EMPLOYEE_DASHBOARD_CACHE = new Map<string, EmployeeDashboardCacheEntry>();
 
+export const clearEmployeeDashboardCache = (): void => {
+  EMPLOYEE_DASHBOARD_CACHE.clear();
+};
+
 export const getEmployeeDashboard = async (ctx: ServiceContext, options?: { includeCollections?: boolean }): Promise<ServiceResult<EmployeeDashboardData>> => {
   try {
     await requireDashboardEntitlement(ctx);

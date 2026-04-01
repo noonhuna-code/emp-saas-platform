@@ -2,7 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { clockIn, clockOut, endBreak, startBreak } from "@emp/services/attendance.service";
+import { clearEmployeeDashboardCache } from "@emp/services/dashboard.service";
 import { buildServiceContext } from "@/lib/server/service-context";
+import { clearDashboardCache } from "@/lib/server/dashboard-cache";
 
 export type AttendanceClockActionState = {
   ok: boolean;
@@ -56,6 +58,14 @@ const parseNumberOrUndefined = (value: FormDataEntryValue | null): number | unde
   return parsed;
 };
 
+const refreshAttendanceSurfaces = (): void => {
+  clearDashboardCache("/api/dashboard/");
+  clearEmployeeDashboardCache();
+  revalidatePath("/app/attendance");
+  revalidatePath("/app/attendance/team");
+  revalidatePath("/app/dashboard");
+};
+
 export async function clockInAction(
   _prevState: AttendanceClockActionState,
   formData: FormData
@@ -76,7 +86,7 @@ export async function clockInAction(
       return buildActionResult(false, { error: sanitizeClockError(result.error) });
     }
 
-    revalidatePath("/app/attendance");
+    refreshAttendanceSurfaces();
     return buildActionResult(true, { attendanceId: result.data?.attendanceId });
   } catch (error) {
     const message =
@@ -108,7 +118,7 @@ export async function clockOutAction(
       return buildActionResult(false, { error: sanitizeClockError(result.error) });
     }
 
-    revalidatePath("/app/attendance");
+    refreshAttendanceSurfaces();
     return buildActionResult(true, { attendanceId: result.data?.attendanceId });
   } catch (error) {
     const message =
@@ -136,8 +146,7 @@ export async function startBreakAction(
       return buildActionResult(false, { error: sanitizeClockError(result.error) });
     }
 
-    revalidatePath("/app/attendance");
-    revalidatePath("/app/dashboard");
+    refreshAttendanceSurfaces();
     return buildActionResult(true, { attendanceId: result.data?.attendanceId });
   } catch (error) {
     const message =
@@ -165,8 +174,7 @@ export async function endBreakAction(
       return buildActionResult(false, { error: sanitizeClockError(result.error) });
     }
 
-    revalidatePath("/app/attendance");
-    revalidatePath("/app/dashboard");
+    refreshAttendanceSurfaces();
     return buildActionResult(true, { attendanceId: result.data?.attendanceId });
   } catch (error) {
     const message =

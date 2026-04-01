@@ -15,3 +15,16 @@ export const getCached = <T>(key: string, maxAgeMs: number): T | null => {
 export const setCached = <T>(key: string, value: T): void => {
   CACHE.set(key, { value, ts: Date.now() });
 };
+
+export const clearDashboardCache = (prefix?: string): void => {
+  if (!prefix) {
+    CACHE.clear();
+    return;
+  }
+
+  for (const key of CACHE.keys()) {
+    if (key.includes(prefix)) {
+      CACHE.delete(key);
+    }
+  }
+};
