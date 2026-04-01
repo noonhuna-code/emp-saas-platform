@@ -46,6 +46,15 @@ const computeLiveWorkedMinutes = (checkIn: string | null | undefined, checkOut: 
   return elapsed;
 };
 
+const presentStatusKey = (row: AttendanceHistoryRow): string => {
+  if (row.is_absent) return "absent";
+  if (row.is_late) return "late";
+  if (row.check_in && !row.check_out) return "clocked_in";
+  if (row.check_in && row.check_out) return "clocked_out";
+  if (!row.status) return "";
+  return row.status.toLowerCase();
+};
+
 const presentStatusLabel = (row: AttendanceHistoryRow): string => {
   if (row.is_absent) return "Absent";
   if (row.is_late) return "Late";
@@ -78,9 +87,8 @@ export const AttendanceHistoryTable = ({
       pageSize,
       dateFrom: dateFrom || undefined,
       dateTo: dateTo || undefined,
-      status: status || undefined
     }),
-    [page, pageSize, dateFrom, dateTo, status]
+    [page, pageSize, dateFrom, dateTo]
   );
 
   useEffect(() => {
@@ -114,32 +122,35 @@ export const AttendanceHistoryTable = ({
   const filteredRows = useMemo(() => {
     const rows = data?.rows ?? [];
     const normalized = query.trim().toLowerCase();
-    if (!normalized) return rows;
-    return rows.filter((row) =>
-      [
+    return rows.filter((row) => {
+      const matchesQuery = !normalized || [
         row.attendance_date,
-        row.status,
+        presentStatusLabel(row),
         row.correction_status,
         row.shift_start_time,
         row.shift_end_time,
       ]
         .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(normalized)),
-    );
-  }, [data?.rows, query]);
+        .some((value) => String(value).toLowerCase().includes(normalized));
+
+      const matchesStatus = !status || presentStatusKey(row) === status;
+
+      return matchesQuery && matchesStatus;
+    });
+  }, [data?.rows, query, status]);
 
   const totalPages = data ? Math.max(1, Math.ceil(data.total / data.pageSize)) : 1;
 
   return (
     <div className="space-y-5">
-      <div className="grid gap-4 xl:grid-cols-[minmax(280px,1.2fr)_220px_220px_220px]">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-[minmax(220px,1fr)_180px_180px_160px]">
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <input
             className={`${toolbarFieldClassName} w-full pl-10`}
             type="text"
             value={query}
-            placeholder="Search date, status, or shift"
+            placeholder="Search date or shift"
             onChange={(event) => setQuery(event.target.value)}
           />
         </div>
@@ -155,7 +166,8 @@ export const AttendanceHistoryTable = ({
           Status
           <select className={toolbarFieldClassName} value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }}>
             <option value="">All</option>
-            <option value="present">Present</option>
+            <option value="clocked_in">Clocked in</option>
+            <option value="clocked_out">Clocked out</option>
             <option value="absent">Absent</option>
             <option value="late">Late</option>
             <option value="corrected">Corrected</option>
@@ -197,7 +209,7 @@ export const AttendanceHistoryTable = ({
                     </td>
                     <td className="px-4 py-3 align-top">
                       <div className="space-y-1">
-                        <Badge className="rounded-full px-2.5 py-1">{presentStatusLabel(row)}</Badge>
+                        <Badge className="inline-flex whitespace-nowrap rounded-full px-2.5 py-1">{presentStatusLabel(row)}</Badge>
                         {row.is_absent ? <div className="text-xs text-red-600">Absent</div> : null}
                         {!row.is_absent && row.is_late ? <div className="text-xs text-amber-600">Late</div> : null}
                       </div>
