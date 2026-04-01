@@ -21,6 +21,8 @@ const SECONDARY_REQUEST_TIMEOUT_MS = 12000;
 
 const parseUtcDate = (value: string) => new Date(`${value}T00:00:00.000Z`);
 
+const isSunday = (value: string) => parseUtcDate(value).getUTCDay() === 0;
+
 const addDays = (value: string, days: number) => {
   const date = parseUtcDate(value);
   date.setUTCDate(date.getUTCDate() + days);
@@ -62,19 +64,32 @@ const withTimeout = async <T,>(promise: Promise<T>, label: string, timeoutMs: nu
   }
 };
 
-export default function ShiftsPageClient() {
-  const [assignments, setAssignments] = useState<ShiftAssignment[]>([]);
-  const [breakAssignments, setBreakAssignments] = useState<BreakAssignment[]>([]);
-  const [templates, setTemplates] = useState<ShiftTemplate[]>([]);
-  const [loading, setLoading] = useState(true);
+type ShiftsPageClientProps = {
+  initialAssignments?: ShiftAssignment[];
+  initialBreakAssignments?: BreakAssignment[];
+  initialTemplates?: ShiftTemplate[];
+  initialError?: string | null;
+};
+
+export default function ShiftsPageClient({
+  initialAssignments = [],
+  initialBreakAssignments = [],
+  initialTemplates = [],
+  initialError = null,
+}: ShiftsPageClientProps) {
+  const [assignments, setAssignments] = useState<ShiftAssignment[]>(initialAssignments);
+  const [breakAssignments, setBreakAssignments] = useState<BreakAssignment[]>(initialBreakAssignments);
+  const [templates, setTemplates] = useState<ShiftTemplate[]>(initialTemplates);
+  const [loading, setLoading] = useState(!initialError && initialAssignments.length === 0);
   const [loadingSecondary, setLoadingSecondary] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(initialError);
   const [activeTab, setActiveTab] = useState("today");
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
 
   const load = useCallback(async () => {
-    setLoading(true);
+    const hasInitialData = initialAssignments.length > 0 || initialTemplates.length > 0 || initialBreakAssignments.length > 0;
+    setLoading(!hasInitialData);
     setLoadingSecondary(false);
     setError(null);
     try {
@@ -120,7 +135,7 @@ export default function ShiftsPageClient() {
       setLoading(false);
       setLoadingSecondary(false);
     }
-  }, []);
+  }, [initialAssignments.length, initialBreakAssignments.length, initialTemplates.length]);
 
   useEffect(() => {
     void load();
@@ -170,7 +185,7 @@ export default function ShiftsPageClient() {
       return {
         date,
         dayLabel: parseUtcDate(date).toLocaleDateString(undefined, { weekday: "short", timeZone: "UTC" }),
-        shiftName: activeAssignment?.shift_name ?? "No shift assigned",
+        shiftName: activeAssignment?.shift_name ?? (isSunday(date) ? "Weekly off" : "No shift assigned"),
         startTime: activeAssignment?.start_time ?? "-",
         endTime: activeAssignment?.end_time ?? "-",
         breaksLabel: activeBreaks.length > 0

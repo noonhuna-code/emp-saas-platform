@@ -24,6 +24,16 @@ const weekdayLabel = (dateText: string): string => {
   return date.toLocaleDateString(undefined, { weekday: "short" });
 };
 
+const abbreviationForLeaveTitle = (title: string): string => {
+  const normalized = title.trim().toLowerCase();
+  if (normalized.includes("annual leave")) return "AL";
+  if (normalized.includes("casual leave")) return "CL";
+  if (normalized.includes("sick leave")) return "SL";
+  if (normalized.includes("maternity")) return "ML";
+  if (normalized.includes("unpaid")) return "Unpaid Leave";
+  return title;
+};
+
 const monthLabel = (month: string) => {
   const [yearText, monthText] = month.split("-");
   const parsed = new Date(Date.UTC(Number(yearText), Number(monthText) - 1, 1));
@@ -43,6 +53,8 @@ const eventTone = (event: WorkspaceCalendarEvent): "info" | "success" | "warning
 };
 
 const compactEventLabel = (event: WorkspaceCalendarEvent): string => {
+  if (event.status === "go_active") return "P.GO";
+  if (event.status === "leave_paid") return abbreviationForLeaveTitle(event.title);
   if (event.status === "go_active") return "P · GO";
   if (event.status === "go_applied") return "GO";
   if (event.status === "leave_unpaid") return "Unpaid Leave";
