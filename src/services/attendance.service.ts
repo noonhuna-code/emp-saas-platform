@@ -1532,6 +1532,155 @@ export const assignEmployeeShift = async (
   }
 };
 
+const loadShiftAssignmentForWrite = async (
+  ctx: ServiceContext,
+  assignmentId: string
+): Promise<ServiceResult<{ id: string; employee_id: string }>> => {
+  const adminClient = createSupabaseAdminClient();
+  const { data, error } = await adminClient
+    .from("employee_shift_assignments")
+    .select("id, employee_id")
+    .eq("company_id", ctx.companyId)
+    .eq("id", assignmentId)
+    .is("is_deleted", false)
+    .maybeSingle();
+
+  if (error) {
+    return { ok: false, error: sanitizeError(error.message, "Unable to load shift assignment") };
+  }
+
+  if (!data?.id || !data.employee_id) {
+    return { ok: false, error: "Shift assignment not found" };
+  }
+
+  return {
+    ok: true,
+    data: {
+      id: data.id as string,
+      employee_id: data.employee_id as string,
+    }
+  };
+};
+
+export const updateEmployeeShiftAssignment = async (
+  ctx: ServiceContext,
+  payload: {
+    assignmentId: string;
+    shiftTemplateId: string;
+    effectiveFrom: string;
+    effectiveTo?: string | null;
+  }
+): Promise<ServiceResult<{ assignmentId: string }>> => {
+  try {
+    await requireAttendanceEntitlement(ctx);
+    if (!hasShiftAssignmentPermission(ctx)) {
+      return { ok: false, error: "Permission denied" };
+    }
+
+    const assignmentId = payload.assignmentId?.trim();
+    const shiftTemplateId = payload.shiftTemplateId?.trim();
+    const effectiveFrom = payload.effectiveFrom?.trim();
+    const effectiveTo = payload.effectiveTo?.trim() || null;
+
+    if (!assignmentId || !shiftTemplateId || !effectiveFrom) {
+      return { ok: false, error: "Assignment, shift template, and effective date are required" };
+    }
+
+    const currentAssignment = await loadShiftAssignmentForWrite(ctx, assignmentId);
+    if (!currentAssignment.ok) {
+      return { ok: false, error: currentAssignment.error };
+    }
+    if (!currentAssignment.data) {
+      return { ok: false, error: "Shift assignment not found" };
+    }
+    const assignment = currentAssignment.data;
+
+    await ensureHierarchyAssignable(ctx, assignment.employee_id);
+    assertEmployeeScope(assignment.employee_id, ctx);
+
+    const actorProfileId = await getActorProfileId(ctx.supabase, ctx);
+    if (!actorProfileId) {
+      return { ok: false, error: "Actor profile not found" };
+    }
+
+    const adminClient = createSupabaseAdminClient();
+    const { error } = await adminClient
+      .from("employee_shift_assignments")
+      .update({
+        shift_template_id: shiftTemplateId,
+        effective_from: effectiveFrom,
+        effective_to: effectiveTo,
+        updated_by: actorProfileId
+      })
+      .eq("company_id", ctx.companyId)
+      .eq("id", assignmentId)
+      .is("is_deleted", false);
+
+    if (error) {
+      return { ok: false, error: sanitizeError(error.message, "Unable to update shift assignment") };
+    }
+
+    return { ok: true, data: { assignmentId } };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Shift assignment update failed" };
+  }
+};
+
+export const removeEmployeeShiftAssignment = async (
+  ctx: ServiceContext,
+  payload: { assignmentId: string }
+): Promise<ServiceResult<{ assignmentId: string }>> => {
+  try {
+    await requireAttendanceEntitlement(ctx);
+    if (!hasShiftAssignmentPermission(ctx)) {
+      return { ok: false, error: "Permission denied" };
+    }
+
+    const assignmentId = payload.assignmentId?.trim();
+    if (!assignmentId) {
+      return { ok: false, error: "Assignment id is required" };
+    }
+
+    const currentAssignment = await loadShiftAssignmentForWrite(ctx, assignmentId);
+    if (!currentAssignment.ok) {
+      return { ok: false, error: currentAssignment.error };
+    }
+    if (!currentAssignment.data) {
+      return { ok: false, error: "Shift assignment not found" };
+    }
+    const assignment = currentAssignment.data;
+
+    await ensureHierarchyAssignable(ctx, assignment.employee_id);
+    assertEmployeeScope(assignment.employee_id, ctx);
+
+    const actorProfileId = await getActorProfileId(ctx.supabase, ctx);
+    if (!actorProfileId) {
+      return { ok: false, error: "Actor profile not found" };
+    }
+
+    const adminClient = createSupabaseAdminClient();
+    const { error } = await adminClient
+      .from("employee_shift_assignments")
+      .update({
+        is_deleted: true,
+        deleted_at: new Date().toISOString(),
+        deleted_by: actorProfileId,
+        updated_by: actorProfileId,
+      })
+      .eq("company_id", ctx.companyId)
+      .eq("id", assignmentId)
+      .is("is_deleted", false);
+
+    if (error) {
+      return { ok: false, error: sanitizeError(error.message, "Unable to remove shift assignment") };
+    }
+
+    return { ok: true, data: { assignmentId } };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Shift assignment removal failed" };
+  }
+};
+
 const breakTimesOverlap = (
   leftStart: string,
   leftEnd: string,
@@ -1697,6 +1846,182 @@ export const assignEmployeeBreak = async (
     return { ok: true, data: { assignmentId: data.id as string } };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "Break assignment failed" };
+  }
+};
+
+const loadBreakAssignmentForWrite = async (
+  ctx: ServiceContext,
+  assignmentId: string
+): Promise<ServiceResult<{ id: string; employee_id: string }>> => {
+  const adminClient = createSupabaseAdminClient();
+  const { data, error } = await adminClient
+    .from("employee_break_assignments")
+    .select("id, employee_id")
+    .eq("company_id", ctx.companyId)
+    .eq("id", assignmentId)
+    .is("is_deleted", false)
+    .maybeSingle();
+
+  if (error) {
+    return { ok: false, error: sanitizeError(error.message, "Unable to load break assignment") };
+  }
+
+  if (!data?.id || !data.employee_id) {
+    return { ok: false, error: "Break assignment not found" };
+  }
+
+  return {
+    ok: true,
+    data: {
+      id: data.id as string,
+      employee_id: data.employee_id as string,
+    }
+  };
+};
+
+export const updateEmployeeBreakAssignment = async (
+  ctx: ServiceContext,
+  payload: {
+    assignmentId: string;
+    breakName?: string | null;
+    breakStartTime: string;
+    breakEndTime: string;
+    effectiveFrom: string;
+    effectiveTo?: string | null;
+  }
+): Promise<ServiceResult<{ assignmentId: string }>> => {
+  try {
+    await requireAttendanceEntitlement(ctx);
+    if (!hasShiftAssignmentPermission(ctx)) {
+      return { ok: false, error: "Permission denied" };
+    }
+
+    const assignmentId = payload.assignmentId?.trim();
+    const breakName = payload.breakName?.trim() || null;
+    const breakStartTime = payload.breakStartTime?.trim();
+    const breakEndTime = payload.breakEndTime?.trim();
+    const effectiveFrom = payload.effectiveFrom?.trim();
+    const effectiveTo = payload.effectiveTo?.trim() || null;
+
+    if (!assignmentId || !breakStartTime || !breakEndTime || !effectiveFrom) {
+      return { ok: false, error: "Assignment, break times, and effective date are required" };
+    }
+    if (breakEndTime <= breakStartTime) {
+      return { ok: false, error: "Break end time must be after break start time" };
+    }
+
+    const currentAssignment = await loadBreakAssignmentForWrite(ctx, assignmentId);
+    if (!currentAssignment.ok) {
+      return { ok: false, error: currentAssignment.error };
+    }
+    if (!currentAssignment.data) {
+      return { ok: false, error: "Break assignment not found" };
+    }
+    const assignment = currentAssignment.data;
+
+    await ensureHierarchyAssignable(ctx, assignment.employee_id);
+    assertEmployeeScope(assignment.employee_id, ctx);
+
+    const actorProfileId = await getActorProfileId(ctx.supabase, ctx);
+    if (!actorProfileId) {
+      return { ok: false, error: "Actor profile not found" };
+    }
+
+    const adminClient = createSupabaseAdminClient();
+    const { data: overlapping, error: overlapError } = await adminClient
+      .from("employee_break_assignments")
+      .select("id, break_start_time, break_end_time")
+      .eq("company_id", ctx.companyId)
+      .eq("employee_id", assignment.employee_id)
+      .is("is_deleted", false)
+      .neq("id", assignmentId)
+      .lte("effective_from", effectiveTo ?? effectiveFrom)
+      .or(`effective_to.is.null,effective_to.gte.${effectiveFrom}`);
+
+    if (overlapError) {
+      return { ok: false, error: sanitizeError(overlapError.message, "Unable to validate break overlaps") };
+    }
+
+    if ((overlapping ?? []).some((row) => breakTimesOverlap(breakStartTime, breakEndTime, String(row.break_start_time), String(row.break_end_time)))) {
+      return { ok: false, error: "Break window overlaps an existing assigned break" };
+    }
+
+    const { error } = await adminClient
+      .from("employee_break_assignments")
+      .update({
+        break_name: breakName,
+        break_start_time: breakStartTime,
+        break_end_time: breakEndTime,
+        effective_from: effectiveFrom,
+        effective_to: effectiveTo,
+        updated_by: actorProfileId
+      })
+      .eq("company_id", ctx.companyId)
+      .eq("id", assignmentId)
+      .is("is_deleted", false);
+
+    if (error) {
+      return { ok: false, error: sanitizeError(error.message, "Unable to update break assignment") };
+    }
+
+    return { ok: true, data: { assignmentId } };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Break assignment update failed" };
+  }
+};
+
+export const removeEmployeeBreakAssignment = async (
+  ctx: ServiceContext,
+  payload: { assignmentId: string }
+): Promise<ServiceResult<{ assignmentId: string }>> => {
+  try {
+    await requireAttendanceEntitlement(ctx);
+    if (!hasShiftAssignmentPermission(ctx)) {
+      return { ok: false, error: "Permission denied" };
+    }
+
+    const assignmentId = payload.assignmentId?.trim();
+    if (!assignmentId) {
+      return { ok: false, error: "Assignment id is required" };
+    }
+
+    const currentAssignment = await loadBreakAssignmentForWrite(ctx, assignmentId);
+    if (!currentAssignment.ok) {
+      return { ok: false, error: currentAssignment.error };
+    }
+    if (!currentAssignment.data) {
+      return { ok: false, error: "Break assignment not found" };
+    }
+    const assignment = currentAssignment.data;
+
+    await ensureHierarchyAssignable(ctx, assignment.employee_id);
+    assertEmployeeScope(assignment.employee_id, ctx);
+
+    const actorProfileId = await getActorProfileId(ctx.supabase, ctx);
+    if (!actorProfileId) {
+      return { ok: false, error: "Actor profile not found" };
+    }
+
+    const adminClient = createSupabaseAdminClient();
+    const { error } = await adminClient
+      .from("employee_break_assignments")
+      .update({
+        is_deleted: true,
+        deleted_at: new Date().toISOString(),
+        deleted_by: actorProfileId,
+        updated_by: actorProfileId
+      })
+      .eq("company_id", ctx.companyId)
+      .eq("id", assignmentId)
+      .is("is_deleted", false);
+
+    if (error) {
+      return { ok: false, error: sanitizeError(error.message, "Unable to remove break assignment") };
+    }
+
+    return { ok: true, data: { assignmentId } };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Break assignment removal failed" };
   }
 };
 

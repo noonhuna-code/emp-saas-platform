@@ -197,3 +197,19 @@ export type AssignShiftResponse = {
 export type AssignBreakResponse = {
   assignmentId: string;
 };
+
+export type UpdateShiftAssignmentResponse = {
+  assignmentId: string;
+};
+
+export type RemoveShiftAssignmentResponse = {
+  assignmentId: string;
+};
+
+export type UpdateBreakAssignmentResponse = {
+  assignmentId: string;
+};
+
+export type RemoveBreakAssignmentResponse = {
+  assignmentId: string;
+};

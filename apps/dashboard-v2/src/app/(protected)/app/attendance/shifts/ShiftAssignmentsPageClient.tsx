@@ -1,13 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   assignBreak,
+  removeBreakAssignment,
+  removeShiftAssignment,
   fetchBreakAssignments,
   assignShift,
   fetchShiftAssignableEmployees,
   fetchShiftAssignments,
-  fetchShiftTemplates
+  fetchShiftTemplates,
+  updateBreakAssignment,
+  updateShiftAssignment
 } from "@/lib/client/api";
 import type { BreakAssignment, ShiftAssignableEmployee, ShiftAssignment, ShiftTemplate } from "@/lib/types/workspace";
 import { LoadingState } from "@/components/states/LoadingState";
@@ -26,11 +30,15 @@ const ShiftAssignmentsPageClient = () => {
   const [breakAssignments, setBreakAssignments] = useState<BreakAssignment[]>([]);
   const [employeeId, setEmployeeId] = useState("");
   const [shiftTemplateId, setShiftTemplateId] = useState("");
-  const [effectiveFrom, setEffectiveFrom] = useState(new Date().toISOString().slice(0, 10));
-  const [effectiveTo, setEffectiveTo] = useState("");
+  const [shiftEffectiveFrom, setShiftEffectiveFrom] = useState(new Date().toISOString().slice(0, 10));
+  const [shiftEffectiveTo, setShiftEffectiveTo] = useState("");
+  const [editingShiftAssignmentId, setEditingShiftAssignmentId] = useState<string | null>(null);
   const [breakName, setBreakName] = useState("Break 1");
   const [breakStartTime, setBreakStartTime] = useState("13:00");
   const [breakEndTime, setBreakEndTime] = useState("14:00");
+  const [breakEffectiveFrom, setBreakEffectiveFrom] = useState(new Date().toISOString().slice(0, 10));
+  const [breakEffectiveTo, setBreakEffectiveTo] = useState("");
+  const [editingBreakAssignmentId, setEditingBreakAssignmentId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -56,7 +64,7 @@ const ShiftAssignmentsPageClient = () => {
     setEmployeeId((prev) => prev || employeesResult.data?.rows?.[0]?.id || "");
   };
 
-  const loadAssignments = async (selectedEmployeeId?: string) => {
+  const loadAssignments = useCallback(async (selectedEmployeeId?: string) => {
     const resolved = (selectedEmployeeId ?? employeeId).trim();
     if (!resolved) {
       setAssignments([]);
@@ -79,7 +87,7 @@ const ShiftAssignmentsPageClient = () => {
     }
     setAssignments(shiftResult.data.rows);
     setBreakAssignments(breakResult.data.rows);
-  };
+  }, [employeeId]);
 
   useEffect(() => {
     let active = true;
@@ -98,26 +106,55 @@ const ShiftAssignmentsPageClient = () => {
   useEffect(() => {
     if (!employeeId) return;
     void loadAssignments(employeeId);
-  }, [employeeId]);
+  }, [employeeId, loadAssignments]);
+
+  const resetShiftForm = useCallback(() => {
+    setEditingShiftAssignmentId(null);
+    setShiftEffectiveFrom(new Date().toISOString().slice(0, 10));
+    setShiftEffectiveTo("");
+    setMessage(null);
+  }, []);
+
+  const resetBreakForm = useCallback(() => {
+    setEditingBreakAssignmentId(null);
+    setBreakName("Break 1");
+    setBreakStartTime("13:00");
+    setBreakEndTime("14:00");
+    setBreakEffectiveFrom(new Date().toISOString().slice(0, 10));
+    setBreakEffectiveTo("");
+    setMessage(null);
+  }, []);
+
+  const templateOptions = useMemo(
+    () => new Map(templates.map((template) => [template.id, template])),
+    [templates]
+  );
 
   const onAssign = async (event: React.FormEvent) => {
     event.preventDefault();
     setError(null);
     setMessage(null);
 
-    const result = await assignShift({
-      employeeId,
-      shiftTemplateId,
-      effectiveFrom,
-      effectiveTo: effectiveTo || null
-    });
+    const result = editingShiftAssignmentId
+      ? await updateShiftAssignment(editingShiftAssignmentId, {
+          shiftTemplateId,
+          effectiveFrom: shiftEffectiveFrom,
+          effectiveTo: shiftEffectiveTo || null
+        })
+      : await assignShift({
+          employeeId,
+          shiftTemplateId,
+          effectiveFrom: shiftEffectiveFrom,
+          effectiveTo: shiftEffectiveTo || null
+        });
 
     if (!result.ok) {
-      setError(result.error ?? "Unable to assign shift");
+      setError(result.error ?? (editingShiftAssignmentId ? "Unable to update shift" : "Unable to assign shift"));
       return;
     }
 
-    setMessage("Shift assigned successfully.");
+    setMessage(editingShiftAssignmentId ? "Shift updated successfully." : "Shift assigned successfully.");
+    resetShiftForm();
     await loadAssignments(employeeId);
   };
 
@@ -126,27 +163,93 @@ const ShiftAssignmentsPageClient = () => {
     setError(null);
     setMessage(null);
 
-    const result = await assignBreak({
-      employeeId,
-      breakName,
-      breakStartTime,
-      breakEndTime,
-      effectiveFrom,
-      effectiveTo: effectiveTo || null
-    });
+    const result = editingBreakAssignmentId
+      ? await updateBreakAssignment(editingBreakAssignmentId, {
+          breakName,
+          breakStartTime,
+          breakEndTime,
+          effectiveFrom: breakEffectiveFrom,
+          effectiveTo: breakEffectiveTo || null
+        })
+      : await assignBreak({
+          employeeId,
+          breakName,
+          breakStartTime,
+          breakEndTime,
+          effectiveFrom: breakEffectiveFrom,
+          effectiveTo: breakEffectiveTo || null
+        });
 
     if (!result.ok) {
-      setError(result.error ?? "Unable to assign break");
+      setError(result.error ?? (editingBreakAssignmentId ? "Unable to update break" : "Unable to assign break"));
       return;
     }
 
-    setMessage("Break assigned successfully.");
+    setMessage(editingBreakAssignmentId ? "Break updated successfully." : "Break assigned successfully.");
+    resetBreakForm();
     await loadAssignments(employeeId);
   };
 
-  const applyRangePreset = (days: number) => {
-    if (!effectiveFrom) return;
-    setEffectiveTo(addDays(effectiveFrom, Math.max(0, days - 1)));
+  const applyShiftRangePreset = (days: number) => {
+    if (!shiftEffectiveFrom) return;
+    setShiftEffectiveTo(addDays(shiftEffectiveFrom, Math.max(0, days - 1)));
+  };
+
+  const applyBreakRangePreset = (days: number) => {
+    if (!breakEffectiveFrom) return;
+    setBreakEffectiveTo(addDays(breakEffectiveFrom, Math.max(0, days - 1)));
+  };
+
+  const startEditingShift = (assignment: ShiftAssignment) => {
+    setEditingShiftAssignmentId(assignment.id);
+    setShiftTemplateId(assignment.shift_template_id);
+    setShiftEffectiveFrom(assignment.effective_from);
+    setShiftEffectiveTo(assignment.effective_to ?? "");
+    setError(null);
+    setMessage(null);
+  };
+
+  const startEditingBreak = (assignment: BreakAssignment) => {
+    setEditingBreakAssignmentId(assignment.id);
+    setBreakName(assignment.break_name ?? "Assigned break");
+    setBreakStartTime(assignment.break_start_time.slice(0, 5));
+    setBreakEndTime(assignment.break_end_time.slice(0, 5));
+    setBreakEffectiveFrom(assignment.effective_from);
+    setBreakEffectiveTo(assignment.effective_to ?? "");
+    setError(null);
+    setMessage(null);
+  };
+
+  const onRemoveShift = async (assignmentId: string) => {
+    if (!window.confirm("Remove this shift assignment?")) return;
+    setError(null);
+    setMessage(null);
+    const result = await removeShiftAssignment(assignmentId);
+    if (!result.ok) {
+      setError(result.error ?? "Unable to remove shift assignment");
+      return;
+    }
+    if (editingShiftAssignmentId === assignmentId) {
+      resetShiftForm();
+    }
+    setMessage("Shift assignment removed.");
+    await loadAssignments(employeeId);
+  };
+
+  const onRemoveBreak = async (assignmentId: string) => {
+    if (!window.confirm("Remove this break assignment?")) return;
+    setError(null);
+    setMessage(null);
+    const result = await removeBreakAssignment(assignmentId);
+    if (!result.ok) {
+      setError(result.error ?? "Unable to remove break assignment");
+      return;
+    }
+    if (editingBreakAssignmentId === assignmentId) {
+      resetBreakForm();
+    }
+    setMessage("Break assignment removed.");
+    await loadAssignments(employeeId);
   };
 
   return (
@@ -184,23 +287,26 @@ const ShiftAssignmentsPageClient = () => {
           </label>
           <label>
             Effective from
-            <input type="date" required value={effectiveFrom} onChange={(event) => setEffectiveFrom(event.target.value)} />
+            <input type="date" required value={shiftEffectiveFrom} onChange={(event) => setShiftEffectiveFrom(event.target.value)} />
           </label>
           <label>
             Effective to (optional)
-            <input type="date" value={effectiveTo} onChange={(event) => setEffectiveTo(event.target.value)} />
+            <input type="date" value={shiftEffectiveTo} onChange={(event) => setShiftEffectiveTo(event.target.value)} />
           </label>
           <div className="stack" style={{ justifyContent: "end" }}>
             <span className="muted">Range presets</span>
             <div className="row">
-              <button type="button" className="secondary-btn" onClick={() => applyRangePreset(1)}>1 day</button>
-              <button type="button" className="secondary-btn" onClick={() => applyRangePreset(7)}>7 days</button>
-              <button type="button" className="secondary-btn" onClick={() => applyRangePreset(30)}>30 days</button>
-              <button type="button" className="secondary-btn" onClick={() => setEffectiveTo("")}>Custom</button>
+              <button type="button" className="secondary-btn" onClick={() => applyShiftRangePreset(1)}>1 day</button>
+              <button type="button" className="secondary-btn" onClick={() => applyShiftRangePreset(7)}>7 days</button>
+              <button type="button" className="secondary-btn" onClick={() => applyShiftRangePreset(30)}>30 days</button>
+              <button type="button" className="secondary-btn" onClick={() => setShiftEffectiveTo("")}>Custom</button>
             </div>
           </div>
           <div className="row" style={{ alignItems: "end" }}>
-            <button type="submit" className="primary-btn">Assign</button>
+            <button type="submit" className="primary-btn">{editingShiftAssignmentId ? "Save shift" : "Assign"}</button>
+            {editingShiftAssignmentId ? (
+              <button type="button" className="secondary-btn" onClick={resetShiftForm}>Cancel edit</button>
+            ) : null}
             <button type="button" className="secondary-btn" onClick={() => void loadAssignments()}>Load assignments</button>
           </div>
         </form>
@@ -223,8 +329,28 @@ const ShiftAssignmentsPageClient = () => {
             Break end
             <input type="time" required value={breakEndTime} onChange={(event) => setBreakEndTime(event.target.value)} />
           </label>
+          <label>
+            Effective from
+            <input type="date" required value={breakEffectiveFrom} onChange={(event) => setBreakEffectiveFrom(event.target.value)} />
+          </label>
+          <label>
+            Effective to (optional)
+            <input type="date" value={breakEffectiveTo} onChange={(event) => setBreakEffectiveTo(event.target.value)} />
+          </label>
+          <div className="stack" style={{ justifyContent: "end" }}>
+            <span className="muted">Range presets</span>
+            <div className="row">
+              <button type="button" className="secondary-btn" onClick={() => applyBreakRangePreset(1)}>1 day</button>
+              <button type="button" className="secondary-btn" onClick={() => applyBreakRangePreset(7)}>7 days</button>
+              <button type="button" className="secondary-btn" onClick={() => applyBreakRangePreset(30)}>30 days</button>
+              <button type="button" className="secondary-btn" onClick={() => setBreakEffectiveTo("")}>Custom</button>
+            </div>
+          </div>
           <div className="row" style={{ alignItems: "end" }}>
-            <button type="submit" className="primary-btn">Assign break</button>
+            <button type="submit" className="primary-btn">{editingBreakAssignmentId ? "Save break" : "Assign break"}</button>
+            {editingBreakAssignmentId ? (
+              <button type="button" className="secondary-btn" onClick={resetBreakForm}>Cancel edit</button>
+            ) : null}
           </div>
         </form>
       </section>
@@ -272,16 +398,23 @@ const ShiftAssignmentsPageClient = () => {
                 <th>Effective From</th>
                 <th>Effective To</th>
                 <th>Created</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {assignments.map((row) => (
                 <tr key={row.id}>
                   <td>{row.id.slice(0, 8)}...</td>
-                  <td>{row.shift_template_id}</td>
+                  <td>{templateOptions.get(row.shift_template_id)?.name ?? row.shift_template_id}</td>
                   <td>{row.effective_from}</td>
                   <td>{row.effective_to ?? "-"}</td>
                   <td>{new Date(row.created_at).toLocaleString()}</td>
+                  <td>
+                    <div className="row">
+                      <button type="button" className="secondary-btn" onClick={() => startEditingShift(row)}>Edit</button>
+                      <button type="button" className="secondary-btn" onClick={() => void onRemoveShift(row.id)}>Remove</button>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -302,6 +435,7 @@ const ShiftAssignmentsPageClient = () => {
                 <th>Effective From</th>
                 <th>Effective To</th>
                 <th>Created</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -313,6 +447,12 @@ const ShiftAssignmentsPageClient = () => {
                   <td>{row.effective_from}</td>
                   <td>{row.effective_to ?? "-"}</td>
                   <td>{new Date(row.created_at).toLocaleString()}</td>
+                  <td>
+                    <div className="row">
+                      <button type="button" className="secondary-btn" onClick={() => startEditingBreak(row)}>Edit</button>
+                      <button type="button" className="secondary-btn" onClick={() => void onRemoveBreak(row.id)}>Remove</button>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>

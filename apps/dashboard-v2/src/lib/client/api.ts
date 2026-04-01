@@ -82,9 +82,13 @@ import type {
   AssignBreakResponse,
   AssignShiftResponse,
   BreakAssignmentsResponse,
+  RemoveBreakAssignmentResponse,
+  RemoveShiftAssignmentResponse,
   ShiftAssignableEmployeesResponse,
   ShiftAssignmentsResponse,
   ShiftTemplatesResponse,
+  UpdateBreakAssignmentResponse,
+  UpdateShiftAssignmentResponse,
   WorkspaceChatResponse,
   WorkspaceContactsResponse,
   WorkspaceCreateNoteResponse,
@@ -1617,6 +1621,37 @@ export const assignShift = async (payload: {
   );
 };
 
+export const updateShiftAssignment = async (
+  assignmentId: string,
+  payload: {
+    shiftTemplateId: string;
+    effectiveFrom: string;
+    effectiveTo?: string | null;
+  }
+): Promise<DashboardApiResult<UpdateShiftAssignmentResponse>> => {
+  const response = await fetch(`/api/attendance/shifts/assignments/${encodeURIComponent(assignmentId)}`, {
+    method: "PATCH",
+    headers: {
+      "content-type": "application/json",
+      "Idempotency-Key": crypto.randomUUID(),
+    },
+    body: JSON.stringify(payload),
+  });
+  return parseJson<UpdateShiftAssignmentResponse>(response);
+};
+
+export const removeShiftAssignment = async (
+  assignmentId: string
+): Promise<DashboardApiResult<RemoveShiftAssignmentResponse>> => {
+  const response = await fetch(`/api/attendance/shifts/assignments/${encodeURIComponent(assignmentId)}`, {
+    method: "DELETE",
+    headers: {
+      "Idempotency-Key": crypto.randomUUID(),
+    },
+  });
+  return parseJson<RemoveShiftAssignmentResponse>(response);
+};
+
 export const fetchBreakAssignments = async (params: {
   employeeId?: string;
   limit?: number;
@@ -1641,6 +1676,39 @@ export const assignBreak = async (payload: {
     payload as Record<string, unknown>,
     { "Idempotency-Key": crypto.randomUUID() }
   );
+};
+
+export const updateBreakAssignment = async (
+  assignmentId: string,
+  payload: {
+    breakName?: string | null;
+    breakStartTime: string;
+    breakEndTime: string;
+    effectiveFrom: string;
+    effectiveTo?: string | null;
+  }
+): Promise<DashboardApiResult<UpdateBreakAssignmentResponse>> => {
+  const response = await fetch(`/api/attendance/breaks/assignments/${encodeURIComponent(assignmentId)}`, {
+    method: "PATCH",
+    headers: {
+      "content-type": "application/json",
+      "Idempotency-Key": crypto.randomUUID(),
+    },
+    body: JSON.stringify(payload),
+  });
+  return parseJson<UpdateBreakAssignmentResponse>(response);
+};
+
+export const removeBreakAssignment = async (
+  assignmentId: string
+): Promise<DashboardApiResult<RemoveBreakAssignmentResponse>> => {
+  const response = await fetch(`/api/attendance/breaks/assignments/${encodeURIComponent(assignmentId)}`, {
+    method: "DELETE",
+    headers: {
+      "Idempotency-Key": crypto.randomUUID(),
+    },
+  });
+  return parseJson<RemoveBreakAssignmentResponse>(response);
 };
 
 export const fetchShiftSwapRequests = async (params: {
