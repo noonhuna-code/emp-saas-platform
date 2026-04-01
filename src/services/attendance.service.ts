@@ -1,4 +1,4 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { ServiceContext, ServiceResult } from "../lib/types";
 import { assertEmployeeScope, requirePermission } from "../lib/auth-wrapper";
 import { requirePlanFeature } from "../lib/entitlements";
@@ -350,6 +350,24 @@ type EmployeeDayStateSnapshot = {
 };
 
 const currentDateText = (): string => new Date().toISOString().slice(0, 10);
+
+const getAdminEnv = (key: string): string => process.env[key] ?? "";
+
+const createSupabaseAdminClient = (): SupabaseClient => {
+  const url = getAdminEnv("SUPABASE_URL") || getAdminEnv("NEXT_PUBLIC_SUPABASE_URL");
+  const serviceRoleKey = getAdminEnv("SUPABASE_SERVICE_ROLE_KEY");
+
+  if (!url || !serviceRoleKey) {
+    throw new Error("Missing Supabase admin environment variables");
+  }
+
+  return createClient(url, serviceRoleKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  });
+};
 
 const normalizeAttendanceRecord = (
   row: Partial<AttendanceRecordScopeRow> & { id: string; attendance_date: string; employee_id: string }
@@ -1077,8 +1095,9 @@ export const getAttendanceHistory = async (
     const dateFrom = filters.dateFrom ?? "";
     const dateTo = filters.dateTo ?? "";
     const statusFilter = (filters.status ?? "").trim().toLowerCase();
+    const readClient = createSupabaseAdminClient();
 
-    let query = ctx.supabase
+    let query = readClient
       .from("attendance_records")
       .select(
         "id, attendance_date, shift_start_time, shift_end_time, check_in, check_out, status, work_minutes, overtime_minutes, late_minutes",
@@ -1130,7 +1149,7 @@ export const getAttendanceHistory = async (
     const latestCorrectionByAttendanceId = new Map<string, { id: string; status?: string | null }>();
 
     if (attendanceIds.length > 0) {
-      const { data: correctionRows } = await ctx.supabase
+      const { data: correctionRows } = await readClient
         .from("attendance_correction_requests")
         .select("id, attendance_id, status, created_at")
         .eq("company_id", ctx.companyId)
@@ -1651,9 +1670,10 @@ const loadEmployeeDateStates = async (
   }
 
   const employeeIds = employeeRows.map((row) => row.id);
+  const readClient = createSupabaseAdminClient();
 
   const [attendanceResult, leaveResult, holidayResult, shiftResult] = await Promise.all([
-    ctx.supabase
+    readClient
       .from("attendance_records")
       .select(
         "id, employee_id, attendance_date, check_in, check_out, status, work_minutes, overtime_minutes, late_minutes, shift_start_time, shift_end_time, early_logout, missing_logout"
@@ -1663,7 +1683,7 @@ const loadEmployeeDateStates = async (
       .in("employee_id", employeeIds)
       .is("is_deleted", false)
       .order("created_at", { ascending: false }),
-    ctx.supabase
+    readClient
       .from("leave_requests")
       .select("id, employee_id, leave_type_id, start_date, end_date, status, leave_types(name, is_paid)")
       .eq("company_id", ctx.companyId)
@@ -1672,7 +1692,7 @@ const loadEmployeeDateStates = async (
       .lte("start_date", date)
       .gte("end_date", date)
       .is("is_deleted", false),
-    ctx.supabase
+    readClient
       .from("company_holidays")
       .select("id, holiday_date, name")
       .eq("company_id", ctx.companyId)
@@ -1681,7 +1701,7 @@ const loadEmployeeDateStates = async (
       .is("is_deleted", false)
       .limit(1)
       .maybeSingle(),
-    ctx.supabase
+    readClient
       .from("employee_shift_assignments")
       .select("id, employee_id, shift_template_id, effective_from, effective_to, shift_templates(name, start_time, end_time)")
       .eq("company_id", ctx.companyId)
@@ -1776,7 +1796,7 @@ const loadEmployeeDateStates = async (
   const attendanceIds = Array.from(latestAttendanceByEmployeeId.values()).map((row) => row.id);
   const [breaksResult, correctionsResult] = await Promise.all([
     attendanceIds.length > 0
-      ? ctx.supabase
+      ? readClient
           .from("attendance_breaks")
           .select("attendance_id")
           .eq("company_id", ctx.companyId)
@@ -1785,7 +1805,7 @@ const loadEmployeeDateStates = async (
           .is("is_deleted", false)
       : Promise.resolve({ data: [], error: null }),
     attendanceIds.length > 0
-      ? ctx.supabase
+      ? readClient
           .from("attendance_correction_requests")
           .select("id, attendance_id, status, reason, created_at")
           .eq("company_id", ctx.companyId)
@@ -1850,7 +1870,7 @@ const loadEmployeeDateStates = async (
       });
 
       const latestGeoEvent = includeGeo
-        ? await loadLatestGeoEvent(ctx.supabase, ctx, employee.id, date)
+        ? await loadLatestGeoEvent(readClient, ctx, employee.id, date)
         : null;
 
       const normalizedRecord = record

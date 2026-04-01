@@ -18,7 +18,6 @@ import { Tabs } from "@/components/shared/Tabs";
 import { ErrorState } from "@/components/states/ErrorState";
 import { LoadingState } from "@/components/states/LoadingState";
 import {
-  DashboardRail,
   PageContainer,
   PageHeader,
   StatCard,
@@ -186,7 +185,7 @@ export const LeavePageClient = () => {
           </SurfacePanel>
 
           {activeTab === "apply" ? (
-            <DashboardRail className="items-start xl:grid-cols-[minmax(0,1.45fr)_360px]">
+            <div className="space-y-6">
               <SurfacePanel title="Apply for leave" description="Submit one request without leaving the employee workspace.">
                 <LeaveApplyForm
                   onSubmit={handleApply}
@@ -199,7 +198,7 @@ export const LeavePageClient = () => {
               <SurfacePanel title="Request timeline" description="Latest stage and next approver for the most recent request.">
                 <LeaveStatusTimeline request={selectedRequest} />
               </SurfacePanel>
-            </DashboardRail>
+            </div>
           ) : null}
 
           {activeTab === "balances" ? <LeaveBalanceCard balances={balances} /> : null}

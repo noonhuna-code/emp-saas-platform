@@ -272,7 +272,77 @@ const NotesPageClient = () => {
         description="Keep notes and attachments in one compact searchable register."
       />
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.34fr)_minmax(360px,0.9fr)]">
+      <div className="space-y-6">
+        <SurfacePanel
+          title={editingId ? "Edit note" : "Add note"}
+          description={editingId ? "Update content or replace the attachment for the selected note." : "Create a note and optionally attach one file."}
+        >
+          <ProfilePanel title={editingId ? "Selected note" : "New note"} description="This uses the same live note and attachment contracts already active in the workspace.">
+            <form className="space-y-4" onSubmit={onSubmit}>
+              <label className={profileLabelClassName}>
+                <span>Title</span>
+                <input
+                  className={profileFieldClassName}
+                  type="text"
+                  required
+                  value={form.title}
+                  onChange={(event) => setForm((prev) => ({ ...prev, title: event.target.value }))}
+                />
+              </label>
+              <label className={profileLabelClassName}>
+                <span>Note</span>
+                <textarea
+                  className={profileTextAreaClassName}
+                  required
+                  rows={5}
+                  value={form.body}
+                  onChange={(event) => setForm((prev) => ({ ...prev, body: event.target.value }))}
+                />
+              </label>
+              <div className="grid gap-4">
+                <label className={profileLabelClassName}>
+                  <span>Attach file</span>
+                  <input
+                    className={profileFieldClassName}
+                    type="file"
+                    accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.png,.jpg,.jpeg"
+                    onChange={(event) => (editingId ? setEditingFile(event.target.files?.[0] ?? null) : setFile(event.target.files?.[0] ?? null))}
+                  />
+                </label>
+                <label className={profileLabelClassName}>
+                  <span>External file URL</span>
+                  <input
+                    className={profileFieldClassName}
+                    type="url"
+                    value={form.fileUrl}
+                    onChange={(event) => setForm((prev) => ({ ...prev, fileUrl: event.target.value }))}
+                  />
+                </label>
+              </div>
+              <label className="inline-flex items-center gap-3 text-sm font-medium text-slate-700">
+                <input
+                  className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                  type="checkbox"
+                  checked={form.isPinned}
+                  onChange={(event) => setForm((prev) => ({ ...prev, isPinned: event.target.checked }))}
+                />
+                Pin note
+              </label>
+              <SectionActionBar>
+                {editingId ? (
+                  <Button type="button" variant="secondary" className="rounded-full" onClick={resetComposer}>
+                    Cancel
+                  </Button>
+                ) : null}
+                <Button type="submit" className="rounded-full" disabled={submitting}>
+                  {submitting ? "Saving..." : editingId ? "Save changes" : "Save note"}
+                </Button>
+              </SectionActionBar>
+            </form>
+            {message ? <p className="mt-3 text-sm text-emerald-700">{message}</p> : null}
+          </ProfilePanel>
+        </SurfacePanel>
+
         <SurfacePanel title="My saved notes" description="Search, open, edit, and clear notes without stretching the page.">
           {loading ? <LoadingState label="Loading notes..." /> : null}
           {!loading && error ? <ErrorState message={error} /> : null}
@@ -349,75 +419,6 @@ const NotesPageClient = () => {
           ) : null}
         </SurfacePanel>
 
-        <SurfacePanel
-          title={editingId ? "Edit note" : "Add note"}
-          description={editingId ? "Update content or replace the attachment for the selected note." : "Create a note and optionally attach one file."}
-        >
-          <ProfilePanel title={editingId ? "Selected note" : "New note"} description="This uses the same live note and attachment contracts already active in the workspace.">
-            <form className="space-y-4" onSubmit={onSubmit}>
-              <label className={profileLabelClassName}>
-                <span>Title</span>
-                <input
-                  className={profileFieldClassName}
-                  type="text"
-                  required
-                  value={form.title}
-                  onChange={(event) => setForm((prev) => ({ ...prev, title: event.target.value }))}
-                />
-              </label>
-              <label className={profileLabelClassName}>
-                <span>Note</span>
-                <textarea
-                  className={profileTextAreaClassName}
-                  required
-                  rows={5}
-                  value={form.body}
-                  onChange={(event) => setForm((prev) => ({ ...prev, body: event.target.value }))}
-                />
-              </label>
-              <div className="grid gap-4">
-                <label className={profileLabelClassName}>
-                  <span>Attach file</span>
-                  <input
-                    className={profileFieldClassName}
-                    type="file"
-                    accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.png,.jpg,.jpeg"
-                    onChange={(event) => (editingId ? setEditingFile(event.target.files?.[0] ?? null) : setFile(event.target.files?.[0] ?? null))}
-                  />
-                </label>
-                <label className={profileLabelClassName}>
-                  <span>External file URL</span>
-                  <input
-                    className={profileFieldClassName}
-                    type="url"
-                    value={form.fileUrl}
-                    onChange={(event) => setForm((prev) => ({ ...prev, fileUrl: event.target.value }))}
-                  />
-                </label>
-              </div>
-              <label className="inline-flex items-center gap-3 text-sm font-medium text-slate-700">
-                <input
-                  className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                  type="checkbox"
-                  checked={form.isPinned}
-                  onChange={(event) => setForm((prev) => ({ ...prev, isPinned: event.target.checked }))}
-                />
-                Pin note
-              </label>
-              <SectionActionBar>
-                {editingId ? (
-                  <Button type="button" variant="secondary" className="rounded-full" onClick={resetComposer}>
-                    Cancel
-                  </Button>
-                ) : null}
-                <Button type="submit" className="rounded-full" disabled={submitting}>
-                  {submitting ? "Saving..." : editingId ? "Save changes" : "Save note"}
-                </Button>
-              </SectionActionBar>
-            </form>
-            {message ? <p className="mt-3 text-sm text-emerald-700">{message}</p> : null}
-          </ProfilePanel>
-        </SurfacePanel>
       </div>
     </PageContainer>
   );
