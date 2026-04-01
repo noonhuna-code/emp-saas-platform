@@ -16,6 +16,7 @@ const TAB_ITEMS = [
 ];
 
 const PAGE_SIZE = 10;
+const REQUEST_TIMEOUT_MS = 12000;
 
 const addDays = (value: string, days: number) => {
   const date = new Date(`${value}T00:00:00`);
@@ -44,6 +45,20 @@ const overlapsDateWindow = (
   return assignment.effective_from <= end && effectiveTo >= start;
 };
 
+const withTimeout = async <T,>(promise: Promise<T>, label: string): Promise<T> => {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        timeoutId = setTimeout(() => reject(new Error(`${label} timed out`)), REQUEST_TIMEOUT_MS);
+      }),
+    ]);
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
+};
+
 export default function ShiftsPageClient() {
   const [assignments, setAssignments] = useState<ShiftAssignment[]>([]);
   const [breakAssignments, setBreakAssignments] = useState<BreakAssignment[]>([]);
@@ -58,29 +73,35 @@ export default function ShiftsPageClient() {
     setLoading(true);
     setError(null);
     try {
-      const [assignmentsResult, breaksResult, templatesResult] = await Promise.all([
-        fetchShiftAssignments({ limit: 60 }),
-        fetchBreakAssignments({ limit: 80 }),
-        fetchShiftTemplates(),
+      const [assignmentsResult, breaksResult, templatesResult] = await Promise.allSettled([
+        withTimeout(fetchShiftAssignments({ limit: 60 }), "Shift assignments"),
+        withTimeout(fetchBreakAssignments({ limit: 80 }), "Break assignments"),
+        withTimeout(fetchShiftTemplates(), "Shift templates"),
       ]);
 
-      if (!assignmentsResult.ok || !assignmentsResult.data) {
-        setError(assignmentsResult.error ?? "Unable to load shift assignments");
+      if (assignmentsResult.status !== "fulfilled" || !assignmentsResult.value.ok || !assignmentsResult.value.data) {
+        setError(
+          assignmentsResult.status === "fulfilled"
+            ? assignmentsResult.value.error ?? "Unable to load shift assignments"
+            : assignmentsResult.reason instanceof Error
+              ? assignmentsResult.reason.message
+              : "Unable to load shift assignments"
+        );
         setAssignments([]);
       } else {
-        setAssignments(assignmentsResult.data.rows ?? []);
+        setAssignments(assignmentsResult.value.data.rows ?? []);
       }
 
-      if (!breaksResult.ok || !breaksResult.data) {
+      if (breaksResult.status !== "fulfilled" || !breaksResult.value.ok || !breaksResult.value.data) {
         setBreakAssignments([]);
       } else {
-        setBreakAssignments(breaksResult.data.rows ?? []);
+        setBreakAssignments(breaksResult.value.data.rows ?? []);
       }
 
-      if (!templatesResult.ok || !templatesResult.data) {
+      if (templatesResult.status !== "fulfilled" || !templatesResult.value.ok || !templatesResult.value.data) {
         setTemplates([]);
       } else {
-        setTemplates(templatesResult.data.rows ?? []);
+        setTemplates(templatesResult.value.data.rows ?? []);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to load shifts");
