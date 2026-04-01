@@ -40,6 +40,27 @@ const computeLiveWorkedMinutes = (checkIn: string | null | undefined, checkOut: 
   return Math.max(0, Math.floor((Date.now() - startedAt.getTime()) / 60000));
 };
 
+const computeShiftMinutes = (startTime: string | null | undefined, endTime: string | null | undefined): number | null => {
+  if (!startTime || !endTime) return null;
+  const startParts = startTime.split(":");
+  const endParts = endTime.split(":");
+  if (startParts.length < 2 || endParts.length < 2) return null;
+  const startHourPart = startParts[0];
+  const startMinutePart = startParts[1];
+  const endHourPart = endParts[0];
+  const endMinutePart = endParts[1];
+  if (!startHourPart || !startMinutePart || !endHourPart || !endMinutePart) return null;
+  const startHour = Number(startHourPart);
+  const startMinute = Number(startMinutePart);
+  const endHour = Number(endHourPart);
+  const endMinute = Number(endMinutePart);
+  if (![startHour, startMinute, endHour, endMinute].every(Number.isFinite)) return null;
+  const start = startHour * 60 + startMinute;
+  let end = endHour * 60 + endMinute;
+  if (end < start) end += 24 * 60;
+  return Math.max(0, end - start);
+};
+
 const prettyCurrentStatus = (status: AttendanceTodayResponse["currentStatus"]): string => {
   switch (status) {
     case "clocked_in":
@@ -163,6 +184,12 @@ export const AttendancePageClient = ({
   const overview = useMemo(() => {
     const record = todayData?.record;
     const geo = todayData?.latestGeoEvent;
+    const workedMinutes = record?.work_minutes ?? computeLiveWorkedMinutes(record?.check_in, record?.check_out);
+    const shiftMinutes = computeShiftMinutes(todayData?.shiftContext.start_time, todayData?.shiftContext.end_time);
+    const remainingShiftMinutes =
+      typeof shiftMinutes === "number" && typeof workedMinutes === "number" && shiftMinutes > workedMinutes
+        ? shiftMinutes - workedMinutes
+        : 0;
     return [
       {
         label: "Day state",
@@ -171,8 +198,11 @@ export const AttendancePageClient = ({
       },
       {
         label: "Worked today",
-        value: formatMinutes(record?.work_minutes ?? computeLiveWorkedMinutes(record?.check_in, record?.check_out)),
-        hint: `Overtime ${formatMinutes(record?.overtime_minutes)}`,
+        value: formatMinutes(workedMinutes),
+        hint:
+          remainingShiftMinutes > 0
+            ? `Remaining in shift ${formatMinutes(remainingShiftMinutes)}`
+            : `Overtime ${formatMinutes(record?.overtime_minutes)}`,
       },
       {
         label: "Shift start",

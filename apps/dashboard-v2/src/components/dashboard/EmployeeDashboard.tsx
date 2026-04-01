@@ -69,6 +69,27 @@ const formatMinutes = (value?: number | null) => {
   return `${hours}h ${minutes}m`;
 };
 
+const computeShiftMinutes = (startTime?: string | null, endTime?: string | null) => {
+  if (!startTime || !endTime) return null;
+  const startParts = startTime.split(":");
+  const endParts = endTime.split(":");
+  if (startParts.length < 2 || endParts.length < 2) return null;
+  const startHourPart = startParts[0];
+  const startMinutePart = startParts[1];
+  const endHourPart = endParts[0];
+  const endMinutePart = endParts[1];
+  if (!startHourPart || !startMinutePart || !endHourPart || !endMinutePart) return null;
+  const startHour = Number(startHourPart);
+  const startMinute = Number(startMinutePart);
+  const endHour = Number(endHourPart);
+  const endMinute = Number(endMinutePart);
+  if (![startHour, startMinute, endHour, endMinute].every(Number.isFinite)) return null;
+  const start = startHour * 60 + startMinute;
+  let end = endHour * 60 + endMinute;
+  if (end < start) end += 24 * 60;
+  return Math.max(0, end - start);
+};
+
 const formatDate = (value?: string | null) => {
   if (!value) return "-";
   const parsed = new Date(value);
@@ -155,6 +176,11 @@ export const EmployeeDashboard = ({
   const leave = getLeaveBreakdown(data?.leaveBalances ?? []);
   const remainingLeave = Math.max(leave.totalEntitled - leave.totalUsed, 0);
   const leaveUtilization = leave.totalEntitled > 0 ? Math.round((leave.totalUsed / leave.totalEntitled) * 100) : 0;
+  const scheduledShiftMinutes = computeShiftMinutes(shift?.start_time, shift?.end_time);
+  const remainingShiftMinutes =
+    typeof scheduledShiftMinutes === "number" && typeof attendance?.workMinutes === "number" && scheduledShiftMinutes > attendance.workMinutes
+      ? scheduledShiftMinutes - attendance.workMinutes
+      : 0;
   const unreadNotifications = workspace?.counts.unreadNotifications ?? 0;
   const pendingShiftSwaps = (data?.notifications ?? []).filter((row) => /shift swap/i.test(`${row.title} ${row.message ?? ""}`)).length;
   const upcomingLeave = (data?.notifications ?? []).find((row) =>
@@ -318,7 +344,13 @@ export const EmployeeDashboard = ({
               <StatCard
                 label="Work logged"
                 value={formatMinutes(attendance?.workMinutes)}
-                hint={attendance?.checkIn ? `Checked in ${attendance.checkIn}` : "No check-in recorded yet"}
+                hint={
+                  attendance?.checkIn
+                    ? remainingShiftMinutes > 0
+                      ? `Remaining in shift ${formatMinutes(remainingShiftMinutes)}`
+                      : `Checked in ${attendance.checkIn}`
+                    : "No check-in recorded yet"
+                }
               />
               <StatCard
                 label="Payroll snapshot"

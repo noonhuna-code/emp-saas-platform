@@ -500,7 +500,9 @@ export const classifyAttendanceDayState = (
     };
   }
 
-  if (input.explicitAbsent) {
+  const workedTruth = hasWorkedAttendanceTruth(input);
+
+  if (input.explicitAbsent && !workedTruth) {
     return {
       dayState: "absent",
       payrollImpact: "no_pay_absent",
