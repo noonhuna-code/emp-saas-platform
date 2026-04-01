@@ -16,11 +16,14 @@ const TAB_ITEMS = [
 ];
 
 const PAGE_SIZE = 10;
-const REQUEST_TIMEOUT_MS = 12000;
+const CORE_REQUEST_TIMEOUT_MS = 5000;
+const SECONDARY_REQUEST_TIMEOUT_MS = 8000;
+
+const parseUtcDate = (value: string) => new Date(`${value}T00:00:00.000Z`);
 
 const addDays = (value: string, days: number) => {
-  const date = new Date(`${value}T00:00:00`);
-  date.setDate(date.getDate() + days);
+  const date = parseUtcDate(value);
+  date.setUTCDate(date.getUTCDate() + days);
   return date.toISOString().slice(0, 10);
 };
 
@@ -45,13 +48,13 @@ const overlapsDateWindow = (
   return assignment.effective_from <= end && effectiveTo >= start;
 };
 
-const withTimeout = async <T,>(promise: Promise<T>, label: string): Promise<T> => {
+const withTimeout = async <T,>(promise: Promise<T>, label: string, timeoutMs: number): Promise<T> => {
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
   try {
     return await Promise.race([
       promise,
       new Promise<T>((_, reject) => {
-        timeoutId = setTimeout(() => reject(new Error(`${label} timed out`)), REQUEST_TIMEOUT_MS);
+        timeoutId = setTimeout(() => reject(new Error(`${label} timed out`)), timeoutMs);
       }),
     ]);
   } finally {
@@ -64,6 +67,7 @@ export default function ShiftsPageClient() {
   const [breakAssignments, setBreakAssignments] = useState<BreakAssignment[]>([]);
   const [templates, setTemplates] = useState<ShiftTemplate[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingSecondary, setLoadingSecondary] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("today");
   const [query, setQuery] = useState("");
@@ -71,42 +75,50 @@ export default function ShiftsPageClient() {
 
   const load = useCallback(async () => {
     setLoading(true);
+    setLoadingSecondary(false);
     setError(null);
     try {
-      const [assignmentsResult, breaksResult, templatesResult] = await Promise.allSettled([
-        withTimeout(fetchShiftAssignments({ limit: 60 }), "Shift assignments"),
-        withTimeout(fetchBreakAssignments({ limit: 80 }), "Break assignments"),
-        withTimeout(fetchShiftTemplates(), "Shift templates"),
-      ]);
+      const assignmentsResult = await withTimeout(
+        fetchShiftAssignments({ limit: 60 }),
+        "Shift assignments",
+        CORE_REQUEST_TIMEOUT_MS
+      );
 
-      if (assignmentsResult.status !== "fulfilled" || !assignmentsResult.value.ok || !assignmentsResult.value.data) {
+      if (!assignmentsResult.ok || !assignmentsResult.data) {
         setError(
-          assignmentsResult.status === "fulfilled"
-            ? assignmentsResult.value.error ?? "Unable to load shift assignments"
-            : assignmentsResult.reason instanceof Error
-              ? assignmentsResult.reason.message
-              : "Unable to load shift assignments"
+          assignmentsResult.error ?? "Unable to load shift assignments"
         );
         setAssignments([]);
       } else {
-        setAssignments(assignmentsResult.value.data.rows ?? []);
-      }
+        setAssignments(assignmentsResult.data.rows ?? []);
+        setLoading(false);
+        setLoadingSecondary(true);
 
-      if (breaksResult.status !== "fulfilled" || !breaksResult.value.ok || !breaksResult.value.data) {
-        setBreakAssignments([]);
-      } else {
-        setBreakAssignments(breaksResult.value.data.rows ?? []);
-      }
+        const [breaksResult, templatesResult] = await Promise.allSettled([
+          withTimeout(fetchBreakAssignments({ limit: 80 }), "Break assignments", SECONDARY_REQUEST_TIMEOUT_MS),
+          withTimeout(fetchShiftTemplates(), "Shift templates", SECONDARY_REQUEST_TIMEOUT_MS),
+        ]);
 
-      if (templatesResult.status !== "fulfilled" || !templatesResult.value.ok || !templatesResult.value.data) {
-        setTemplates([]);
-      } else {
-        setTemplates(templatesResult.value.data.rows ?? []);
+        if (breaksResult.status === "fulfilled" && breaksResult.value.ok && breaksResult.value.data) {
+          setBreakAssignments(breaksResult.value.data.rows ?? []);
+        } else {
+          setBreakAssignments([]);
+        }
+
+        if (templatesResult.status === "fulfilled" && templatesResult.value.ok && templatesResult.value.data) {
+          setTemplates(templatesResult.value.data.rows ?? []);
+        } else {
+          setTemplates([]);
+        }
+
+        setLoadingSecondary(false);
+        return;
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to load shifts");
     } finally {
       setLoading(false);
+      setLoadingSecondary(false);
     }
   }, []);
 
@@ -157,7 +169,7 @@ export default function ShiftsPageClient() {
 
       return {
         date,
-        dayLabel: new Date(`${date}T00:00:00`).toLocaleDateString(undefined, { weekday: "short" }),
+        dayLabel: parseUtcDate(date).toLocaleDateString(undefined, { weekday: "short", timeZone: "UTC" }),
         shiftName: activeAssignment?.shift_name ?? "No shift assigned",
         startTime: activeAssignment?.start_time ?? "-",
         endTime: activeAssignment?.end_time ?? "-",
@@ -248,7 +260,14 @@ export default function ShiftsPageClient() {
             />
           </SurfacePanel>
 
-          <SurfacePanel title="Daily shift schedule" description="See the exact shift and break plan for each day in the selected window.">
+          <SurfacePanel
+            title="Daily shift schedule"
+            description={
+              loadingSecondary
+                ? "Loading break windows and template details in the background."
+                : "See the exact shift and break plan for each day in the selected window."
+            }
+          >
             <div className="space-y-4">
               <ProfileTableToolbar
                 query={query}

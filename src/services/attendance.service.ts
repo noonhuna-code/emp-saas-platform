@@ -1441,7 +1441,8 @@ export const listShiftAssignments = async (
     }
 
     const limit = Math.max(1, Math.min(options.limit ?? 20, 100));
-    const { data, error } = await ctx.supabase
+    const adminClient = createSupabaseAdminClient();
+    const { data, error } = await adminClient
       .from("employee_shift_assignments")
       .select("id, employee_id, shift_template_id, effective_from, effective_to, created_at")
       .eq("company_id", ctx.companyId)
@@ -1728,7 +1729,8 @@ export const listBreakAssignments = async (
     }
 
     const limit = Math.max(1, Math.min(options.limit ?? 40, 120));
-    const { data, error } = await ctx.supabase
+    const adminClient = createSupabaseAdminClient();
+    const { data, error } = await adminClient
       .from("employee_break_assignments")
       .select("id, employee_id, break_name, break_start_time, break_end_time, effective_from, effective_to, created_at")
       .eq("company_id", ctx.companyId)
