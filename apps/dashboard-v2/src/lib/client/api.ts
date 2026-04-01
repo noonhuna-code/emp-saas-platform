@@ -79,7 +79,9 @@ import type {
 } from "@/lib/types/billing";
 import type { PlatformOverviewResponse } from "@/lib/types/platform";
 import type {
+  AssignBreakResponse,
   AssignShiftResponse,
+  BreakAssignmentsResponse,
   ShiftAssignableEmployeesResponse,
   ShiftAssignmentsResponse,
   ShiftTemplatesResponse,
@@ -1610,6 +1612,32 @@ export const assignShift = async (payload: {
 }): Promise<DashboardApiResult<AssignShiftResponse>> => {
   return postJson<AssignShiftResponse>(
     "/api/attendance/shifts/assign",
+    payload as Record<string, unknown>,
+    { "Idempotency-Key": crypto.randomUUID() }
+  );
+};
+
+export const fetchBreakAssignments = async (params: {
+  employeeId?: string;
+  limit?: number;
+} = {}): Promise<DashboardApiResult<BreakAssignmentsResponse>> => {
+  const query = new URLSearchParams();
+  if (params.employeeId) query.set("employeeId", params.employeeId);
+  if (typeof params.limit === "number") query.set("limit", String(params.limit));
+  const suffix = query.toString() ? `?${query.toString()}` : "";
+  return fetchWithCache<BreakAssignmentsResponse>(`/api/attendance/breaks/assignments${suffix}`);
+};
+
+export const assignBreak = async (payload: {
+  employeeId: string;
+  breakName?: string | null;
+  breakStartTime: string;
+  breakEndTime: string;
+  effectiveFrom: string;
+  effectiveTo?: string | null;
+}): Promise<DashboardApiResult<AssignBreakResponse>> => {
+  return postJson<AssignBreakResponse>(
+    "/api/attendance/breaks/assign",
     payload as Record<string, unknown>,
     { "Idempotency-Key": crypto.randomUUID() }
   );

@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { fetchShiftAssignments, fetchShiftTemplates } from "@/lib/client/api";
-import type { ShiftAssignment, ShiftTemplate } from "@/lib/types/workspace";
+import { fetchBreakAssignments, fetchShiftAssignments, fetchShiftTemplates } from "@/lib/client/api";
+import type { BreakAssignment, ShiftAssignment, ShiftTemplate } from "@/lib/types/workspace";
 import { Tabs } from "@/components/shared/Tabs";
 import { LoadingState } from "@/components/states/LoadingState";
 import { ErrorState } from "@/components/states/ErrorState";
@@ -25,13 +25,18 @@ const addDays = (value: string, days: number) => {
 
 const todayText = () => new Date().toISOString().slice(0, 10);
 
-const overlapsWindow = (assignment: ShiftAssignment, start: string, end: string) => {
+const overlapsDateWindow = (
+  assignment: { effective_from: string; effective_to: string | null },
+  start: string,
+  end: string
+) => {
   const effectiveTo = assignment.effective_to ?? "9999-12-31";
   return assignment.effective_from <= end && effectiveTo >= start;
 };
 
 export default function ShiftsPageClient() {
   const [assignments, setAssignments] = useState<ShiftAssignment[]>([]);
+  const [breakAssignments, setBreakAssignments] = useState<BreakAssignment[]>([]);
   const [templates, setTemplates] = useState<ShiftTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -43,8 +48,9 @@ export default function ShiftsPageClient() {
     setLoading(true);
     setError(null);
     try {
-      const [assignmentsResult, templatesResult] = await Promise.all([
+      const [assignmentsResult, breaksResult, templatesResult] = await Promise.all([
         fetchShiftAssignments({ limit: 60 }),
+        fetchBreakAssignments({ limit: 80 }),
         fetchShiftTemplates(),
       ]);
 
@@ -53,6 +59,12 @@ export default function ShiftsPageClient() {
         setAssignments([]);
       } else {
         setAssignments(assignmentsResult.data.rows ?? []);
+      }
+
+      if (!breaksResult.ok || !breaksResult.data) {
+        setBreakAssignments([]);
+      } else {
+        setBreakAssignments(breaksResult.data.rows ?? []);
       }
 
       if (!templatesResult.ok || !templatesResult.data) {
@@ -85,7 +97,7 @@ export default function ShiftsPageClient() {
 
   const scopedAssignments = useMemo(() => {
     return assignments
-      .filter((assignment) => overlapsWindow(assignment, windowRange.start, windowRange.end))
+      .filter((assignment) => overlapsDateWindow(assignment, windowRange.start, windowRange.end))
       .map((assignment) => {
         const template = templateMap.get(assignment.shift_template_id);
         return {
@@ -113,8 +125,29 @@ export default function ShiftsPageClient() {
     );
   }, [query, scopedAssignments]);
 
+  const scopedBreaks = useMemo(() => {
+    return breakAssignments.filter((assignment) => overlapsDateWindow(assignment, windowRange.start, windowRange.end));
+  }, [breakAssignments, windowRange.end, windowRange.start]);
+
+  const filteredBreaks = useMemo(() => {
+    const normalized = query.trim().toLowerCase();
+    if (!normalized) return scopedBreaks;
+    return scopedBreaks.filter((assignment) =>
+      [
+        assignment.break_name,
+        assignment.break_start_time,
+        assignment.break_end_time,
+        assignment.effective_from,
+        assignment.effective_to,
+      ]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(normalized))
+    );
+  }, [query, scopedBreaks]);
+
   const totalPages = Math.max(1, Math.ceil(filteredAssignments.length / PAGE_SIZE));
   const visibleAssignments = filteredAssignments.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const visibleBreaks = filteredBreaks.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const summary = useMemo(() => {
     return {
@@ -140,6 +173,7 @@ export default function ShiftsPageClient() {
           <StatGrid>
             <StatCard label="Assignments in view" value={summary.total} hint={summary.range} />
             <StatCard label="Active today" value={summary.current} hint="Assignments covering today" />
+            <StatCard label="Break windows" value={scopedBreaks.length} hint="Assigned breaks in view" />
             <StatCard label="Templates" value={templates.length} hint="Real shift definitions" />
           </StatGrid>
 
@@ -207,6 +241,42 @@ export default function ShiftsPageClient() {
                 onPrevious={() => setPage((value) => Math.max(1, value - 1))}
                 onNext={() => setPage((value) => Math.min(totalPages, value + 1))}
               />
+            </div>
+          </SurfacePanel>
+
+          <SurfacePanel title="Assigned breaks" description="Break windows assigned by your team lead or HR appear here on the same horizon as your shifts.">
+            <div className="space-y-4">
+              <ProfileTableShell>
+                <table className="min-w-full divide-y divide-slate-200 text-sm">
+                  <thead className="bg-slate-50/80 text-left text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                    <tr>
+                      <th className="px-4 py-3">Break</th>
+                      <th className="px-4 py-3">Start</th>
+                      <th className="px-4 py-3">End</th>
+                      <th className="px-4 py-3">Effective from</th>
+                      <th className="px-4 py-3">Effective to</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 bg-white text-slate-700">
+                    {visibleBreaks.map((assignment) => (
+                      <tr key={assignment.id}>
+                        <td className="px-4 py-3 font-medium text-slate-900">{assignment.break_name ?? "Assigned break"}</td>
+                        <td className="px-4 py-3">{assignment.break_start_time}</td>
+                        <td className="px-4 py-3">{assignment.break_end_time}</td>
+                        <td className="px-4 py-3">{assignment.effective_from}</td>
+                        <td className="px-4 py-3">{assignment.effective_to ?? "Open-ended"}</td>
+                      </tr>
+                    ))}
+                    {visibleBreaks.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="px-4 py-8 text-center text-sm text-slate-500">
+                          No assigned breaks found for this window.
+                        </td>
+                      </tr>
+                    ) : null}
+                  </tbody>
+                </table>
+              </ProfileTableShell>
             </div>
           </SurfacePanel>
         </>

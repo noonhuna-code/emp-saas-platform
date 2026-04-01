@@ -243,6 +243,17 @@ export type ShiftAssignmentRow = {
   created_at: string;
 };
 
+export type BreakAssignmentRow = {
+  id: string;
+  employee_id: string;
+  break_name: string | null;
+  break_start_time: string;
+  break_end_time: string;
+  effective_from: string;
+  effective_to: string | null;
+  created_at: string;
+};
+
 export type ShiftAssignableEmployeeRow = {
   id: string;
   full_name: string | null;
@@ -1518,6 +1529,174 @@ export const assignEmployeeShift = async (
     return { ok: true, data: { assignmentId: data.id as string } };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "Shift assignment failed" };
+  }
+};
+
+const breakTimesOverlap = (
+  leftStart: string,
+  leftEnd: string,
+  rightStart: string,
+  rightEnd: string
+): boolean => leftStart < rightEnd && rightStart < leftEnd;
+
+export const listBreakAssignments = async (
+  ctx: ServiceContext,
+  options: { employeeId?: string; limit?: number } = {}
+): Promise<ServiceResult<{ employeeId: string; rows: BreakAssignmentRow[] }>> => {
+  try {
+    await requireAttendanceEntitlement(ctx);
+
+    const targetEmployeeId = options.employeeId?.trim() || (await resolveCurrentEmployeeId(ctx.supabase, ctx));
+    if (!targetEmployeeId) return { ok: false, error: "Employee record not found" };
+
+    if (ctx.permissions.includes("manage_employees")) {
+      assertEmployeeScope(targetEmployeeId, ctx);
+    } else if (ctx.permissions.includes("manage_attendance") || ctx.permissions.includes("assign_shifts") || ctx.permissions.includes("manage_shifts")) {
+      await ensureHierarchyAssignable(ctx, targetEmployeeId);
+      assertEmployeeScope(targetEmployeeId, ctx);
+    } else {
+      await ensureSelfOrManageAttendance(ctx, targetEmployeeId);
+      assertEmployeeScope(targetEmployeeId, ctx);
+    }
+
+    const limit = Math.max(1, Math.min(options.limit ?? 40, 120));
+    const { data, error } = await ctx.supabase
+      .from("employee_break_assignments")
+      .select("id, employee_id, break_name, break_start_time, break_end_time, effective_from, effective_to, created_at")
+      .eq("company_id", ctx.companyId)
+      .eq("employee_id", targetEmployeeId)
+      .is("is_deleted", false)
+      .order("effective_from", { ascending: false })
+      .order("break_start_time", { ascending: true })
+      .limit(limit);
+
+    if (error) {
+      return { ok: false, error: sanitizeError(error.message, "Unable to load break assignments") };
+    }
+
+    return {
+      ok: true,
+      data: {
+        employeeId: targetEmployeeId,
+        rows: (data ?? []).map((row) => ({
+          id: row.id as string,
+          employee_id: row.employee_id as string,
+          break_name: (row.break_name as string | null) ?? null,
+          break_start_time: row.break_start_time as string,
+          break_end_time: row.break_end_time as string,
+          effective_from: row.effective_from as string,
+          effective_to: (row.effective_to as string | null) ?? null,
+          created_at: row.created_at as string
+        }))
+      }
+    };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Break assignments lookup failed" };
+  }
+};
+
+export const assignEmployeeBreak = async (
+  ctx: ServiceContext,
+  payload: {
+    employeeId: string;
+    breakName?: string | null;
+    breakStartTime: string;
+    breakEndTime: string;
+    effectiveFrom: string;
+    effectiveTo?: string | null;
+  }
+): Promise<ServiceResult<{ assignmentId: string }>> => {
+  try {
+    await requireAttendanceEntitlement(ctx);
+    if (!hasShiftAssignmentPermission(ctx)) {
+      return { ok: false, error: "Permission denied" };
+    }
+
+    const employeeId = payload.employeeId?.trim();
+    const breakName = payload.breakName?.trim() || null;
+    const breakStartTime = payload.breakStartTime?.trim();
+    const breakEndTime = payload.breakEndTime?.trim();
+    const effectiveFrom = payload.effectiveFrom?.trim();
+    const effectiveTo = payload.effectiveTo?.trim() || null;
+
+    if (!employeeId || !breakStartTime || !breakEndTime || !effectiveFrom) {
+      return { ok: false, error: "Employee, break times, and effective date are required" };
+    }
+    if (breakEndTime <= breakStartTime) {
+      return { ok: false, error: "Break end time must be after break start time" };
+    }
+
+    await ensureHierarchyAssignable(ctx, employeeId);
+    assertEmployeeScope(employeeId, ctx);
+    const actorProfileId = await getActorProfileId(ctx.supabase, ctx);
+    if (!actorProfileId) {
+      return { ok: false, error: "Actor profile not found" };
+    }
+
+    const adminClient = createSupabaseAdminClient();
+    const { data: overlapping, error: overlapError } = await adminClient
+      .from("employee_break_assignments")
+      .select("id, break_start_time, break_end_time")
+      .eq("company_id", ctx.companyId)
+      .eq("employee_id", employeeId)
+      .is("is_deleted", false)
+      .lte("effective_from", effectiveTo ?? effectiveFrom)
+      .or(`effective_to.is.null,effective_to.gte.${effectiveFrom}`);
+
+    if (overlapError) {
+      return { ok: false, error: sanitizeError(overlapError.message, "Unable to validate break overlaps") };
+    }
+
+    if ((overlapping ?? []).some((row) => breakTimesOverlap(breakStartTime, breakEndTime, String(row.break_start_time), String(row.break_end_time)))) {
+      return { ok: false, error: "Break window overlaps an existing assigned break" };
+    }
+
+    const { data, error } = await adminClient
+      .from("employee_break_assignments")
+      .insert({
+        company_id: ctx.companyId,
+        employee_id: employeeId,
+        break_name: breakName,
+        break_start_time: breakStartTime,
+        break_end_time: breakEndTime,
+        effective_from: effectiveFrom,
+        effective_to: effectiveTo,
+        assigned_by: actorProfileId,
+        created_by: actorProfileId,
+        updated_by: actorProfileId
+      })
+      .select("id")
+      .single();
+
+    if (error || !data) {
+      return { ok: false, error: sanitizeError(error?.message, "Unable to assign break") };
+    }
+
+    const { data: employeeRow } = await ctx.supabase
+      .from("employees")
+      .select("user_profile_id")
+      .eq("company_id", ctx.companyId)
+      .eq("id", employeeId)
+      .is("is_deleted", false)
+      .maybeSingle();
+
+    if (employeeRow?.user_profile_id) {
+      await ctx.supabase.from("notifications").insert({
+        company_id: ctx.companyId,
+        recipient_profile_id: employeeRow.user_profile_id,
+        type: "break_assignment",
+        title: "Break assignment updated",
+        message: `${breakName ?? "Assigned break"} is scheduled from ${breakStartTime} to ${breakEndTime} starting ${effectiveFrom}.`,
+        reference_type: "employee_break_assignment",
+        reference_id: data.id as string,
+        created_by: actorProfileId,
+        updated_by: actorProfileId
+      });
+    }
+
+    return { ok: true, data: { assignmentId: data.id as string } };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Break assignment failed" };
   }
 };
 

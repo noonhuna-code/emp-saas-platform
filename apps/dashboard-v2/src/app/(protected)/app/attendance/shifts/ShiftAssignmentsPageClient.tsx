@@ -2,12 +2,14 @@
 
 import { useEffect, useState } from "react";
 import {
+  assignBreak,
+  fetchBreakAssignments,
   assignShift,
   fetchShiftAssignableEmployees,
   fetchShiftAssignments,
   fetchShiftTemplates
 } from "@/lib/client/api";
-import type { ShiftAssignableEmployee, ShiftAssignment, ShiftTemplate } from "@/lib/types/workspace";
+import type { BreakAssignment, ShiftAssignableEmployee, ShiftAssignment, ShiftTemplate } from "@/lib/types/workspace";
 import { LoadingState } from "@/components/states/LoadingState";
 import { ErrorState } from "@/components/states/ErrorState";
 
@@ -21,10 +23,14 @@ const ShiftAssignmentsPageClient = () => {
   const [templates, setTemplates] = useState<ShiftTemplate[]>([]);
   const [employees, setEmployees] = useState<ShiftAssignableEmployee[]>([]);
   const [assignments, setAssignments] = useState<ShiftAssignment[]>([]);
+  const [breakAssignments, setBreakAssignments] = useState<BreakAssignment[]>([]);
   const [employeeId, setEmployeeId] = useState("");
   const [shiftTemplateId, setShiftTemplateId] = useState("");
   const [effectiveFrom, setEffectiveFrom] = useState(new Date().toISOString().slice(0, 10));
   const [effectiveTo, setEffectiveTo] = useState("");
+  const [breakName, setBreakName] = useState("Break 1");
+  const [breakStartTime, setBreakStartTime] = useState("13:00");
+  const [breakEndTime, setBreakEndTime] = useState("14:00");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -54,15 +60,25 @@ const ShiftAssignmentsPageClient = () => {
     const resolved = (selectedEmployeeId ?? employeeId).trim();
     if (!resolved) {
       setAssignments([]);
+      setBreakAssignments([]);
       return;
     }
 
-    const result = await fetchShiftAssignments({ employeeId: resolved, limit: 20 });
-    if (!result.ok || !result.data) {
-      setError(result.error ?? "Unable to load assignments");
+    const [shiftResult, breakResult] = await Promise.all([
+      fetchShiftAssignments({ employeeId: resolved, limit: 20 }),
+      fetchBreakAssignments({ employeeId: resolved, limit: 30 }),
+    ]);
+
+    if (!shiftResult.ok || !shiftResult.data) {
+      setError(shiftResult.error ?? "Unable to load assignments");
       return;
     }
-    setAssignments(result.data.rows);
+    if (!breakResult.ok || !breakResult.data) {
+      setError(breakResult.error ?? "Unable to load break assignments");
+      return;
+    }
+    setAssignments(shiftResult.data.rows);
+    setBreakAssignments(breakResult.data.rows);
   };
 
   useEffect(() => {
@@ -78,6 +94,11 @@ const ShiftAssignmentsPageClient = () => {
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (!employeeId) return;
+    void loadAssignments(employeeId);
+  }, [employeeId]);
 
   const onAssign = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -97,6 +118,29 @@ const ShiftAssignmentsPageClient = () => {
     }
 
     setMessage("Shift assigned successfully.");
+    await loadAssignments(employeeId);
+  };
+
+  const onAssignBreak = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setError(null);
+    setMessage(null);
+
+    const result = await assignBreak({
+      employeeId,
+      breakName,
+      breakStartTime,
+      breakEndTime,
+      effectiveFrom,
+      effectiveTo: effectiveTo || null
+    });
+
+    if (!result.ok) {
+      setError(result.error ?? "Unable to assign break");
+      return;
+    }
+
+    setMessage("Break assigned successfully.");
     await loadAssignments(employeeId);
   };
 
@@ -164,6 +208,28 @@ const ShiftAssignmentsPageClient = () => {
       </section>
 
       <section className="card stack">
+        <h3>Assign break</h3>
+        <p className="muted">Assign one or more break windows to the selected agent using real effective dates and exact times.</p>
+        <form className="form-grid form-grid--three" onSubmit={onAssignBreak}>
+          <label>
+            Break name
+            <input type="text" value={breakName} onChange={(event) => setBreakName(event.target.value)} placeholder="Break 1 / Lunch / Break 2" />
+          </label>
+          <label>
+            Break start
+            <input type="time" required value={breakStartTime} onChange={(event) => setBreakStartTime(event.target.value)} />
+          </label>
+          <label>
+            Break end
+            <input type="time" required value={breakEndTime} onChange={(event) => setBreakEndTime(event.target.value)} />
+          </label>
+          <div className="row" style={{ alignItems: "end" }}>
+            <button type="submit" className="primary-btn">Assign break</button>
+          </div>
+        </form>
+      </section>
+
+      <section className="card stack">
         <h3>Assignable employees</h3>
         {employees.length === 0 ? <p className="muted">No employees available in your assignment scope.</p> : null}
         {employees.length > 0 ? (
@@ -213,6 +279,37 @@ const ShiftAssignmentsPageClient = () => {
                 <tr key={row.id}>
                   <td>{row.id.slice(0, 8)}...</td>
                   <td>{row.shift_template_id}</td>
+                  <td>{row.effective_from}</td>
+                  <td>{row.effective_to ?? "-"}</td>
+                  <td>{new Date(row.created_at).toLocaleString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : null}
+      </section>
+
+      <section className="card stack">
+        <h3>Assigned breaks</h3>
+        {breakAssignments.length === 0 ? <p className="muted">No break assignments loaded.</p> : null}
+        {breakAssignments.length > 0 ? (
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Break</th>
+                <th>Start</th>
+                <th>End</th>
+                <th>Effective From</th>
+                <th>Effective To</th>
+                <th>Created</th>
+              </tr>
+            </thead>
+            <tbody>
+              {breakAssignments.map((row) => (
+                <tr key={row.id}>
+                  <td>{row.break_name ?? "Assigned break"}</td>
+                  <td>{row.break_start_time}</td>
+                  <td>{row.break_end_time}</td>
                   <td>{row.effective_from}</td>
                   <td>{row.effective_to ?? "-"}</td>
                   <td>{new Date(row.created_at).toLocaleString()}</td>

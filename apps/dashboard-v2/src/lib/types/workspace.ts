@@ -160,6 +160,22 @@ export type ShiftAssignmentsResponse = {
   rows: ShiftAssignment[];
 };
 
+export type BreakAssignment = {
+  id: string;
+  employee_id: string;
+  break_name: string | null;
+  break_start_time: string;
+  break_end_time: string;
+  effective_from: string;
+  effective_to: string | null;
+  created_at: string;
+};
+
+export type BreakAssignmentsResponse = {
+  employeeId: string;
+  rows: BreakAssignment[];
+};
+
 export type ShiftAssignableEmployee = {
   id: string;
   full_name: string | null;
@@ -175,5 +191,9 @@ export type ShiftAssignableEmployeesResponse = {
 };
 
 export type AssignShiftResponse = {
+  assignmentId: string;
+};
+
+export type AssignBreakResponse = {
   assignmentId: string;
 };
