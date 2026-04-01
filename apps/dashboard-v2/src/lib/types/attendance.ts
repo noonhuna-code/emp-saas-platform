@@ -181,6 +181,8 @@ export type AttendanceCorrectionReviewMutationResponse = {
 export type TeamAttendanceRow = {
   employee_id: string;
   employee_name?: string | null;
+  employee_code?: string | null;
+  designation?: string | null;
   department_id?: string | null;
   department_name?: string | null;
   team_id?: string | null;
@@ -192,6 +194,9 @@ export type TeamAttendanceRow = {
   leave_type_name: string | null;
   holiday_name: string | null;
   shift_name: string | null;
+  shift_start_time?: string | null;
+  shift_end_time?: string | null;
+  break_summary?: string | null;
   check_in: string | null;
   check_out: string | null;
   work_minutes: number | null;

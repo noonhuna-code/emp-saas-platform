@@ -188,6 +188,8 @@ export type AttendanceHistoryResponse = {
 export type TeamAttendanceRow = {
   employee_id: string;
   employee_name?: string | null;
+  employee_code?: string | null;
+  designation?: string | null;
   department_id?: string | null;
   department_name?: string | null;
   team_id?: string | null;
@@ -199,6 +201,9 @@ export type TeamAttendanceRow = {
   leave_type_name: string | null;
   holiday_name: string | null;
   shift_name: string | null;
+  shift_start_time?: string | null;
+  shift_end_time?: string | null;
+  break_summary?: string | null;
   check_in: string | null;
   check_out: string | null;
   work_minutes: number | null;
@@ -328,6 +333,8 @@ type AttendanceDayStateClassifierInput = {
 
 type EmployeeAttendanceScopeRow = {
   id: string;
+  employee_code?: string | null;
+  designation?: string | null;
   department_id?: string | null;
   department_name?: string | null;
   team_id?: string | null;
@@ -343,6 +350,8 @@ type AttendanceRecordScopeRow = AttendanceTodayRecord & {
 type EmployeeDayStateSnapshot = {
   employee_id: string;
   employee_name: string | null;
+  employee_code: string | null;
+  designation: string | null;
   department_id: string | null;
   department_name: string | null;
   team_id: string | null;
@@ -357,6 +366,7 @@ type EmployeeDayStateSnapshot = {
   leave_context: AttendanceLeaveContext | null;
   holiday_context: AttendanceHolidayContext | null;
   late_login_request: AttendanceLateLoginRequest;
+  break_summary: string | null;
   latestGeoEvent: AttendanceTodayResponse["latestGeoEvent"] | null;
 };
 
@@ -1061,6 +1071,8 @@ export const getAttendanceToday = async (
         {
           id: employeeId,
           employee_name: null,
+          employee_code: null,
+          designation: null,
           department_id: null,
           department_name: null,
           team_id: null,
@@ -1252,7 +1264,7 @@ export const listTeamAttendanceToday = async (
     const scope = await getAccessibleEmployeeScope(ctx);
     let employeesQuery = ctx.supabase
       .from("employees")
-      .select("id, department_id, team_id, user_profile_id, departments(name), teams(name), user_profiles(full_name)")
+      .select("id, employee_code, designation, department_id, team_id, user_profile_id, departments(name), teams(name), user_profiles(full_name)")
       .eq("company_id", ctx.companyId)
       .is("is_deleted", false);
 
@@ -1277,6 +1289,8 @@ export const listTeamAttendanceToday = async (
       ((employeeRows ?? []) as Array<any>).map((row) => ({
         id: row.id as string,
         employee_name: (row.user_profiles?.full_name as string | null) ?? null,
+        employee_code: (row.employee_code as string | null) ?? null,
+        designation: (row.designation as string | null) ?? null,
         department_id: (row.department_id as string | null) ?? null,
         department_name: (row.departments?.name as string | null) ?? null,
         team_id: (row.team_id as string | null) ?? null,
@@ -1296,6 +1310,8 @@ export const listTeamAttendanceToday = async (
       .map((row) => ({
         employee_id: row.employee_id,
         employee_name: row.employee_name,
+        employee_code: row.employee_code,
+        designation: row.designation,
         department_id: row.department_id,
         department_name: row.department_name,
         team_id: row.team_id,
@@ -1307,6 +1323,9 @@ export const listTeamAttendanceToday = async (
         leave_type_name: row.leave_context?.leave_type_name ?? null,
         holiday_name: row.holiday_context?.holiday_name ?? null,
         shift_name: row.shift_context.shift_name ?? null,
+        shift_start_time: row.shift_context.start_time ?? null,
+        shift_end_time: row.shift_context.end_time ?? null,
+        break_summary: row.break_summary,
         check_in: row.record?.check_in ?? null,
         check_out: row.record?.check_out ?? null,
         work_minutes: row.record?.work_minutes ?? null,
@@ -2189,7 +2208,7 @@ const loadEmployeeDateStates = async (
   const employeeIds = employeeRows.map((row) => row.id);
   const readClient = createSupabaseAdminClient();
 
-  const [attendanceResult, leaveResult, holidayResult, shiftResult] = await Promise.all([
+  const [attendanceResult, leaveResult, holidayResult, shiftResult, breakAssignmentsResult] = await Promise.all([
     readClient
       .from("attendance_records")
       .select(
@@ -2227,6 +2246,16 @@ const loadEmployeeDateStates = async (
       .or(`effective_to.is.null,effective_to.gte.${date}`)
       .is("is_deleted", false)
       .order("effective_from", { ascending: false })
+    ,
+    readClient
+      .from("employee_break_assignments")
+      .select("employee_id, break_name, break_start_time, break_end_time, effective_from, effective_to")
+      .eq("company_id", ctx.companyId)
+      .in("employee_id", employeeIds)
+      .lte("effective_from", date)
+      .or(`effective_to.is.null,effective_to.gte.${date}`)
+      .is("is_deleted", false)
+      .order("break_start_time", { ascending: true })
   ]);
 
   if (attendanceResult.error) {
@@ -2236,6 +2265,9 @@ const loadEmployeeDateStates = async (
     throw new Error("Unable to load attendance status");
   }
   if (shiftResult.error) {
+    throw new Error("Unable to load attendance status");
+  }
+  if (breakAssignmentsResult.error) {
     throw new Error("Unable to load attendance status");
   }
 
@@ -2308,6 +2340,18 @@ const loadEmployeeDateStates = async (
         end_time: (row.shift_templates?.end_time as string | null) ?? null
       });
     }
+  }
+
+  const breakSummaryByEmployeeId = new Map<string, string>();
+  for (const row of (breakAssignmentsResult.data ?? []) as Array<{
+    employee_id: string;
+    break_name?: string | null;
+    break_start_time: string;
+    break_end_time: string;
+  }>) {
+    const nextLabel = `${(row.break_name?.trim() || "Break")} ${row.break_start_time.slice(0, 5)}-${row.break_end_time.slice(0, 5)}`;
+    const previous = breakSummaryByEmployeeId.get(row.employee_id);
+    breakSummaryByEmployeeId.set(row.employee_id, previous ? `${previous}, ${nextLabel}` : nextLabel);
   }
 
   const attendanceIds = Array.from(latestAttendanceByEmployeeId.values()).map((row) => row.id);
@@ -2401,6 +2445,8 @@ const loadEmployeeDateStates = async (
       return {
         employee_id: employee.id,
         employee_name: employee.employee_name ?? null,
+        employee_code: employee.employee_code ?? null,
+        designation: employee.designation ?? null,
         department_id: employee.department_id ?? null,
         department_name: employee.department_name ?? null,
         team_id: employee.team_id ?? null,
@@ -2424,6 +2470,7 @@ const loadEmployeeDateStates = async (
         late_login_request: normalizedRecord
           ? lateLoginRequestByAttendanceId.get(normalizedRecord.id) ?? { exists: false, status: null, requestId: null }
           : { exists: false, status: null, requestId: null },
+        break_summary: breakSummaryByEmployeeId.get(employee.id) ?? null,
         latestGeoEvent
       } satisfies EmployeeDayStateSnapshot;
     })

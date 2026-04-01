@@ -31,6 +31,11 @@ const prettifyAttendanceStatus = (value: string | null | undefined): string => {
   return prettify(value);
 };
 
+const formatTime = (value: string | null | undefined): string => {
+  if (!value) return "-";
+  return value.slice(0, 5);
+};
+
 export const TeamAttendanceTable = ({
   rows,
   onAssignGo,
@@ -49,6 +54,8 @@ export const TeamAttendanceTable = ({
     return rows.filter((row) =>
       [
         row.employee_name,
+        row.employee_code,
+        row.designation,
         row.department_name,
         row.team_name,
         row.day_state,
@@ -56,6 +63,7 @@ export const TeamAttendanceTable = ({
         row.leave_type_name,
         row.holiday_name,
         row.shift_name,
+        row.break_summary,
         row.status,
         row.late_login_request.status,
       ]
@@ -99,7 +107,10 @@ export const TeamAttendanceTable = ({
                 <td className="px-4 py-3">
                   <div className="space-y-1">
                     <p className="font-medium text-slate-900">{row.employee_name ?? row.employee_id}</p>
-                    <p className="text-xs text-slate-500">{row.department_name ?? row.department_id ?? "No department"}</p>
+                    <p className="text-xs text-slate-500">
+                      {[row.employee_code, row.designation].filter(Boolean).join(" · ") || "No employee profile data"}
+                    </p>
+                    <p className="text-xs text-slate-400">{row.department_name ?? row.department_id ?? "No department"}</p>
                   </div>
                 </td>
                 <td className="px-4 py-3">{row.team_name ?? row.team_id ?? "-"}</td>
@@ -115,7 +126,13 @@ export const TeamAttendanceTable = ({
                 </td>
                 <td className="px-4 py-3 text-slate-600">
                   <div>{row.leave_type_name ?? row.holiday_name ?? row.shift_name ?? "-"}</div>
-                  <div className="text-xs text-slate-400">{prettifyAttendanceStatus(row.status)}</div>
+                  <div className="text-xs text-slate-400">
+                    {row.shift_name ? `${formatTime(row.shift_start_time)}-${formatTime(row.shift_end_time)}` : prettifyAttendanceStatus(row.status)}
+                  </div>
+                  {row.break_summary ? (
+                    <div className="text-xs text-slate-500">{row.break_summary}</div>
+                  ) : null}
+                  <div className="text-xs text-slate-400">Status: {prettifyAttendanceStatus(row.status)}</div>
                 </td>
                 <td className="px-4 py-3">
                   {onAssignGo && row.holiday_name && row.day_state !== "go_active" && row.day_state !== "go_applied" ? (

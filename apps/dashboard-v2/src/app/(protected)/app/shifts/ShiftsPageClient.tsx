@@ -25,6 +25,16 @@ const addDays = (value: string, days: number) => {
 
 const todayText = () => new Date().toISOString().slice(0, 10);
 
+const enumerateDates = (start: string, end: string) => {
+  const rows: string[] = [];
+  let current = start;
+  while (current <= end) {
+    rows.push(current);
+    current = addDays(current, 1);
+  }
+  return rows;
+};
+
 const overlapsDateWindow = (
   assignment: { effective_from: string; effective_to: string | null },
   start: string,
@@ -109,25 +119,52 @@ export default function ShiftsPageClient() {
       });
   }, [assignments, templateMap, windowRange.end, windowRange.start]);
 
-  const filteredAssignments = useMemo(() => {
+  const scopedBreaks = useMemo(() => {
+    return breakAssignments.filter((assignment) => overlapsDateWindow(assignment, windowRange.start, windowRange.end));
+  }, [breakAssignments, windowRange.end, windowRange.start]);
+
+  const dailySchedule = useMemo(() => {
+    return enumerateDates(windowRange.start, windowRange.end).map((date) => {
+      const activeAssignment = scopedAssignments.find((assignment) => {
+        const effectiveTo = assignment.effective_to ?? "9999-12-31";
+        return assignment.effective_from <= date && effectiveTo >= date;
+      });
+      const activeBreaks = scopedBreaks.filter((assignment) => {
+        const effectiveTo = assignment.effective_to ?? "9999-12-31";
+        return assignment.effective_from <= date && effectiveTo >= date;
+      });
+
+      return {
+        date,
+        dayLabel: new Date(`${date}T00:00:00`).toLocaleDateString(undefined, { weekday: "short" }),
+        shiftName: activeAssignment?.shift_name ?? "No shift assigned",
+        startTime: activeAssignment?.start_time ?? "-",
+        endTime: activeAssignment?.end_time ?? "-",
+        breaksLabel: activeBreaks.length > 0
+          ? activeBreaks
+              .map((assignment) => `${assignment.break_name ?? "Break"} ${assignment.break_start_time.slice(0, 5)}-${assignment.break_end_time.slice(0, 5)}`)
+              .join(", ")
+          : "No break assigned",
+      };
+    });
+  }, [scopedAssignments, scopedBreaks, windowRange.end, windowRange.start]);
+
+  const filteredSchedule = useMemo(() => {
     const normalized = query.trim().toLowerCase();
-    if (!normalized) return scopedAssignments;
-    return scopedAssignments.filter((assignment) =>
+    if (!normalized) return dailySchedule;
+    return dailySchedule.filter((assignment) =>
       [
-        assignment.shift_name,
-        assignment.start_time,
-        assignment.end_time,
-        assignment.effective_from,
-        assignment.effective_to,
+        assignment.date,
+        assignment.dayLabel,
+        assignment.shiftName,
+        assignment.startTime,
+        assignment.endTime,
+        assignment.breaksLabel,
       ]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(normalized))
     );
-  }, [query, scopedAssignments]);
-
-  const scopedBreaks = useMemo(() => {
-    return breakAssignments.filter((assignment) => overlapsDateWindow(assignment, windowRange.start, windowRange.end));
-  }, [breakAssignments, windowRange.end, windowRange.start]);
+  }, [dailySchedule, query]);
 
   const filteredBreaks = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -145,17 +182,17 @@ export default function ShiftsPageClient() {
     );
   }, [query, scopedBreaks]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredAssignments.length / PAGE_SIZE));
-  const visibleAssignments = filteredAssignments.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const totalPages = Math.max(1, Math.ceil(filteredSchedule.length / PAGE_SIZE));
+  const visibleAssignments = filteredSchedule.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   const visibleBreaks = filteredBreaks.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const summary = useMemo(() => {
     return {
-      total: scopedAssignments.length,
+      total: dailySchedule.length,
       current: scopedAssignments.filter((assignment) => assignment.effective_from <= todayText() && (assignment.effective_to ?? "9999-12-31") >= todayText()).length,
       range: `${windowRange.start} to ${windowRange.end}`,
     };
-  }, [scopedAssignments, windowRange.end, windowRange.start]);
+  }, [dailySchedule.length, scopedAssignments, windowRange.end, windowRange.start]);
 
   return (
     <PageContainer>
@@ -171,7 +208,7 @@ export default function ShiftsPageClient() {
       {!loading && !error ? (
         <>
           <StatGrid>
-            <StatCard label="Assignments in view" value={summary.total} hint={summary.range} />
+            <StatCard label="Days in view" value={summary.total} hint={summary.range} />
             <StatCard label="Active today" value={summary.current} hint="Assignments covering today" />
             <StatCard label="Break windows" value={scopedBreaks.length} hint="Assigned breaks in view" />
             <StatCard label="Templates" value={templates.length} hint="Real shift definitions" />
@@ -190,7 +227,7 @@ export default function ShiftsPageClient() {
             />
           </SurfacePanel>
 
-          <SurfacePanel title="Assigned shifts" description="Search your current schedule from one compact table.">
+          <SurfacePanel title="Daily shift schedule" description="See the exact shift and break plan for each day in the selected window.">
             <div className="space-y-4">
               <ProfileTableToolbar
                 query={query}
@@ -198,34 +235,36 @@ export default function ShiftsPageClient() {
                   setQuery(value);
                   setPage(1);
                 }}
-                placeholder="Search shift name, time, or effective date"
-                countLabel={`${filteredAssignments.length} assignments`}
+                placeholder="Search date, day, shift, or break"
+                countLabel={`${filteredSchedule.length} days`}
               />
 
               <ProfileTableShell>
                 <table className="min-w-full divide-y divide-slate-200 text-sm">
                   <thead className="bg-slate-50/80 text-left text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
                     <tr>
+                      <th className="px-4 py-3">Date</th>
+                      <th className="px-4 py-3">Day</th>
                       <th className="px-4 py-3">Shift</th>
                       <th className="px-4 py-3">Start</th>
                       <th className="px-4 py-3">End</th>
-                      <th className="px-4 py-3">Effective from</th>
-                      <th className="px-4 py-3">Effective to</th>
+                      <th className="px-4 py-3">Breaks</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 bg-white text-slate-700">
                     {visibleAssignments.map((assignment) => (
-                      <tr key={assignment.id}>
-                        <td className="px-4 py-3 font-medium text-slate-900">{assignment.shift_name}</td>
-                        <td className="px-4 py-3">{assignment.start_time}</td>
-                        <td className="px-4 py-3">{assignment.end_time}</td>
-                        <td className="px-4 py-3">{assignment.effective_from}</td>
-                        <td className="px-4 py-3">{assignment.effective_to ?? "Open-ended"}</td>
+                      <tr key={assignment.date}>
+                        <td className="px-4 py-3 font-medium text-slate-900">{assignment.date}</td>
+                        <td className="px-4 py-3">{assignment.dayLabel}</td>
+                        <td className="px-4 py-3">{assignment.shiftName}</td>
+                        <td className="px-4 py-3">{assignment.startTime}</td>
+                        <td className="px-4 py-3">{assignment.endTime}</td>
+                        <td className="px-4 py-3">{assignment.breaksLabel}</td>
                       </tr>
                     ))}
                     {visibleAssignments.length === 0 ? (
                       <tr>
-                        <td colSpan={5} className="px-4 py-8 text-center text-sm text-slate-500">
+                        <td colSpan={6} className="px-4 py-8 text-center text-sm text-slate-500">
                           No shifts found for this window.
                         </td>
                       </tr>
@@ -237,7 +276,7 @@ export default function ShiftsPageClient() {
               <ProfileTablePagination
                 page={page}
                 totalPages={totalPages}
-                countLabel={`Showing ${visibleAssignments.length} of ${filteredAssignments.length} assignments`}
+                countLabel={`Showing ${visibleAssignments.length} of ${filteredSchedule.length} days`}
                 onPrevious={() => setPage((value) => Math.max(1, value - 1))}
                 onNext={() => setPage((value) => Math.min(totalPages, value + 1))}
               />
