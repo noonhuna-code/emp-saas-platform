@@ -16,8 +16,8 @@ const TAB_ITEMS = [
 ];
 
 const PAGE_SIZE = 10;
-const CORE_REQUEST_TIMEOUT_MS = 5000;
-const SECONDARY_REQUEST_TIMEOUT_MS = 8000;
+const CORE_REQUEST_TIMEOUT_MS = 20000;
+const SECONDARY_REQUEST_TIMEOUT_MS = 12000;
 
 const parseUtcDate = (value: string) => new Date(`${value}T00:00:00.000Z`);
 
