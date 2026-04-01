@@ -1172,29 +1172,34 @@ export const getAttendanceHistory = async (
       }
     }
 
-    let rows: AttendanceHistoryRow[] = attendanceRows.map((row) => {
-      const latestCorrection = latestCorrectionByAttendanceId.get(row.id);
-      const normalizedStatus = row.status ?? null;
-      const lateMinutes = row.late_minutes ?? null;
+      let rows: AttendanceHistoryRow[] = attendanceRows.map((row) => {
+        const latestCorrection = latestCorrectionByAttendanceId.get(row.id);
+        const normalizedStatus = row.status ?? null;
+        const lateMinutes = row.late_minutes ?? null;
+        const workedTruth = hasWorkedAttendanceTruth({
+          attendanceStatus: normalizedStatus,
+          hasCheckIn: Boolean(row.check_in),
+          workMinutes: row.work_minutes ?? null
+        });
 
-      return {
-        id: row.id,
-        attendance_date: row.attendance_date,
-        shift_start_time: row.shift_start_time ?? null,
+        return {
+          id: row.id,
+          attendance_date: row.attendance_date,
+          shift_start_time: row.shift_start_time ?? null,
         shift_end_time: row.shift_end_time ?? null,
         check_in: row.check_in ?? null,
         check_out: row.check_out ?? null,
-        status: normalizedStatus,
-        work_minutes: row.work_minutes ?? null,
-        overtime_minutes: row.overtime_minutes ?? null,
-        late_minutes: lateMinutes,
-        is_late: (lateMinutes ?? 0) > 0 || normalizedStatus === "late",
-        is_absent: normalizedStatus === "absent",
-        is_locked: false,
-        correction_status: latestCorrection?.status ?? null,
-        latest_correction_id: latestCorrection?.id ?? null
-      };
-    });
+          status: normalizedStatus,
+          work_minutes: row.work_minutes ?? null,
+          overtime_minutes: row.overtime_minutes ?? null,
+          late_minutes: lateMinutes,
+          is_late: (lateMinutes ?? 0) > 0 || normalizedStatus === "late",
+          is_absent: normalizedStatus === "absent" && !workedTruth,
+          is_locked: false,
+          correction_status: latestCorrection?.status ?? null,
+          latest_correction_id: latestCorrection?.id ?? null
+        };
+      });
 
     let total = count ?? rows.length;
     if (shouldFilterCorrected) {
