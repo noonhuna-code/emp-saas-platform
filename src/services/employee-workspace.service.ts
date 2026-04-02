@@ -1,3 +1,4 @@
+import { createClient } from "@supabase/supabase-js";
 import type { ServiceContext, ServiceResult } from "../lib/types";
 import { requirePlanFeature } from "../lib/entitlements";
 import { classifyAttendanceDayState, type AttendancePayrollImpact } from "./attendance.service";
@@ -124,6 +125,24 @@ const sanitizeError = (message: string | undefined, fallback: string): string =>
   return fallback;
 };
 
+const getAdminEnv = (key: string): string => process.env[key] ?? "";
+
+const createWorkspaceReadClient = () => {
+  const url = getAdminEnv("SUPABASE_URL") || getAdminEnv("NEXT_PUBLIC_SUPABASE_URL");
+  const serviceRoleKey = getAdminEnv("SUPABASE_SERVICE_ROLE_KEY");
+
+  if (!url || !serviceRoleKey) {
+    throw new Error("Missing Supabase admin environment variables");
+  }
+
+  return createClient(url, serviceRoleKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  });
+};
+
 const toDateText = (date: Date): string => date.toISOString().slice(0, 10);
 
 const parseMonthWindow = (monthParam?: string): { month: string; rangeStart: string; rangeEnd: string; year: number } => {
@@ -160,6 +179,17 @@ const enumerateDates = (startDate: string, endDate: string): string[] => {
     cursor.setUTCDate(cursor.getUTCDate() + 1);
   }
   return dates;
+};
+
+const calendarEventPriority = (event: WorkspaceCalendarEventRow): number => {
+  if (event.status === "go_active") return 0;
+  if (event.type === "attendance" && ["present", "late", "on_break", "clocked_out"].includes(event.status ?? "")) return 1;
+  if (event.status === "absent") return 2;
+  if (event.type === "leave") return 3;
+  if (event.status === "go_applied" || event.type === "holiday") return 4;
+  if (event.type === "shift") return 5;
+  if (event.status === "off_day") return 6;
+  return 7;
 };
 
 const clampDateRange = (
@@ -668,11 +698,12 @@ export const getWorkspaceCalendar = async (
       leaveFeatureEnabled = false;
     }
     const employeeId = await requireWorkspaceAccess(ctx);
+    const readClient = createWorkspaceReadClient();
     const { month, rangeStart, rangeEnd, year } = parseMonthWindow(monthParam);
     const today = toDateText(new Date());
 
     const leavePromise = leaveFeatureEnabled
-      ? ctx.supabase
+      ? readClient
           .from("leave_requests")
           .select("id, start_date, end_date, status, leave_types(name, is_paid)")
           .eq("company_id", ctx.companyId)
@@ -684,7 +715,7 @@ export const getWorkspaceCalendar = async (
       : Promise.resolve({ data: [] as any[], error: null });
 
     const leaveBalancePromise = leaveFeatureEnabled
-      ? ctx.supabase
+      ? readClient
           .from("leave_balances")
           .select("entitled_days, used_days")
           .eq("company_id", ctx.companyId)
@@ -704,26 +735,26 @@ export const getWorkspaceCalendar = async (
       attendanceResult,
       updatesResult
     ] = await Promise.all([
-      ctx.supabase
+      readClient
         .from("employees")
         .select("id, manager_id")
         .eq("company_id", ctx.companyId)
         .eq("id", employeeId)
         .is("is_deleted", false)
         .maybeSingle(),
-      ctx.supabase
+      readClient
         .from("companies")
         .select("id, name")
         .eq("id", ctx.companyId)
         .is("is_deleted", false)
         .maybeSingle(),
-      ctx.supabase
+      readClient
         .from("company_settings")
         .select("timezone")
         .eq("company_id", ctx.companyId)
         .is("is_deleted", false)
         .maybeSingle(),
-      ctx.supabase
+      readClient
         .from("company_holidays")
         .select("id, holiday_date, name")
         .eq("company_id", ctx.companyId)
@@ -734,7 +765,7 @@ export const getWorkspaceCalendar = async (
         .order("holiday_date", { ascending: true }),
       leavePromise,
       leaveBalancePromise,
-      ctx.supabase
+      readClient
         .from("employee_shift_assignments")
         .select("id, shift_template_id, effective_from, effective_to, shift_templates(name, start_time, end_time)")
         .eq("company_id", ctx.companyId)
@@ -742,7 +773,7 @@ export const getWorkspaceCalendar = async (
         .lte("effective_from", rangeEnd)
         .or(`effective_to.is.null,effective_to.gte.${rangeStart}`)
         .is("is_deleted", false),
-      ctx.supabase
+      readClient
         .from("attendance_records")
         .select("id, attendance_date, status, check_in, check_out, work_minutes, late_minutes")
         .eq("company_id", ctx.companyId)
@@ -750,7 +781,7 @@ export const getWorkspaceCalendar = async (
         .gte("attendance_date", rangeStart)
         .lte("attendance_date", rangeEnd)
         .is("is_deleted", false),
-      ctx.supabase
+      readClient
         .from("company_resources")
         .select("id, title, resource_type, summary, link_url, file_url, created_at")
         .eq("company_id", ctx.companyId)
@@ -777,7 +808,7 @@ export const getWorkspaceCalendar = async (
     let teamLeadName: string | null = null;
 
     if (managerId) {
-      const managerResult = await ctx.supabase
+      const managerResult = await readClient
         .from("employees")
         .select("id, user_profile_id")
         .eq("company_id", ctx.companyId)
@@ -786,7 +817,7 @@ export const getWorkspaceCalendar = async (
         .maybeSingle();
 
       if (managerResult.data?.user_profile_id) {
-        const profileResult = await ctx.supabase
+        const profileResult = await readClient
           .from("user_profiles")
           .select("full_name")
           .eq("company_id", ctx.companyId)
@@ -996,7 +1027,11 @@ export const getWorkspaceCalendar = async (
       .map(([date, events]) => ({
         date,
         is_today: date === today,
-        events: events.sort((left, right) => left.type.localeCompare(right.type))
+        events: events.sort((left, right) => {
+          const priority = calendarEventPriority(left) - calendarEventPriority(right);
+          if (priority !== 0) return priority;
+          return left.type.localeCompare(right.type);
+        })
       }));
 
     const entitledLeaves = leaveBalanceRows.reduce((sum, row) => sum + Number(row.entitled_days ?? 0), 0);

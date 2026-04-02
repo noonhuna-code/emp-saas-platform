@@ -532,7 +532,7 @@ export const classifyAttendanceDayState = (
     };
   }
 
-  if (!input.shiftAssigned) {
+  if (!input.shiftAssigned && !workedTruth) {
     return {
       dayState: "off_day",
       payrollImpact: "off_day_no_deduction",
@@ -821,7 +821,7 @@ const loadOpenAttendanceRecordForToday = async (
   const today = new Date().toISOString().slice(0, 10);
   const { data, error } = await client
     .from("attendance_records")
-    .select("id, check_in, check_out, is_locked")
+    .select("id, check_in, check_out, attendance_locked")
     .eq("company_id", ctx.companyId)
     .eq("employee_id", employeeId)
     .eq("attendance_date", today)
@@ -842,7 +842,7 @@ const loadOpenAttendanceRecordForToday = async (
     id: data.id as string,
     check_in: (data.check_in as string | null) ?? null,
     check_out: (data.check_out as string | null) ?? null,
-    is_locked: (data.is_locked as boolean | null) ?? null,
+    is_locked: (data.attendance_locked as boolean | null) ?? null,
   };
 };
 
