@@ -997,7 +997,9 @@ export const getWorkspaceCalendar = async (
         });
       }
 
-      if (!approvedLeave && !holiday) {
+      const shouldShowAttendanceEvent = Boolean(attendance?.id) || derived.dayState === "absent";
+
+      if (!approvedLeave && !holiday && shouldShowAttendanceEvent) {
         dayEvents.push({
           id: `attendance:${attendance?.id ?? date}`,
           type: "attendance",
