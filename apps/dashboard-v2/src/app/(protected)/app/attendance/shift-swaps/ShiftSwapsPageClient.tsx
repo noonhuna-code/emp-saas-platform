@@ -193,21 +193,21 @@ const ShiftSwapsPageClient = () => {
 
   return (
     <PageContainer>
-      <PageHeader
-        eyebrow="Leave & swaps"
-        title="Shift swap workspace"
-        description="Request, track, and review swaps from one compact register."
-        actions={
-          <>
-            <Badge className="rounded-full border-blue-200 bg-blue-50 text-blue-700">
-              {validTemplates.length} valid shift templates
-            </Badge>
-            <Button variant="secondary" className="rounded-full" onClick={() => void loadData()}>
-              Refresh
-            </Button>
-          </>
-        }
-      />
+        <PageHeader
+          eyebrow="Leave & swaps"
+          title="Shift swap workspace"
+          description="Request, track, and review swaps from one compact register."
+          actions={
+            <div className="flex items-center gap-2 overflow-x-auto whitespace-nowrap">
+              <Badge className="rounded-full border-blue-200 bg-blue-50 text-blue-700">
+                {validTemplates.length} valid shift templates
+              </Badge>
+              <Button variant="secondary" className="rounded-full" onClick={() => void loadData()}>
+                Refresh
+              </Button>
+            </div>
+          }
+        />
 
       {loading ? <LoadingState label="Loading shift swap workspace..." /> : null}
       {!loading && error ? (

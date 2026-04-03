@@ -34,10 +34,45 @@ const abbreviationForLeaveTitle = (title: string): string => {
   return title;
 };
 
+const compactHolidayLabel = (title: string): string => {
+  const normalized = title.trim();
+  const lower = normalized.toLowerCase();
+
+  if (lower.includes("eid ul fitr")) return "Eid ul Fitr";
+  if (lower.includes("eid ul adha")) return "Eid ul Adha";
+  if (lower.includes("ashura")) return "Ashura";
+  if (lower.includes("eid milad")) return "Eid Milad";
+  if (lower.includes("ramadan start")) return "Ramadan";
+  if (lower.includes("pakistan day")) return "Pakistan Day";
+  if (lower.includes("kashmir day")) return "Kashmir Day";
+  if (lower.includes("labour day")) return "Labour Day";
+  if (lower.includes("independence day")) return "Independence Day";
+  if (lower.includes("quaid-e-azam")) return "Quaid Day";
+  if (lower.includes("christmas")) return "Christmas";
+
+  return normalized.replace(/\s*\(estimated\)\s*/gi, "").trim();
+};
+
 const monthLabel = (month: string) => {
   const [yearText, monthText] = month.split("-");
   const parsed = new Date(Date.UTC(Number(yearText), Number(monthText) - 1, 1));
   return parsed.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+};
+
+const displayEventLabel = (event: WorkspaceCalendarEvent): string => {
+  if (event.status === "go_active") return "P.GO";
+  if (event.status === "go_applied") return "GO";
+  if (event.status === "leave_paid") return abbreviationForLeaveTitle(event.title);
+  if (event.status === "leave_unpaid") return "Unpaid Leave";
+  if (event.status === "absent") return "A";
+  if (event.status === "off_day") return "";
+  if (event.status === "late") return "P (Late)";
+  if (event.type === "attendance" && event.status === "present") return "P";
+  if (event.type === "attendance" && event.status === "clocked_out") return "P";
+  if (event.type === "attendance" && event.status === "on_break") return "P";
+  if (event.type === "holiday") return event.title.includes("GO") ? event.title : compactHolidayLabel(event.title);
+  if (event.type === "shift") return "";
+  return event.title;
 };
 
 const eventTone = (event: WorkspaceCalendarEvent): "info" | "success" | "warning" | "danger" | "default" => {
@@ -69,6 +104,8 @@ const compactEventLabel = (event: WorkspaceCalendarEvent): string => {
   if (event.type === "shift") return "";
   return event.title;
 };
+
+void compactEventLabel;
 
 const buildFallbackCalendar = (month: string): WorkspaceCalendarResponse => {
   const [yearText, monthText] = month.split("-");
@@ -262,12 +299,12 @@ const WorkCalendarPageClient = () => {
 
               <section className="calendar-grid">
                 {visibleDays.map((day: WorkspaceCalendarDay) => {
-                  const displayEvents = day.events
-                    .map((event) => ({
-                      event,
-                      label: compactEventLabel(event)
-                    }))
-                    .filter((item) => item.label.trim().length > 0);
+                    const displayEvents = day.events
+                      .map((event) => ({
+                        event,
+                        label: displayEventLabel(event)
+                      }))
+                      .filter((item) => item.label.trim().length > 0);
 
                   return (
                     <article key={day.date} className={`calendar-day ${day.is_today ? "calendar-day--today" : ""}`}>
