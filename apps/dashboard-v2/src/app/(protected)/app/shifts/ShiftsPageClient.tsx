@@ -65,6 +65,7 @@ const withTimeout = async <T,>(promise: Promise<T>, label: string, timeoutMs: nu
 };
 
 type ShiftsPageClientProps = {
+  employeeId?: string | null;
   initialAssignments?: ShiftAssignment[];
   initialBreakAssignments?: BreakAssignment[];
   initialTemplates?: ShiftTemplate[];
@@ -72,6 +73,7 @@ type ShiftsPageClientProps = {
 };
 
 export default function ShiftsPageClient({
+  employeeId = null,
   initialAssignments = [],
   initialBreakAssignments = [],
   initialTemplates = [],
@@ -80,7 +82,7 @@ export default function ShiftsPageClient({
   const [assignments, setAssignments] = useState<ShiftAssignment[]>(initialAssignments);
   const [breakAssignments, setBreakAssignments] = useState<BreakAssignment[]>(initialBreakAssignments);
   const [templates, setTemplates] = useState<ShiftTemplate[]>(initialTemplates);
-  const [loading, setLoading] = useState(!initialError && initialAssignments.length === 0);
+  const [loading, setLoading] = useState(false);
   const [loadingSecondary, setLoadingSecondary] = useState(false);
   const [error, setError] = useState<string | null>(initialError);
   const [activeTab, setActiveTab] = useState("today");
@@ -89,12 +91,12 @@ export default function ShiftsPageClient({
 
   const load = useCallback(async () => {
     const hasInitialData = initialAssignments.length > 0 || initialTemplates.length > 0 || initialBreakAssignments.length > 0;
-    setLoading(!hasInitialData);
+    setLoading(!hasInitialData && !employeeId);
     setLoadingSecondary(false);
     setError(null);
     try {
       const assignmentsResult = await withTimeout(
-        fetchShiftAssignments({ limit: 60 }),
+        fetchShiftAssignments({ employeeId: employeeId ?? undefined, limit: 60 }),
         "Shift assignments",
         CORE_REQUEST_TIMEOUT_MS
       );
@@ -110,7 +112,11 @@ export default function ShiftsPageClient({
         setLoadingSecondary(true);
 
         const [breaksResult, templatesResult] = await Promise.allSettled([
-          withTimeout(fetchBreakAssignments({ limit: 80 }), "Break assignments", SECONDARY_REQUEST_TIMEOUT_MS),
+          withTimeout(
+            fetchBreakAssignments({ employeeId: employeeId ?? undefined, limit: 80 }),
+            "Break assignments",
+            SECONDARY_REQUEST_TIMEOUT_MS
+          ),
           withTimeout(fetchShiftTemplates(), "Shift templates", SECONDARY_REQUEST_TIMEOUT_MS),
         ]);
 
@@ -135,7 +141,7 @@ export default function ShiftsPageClient({
       setLoading(false);
       setLoadingSecondary(false);
     }
-  }, [initialAssignments.length, initialBreakAssignments.length, initialTemplates.length]);
+  }, [employeeId, initialAssignments.length, initialBreakAssignments.length, initialTemplates.length]);
 
   useEffect(() => {
     void load();

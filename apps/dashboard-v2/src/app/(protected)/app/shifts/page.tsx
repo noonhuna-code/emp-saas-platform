@@ -12,9 +12,10 @@ export default async function ShiftsPage() {
   }
 
   const ctx = await buildServiceContext();
+  const employeeId = session.employeeId;
   const [assignmentsResult, breaksResult, templatesResult] = await Promise.allSettled([
-    listShiftAssignments(ctx, { limit: 60 }),
-    listBreakAssignments(ctx, { limit: 80 }),
+    listShiftAssignments(ctx, { employeeId, limit: 60 }),
+    listBreakAssignments(ctx, { employeeId, limit: 80 }),
     listShiftTemplates(ctx),
   ]);
 
@@ -42,6 +43,7 @@ export default async function ShiftsPage() {
 
   return (
     <ShiftsPageClient
+      employeeId={employeeId}
       initialAssignments={initialAssignments}
       initialBreakAssignments={initialBreakAssignments}
       initialTemplates={initialTemplates}
