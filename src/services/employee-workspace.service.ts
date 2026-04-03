@@ -103,19 +103,68 @@ export type WorkspaceCalendarRow = {
   days: WorkspaceCalendarDayRow[];
 };
 
+const PAKISTAN_RECURRING_PUBLIC_HOLIDAYS = [
+  { monthDay: "02-05", name: "Kashmir Day" },
+  { monthDay: "03-23", name: "Pakistan Day" },
+  { monthDay: "05-01", name: "Labour Day" },
+  { monthDay: "08-14", name: "Independence Day" },
+  { monthDay: "12-25", name: "Quaid-e-Azam Day / Christmas" }
+] as const;
+
 const PAKISTAN_ESTIMATED_HOLIDAYS: Record<number, Array<{ date: string; name: string }>> = {
+  2024: [
+    { date: "2024-04-10", name: "Eid ul Fitr (estimated)" },
+    { date: "2024-04-11", name: "Eid ul Fitr Holiday (estimated)" },
+    { date: "2024-04-12", name: "Eid ul Fitr Holiday (estimated)" },
+    { date: "2024-06-17", name: "Eid ul Adha (estimated)" },
+    { date: "2024-06-18", name: "Eid ul Adha Holiday (estimated)" },
+    { date: "2024-07-16", name: "Ashura (estimated)" },
+    { date: "2024-07-17", name: "Ashura Holiday (estimated)" },
+    { date: "2024-09-16", name: "Eid Milad-un-Nabi (estimated)" }
+  ],
+  2025: [
+    { date: "2025-03-31", name: "Eid ul Fitr (estimated)" },
+    { date: "2025-04-01", name: "Eid ul Fitr Holiday (estimated)" },
+    { date: "2025-04-02", name: "Eid ul Fitr Holiday (estimated)" },
+    { date: "2025-06-07", name: "Eid ul Adha (estimated)" },
+    { date: "2025-06-08", name: "Eid ul Adha Holiday (estimated)" },
+    { date: "2025-06-09", name: "Eid ul Adha Holiday (estimated)" },
+    { date: "2025-07-05", name: "Ashura (estimated)" },
+    { date: "2025-07-06", name: "Ashura Holiday (estimated)" },
+    { date: "2025-09-05", name: "Eid Milad-un-Nabi (estimated)" }
+  ],
   2026: [
-    { date: "2026-02-05", name: "Kashmir Day" },
     { date: "2026-02-18", name: "Ramadan start (estimated)" },
     { date: "2026-03-20", name: "Eid ul Fitr (estimated)" },
     { date: "2026-03-21", name: "Eid ul Fitr Holiday (estimated)" },
-    { date: "2026-03-23", name: "Pakistan Day" },
-    { date: "2026-05-01", name: "Labour Day" },
+    { date: "2026-03-22", name: "Eid ul Fitr Holiday (estimated)" },
     { date: "2026-05-27", name: "Eid ul Adha (estimated)" },
     { date: "2026-05-28", name: "Eid ul Adha Holiday (estimated)" },
-    { date: "2026-08-14", name: "Independence Day" }
+    { date: "2026-05-29", name: "Eid ul Adha Holiday (estimated)" },
+    { date: "2026-06-15", name: "Ashura (estimated)" },
+    { date: "2026-06-16", name: "Ashura Holiday (estimated)" },
+    { date: "2026-08-26", name: "Eid Milad-un-Nabi (estimated)" }
+  ],
+  2027: [
+    { date: "2027-03-09", name: "Eid ul Fitr (estimated)" },
+    { date: "2027-03-10", name: "Eid ul Fitr Holiday (estimated)" },
+    { date: "2027-03-11", name: "Eid ul Fitr Holiday (estimated)" },
+    { date: "2027-05-17", name: "Eid ul Adha (estimated)" },
+    { date: "2027-05-18", name: "Eid ul Adha Holiday (estimated)" },
+    { date: "2027-05-19", name: "Eid ul Adha Holiday (estimated)" },
+    { date: "2027-06-04", name: "Ashura (estimated)" },
+    { date: "2027-06-05", name: "Ashura Holiday (estimated)" },
+    { date: "2027-08-16", name: "Eid Milad-un-Nabi (estimated)" }
   ]
 };
+
+const getPakistanPublicHolidays = (year: number): Array<{ date: string; name: string }> => [
+  ...PAKISTAN_RECURRING_PUBLIC_HOLIDAYS.map((holiday) => ({
+    date: `${year}-${holiday.monthDay}`,
+    name: holiday.name
+  })),
+  ...(PAKISTAN_ESTIMATED_HOLIDAYS[year] ?? [])
+];
 
 const sanitizeError = (message: string | undefined, fallback: string): string => {
   if (!message) return fallback;
@@ -844,7 +893,7 @@ export const getWorkspaceCalendar = async (
       });
     });
 
-    for (const holiday of PAKISTAN_ESTIMATED_HOLIDAYS[year] ?? []) {
+    for (const holiday of getPakistanPublicHolidays(year)) {
       if (holiday.date < rangeStart || holiday.date > rangeEnd) continue;
       if (officialHolidayMap.has(holiday.date)) continue;
       officialHolidayMap.set(holiday.date, {

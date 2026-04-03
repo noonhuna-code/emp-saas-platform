@@ -180,14 +180,14 @@ const WorkCalendarPageClient = () => {
         description="Unified shift, leave, attendance, and company holiday timeline for the current workspace."
         chips={["Shifts", "Leave", "Attendance", "Company updates"]}
         actions={(
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-2 overflow-x-auto whitespace-nowrap">
             <button type="button" className="secondary-btn" onClick={() => setMonth((prev) => shiftMonth(prev, -1))}>
               <ChevronLeft className="h-4 w-4" /> Prev
             </button>
-            <input type="month" value={month} onChange={(event) => setMonth(event.target.value)} />
             <button type="button" className="secondary-btn" onClick={() => setMonth((prev) => shiftMonth(prev, 1))}>
               Next <ChevronRight className="h-4 w-4" />
             </button>
+            <input type="month" value={month} onChange={(event) => setMonth(event.target.value)} />
           </div>
         )}
       />
