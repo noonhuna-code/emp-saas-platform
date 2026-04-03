@@ -60,13 +60,13 @@ const compactEventLabel = (event: WorkspaceCalendarEvent): string => {
   if (event.status === "leave_unpaid") return "Unpaid Leave";
   if (event.status === "leave_paid") return event.title;
   if (event.status === "absent") return "A";
-  if (event.status === "off_day") return "Off";
+  if (event.status === "off_day") return "";
   if (event.status === "late") return "P (Late)";
   if (event.type === "attendance" && event.status === "present") return "P";
   if (event.type === "attendance" && event.status === "clocked_out") return "P";
   if (event.type === "attendance" && event.status === "on_break") return "P";
   if (event.type === "holiday") return event.title.includes("GO") ? event.title : "Holiday";
-  if (event.type === "shift") return "Shift";
+  if (event.type === "shift") return "";
   return event.title;
 };
 
@@ -261,22 +261,30 @@ const WorkCalendarPageClient = () => {
               </div>
 
               <section className="calendar-grid">
-                {visibleDays.map((day: WorkspaceCalendarDay) => (
-                  <article key={day.date} className={`calendar-day ${day.is_today ? "calendar-day--today" : ""}`}>
-                    <header className="flex items-baseline justify-between gap-2">
-                      <strong>{new Date(`${day.date}T00:00:00.000Z`).getUTCDate()}</strong>
-                      <span className="text-xs text-muted-foreground">{weekdayLabel(day.date)}</span>
-                    </header>
-                    <div className="calendar-day__events">
-                      {day.events.length === 0 ? <span className="text-xs text-muted-foreground">No events</span> : null}
-                      {day.events.slice(0, 4).map((event) => (
-                        <span key={event.id} className={`calendar-event-chip calendar-event-chip--${eventTone(event)}`} title={event.title}>
-                          {compactEventLabel(event)}
-                        </span>
-                      ))}
-                    </div>
-                  </article>
-                ))}
+                {visibleDays.map((day: WorkspaceCalendarDay) => {
+                  const displayEvents = day.events
+                    .map((event) => ({
+                      event,
+                      label: compactEventLabel(event)
+                    }))
+                    .filter((item) => item.label.trim().length > 0);
+
+                  return (
+                    <article key={day.date} className={`calendar-day ${day.is_today ? "calendar-day--today" : ""}`}>
+                      <header className="flex items-baseline justify-between gap-2">
+                        <strong>{new Date(`${day.date}T00:00:00.000Z`).getUTCDate()}</strong>
+                        <span className="text-xs text-muted-foreground">{weekdayLabel(day.date)}</span>
+                      </header>
+                      <div className="calendar-day__events">
+                        {displayEvents.slice(0, 4).map(({ event, label }) => (
+                          <span key={event.id} className={`calendar-event-chip calendar-event-chip--${eventTone(event)}`} title={event.title}>
+                            {label}
+                          </span>
+                        ))}
+                      </div>
+                    </article>
+                  );
+                })}
               </section>
             </CardContent>
           </Card>
