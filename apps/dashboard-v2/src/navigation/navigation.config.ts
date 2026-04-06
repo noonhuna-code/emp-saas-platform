@@ -233,7 +233,7 @@ export const TENANT_NAVIGATION_ITEMS: NavigationItem[] = [
     href: "/app/intelligence/feedback",
     label: "Feedback",
     icon: "message-square-heart",
-    description: "Supervisor feedback and coaching history",
+    description: "Team lead feedback and coaching history",
     personas: ["manager", "admin_ops", "executive"],
     requiresEmployeeContext: true,
     requiredFeatureAnyKeys: ["feature.analytics_standard", "feature.analytics_advanced"]

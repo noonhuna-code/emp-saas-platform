@@ -205,7 +205,7 @@ export const EmploymentInfoSection = ({
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <ReadonlyField label="Department" value={departmentName ?? "Unassigned"} />
             <ReadonlyField label="Team" value={teamName ?? "Unassigned"} />
-            <ReadonlyField label="Supervisor" value={supervisorName ?? "None"} />
+            <ReadonlyField label="Team lead" value={supervisorName ?? "None"} />
             <ReadonlyField label="Reporting manager" value={managerName ?? "None"} />
           </div>
         )}

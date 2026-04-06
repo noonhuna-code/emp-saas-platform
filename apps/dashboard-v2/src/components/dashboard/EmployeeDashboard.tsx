@@ -215,7 +215,7 @@ export const EmployeeDashboard = ({
   const supportChips = [
     workspace?.employee.department_name ? workspace.employee.department_name : "No department assigned",
     workspace?.employee.team_name ? workspace.employee.team_name : "No team assigned",
-    workspace?.teamLead?.full_name ? `Supervisor: ${workspace.teamLead.full_name}` : "Supervisor not assigned",
+    workspace?.teamLead?.full_name ? `Team lead: ${workspace.teamLead.full_name}` : "Team lead not assigned",
     workspace?.manager?.full_name ? `Manager: ${workspace.manager.full_name}` : "Manager not assigned",
   ];
 
@@ -292,7 +292,7 @@ export const EmployeeDashboard = ({
                   <SignalRow label="Files available" value={workspace?.counts.files ?? 0} />
                 </StatePanel>
                 <StatePanel title="Department support" description="Use the nearest support contacts when you need operational help" className="border-slate-200 bg-slate-50/80 shadow-none">
-                  <SignalRow label="Supervisor" value={workspace?.teamLead?.full_name ?? "Not assigned"} tone={workspace?.teamLead?.full_name ? "info" : "default"} />
+                  <SignalRow label="Team lead" value={workspace?.teamLead?.full_name ?? "Not assigned"} tone={workspace?.teamLead?.full_name ? "info" : "default"} />
                   <SignalRow label="Contact" value={workspace?.teamLead?.phone ?? "Not configured"} />
                   <SignalRow label="Manager" value={workspace?.manager?.full_name ?? "Not assigned"} tone={workspace?.manager?.full_name ? "info" : "default"} />
                   <SignalRow label="Contact" value={workspace?.manager?.phone ?? "Not configured"} />
@@ -309,7 +309,7 @@ export const EmployeeDashboard = ({
               <SignalRow label="Department" value={workspace?.department?.name ?? workspace?.employee.department_name ?? "-"} />
               <SignalRow label="Team" value={workspace?.employee.team_name ?? "-"} />
               <SignalRow label="Company" value={workspace?.company?.name ?? "-"} />
-              <SignalRow label="Supervisor contact" value={workspace?.teamLead?.phone ?? "Not configured"} />
+              <SignalRow label="Team lead contact" value={workspace?.teamLead?.phone ?? "Not configured"} />
               <SignalRow label="Manager" value={workspace?.manager?.full_name ?? "Not assigned"} />
               <SignalRow label="Manager contact" value={workspace?.manager?.phone ?? "Not configured"} />
               {hasPayslips ? <SignalRow label="Latest payslip" value={recentPayslip ? formatDate(recentPayslip.generated_at) : "No payslips yet"} /> : null}
@@ -598,7 +598,7 @@ export const EmployeeDashboard = ({
           <SurfacePanel title="Current support lines" description="Keep the nearest support and communication paths visible while you operate.">
             <div className="space-y-4">
               <SignalRow label="Reporting lead" value={workspace?.teamLead?.full_name ?? "Not assigned"} />
-              <SignalRow label="Supervisor contact" value={workspace?.teamLead?.phone ?? "Not configured"} tone={workspace?.teamLead?.phone ? "info" : "default"} />
+              <SignalRow label="Team lead contact" value={workspace?.teamLead?.phone ?? "Not configured"} tone={workspace?.teamLead?.phone ? "info" : "default"} />
               <SignalRow label="Manager" value={workspace?.manager?.full_name ?? "Not assigned"} />
               <SignalRow label="Manager contact" value={workspace?.manager?.phone ?? "Not configured"} tone={workspace?.manager?.phone ? "info" : "default"} />
               <SignalRow label="Department" value={workspace?.department?.name ?? workspace?.employee.department_name ?? "-"} />

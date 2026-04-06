@@ -3,7 +3,7 @@ import type { SupervisorFeedbackItem } from "@/lib/types/intelligence";
 export const SupervisorFeedbackTimeline = ({ feedback }: { feedback: SupervisorFeedbackItem[] }) => {
   return (
     <div className="card stack">
-      <h3>Supervisor Feedback</h3>
+      <h3>Team Lead Feedback</h3>
       <ul className="stack">
         {feedback.map((item) => (
           <li key={item.id} className="card">

@@ -1091,7 +1091,7 @@ export function OrganizationWorkspaceScreen({
                 </AdminGrid>
                 <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                   <CheckboxField checked={jobRoleForm.is_executive} onChange={(value) => setJobRoleForm((current) => ({ ...current, is_executive: value }))} label="Executive role" />
-                  <CheckboxField checked={jobRoleForm.supervisor_eligible} onChange={(value) => setJobRoleForm((current) => ({ ...current, supervisor_eligible: value }))} label="Supervisor eligible" />
+                  <CheckboxField checked={jobRoleForm.supervisor_eligible} onChange={(value) => setJobRoleForm((current) => ({ ...current, supervisor_eligible: value }))} label="Team lead eligible" />
                   <CheckboxField checked={jobRoleForm.approver_eligible} onChange={(value) => setJobRoleForm((current) => ({ ...current, approver_eligible: value }))} label="Approver eligible" />
                   <CheckboxField checked={jobRoleForm.delegate_eligible} onChange={(value) => setJobRoleForm((current) => ({ ...current, delegate_eligible: value }))} label="Delegate eligible" />
                 </div>
@@ -1110,7 +1110,7 @@ export function OrganizationWorkspaceScreen({
                       <td className="px-4 py-3">{row.role_family_name ?? row.role_family_key}</td>
                       <td className="px-4 py-3">{row.management_scope}</td>
                       <td className="px-4 py-3">{row.grade_band ?? "Not set"}</td>
-                      <td className="px-4 py-3">{[row.is_executive ? "Exec" : "", row.supervisor_eligible ? "Supervisor" : "", row.approver_eligible ? "Approver" : ""].filter(Boolean).join(", ") || "Not set"}</td>
+                      <td className="px-4 py-3">{[row.is_executive ? "Exec" : "", row.supervisor_eligible ? "Team lead" : "", row.approver_eligible ? "Approver" : ""].filter(Boolean).join(", ") || "Not set"}</td>
                       <td className="px-4 py-3">
                         {!row.is_system_role ? (
                           <div className="flex flex-wrap gap-2">

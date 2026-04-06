@@ -155,7 +155,7 @@ export const LeaveReviewPageClient = ({
         eyebrow="Leave approvals"
         title="Leave review workspace"
         description="Approve, reject, or cancel leave requests in the right sequence while keeping team coverage visible."
-        chips={["Supervisor aware", "Manager escalation", "HR-ready fallback"]}
+        chips={["Team lead aware", "Manager escalation", "HR-ready fallback"]}
         actions={
           <Button variant="secondary" className="rounded-full" onClick={() => void load()}>
             Refresh

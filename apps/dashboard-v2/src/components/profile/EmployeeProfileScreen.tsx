@@ -165,7 +165,7 @@ export const EmployeeProfileScreen = ({ employeeId }: { employeeId: string }) =>
   const designation = getEmployeeField(profile, "designation");
   const department = profile.department?.name ?? "Unassigned";
   const team = profile.team?.name ?? "No team";
-  const supervisor = profile.teamLead?.full_name ?? "No supervisor assigned";
+  const supervisor = profile.teamLead?.full_name ?? "No team lead assigned";
   const escalatedManager =
     profile.manager?.full_name ??
     profile.secondaryManagers?.find((entry) => entry.relation_type === "senior_manager")?.full_name ??

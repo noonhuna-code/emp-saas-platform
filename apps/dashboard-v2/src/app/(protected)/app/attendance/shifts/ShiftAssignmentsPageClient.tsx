@@ -256,7 +256,7 @@ const ShiftAssignmentsPageClient = () => {
     <div className="page-wrap page-grid">
       <section className="card stack">
         <h1>Shift Assignment</h1>
-        <p className="muted">Team leads, supervisors, HR, and admin roles can assign shifts within their scoped employee hierarchy.</p>
+        <p className="muted">Team leads, HR, and admin roles can assign shifts within their scoped employee hierarchy.</p>
       </section>
 
       {loading ? <LoadingState label="Loading shift module..." /> : null}

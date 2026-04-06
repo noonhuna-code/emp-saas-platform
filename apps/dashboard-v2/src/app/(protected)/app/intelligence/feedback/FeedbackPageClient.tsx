@@ -56,7 +56,7 @@ export const FeedbackPageClient = ({ canSubmit }: { canSubmit: boolean }) => {
   return (
     <div className="page-wrap stack">
       <section className="card stack">
-        <h1 style={{ margin: 0 }}>Supervisor Feedback</h1>
+        <h1 style={{ margin: 0 }}>Team Lead Feedback</h1>
         <p className="muted" style={{ margin: "6px 0 0" }}>
           Structured feedback captured by managers. Immutable once submitted.
         </p>
