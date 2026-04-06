@@ -26,6 +26,13 @@ const redirectToLoginWithErrorCode = (request: Request, code: LoginErrorCode): N
   return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(code)}`, request.url), { status: 303 });
 };
 
+const getAuthCookieOptions = () => ({
+  httpOnly: true,
+  sameSite: "lax" as const,
+  path: "/",
+  secure: process.env.NODE_ENV === "production",
+});
+
 const parseLoginInput = async (request: Request): Promise<{ email: string; password: string; next: string }> => {
   const contentType = request.headers.get("content-type") ?? "";
   if (contentType.includes("application/json")) {
@@ -246,7 +253,7 @@ export async function POST(request: Request) {
       }
       const response = redirectToLoginWithErrorCode(request, "RATE_LIMITED");
       for (const name of ["lf_access_token", "lf_refresh_token", "lf_session", "lf_session_id", "lf_role", "lf_permissions"]) {
-        response.cookies.set(name, "", { httpOnly: true, sameSite: "lax", path: "/", expires: new Date(0) });
+        response.cookies.set(name, "", { ...getAuthCookieOptions(), expires: new Date(0) });
       }
       return finalizeRoute(route, endpoint, response);
     }
@@ -258,10 +265,11 @@ export async function POST(request: Request) {
       const response = NextResponse.redirect(new URL(next.startsWith("/") ? next : "/app/dashboard", request.url), {
         status: 303
       });
-      response.cookies.set("lf_access_token", data.session.access_token, { httpOnly: true, sameSite: "lax", path: "/" });
-      response.cookies.set("lf_refresh_token", data.session.refresh_token, { httpOnly: true, sameSite: "lax", path: "/" });
-      response.cookies.set("lf_session", "1", { httpOnly: true, sameSite: "lax", path: "/" });
-      response.cookies.set("lf_session_id", sessionId, { httpOnly: true, sameSite: "lax", path: "/" });
+      const cookieOptions = getAuthCookieOptions();
+      response.cookies.set("lf_access_token", data.session.access_token, { ...cookieOptions, maxAge: 60 * 60 * 24 });
+      response.cookies.set("lf_refresh_token", data.session.refresh_token, { ...cookieOptions, maxAge: 60 * 60 * 24 });
+      response.cookies.set("lf_session", "1", { ...cookieOptions, maxAge: 60 * 60 * 24 });
+      response.cookies.set("lf_session_id", sessionId, { ...cookieOptions, maxAge: 60 * 60 * 24 });
 
       return finalizeRoute(route, endpoint, response);
     } catch (errorFinal) {

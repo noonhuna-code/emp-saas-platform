@@ -58,6 +58,7 @@ const SESSION_COOKIE_NAME = "lf_session_id";
 const SESSION_IDLE_MINUTES = 30;
 const SESSION_MAX_AGE_HOURS = 24;
 const SESSION_TOUCH_MINUTES = 5;
+const AUTH_COOKIE_MAX_AGE_SECONDS = SESSION_MAX_AGE_HOURS * 60 * 60;
 
 const normalizeRoleName = (value: string): string => {
   return value
@@ -135,6 +136,55 @@ const resolveUserProfile = async (
     userProfileId: profile.id,
     userUpdatedAt: userData.user.updated_at ?? null
   };
+};
+
+const refreshDashboardAccessToken = async (
+  refreshToken: string
+): Promise<{ accessToken: string; refreshToken: string } | null> => {
+  const supabase = createUserScopedSupabaseServerClient();
+  const { data, error } = await supabase.auth.refreshSession({ refresh_token: refreshToken });
+
+  if (error || !data.session?.access_token || !data.session.refresh_token) {
+    return null;
+  }
+
+  return {
+    accessToken: data.session.access_token,
+    refreshToken: data.session.refresh_token,
+  };
+};
+
+const tryPersistSessionCookies = async (
+  accessToken: string,
+  refreshToken: string
+): Promise<void> => {
+  try {
+    const cookieStore = await cookies();
+    const secure = process.env.NODE_ENV === "production";
+    cookieStore.set("lf_access_token", accessToken, {
+      httpOnly: true,
+      sameSite: "lax",
+      path: "/",
+      secure,
+      maxAge: AUTH_COOKIE_MAX_AGE_SECONDS,
+    });
+    cookieStore.set("lf_refresh_token", refreshToken, {
+      httpOnly: true,
+      sameSite: "lax",
+      path: "/",
+      secure,
+      maxAge: AUTH_COOKIE_MAX_AGE_SECONDS,
+    });
+    cookieStore.set("lf_session", "1", {
+      httpOnly: true,
+      sameSite: "lax",
+      path: "/",
+      secure,
+      maxAge: AUTH_COOKIE_MAX_AGE_SECONDS,
+    });
+  } catch {
+    // Server components may not always allow cookie mutation. Middleware/route handlers still handle refresh persistence.
+  }
 };
 
 const parseDate = (value?: string | null): Date | null => {
@@ -446,9 +496,18 @@ const resolveTodayShiftSummary = async (
 
 export const getServerSession = async (): Promise<DashboardServerSession> => {
   const cookieStore = await cookies();
-  const accessToken = cookieStore.get("lf_access_token")?.value ?? null;
-  const refreshToken = cookieStore.get("lf_refresh_token")?.value ?? null;
+  let accessToken = cookieStore.get("lf_access_token")?.value ?? null;
+  let refreshToken = cookieStore.get("lf_refresh_token")?.value ?? null;
   const sessionId = cookieStore.get(SESSION_COOKIE_NAME)?.value ?? null;
+
+  if (!accessToken && refreshToken) {
+    const refreshed = await refreshDashboardAccessToken(refreshToken);
+    if (refreshed) {
+      accessToken = refreshed.accessToken;
+      refreshToken = refreshed.refreshToken;
+      await tryPersistSessionCookies(accessToken, refreshToken);
+    }
+  }
 
   if (!accessToken) {
     return {
@@ -471,7 +530,17 @@ export const getServerSession = async (): Promise<DashboardServerSession> => {
     };
   }
 
-  const identity = await resolveUserProfile(accessToken);
+  let identity = await resolveUserProfile(accessToken);
+
+  if (!identity && refreshToken) {
+    const refreshed = await refreshDashboardAccessToken(refreshToken);
+    if (refreshed) {
+      accessToken = refreshed.accessToken;
+      refreshToken = refreshed.refreshToken;
+      await tryPersistSessionCookies(accessToken, refreshToken);
+      identity = await resolveUserProfile(accessToken);
+    }
+  }
 
   if (!identity) {
     return {

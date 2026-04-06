@@ -6,8 +6,9 @@ import { enforceAuthRateLimit } from "@emp/lib/auth-rate-limit";
 import { revokeAuthSession } from "@/lib/server/auth";
 
 const clearAuthCookies = (response: NextResponse) => {
+  const secure = process.env.NODE_ENV === "production";
   for (const name of ["lf_access_token", "lf_refresh_token", "lf_session", "lf_session_id", "lf_role", "lf_permissions"]) {
-    response.cookies.set(name, "", { httpOnly: true, sameSite: "lax", path: "/", expires: new Date(0) });
+    response.cookies.set(name, "", { httpOnly: true, sameSite: "lax", path: "/", secure, expires: new Date(0) });
   }
 };
 
