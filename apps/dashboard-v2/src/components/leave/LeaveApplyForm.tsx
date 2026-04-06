@@ -58,9 +58,9 @@ export const LeaveApplyForm = ({
 
   return (
     <form className="space-y-4" onSubmit={submit}>
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.65fr)_320px]">
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.55fr)_360px]">
         <div className={panelClassName}>
-          <div className="grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_180px_180px_minmax(0,1.2fr)]">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             <label className={labelClassName}>
               <span>Leave type</span>
               <select
@@ -103,7 +103,7 @@ export const LeaveApplyForm = ({
             <label className={labelClassName}>
               <span>Reason</span>
               <input
-                className={fieldClassName}
+                className={`${fieldClassName} md:col-span-2 xl:col-span-3`}
                 value={payload.reason ?? ""}
                 placeholder="Short reason"
                 onChange={(event) => setPayload((prev) => ({ ...prev, reason: event.target.value }))}
@@ -111,7 +111,7 @@ export const LeaveApplyForm = ({
             </label>
           </div>
 
-          <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_220px] xl:items-end">
+          <div className="mt-4 grid gap-4 md:grid-cols-[minmax(0,1fr)_280px] md:items-end">
             <label className="inline-flex items-center gap-3 text-sm font-medium text-slate-700">
               <input
                 className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
@@ -142,7 +142,7 @@ export const LeaveApplyForm = ({
                 </select>
               </label>
             ) : (
-              <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-500">
+              <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-500 md:min-h-[44px] md:flex md:items-center">
                 Full-day request
               </div>
             )}
