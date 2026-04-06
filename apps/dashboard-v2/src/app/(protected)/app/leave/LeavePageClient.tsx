@@ -18,6 +18,7 @@ import { Tabs } from "@/components/shared/Tabs";
 import { ErrorState } from "@/components/states/ErrorState";
 import { LoadingState } from "@/components/states/LoadingState";
 import {
+  FeatureCallout,
   PageContainer,
   PageHeader,
   StatCard,
@@ -44,8 +45,10 @@ export const LeavePageClient = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [employeeId, setEmployeeId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("apply");
+  const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -80,10 +83,15 @@ export const LeavePageClient = () => {
         setError(historyResult.error ?? "Unable to load leave history");
         setRequests([]);
         setHistoryHasNext(false);
+        setSelectedRequest(null);
       } else {
         const historyData = historyResult.data.requests ?? [];
         setRequests(historyData);
-        setSelectedRequest((prev) => prev ?? historyData[0] ?? null);
+        setSelectedRequest((prev) => {
+          const preferredId = selectedRequestId ?? prev?.id ?? null;
+          if (!preferredId) return historyData[0] ?? null;
+          return historyData.find((request) => request.id === preferredId) ?? historyData[0] ?? null;
+        });
         setHistoryHasNext(historyData.length === historyPageSize);
       }
     } catch (err) {
@@ -91,7 +99,7 @@ export const LeavePageClient = () => {
     } finally {
       setLoading(false);
     }
-  }, [historyPage, historyPageSize]);
+  }, [historyPage, historyPageSize, selectedRequestId]);
 
   useEffect(() => {
     void load();
@@ -118,11 +126,14 @@ export const LeavePageClient = () => {
     }
     setSubmitting(true);
     setError(null);
+    setNotice(null);
     try {
       const result = await applyLeaveRequest({ ...payload, employeeId });
       if (!result.ok) {
         setError(result.error ?? "Leave request failed");
       } else {
+        setSelectedRequestId(result.data?.requestId ?? null);
+        setNotice("Leave request submitted and routed into the live approval workflow.");
         await load();
         setActiveTab("apply");
       }
@@ -173,6 +184,14 @@ export const LeavePageClient = () => {
 
       {!loading ? (
         <>
+          {notice ? (
+            <FeatureCallout
+              badge="Leave applied"
+              title="Your request was submitted successfully"
+              description={notice}
+            />
+          ) : null}
+
           <StatGrid>
             <StatCard label="Applied" value={summary.applied} hint="Open or pending requests" />
             <StatCard label="Approved" value={summary.approved} hint="Approved leave requests" />
@@ -185,7 +204,7 @@ export const LeavePageClient = () => {
           </SurfacePanel>
 
           {activeTab === "apply" ? (
-            <div className="space-y-6">
+            <div className="grid gap-6 xl:grid-cols-[minmax(0,1.45fr)_minmax(360px,0.85fr)]">
               <SurfacePanel title="Apply for leave" description="Submit one request without leaving the employee workspace.">
                 <LeaveApplyForm
                   onSubmit={handleApply}
@@ -195,7 +214,10 @@ export const LeavePageClient = () => {
                   leaveTypes={leaveTypes}
                 />
               </SurfacePanel>
-              <SurfacePanel title="Request timeline" description="Latest stage and next approver for the most recent request.">
+              <SurfacePanel
+                title="Latest request status"
+                description="Track the current stage and next approver for your latest request without switching screens."
+              >
                 <LeaveStatusTimeline request={selectedRequest} />
               </SurfacePanel>
             </div>

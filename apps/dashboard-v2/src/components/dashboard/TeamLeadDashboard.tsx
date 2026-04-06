@@ -14,6 +14,7 @@ import {
   WorkflowPanel,
   type DashboardView
 } from "@/components/dashboard/DashboardPrimitives";
+import { Tabs } from "@/components/shared/Tabs";
 import { SkeletonCard, SkeletonChart, SkeletonList } from "@/components/ui/SkeletonBlocks";
 import ManagerKpiWidget from "@/components/dashboard/widgets/ManagerKpiWidget";
 import { fetchTeamAttendance } from "@/lib/client/api";
@@ -21,12 +22,20 @@ import type { TeamAttendanceRow } from "@/lib/types/attendance";
 
 const ManagerOperationsWidget = lazy(() => import("@/components/dashboard/widgets/ManagerOperationsWidget"));
 const ManagerWorkflowWidget = lazy(() => import("@/components/dashboard/widgets/ManagerWorkflowWidget"));
+const TEAM_LEAD_OPERATIONS_TABS = [
+  { id: "leave", label: "Leave approvals" },
+  { id: "late-login", label: "Late Login" },
+  { id: "profiles", label: "Employee profiles" },
+  { id: "shifts", label: "Assign shifts" },
+  { id: "breaks", label: "Assign breaks" },
+];
 
 export const TeamLeadDashboard = () => {
   const [view, setView] = useState<DashboardView>("workspace");
   const [teamRows, setTeamRows] = useState<TeamAttendanceRow[]>([]);
   const [teamRowsLoading, setTeamRowsLoading] = useState(true);
   const [teamRowsError, setTeamRowsError] = useState<string | null>(null);
+  const [operationsTab, setOperationsTab] = useState("leave");
   const perf = useDashboardPerf("team_lead");
 
   useEffect(() => {
@@ -187,17 +196,50 @@ export const TeamLeadDashboard = () => {
               </DashboardWidgetBoundary>
             </Suspense>
           </WorkflowPanel>
-          <WorkflowPanel title="Team lead action paths" subtitle="Fast routes for shifts, swaps, approvals, and direct report context">
-            <QuickActionGrid
-              actions={[
-                { label: "Team attendance", href: "/app/attendance/team", caption: "Coverage and late marks" },
-                { label: "Attendance review", href: "/app/attendance/review", caption: "Late Login and corrections" },
-                { label: "Shifts & breaks", href: "/app/attendance/shifts", caption: "Assign shift and break windows" },
-                { label: "Shift swaps", href: "/app/attendance/shift-swaps", caption: "Requests and decisions" },
-                { label: "Approvals queue", href: "/app/approvals", caption: "Operational blockers" },
-                { label: "Team chat", href: "/app/chat", caption: "Coordination and updates" }
-              ]}
-            />
+          <WorkflowPanel title="Team lead action paths" subtitle="Open the exact work lane you need instead of hunting through one crowded portal.">
+            <div className="space-y-4">
+              <Tabs tabs={TEAM_LEAD_OPERATIONS_TABS} active={operationsTab} onChange={setOperationsTab} noWrap variant="soft" />
+              {operationsTab === "leave" ? (
+                <QuickActionGrid
+                  actions={[
+                    { label: "Leave approvals", href: "/app/leave/review", caption: "Approve, reject, or cancel requests" },
+                    { label: "Approvals queue", href: "/app/approvals", caption: "Cross-module pending blockers" },
+                  ]}
+                />
+              ) : null}
+              {operationsTab === "late-login" ? (
+                <QuickActionGrid
+                  actions={[
+                    { label: "Attendance review", href: "/app/attendance/review", caption: "Late Login and attendance corrections" },
+                    { label: "Team attendance", href: "/app/attendance/team", caption: "Live late and presence context" },
+                  ]}
+                />
+              ) : null}
+              {operationsTab === "profiles" ? (
+                <QuickActionGrid
+                  actions={[
+                    { label: "Employee profiles", href: "/app/employees", caption: "Open direct-report records and profile context" },
+                    { label: "Team chat", href: "/app/chat", caption: "Coordinate directly with your team" },
+                  ]}
+                />
+              ) : null}
+              {operationsTab === "shifts" ? (
+                <QuickActionGrid
+                  actions={[
+                    { label: "Assign shifts", href: "/app/attendance/shifts", caption: "Set or edit shift windows" },
+                    { label: "Shift swaps", href: "/app/attendance/shift-swaps", caption: "Review swap requests and outcomes" },
+                  ]}
+                />
+              ) : null}
+              {operationsTab === "breaks" ? (
+                <QuickActionGrid
+                  actions={[
+                    { label: "Assign breaks", href: "/app/attendance/shifts", caption: "Set or edit break windows" },
+                    { label: "Team attendance", href: "/app/attendance/team", caption: "Check live break and presence context" },
+                  ]}
+                />
+              ) : null}
+            </div>
           </WorkflowPanel>
         </div>
 

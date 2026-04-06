@@ -26,7 +26,76 @@ export const LeaveReviewTable = ({
         <h3 className="text-base font-semibold tracking-tight text-slate-950">Pending leave approvals</h3>
         <p className="mt-1 text-sm text-slate-600">Only requests waiting on your current approval stage appear here.</p>
       </div>
-      <div className="overflow-x-auto">
+      <div className="space-y-3 p-4 lg:hidden">
+        {requests.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-500">
+            No pending requests
+          </div>
+        ) : null}
+        {requests.map((req) => (
+          <div
+            key={req.id}
+            className={[
+              "rounded-[22px] border border-slate-200 bg-slate-50/60 p-4",
+              focusId && req.id === focusId ? "ring-2 ring-blue-200" : "",
+            ].join(" ")}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="space-y-1">
+                <p className="font-semibold text-slate-950">{req.employee_name ?? req.employee_id}</p>
+                <p className="text-sm text-slate-600">{req.start_date} to {req.end_date}</p>
+                <p className="text-sm text-slate-500">{req.leave_type_name ?? req.leave_type_id}</p>
+              </div>
+              <span className="inline-flex rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">
+                {req.approval_stage_label ?? "Pending review"}
+              </span>
+            </div>
+
+            <div className="mt-4 grid gap-3 rounded-2xl border border-slate-200 bg-white p-3 text-sm text-slate-700">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-slate-500">Days</span>
+                <span className="font-medium text-slate-900">{req.total_days}</span>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-slate-500">Submitted</span>
+                <span className="font-medium text-slate-900">{new Date(req.created_at).toLocaleDateString()}</span>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-slate-500">Next approver</span>
+                <span className="font-medium text-slate-900">{req.next_approver_name ?? "-"}</span>
+              </div>
+              <div className="flex items-start justify-between gap-3">
+                <span className="text-slate-500">Attachment</span>
+                {req.attachments?.[0]?.download_url ? (
+                  <a
+                    className="inline-flex rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:border-blue-200 hover:text-blue-700"
+                    href={req.attachments[0].download_url}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    {req.attachments[0].file_name}
+                  </a>
+                ) : (
+                  <span className="text-slate-400">-</span>
+                )}
+              </div>
+            </div>
+
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button className="primary-btn" onClick={() => onApprove(req.id)} disabled={busy}>
+                Approve
+              </button>
+              <button className="secondary-btn" onClick={() => setRejecting(req.id)} disabled={busy}>
+                Reject
+              </button>
+              <button className="secondary-btn" onClick={() => setCancelling(req)} disabled={busy}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="hidden overflow-x-auto lg:block">
         <table className="min-w-full divide-y divide-slate-200 text-sm">
           <thead className="bg-slate-50/80 text-left text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
             <tr>

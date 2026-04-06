@@ -318,6 +318,21 @@ const invalidateEmployeeProfileCache = (employeeId: string): void => {
     "/api/employees/me"
   ]);
 };
+
+const invalidateLeaveCache = (): void => {
+  invalidateCachedUrlPrefix("/api/leave/history");
+  invalidateCachedUrlPrefix("/api/leave/balances");
+  invalidateCachedUrlPrefix("/api/leave/types");
+  invalidateCachedUrlPrefix("/api/leave/review/pending");
+  invalidateCachedUrlPrefix("/api/leave/review/history");
+  invalidateCachedUrlPrefix("/api/leave/calendar");
+  invalidateCachedUrls([
+    "/api/dashboard/employee",
+    "/api/dashboard/manager",
+    "/api/approvals/pending",
+  ]);
+};
+
 const postJson = async <T>(
   url: string,
   body: Record<string, unknown>,
@@ -1004,22 +1019,34 @@ export const applyLeaveRequest = async (
       body: formData
     });
 
-    return parseJson<LeaveApplyResponse>(response);
+    const result = await parseJson<LeaveApplyResponse>(response);
+    if (result.ok) {
+      invalidateLeaveCache();
+    }
+    return result;
   }
 
   const { attachment: _attachment, ...body } = payload;
-  return postJson<LeaveApplyResponse>(
+  const result = await postJson<LeaveApplyResponse>(
     "/api/leave/apply",
     body,
     { "Idempotency-Key": crypto.randomUUID() }
   );
+  if (result.ok) {
+    invalidateLeaveCache();
+  }
+  return result;
 };
 
 export const cancelLeaveRequest = async (
   requestId: string,
   employeeId: string
 ): Promise<DashboardApiResult<LeaveCancelResponse>> => {
-  return postJson<LeaveCancelResponse>("/api/leave/cancel", { requestId, employeeId });
+  const result = await postJson<LeaveCancelResponse>("/api/leave/cancel", { requestId, employeeId });
+  if (result.ok) {
+    invalidateLeaveCache();
+  }
+  return result;
 };
 
 export const fetchLeaveReviewQueue = async (params: {
@@ -1065,14 +1092,22 @@ export const fetchLeaveReviewHistory = async (params: {
 export const approveLeaveRequest = async (
   requestId: string
 ): Promise<DashboardApiResult<LeaveDecisionResponse>> => {
-  return postJson<LeaveDecisionResponse>("/api/leave/review/approve", { requestId });
+  const result = await postJson<LeaveDecisionResponse>("/api/leave/review/approve", { requestId });
+  if (result.ok) {
+    invalidateLeaveCache();
+  }
+  return result;
 };
 
 export const rejectLeaveRequest = async (
   requestId: string,
   reason?: string
 ): Promise<DashboardApiResult<LeaveDecisionResponse>> => {
-  return postJson<LeaveDecisionResponse>("/api/leave/review/reject", { requestId, reason });
+  const result = await postJson<LeaveDecisionResponse>("/api/leave/review/reject", { requestId, reason });
+  if (result.ok) {
+    invalidateLeaveCache();
+  }
+  return result;
 };
 
 export const fetchLeaveCalendar = async (params: {

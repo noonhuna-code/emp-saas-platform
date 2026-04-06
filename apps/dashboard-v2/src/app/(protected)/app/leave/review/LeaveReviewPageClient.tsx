@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   approveLeaveRequest,
@@ -13,18 +14,25 @@ import type { LeaveRequest } from "@/lib/types/leave";
 import { LeaveReviewTable } from "@/components/leave/LeaveReviewTable";
 import { LeaveApprovalHistoryTable } from "@/components/leave/LeaveApprovalHistoryTable";
 import { TeamLeaveCalendar } from "@/components/leave/TeamLeaveCalendar";
+import { Tabs } from "@/components/shared/Tabs";
 import { ErrorState } from "@/components/states/ErrorState";
 import { LoadingState } from "@/components/states/LoadingState";
 import {
   FeatureCallout,
   PageContainer,
   PageHeader,
+  SurfacePanel,
   StatCard,
   StatGrid,
 } from "@/components/dashboard-v2/PagePrimitives";
 import { Button } from "@/components/ui/button";
 
 const toDateInputValue = (date: Date) => date.toISOString().slice(0, 10);
+const REVIEW_TABS = [
+  { id: "approvals", label: "Leave approvals" },
+  { id: "history", label: "Approval history" },
+  { id: "calendar", label: "Team leave calendar" },
+];
 
 export const LeaveReviewPageClient = ({
   initialEmployeeId,
@@ -39,6 +47,7 @@ export const LeaveReviewPageClient = ({
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("approvals");
 
   const calendarRange = useMemo(() => {
     const start = new Date();
@@ -181,18 +190,53 @@ export const LeaveReviewPageClient = ({
             <StatCard label="Calendar entries" value={calendarEntries} hint="Approved or pending leave in the next 30 days" />
           </StatGrid>
 
-          <LeaveReviewTable
-            requests={pending}
-            onApprove={handleApprove}
-            onReject={handleReject}
-            onCancel={handleCancel}
-            busy={busy}
-            focusId={focusId}
-          />
+          <div className="grid gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.6fr)]">
+            <div className="space-y-6">
+              <SurfacePanel
+                title="Team lead review lanes"
+                description="Move between leave approvals, history, and team leave visibility without a long mixed page."
+              >
+                <Tabs tabs={REVIEW_TABS} active={activeTab} onChange={setActiveTab} noWrap variant="soft" />
+              </SurfacePanel>
 
-          <div className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
-            <LeaveApprovalHistoryTable requests={history} />
-            <TeamLeaveCalendar requests={calendar} />
+              {activeTab === "approvals" ? (
+                <LeaveReviewTable
+                  requests={pending}
+                  onApprove={handleApprove}
+                  onReject={handleReject}
+                  onCancel={handleCancel}
+                  busy={busy}
+                  focusId={focusId}
+                />
+              ) : null}
+
+              {activeTab === "history" ? <LeaveApprovalHistoryTable requests={history} /> : null}
+
+              {activeTab === "calendar" ? <TeamLeaveCalendar requests={calendar} /> : null}
+            </div>
+
+            <SurfacePanel
+              title="Team lead quick actions"
+              description="Open the adjacent work lanes you use most while reviewing leave."
+            >
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+                <Link className="inline-flex h-auto items-center justify-start rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-950" href="/app/leave/review">
+                  Leave approvals
+                </Link>
+                <Link className="inline-flex h-auto items-center justify-start rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-950" href="/app/attendance/review">
+                  Late Login
+                </Link>
+                <Link className="inline-flex h-auto items-center justify-start rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-950" href="/app/employees">
+                  Employee profiles
+                </Link>
+                <Link className="inline-flex h-auto items-center justify-start rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-950" href="/app/attendance/shifts">
+                  Assign shifts
+                </Link>
+                <Link className="inline-flex h-auto items-center justify-start rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-950" href="/app/attendance/shifts">
+                  Assign breaks
+                </Link>
+              </div>
+            </SurfacePanel>
           </div>
         </>
       ) : null}
