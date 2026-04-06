@@ -11,10 +11,6 @@ const clearAuthCookies = (response: NextResponse) => {
   }
 };
 
-const PUBLIC_SIGN_IN_URL =
-  process.env.NEXT_PUBLIC_MARKETING_SIGN_IN_URL ??
-  "https://emp-saas-platform.vercel.app/sign-in";
-
 const buildSafeRedirect = (request: Request, target = "/login") => {
   const response = NextResponse.redirect(new URL(target, request.url));
   clearAuthCookies(response);
@@ -57,9 +53,9 @@ const handleLogout = async (request: Request, applyRateLimit: boolean) => {
       }
     }
 
-    return finalizeRoute(route, endpoint, buildSafeRedirect(request, PUBLIC_SIGN_IN_URL));
+    return finalizeRoute(route, endpoint, buildSafeRedirect(request, "/login"));
   } catch {
-    return finalizeRoute(route, endpoint, buildSafeRedirect(request, PUBLIC_SIGN_IN_URL));
+    return finalizeRoute(route, endpoint, buildSafeRedirect(request, "/login"));
   }
 };
 

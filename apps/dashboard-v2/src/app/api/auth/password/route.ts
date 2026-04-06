@@ -11,10 +11,6 @@ type PasswordChangeBody = {
   confirmPassword?: string;
 };
 
-const PUBLIC_SIGN_IN_URL =
-  process.env.NEXT_PUBLIC_MARKETING_SIGN_IN_URL ??
-  "https://emp-saas-platform.vercel.app/sign-in";
-
 const clearAuthCookies = (response: NextResponse) => {
   for (const name of ["lf_access_token", "lf_refresh_token", "lf_session", "lf_session_id", "lf_role", "lf_permissions"]) {
     response.cookies.set(name, "", { httpOnly: true, sameSite: "lax", path: "/", expires: new Date(0) });
@@ -93,7 +89,7 @@ export async function POST(request: Request) {
         body: {
           ok: true,
           data: {
-            redirectTo: PUBLIC_SIGN_IN_URL,
+            redirectTo: "/login",
             message: "Password updated. Please sign in again.",
           },
         },

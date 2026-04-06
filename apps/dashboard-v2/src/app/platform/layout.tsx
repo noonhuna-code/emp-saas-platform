@@ -3,15 +3,11 @@ import { PlatformShell } from "@/components/shell/PlatformShell";
 import { resolveDashboardPersona } from "@/lib/dashboard/capabilities";
 import { getServerSession } from "@/lib/server/auth";
 
-const PUBLIC_SIGN_IN_URL =
-  process.env.NEXT_PUBLIC_MARKETING_SIGN_IN_URL ??
-  "https://emp-saas-platform.vercel.app/sign-in";
-
 export default async function PlatformLayout({ children }: { children: React.ReactNode }) {
   const session = await getServerSession();
 
   if (!session.accessToken) {
-    redirect(PUBLIC_SIGN_IN_URL);
+    redirect("/login");
   }
 
   const persona = resolveDashboardPersona({

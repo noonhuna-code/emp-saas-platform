@@ -2,10 +2,6 @@ import { redirect } from "next/navigation";
 import { getServerSession } from "@/lib/server/auth";
 import { resolveDashboardPersona, type DashboardPersona } from "@/lib/dashboard/capabilities";
 
-const PUBLIC_SIGN_IN_URL =
-  process.env.NEXT_PUBLIC_MARKETING_SIGN_IN_URL ??
-  "https://emp-saas-platform.vercel.app/sign-in";
-
 const ROLE_ROUTE_MAP: Record<string, DashboardPersona> = {
   employee: "employee",
   finance: "finance",
@@ -27,7 +23,7 @@ export default async function DashboardRoleAliasPage({
 }) {
   const session = await getServerSession();
   if (!session.accessToken) {
-    redirect(PUBLIC_SIGN_IN_URL);
+    redirect("/login");
   }
 
   const { role } = await params;

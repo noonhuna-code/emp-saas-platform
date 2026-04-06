@@ -4,15 +4,11 @@ import { getServerSession } from "@/lib/server/auth";
 import { buildServiceContext } from "@/lib/server/service-context";
 import { getBillingNavigationContext } from "@emp/services/billing.service";
 
-const PUBLIC_SIGN_IN_URL =
-  process.env.NEXT_PUBLIC_MARKETING_SIGN_IN_URL ??
-  "https://emp-saas-platform.vercel.app/sign-in";
-
 export default async function ProtectedAppLayout({ children }: { children: React.ReactNode }) {
   const session = await getServerSession();
 
   if (!session.accessToken) {
-    redirect(PUBLIC_SIGN_IN_URL);
+    redirect("/login");
   }
 
   if (session.permissions.includes("view_all_companies") || session.permissions.includes("view_global_audit")) {
