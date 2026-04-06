@@ -98,10 +98,39 @@ export type WorkspaceCalendarEvent = {
   source: "company" | "pakistan_estimated" | "leave" | "shift" | "attendance";
 };
 
+export type WorkspaceCalendarFinalStatusCode =
+  | "OFF"
+  | "HOLIDAY"
+  | "GO"
+  | "PGO"
+  | "AL"
+  | "SL"
+  | "CL"
+  | "ML"
+  | "UNPAID"
+  | "P"
+  | "PLATE"
+  | "A"
+  | "EMPTY";
+
+export type WorkspaceCalendarResolvedStatus = {
+  final_status_code: WorkspaceCalendarFinalStatusCode;
+  final_status_label: string;
+  holiday_name: string | null;
+  leave_type: string | null;
+  attendance_present: boolean;
+  late_flag: boolean;
+  shift_end_passed: boolean;
+  priority_used: 1 | 2 | 3 | 4 | 5 | 6;
+  detail_title: string | null;
+  detail_subtitle: string | null;
+};
+
 export type WorkspaceCalendarDay = {
   date: string;
   is_today: boolean;
   events: WorkspaceCalendarEvent[];
+  resolved_status: WorkspaceCalendarResolvedStatus;
 };
 
 export type WorkspaceOfficialHoliday = {

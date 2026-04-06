@@ -69,10 +69,39 @@ export type WorkspaceCalendarEventRow = {
   source: "company" | "pakistan_estimated" | "leave" | "shift" | "attendance";
 };
 
+export type WorkspaceCalendarFinalStatusCode =
+  | "OFF"
+  | "HOLIDAY"
+  | "GO"
+  | "PGO"
+  | "AL"
+  | "SL"
+  | "CL"
+  | "ML"
+  | "UNPAID"
+  | "P"
+  | "PLATE"
+  | "A"
+  | "EMPTY";
+
+export type WorkspaceCalendarResolvedStatusRow = {
+  final_status_code: WorkspaceCalendarFinalStatusCode;
+  final_status_label: string;
+  holiday_name: string | null;
+  leave_type: string | null;
+  attendance_present: boolean;
+  late_flag: boolean;
+  shift_end_passed: boolean;
+  priority_used: 1 | 2 | 3 | 4 | 5 | 6;
+  detail_title: string | null;
+  detail_subtitle: string | null;
+};
+
 export type WorkspaceCalendarDayRow = {
   date: string;
   is_today: boolean;
   events: WorkspaceCalendarEventRow[];
+  resolved_status: WorkspaceCalendarResolvedStatusRow;
 };
 
 export type WorkspaceOfficialHolidayRow = {
@@ -240,6 +269,269 @@ const calendarEventPriority = (event: WorkspaceCalendarEventRow): number => {
   if (event.type === "shift") return 5;
   if (event.status === "off_day") return 6;
   return 7;
+};
+
+const getTimezoneSnapshot = (timezone: string): { dateText: string; minutes: number } => {
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23"
+  });
+
+  const parts = formatter.formatToParts(new Date());
+  const lookup = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  const year = lookup.year ?? "1970";
+  const month = lookup.month ?? "01";
+  const day = lookup.day ?? "01";
+  const hour = Number(lookup.hour ?? "0");
+  const minute = Number(lookup.minute ?? "0");
+
+  return {
+    dateText: `${year}-${month}-${day}`,
+    minutes: hour * 60 + minute
+  };
+};
+
+const parseTimeToMinutes = (time: string | null | undefined): number | null => {
+  if (!time) return null;
+  const match = /^(\d{2}):(\d{2})/.exec(time.trim());
+  if (!match) return null;
+  return Number(match[1]) * 60 + Number(match[2]);
+};
+
+const getIsoMinutesInTimezone = (value: string | null | undefined, timezone: string): number | null => {
+  if (!value) return null;
+  const parsed = new Date(value);
+  if (!Number.isFinite(parsed.getTime())) return null;
+  const formatter = new Intl.DateTimeFormat("en-GB", {
+    timeZone: timezone,
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23"
+  });
+  const parts = formatter.formatToParts(parsed);
+  const lookup = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return Number(lookup.hour ?? "0") * 60 + Number(lookup.minute ?? "0");
+};
+
+const isSundayDate = (dateText: string): boolean => new Date(`${dateText}T00:00:00.000Z`).getUTCDay() === 0;
+
+const hasAttendancePresentTruth = (attendance: any): boolean =>
+  Boolean(attendance?.check_in) || Boolean(attendance?.check_out) || Number(attendance?.work_minutes ?? 0) > 0;
+
+const isLateAttendance = (attendance: any, shiftStartTime: string | null | undefined, timezone: string): boolean => {
+  if (!hasAttendancePresentTruth(attendance)) return false;
+  const status = String(attendance?.status ?? "").trim().toLowerCase();
+  if (status === "late") return true;
+  if (Number(attendance?.late_minutes ?? 0) > 0) return true;
+
+  const checkInMinutes = getIsoMinutesInTimezone((attendance?.check_in as string | null | undefined) ?? null, timezone);
+  const shiftStartMinutes = parseTimeToMinutes(shiftStartTime);
+  if (checkInMinutes === null || shiftStartMinutes === null) return false;
+  return checkInMinutes > shiftStartMinutes + 5;
+};
+
+const compactHolidayName = (title: string): string => {
+  const normalized = title.trim().replace(/\s*\(estimated\)\s*/gi, "").trim();
+  const lower = normalized.toLowerCase();
+
+  if (lower.includes("eid ul fitr")) return "Eid ul Fitr";
+  if (lower.includes("eid ul adha")) return "Eid ul Adha";
+  if (lower.includes("ashura")) return "Ashura";
+  if (lower.includes("eid milad")) return "Eid Milad";
+  if (lower.includes("ramadan")) return "Ramadan";
+  if (lower.includes("pakistan day")) return "Pakistan Day";
+  if (lower.includes("kashmir day")) return "Kashmir Day";
+  if (lower.includes("labour day")) return "Labour Day";
+  if (lower.includes("independence day")) return "Independence Day";
+  if (lower.includes("quaid-e-azam")) return "Quaid Day";
+  if (lower.includes("christmas")) return "Christmas";
+
+  return normalized;
+};
+
+const mapApprovedLeaveStatus = (
+  leave: { name: string | null; is_paid: boolean } | null
+): Pick<WorkspaceCalendarResolvedStatusRow, "final_status_code" | "final_status_label" | "leave_type"> | null => {
+  if (!leave) return null;
+  const rawName = leave.name?.trim() ?? "Approved Leave";
+  const normalized = rawName.toLowerCase();
+
+  if (!leave.is_paid || normalized.includes("unpaid")) {
+    return {
+      final_status_code: "UNPAID",
+      final_status_label: "Unpaid",
+      leave_type: rawName
+    };
+  }
+
+  if (normalized.includes("annual")) {
+    return { final_status_code: "AL", final_status_label: "AL", leave_type: rawName };
+  }
+
+  if (normalized.includes("sick")) {
+    return { final_status_code: "SL", final_status_label: "SL", leave_type: rawName };
+  }
+
+  if (normalized.includes("casual")) {
+    return { final_status_code: "CL", final_status_label: "CL", leave_type: rawName };
+  }
+
+  if (normalized.includes("maternity")) {
+    return { final_status_code: "ML", final_status_label: "ML", leave_type: rawName };
+  }
+
+  return {
+    final_status_code: "AL",
+    final_status_label: rawName,
+    leave_type: rawName
+  };
+};
+
+const resolveCalendarDayStatus = (input: {
+  date: string;
+  timezone: string;
+  holiday: WorkspaceOfficialHolidayRow | null;
+  approvedLeave: { id: string; name: string | null; is_paid: boolean } | null;
+  attendance: any | null;
+  shift: { id: string; title: string; start_time: string | null; end_time: string | null } | null;
+}): WorkspaceCalendarResolvedStatusRow => {
+  const { date, timezone, holiday, approvedLeave, attendance, shift } = input;
+  const timezoneNow = getTimezoneSnapshot(timezone);
+  const attendancePresent = hasAttendancePresentTruth(attendance);
+  const lateFlag = isLateAttendance(attendance, shift?.start_time, timezone);
+  const goAssigned = String(attendance?.status ?? "").trim().toLowerCase() === "holiday";
+  const explicitAbsent = String(attendance?.status ?? "").trim().toLowerCase() === "absent";
+  const shiftEndMinutes = parseTimeToMinutes(shift?.end_time);
+  const shiftEndPassed =
+    Boolean(shift?.id) &&
+    (date < timezoneNow.dateText ||
+      (date === timezoneNow.dateText && shiftEndMinutes !== null && timezoneNow.minutes >= shiftEndMinutes));
+
+  if (isSundayDate(date)) {
+    return {
+      final_status_code: "OFF",
+      final_status_label: "Off Day",
+      holiday_name: null,
+      leave_type: null,
+      attendance_present: attendancePresent,
+      late_flag: lateFlag,
+      shift_end_passed: shiftEndPassed,
+      priority_used: 1,
+      detail_title: "Sunday Off Day",
+      detail_subtitle: "Sunday takes precedence over leave, attendance, and holidays."
+    };
+  }
+
+  if (holiday) {
+    if (goAssigned && attendancePresent) {
+      return {
+        final_status_code: "PGO",
+        final_status_label: "P (GO)",
+        holiday_name: holiday.name,
+        leave_type: null,
+        attendance_present: true,
+        late_flag: lateFlag,
+        shift_end_passed: shiftEndPassed,
+        priority_used: 2,
+        detail_title: holiday.name,
+        detail_subtitle: "Worked on an approved Gazette / govt holiday."
+      };
+    }
+
+    if (goAssigned) {
+      return {
+        final_status_code: "GO",
+        final_status_label: "GO",
+        holiday_name: holiday.name,
+        leave_type: null,
+        attendance_present: false,
+        late_flag: false,
+        shift_end_passed: shiftEndPassed,
+        priority_used: 2,
+        detail_title: holiday.name,
+        detail_subtitle: "Gazette / govt holiday off approved by seniors."
+      };
+    }
+
+    return {
+      final_status_code: "HOLIDAY",
+      final_status_label: compactHolidayName(holiday.name),
+      holiday_name: holiday.name,
+      leave_type: null,
+      attendance_present: attendancePresent,
+      late_flag: lateFlag,
+      shift_end_passed: shiftEndPassed,
+      priority_used: 2,
+      detail_title: holiday.name,
+      detail_subtitle: holiday.source === "pakistan_estimated" ? "Estimated Pakistan public holiday." : "Company / govt holiday."
+    };
+  }
+
+  const leaveStatus = mapApprovedLeaveStatus(approvedLeave);
+  if (leaveStatus) {
+    return {
+      final_status_code: leaveStatus.final_status_code,
+      final_status_label: leaveStatus.final_status_label,
+      holiday_name: null,
+      leave_type: leaveStatus.leave_type,
+      attendance_present: attendancePresent,
+      late_flag: lateFlag,
+      shift_end_passed: shiftEndPassed,
+      priority_used: 3,
+      detail_title: leaveStatus.leave_type,
+      detail_subtitle: "Approved leave from backend truth."
+    };
+  }
+
+  if (attendancePresent) {
+    return {
+      final_status_code: lateFlag ? "PLATE" : "P",
+      final_status_label: lateFlag ? "P (Late)" : "P",
+      holiday_name: null,
+      leave_type: null,
+      attendance_present: true,
+      late_flag: lateFlag,
+      shift_end_passed: shiftEndPassed,
+      priority_used: 4,
+      detail_title: lateFlag ? "Present (Late)" : "Present",
+      detail_subtitle: lateFlag ? "Clock-in exists and late flag is present." : "Clock-in exists for this working day."
+    };
+  }
+
+  if (explicitAbsent || shiftEndPassed) {
+    return {
+      final_status_code: "A",
+      final_status_label: "A",
+      holiday_name: null,
+      leave_type: null,
+      attendance_present: false,
+      late_flag: false,
+      shift_end_passed: shiftEndPassed,
+      priority_used: 5,
+      detail_title: "Absent",
+      detail_subtitle: explicitAbsent
+        ? "Explicitly marked absent in attendance truth."
+        : "Shift end passed with no approved leave and no valid clock-in."
+    };
+  }
+
+  return {
+    final_status_code: "EMPTY",
+    final_status_label: "",
+    holiday_name: null,
+    leave_type: null,
+    attendance_present: false,
+    late_flag: false,
+    shift_end_passed: false,
+    priority_used: 6,
+    detail_title: shift?.title ?? null,
+    detail_subtitle: shift?.id ? "Assigned shift with no resolved attendance yet." : null
+  };
 };
 
 const clampDateRange = (
@@ -844,7 +1136,6 @@ export const getWorkspaceCalendar = async (
     const employeeId = await requireWorkspaceAccess(ctx);
     const readClient = createWorkspaceReadClient();
     const { month, rangeStart, rangeEnd, year } = parseMonthWindow(monthParam);
-    const today = toDateText(new Date());
 
     const leavePromise = leaveFeatureEnabled
       ? readClient
@@ -947,6 +1238,8 @@ export const getWorkspaceCalendar = async (
     const shiftRows = shiftResult.error ? [] : shiftResult.data ?? [];
     const attendanceRows = attendanceResult.error ? [] : attendanceResult.data ?? [];
     const updateRows = updatesResult.error ? [] : updatesResult.data ?? [];
+    const timezone = (settingsResult.data?.timezone as string | null) ?? "Asia/Karachi";
+    const today = getTimezoneSnapshot(timezone).dateText;
 
     const managerId = (employeeResult.data.manager_id as string | null) ?? null;
     let teamLeadName: string | null = null;
@@ -1038,19 +1331,26 @@ export const getWorkspaceCalendar = async (
       }
     });
 
-    const assignedShiftByDate = new Map<string, { id: string; title: string }>();
+    const assignedShiftByDate = new Map<
+      string,
+      { id: string; title: string; start_time: string | null; end_time: string | null }
+    >();
     shiftRows.forEach((row: any) => {
       const shiftStart = row.effective_from as string;
       const shiftEnd = (row.effective_to as string | null) ?? rangeEnd;
       const clamped = clampDateRange(shiftStart, shiftEnd, rangeStart, rangeEnd);
       if (!clamped) return;
       const shiftName = (row.shift_templates?.name as string | null) ?? "Assigned shift";
-      const shiftTime = `${(row.shift_templates?.start_time as string | null) ?? "-"}-${(row.shift_templates?.end_time as string | null) ?? "-"}`;
+      const shiftStartTime = (row.shift_templates?.start_time as string | null) ?? null;
+      const shiftEndTime = (row.shift_templates?.end_time as string | null) ?? null;
+      const shiftTime = `${shiftStartTime ?? "-"}-${shiftEndTime ?? "-"}`;
       for (const date of enumerateDates(clamped.start, clamped.end)) {
         if (!assignedShiftByDate.has(date)) {
           assignedShiftByDate.set(date, {
             id: row.id as string,
-            title: `${shiftName} (${shiftTime})`
+            title: `${shiftName} (${shiftTime})`,
+            start_time: shiftStartTime,
+            end_time: shiftEndTime
           });
         }
       }
@@ -1073,6 +1373,7 @@ export const getWorkspaceCalendar = async (
       const attendance = attendanceByDate.get(date) ?? null;
       const shift = assignedShiftByDate.get(date) ?? null;
       const goAssigned = (attendance?.status ?? "").toLowerCase() === "holiday";
+      const attendancePresent = hasAttendancePresentTruth(attendance);
 
       const derived = classifyAttendanceDayState({
         attendanceDate: date,
@@ -1098,7 +1399,16 @@ export const getWorkspaceCalendar = async (
         workMinutes: (attendance?.work_minutes as number | null) ?? null,
         lateMinutes: (attendance?.late_minutes as number | null) ?? null,
         attendanceCheckIn: (attendance?.check_in as string | null) ?? null,
-        shiftStartTime: null
+        shiftStartTime: shift?.start_time ?? null
+      });
+
+      const resolvedStatus = resolveCalendarDayStatus({
+        date,
+        timezone,
+        holiday: holiday ?? null,
+        approvedLeave,
+        attendance,
+        shift
       });
 
       if (shift?.id) {
@@ -1107,7 +1417,7 @@ export const getWorkspaceCalendar = async (
           type: "shift",
           title: shift.title,
           status: "assigned",
-          payroll_impact: derived.dayState === "off_day" ? "off_day_no_deduction" : "normal_pay",
+          payroll_impact: "normal_pay",
           source: "shift"
         });
       }
@@ -1126,6 +1436,18 @@ export const getWorkspaceCalendar = async (
           payroll_impact: derived.payrollImpact,
           source: holiday.source
         });
+
+        const holidayEvent = dayEvents[dayEvents.length - 1];
+        if (holidayEvent?.id === `holiday:${date}`) {
+          holidayEvent.title = holiday.name;
+          holidayEvent.status = goAssigned ? (attendancePresent ? "go_active" : "go_applied") : "holiday";
+          holidayEvent.payroll_impact =
+            goAssigned && attendancePresent
+              ? "extra_pay_go_active"
+              : goAssigned
+                ? "extra_pay_go_applied"
+                : null;
+        }
       }
 
       if (approvedLeave) {
@@ -1141,28 +1463,25 @@ export const getWorkspaceCalendar = async (
         });
       }
 
-      const shouldShowAttendanceEvent = Boolean(attendance?.id) || derived.dayState === "absent";
+      const shouldShowAttendanceEvent = Boolean(attendance?.id) || resolvedStatus.final_status_code === "A";
 
       if (!approvedLeave && !holiday && shouldShowAttendanceEvent) {
         dayEvents.push({
           id: `attendance:${attendance?.id ?? date}`,
           type: "attendance",
           title:
-            derived.dayState === "off_day"
-              ? "Off day"
-              : derived.dayState === "absent"
-                ? "Absent"
-                : derived.dayState === "late"
-                  ? "Present (Late)"
-                  : derived.dayState === "present"
-                    ? "Present"
-                    : derived.dayState === "clocked_out"
-                      ? "Clocked out"
-                      : derived.dayState === "on_break"
-                        ? "On break"
-                        : "Attendance recorded",
-          status: derived.dayState,
-          payroll_impact: derived.payrollImpact,
+            resolvedStatus.final_status_code === "A"
+              ? "Absent"
+              : resolvedStatus.final_status_code === "PLATE"
+                ? "Present (Late)"
+                : "Present",
+          status:
+            resolvedStatus.final_status_code === "A"
+              ? "absent"
+              : resolvedStatus.final_status_code === "PLATE"
+                ? "late"
+                : "present",
+          payroll_impact: resolvedStatus.final_status_code === "A" ? "no_pay_absent" : "normal_pay",
           source: "attendance"
         });
       }
@@ -1177,6 +1496,14 @@ export const getWorkspaceCalendar = async (
           const priority = calendarEventPriority(left) - calendarEventPriority(right);
           if (priority !== 0) return priority;
           return left.type.localeCompare(right.type);
+        }),
+        resolved_status: resolveCalendarDayStatus({
+          date,
+          timezone,
+          holiday: officialHolidayMap.get(date) ?? null,
+          approvedLeave: approvedLeaveByDate.get(date) ?? null,
+          attendance: attendanceByDate.get(date) ?? null,
+          shift: assignedShiftByDate.get(date) ?? null
         })
       }));
 
@@ -1189,7 +1516,7 @@ export const getWorkspaceCalendar = async (
         month,
         range_start: rangeStart,
         range_end: rangeEnd,
-        timezone: (settingsResult.data?.timezone as string | null) ?? "Asia/Karachi",
+        timezone,
         company_name: (companyResult.data?.name as string | null) ?? null,
         team_lead_name: teamLeadName,
         summary: {

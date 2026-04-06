@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Filter, Landmark, Sparkles } from "lucide-react";
 import { fetchWorkspaceCalendar, peekCachedResult } from "@/lib/client/api";
-import type { WorkspaceCalendarDay, WorkspaceCalendarResponse, WorkspaceCalendarEvent } from "@/lib/types/workspace";
+import type { WorkspaceCalendarDay, WorkspaceCalendarEvent, WorkspaceCalendarResponse } from "@/lib/types/workspace";
 import { LoadingState } from "@/components/states/LoadingState";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusChip } from "@/components/ui/StatusChip";
@@ -24,88 +24,45 @@ const weekdayLabel = (dateText: string): string => {
   return date.toLocaleDateString(undefined, { weekday: "short" });
 };
 
-const abbreviationForLeaveTitle = (title: string): string => {
-  const normalized = title.trim().toLowerCase();
-  if (normalized.includes("annual leave")) return "AL";
-  if (normalized.includes("casual leave")) return "CL";
-  if (normalized.includes("sick leave")) return "SL";
-  if (normalized.includes("maternity")) return "ML";
-  if (normalized.includes("unpaid")) return "Unpaid Leave";
-  return title;
-};
-
-const compactHolidayLabel = (title: string): string => {
-  const normalized = title.trim();
-  const lower = normalized.toLowerCase();
-
-  if (lower.includes("eid ul fitr")) return "Eid ul Fitr";
-  if (lower.includes("eid ul adha")) return "Eid ul Adha";
-  if (lower.includes("ashura")) return "Ashura";
-  if (lower.includes("eid milad")) return "Eid Milad";
-  if (lower.includes("ramadan start")) return "Ramadan";
-  if (lower.includes("pakistan day")) return "Pakistan Day";
-  if (lower.includes("kashmir day")) return "Kashmir Day";
-  if (lower.includes("labour day")) return "Labour Day";
-  if (lower.includes("independence day")) return "Independence Day";
-  if (lower.includes("quaid-e-azam")) return "Quaid Day";
-  if (lower.includes("christmas")) return "Christmas";
-
-  return normalized.replace(/\s*\(estimated\)\s*/gi, "").trim();
-};
-
 const monthLabel = (month: string) => {
   const [yearText, monthText] = month.split("-");
   const parsed = new Date(Date.UTC(Number(yearText), Number(monthText) - 1, 1));
   return parsed.toLocaleDateString(undefined, { month: "long", year: "numeric" });
 };
 
-const displayEventLabel = (event: WorkspaceCalendarEvent): string => {
-  if (event.status === "go_active") return "P.GO";
-  if (event.status === "go_applied") return "GO";
-  if (event.status === "leave_paid") return abbreviationForLeaveTitle(event.title);
-  if (event.status === "leave_unpaid") return "Unpaid Leave";
-  if (event.status === "absent") return "A";
-  if (event.status === "off_day") return "";
-  if (event.status === "late") return "P (Late)";
-  if (event.type === "attendance" && event.status === "present") return "P";
-  if (event.type === "attendance" && event.status === "clocked_out") return "P";
-  if (event.type === "attendance" && event.status === "on_break") return "P";
-  if (event.type === "holiday") return event.title.includes("GO") ? event.title : compactHolidayLabel(event.title);
-  if (event.type === "shift") return "";
-  return event.title;
+const resolvedStatusTone = (day: WorkspaceCalendarDay): "info" | "success" | "warning" | "danger" | "default" => {
+  switch (day.resolved_status.final_status_code) {
+    case "OFF":
+    case "EMPTY":
+      return "default";
+    case "HOLIDAY":
+    case "GO":
+    case "PGO":
+    case "PLATE":
+      return "warning";
+    case "AL":
+    case "SL":
+    case "CL":
+    case "ML":
+    case "P":
+      return "success";
+    case "UNPAID":
+    case "A":
+      return "danger";
+    default:
+      return "default";
+  }
 };
 
-const eventTone = (event: WorkspaceCalendarEvent): "info" | "success" | "warning" | "danger" | "default" => {
-  if (event.status === "go_active" || event.status === "go_applied") return "warning";
-  if (event.status === "leave_paid") return "success";
-  if (event.status === "leave_unpaid" || event.status === "absent") return "danger";
-  if (event.status === "off_day") return "default";
-  if (event.type === "holiday") return "warning";
-  if (event.type === "leave") return event.status === "approved" ? "success" : "info";
-  if (event.type === "attendance") return event.status === "late" ? "warning" : "default";
-  if (event.type === "shift") return "info";
-  return "default";
-};
+const resolvedStatusTitle = (day: WorkspaceCalendarDay): string => {
+  const parts = [
+    day.resolved_status.detail_title,
+    day.resolved_status.detail_subtitle,
+    day.events.map((event) => event.title.trim()).filter(Boolean).join(" | ")
+  ].filter(Boolean);
 
-const compactEventLabel = (event: WorkspaceCalendarEvent): string => {
-  if (event.status === "go_active") return "P.GO";
-  if (event.status === "leave_paid") return abbreviationForLeaveTitle(event.title);
-  if (event.status === "go_active") return "P · GO";
-  if (event.status === "go_applied") return "GO";
-  if (event.status === "leave_unpaid") return "Unpaid Leave";
-  if (event.status === "leave_paid") return event.title;
-  if (event.status === "absent") return "A";
-  if (event.status === "off_day") return "";
-  if (event.status === "late") return "P (Late)";
-  if (event.type === "attendance" && event.status === "present") return "P";
-  if (event.type === "attendance" && event.status === "clocked_out") return "P";
-  if (event.type === "attendance" && event.status === "on_break") return "P";
-  if (event.type === "holiday") return event.title.includes("GO") ? event.title : "Holiday";
-  if (event.type === "shift") return "";
-  return event.title;
+  return parts.join("\n");
 };
-
-void compactEventLabel;
 
 const buildFallbackCalendar = (month: string): WorkspaceCalendarResponse => {
   const [yearText, monthText] = month.split("-");
@@ -122,7 +79,19 @@ const buildFallbackCalendar = (month: string): WorkspaceCalendarResponse => {
     days.push({
       date: dateText,
       is_today: dateText === today,
-      events: []
+      events: [],
+      resolved_status: {
+        final_status_code: "EMPTY",
+        final_status_label: "",
+        holiday_name: null,
+        leave_type: null,
+        attendance_present: false,
+        late_flag: false,
+        shift_end_passed: false,
+        priority_used: 6,
+        detail_title: null,
+        detail_subtitle: null
+      }
     });
     cursor.setUTCDate(cursor.getUTCDate() + 1);
   }
@@ -216,7 +185,7 @@ const WorkCalendarPageClient = () => {
         title={monthLabel(month)}
         description="Unified shift, leave, attendance, and company holiday timeline for the current workspace."
         chips={["Shifts", "Leave", "Attendance", "Company updates"]}
-        actions={(
+        actions={
           <div className="flex items-center gap-2 overflow-x-auto whitespace-nowrap">
             <button type="button" className="secondary-btn" onClick={() => setMonth((prev) => shiftMonth(prev, -1))}>
               <ChevronLeft className="h-4 w-4" /> Prev
@@ -226,7 +195,7 @@ const WorkCalendarPageClient = () => {
             </button>
             <input type="month" value={month} onChange={(event) => setMonth(event.target.value)} />
           </div>
-        )}
+        }
       />
 
       {loading ? <LoadingState label="Loading work calendar..." /> : null}
@@ -271,7 +240,9 @@ const WorkCalendarPageClient = () => {
           <Card className="rounded-xl border-border shadow-sm">
             <CardContent className="space-y-4 p-5">
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <p className="flex items-center gap-2 text-sm font-semibold"><Filter className="h-4 w-4" /> Calendar filters</p>
+                <p className="flex items-center gap-2 text-sm font-semibold">
+                  <Filter className="h-4 w-4" /> Calendar filters
+                </p>
                 <div className="flex flex-wrap gap-2">
                   {(["holiday", "leave", "shift", "attendance"] as Array<WorkspaceCalendarEvent["type"]>).map((type) => (
                     <button key={type} type="button" className={`tab ${filters[type] ? "tab--active" : ""}`} onClick={() => toggleFilter(type)}>
@@ -293,18 +264,15 @@ const WorkCalendarPageClient = () => {
             <CardContent className="space-y-4 p-5">
               <div className="calendar-grid calendar-grid--weekdays text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
                 {weekdayNames.map((name) => (
-                  <div key={name} className="rounded-md border border-border bg-[var(--surface-1)] px-2 py-2 text-center">{name}</div>
+                  <div key={name} className="rounded-md border border-border bg-[var(--surface-1)] px-2 py-2 text-center">
+                    {name}
+                  </div>
                 ))}
               </div>
 
               <section className="calendar-grid">
-                {visibleDays.map((day: WorkspaceCalendarDay) => {
-                    const displayEvents = day.events
-                      .map((event) => ({
-                        event,
-                        label: displayEventLabel(event)
-                      }))
-                      .filter((item) => item.label.trim().length > 0);
+                {visibleDays.map((day) => {
+                  const finalLabel = day.resolved_status.final_status_label.trim();
 
                   return (
                     <article key={day.date} className={`calendar-day ${day.is_today ? "calendar-day--today" : ""}`}>
@@ -313,11 +281,14 @@ const WorkCalendarPageClient = () => {
                         <span className="text-xs text-muted-foreground">{weekdayLabel(day.date)}</span>
                       </header>
                       <div className="calendar-day__events">
-                        {displayEvents.slice(0, 4).map(({ event, label }) => (
-                          <span key={event.id} className={`calendar-event-chip calendar-event-chip--${eventTone(event)}`} title={event.title}>
-                            {label}
+                        {finalLabel ? (
+                          <span
+                            className={`calendar-event-chip calendar-event-chip--${resolvedStatusTone(day)}`}
+                            title={resolvedStatusTitle(day)}
+                          >
+                            {finalLabel}
                           </span>
-                        ))}
+                        ) : null}
                       </div>
                     </article>
                   );
@@ -329,14 +300,18 @@ const WorkCalendarPageClient = () => {
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
             <Card className="rounded-xl border-border shadow-sm">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg"><Landmark className="h-4 w-4" /> Official Holidays</CardTitle>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Landmark className="h-4 w-4" /> Official Holidays
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 {data.official_holidays.length === 0 ? <p className="text-sm text-muted-foreground">No holidays configured for this month.</p> : null}
                 {data.official_holidays.map((holiday) => (
                   <div key={`${holiday.date}-${holiday.name}`} className="flex items-center justify-between gap-3 rounded-xl border border-border px-3 py-2">
                     <span className="text-sm text-muted-foreground">{holiday.name}</span>
-                    <span className="text-sm font-medium">{holiday.date} {holiday.source === "pakistan_estimated" ? "(estimated)" : "(company)"}</span>
+                    <span className="text-sm font-medium">
+                      {holiday.date} {holiday.source === "pakistan_estimated" ? "(estimated)" : "(company)"}
+                    </span>
                   </div>
                 ))}
               </CardContent>
@@ -344,7 +319,9 @@ const WorkCalendarPageClient = () => {
 
             <Card className="rounded-xl border-border shadow-sm">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg"><Sparkles className="h-4 w-4" /> Company Updates & Files</CardTitle>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Sparkles className="h-4 w-4" /> Company Updates & Files
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 {data.company_updates.length === 0 ? <p className="text-sm text-muted-foreground">No company updates published yet.</p> : null}
@@ -354,8 +331,16 @@ const WorkCalendarPageClient = () => {
                       <strong className="text-foreground">{item.title}</strong> | {item.resource_type}
                     </span>
                     <span className="flex items-center gap-2">
-                      {item.link_url ? <a className="secondary-btn" href={item.link_url} target="_blank" rel="noreferrer">Open</a> : null}
-                      {item.file_url ? <a className="secondary-btn" href={item.file_url} target="_blank" rel="noreferrer">Download</a> : null}
+                      {item.link_url ? (
+                        <a className="secondary-btn" href={item.link_url} target="_blank" rel="noreferrer">
+                          Open
+                        </a>
+                      ) : null}
+                      {item.file_url ? (
+                        <a className="secondary-btn" href={item.file_url} target="_blank" rel="noreferrer">
+                          Download
+                        </a>
+                      ) : null}
                     </span>
                   </div>
                 ))}
