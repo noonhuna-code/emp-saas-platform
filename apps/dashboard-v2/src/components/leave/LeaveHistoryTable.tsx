@@ -38,17 +38,19 @@ export const LeaveHistoryTable = ({
   const filteredRows = useMemo(() => {
     const normalized = query.trim().toLowerCase();
     if (!normalized) return requests;
-    return requests.filter((req) =>
-      [
-        req.leave_type_name,
-        req.status,
-        req.approval_stage_label,
-        req.next_approver_name,
-        req.start_date,
-        req.end_date,
-      ]
-        .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(normalized)),
+    return requests.filter(
+      (req) =>
+        [
+          req.leave_type_name,
+          req.status,
+          req.approval_stage_label,
+          req.next_approver_name,
+          req.start_date,
+          req.end_date,
+        ]
+          .filter(Boolean)
+          .some((value) => String(value).toLowerCase().includes(normalized)) ||
+        (req.attachments ?? []).some((attachment) => attachment.file_name.toLowerCase().includes(normalized)),
     );
   }, [query, requests]);
 
@@ -82,6 +84,7 @@ export const LeaveHistoryTable = ({
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">Approval stage</th>
                 <th className="px-4 py-3">Total days</th>
+                <th className="px-4 py-3">Attachment</th>
                 <th className="px-4 py-3">Actions</th>
               </tr>
             </thead>
@@ -99,6 +102,20 @@ export const LeaveHistoryTable = ({
                   </td>
                   <td className="px-4 py-4">{req.total_days}</td>
                   <td className="px-4 py-4">
+                    {req.attachments?.[0]?.download_url ? (
+                      <a
+                        className="inline-flex rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:border-blue-200 hover:text-blue-700"
+                        href={req.attachments[0].download_url}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        {req.attachments[0].file_name}
+                      </a>
+                    ) : (
+                      <span className="text-slate-400">-</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-4">
                     {req.status === "pending" && onCancel ? (
                       <Button variant="secondary" size="sm" className="rounded-full" onClick={() => onCancel(req.id, req.employee_id)} disabled={busy}>
                         Cancel
@@ -111,7 +128,7 @@ export const LeaveHistoryTable = ({
               ))}
               {pageRows.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-6 text-sm text-slate-500">No leave requests match the current filters.</td>
+                  <td colSpan={7} className="px-4 py-6 text-sm text-slate-500">No leave requests match the current filters.</td>
                 </tr>
               ) : null}
             </tbody>

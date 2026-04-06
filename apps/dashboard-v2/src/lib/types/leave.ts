@@ -31,6 +31,17 @@ export type LeaveRequest = {
   leave_type_name?: string | null;
   next_approver_name?: string | null;
   approval_stage_label?: string | null;
+  attachments?: LeaveRequestAttachment[];
+};
+
+export type LeaveRequestAttachment = {
+  id: string;
+  file_name: string;
+  storage_bucket?: string | null;
+  storage_path?: string | null;
+  storage_mime_type?: string | null;
+  storage_size?: number | null;
+  download_url?: string | null;
 };
 
 export type LeaveTypeOption = {
@@ -55,6 +66,7 @@ export type LeaveApplyInput = {
   reason?: string;
   is_half_day?: boolean;
   half_day_type?: "first_half" | "second_half";
+  attachment?: File | null;
 };
 
 export type LeaveApplyResponse = { requestId: string };

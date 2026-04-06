@@ -953,9 +953,38 @@ export const fetchLeaveHistory = async (params: {
 export const applyLeaveRequest = async (
   payload: LeaveApplyInput
 ): Promise<DashboardApiResult<LeaveApplyResponse>> => {
+  if (payload.attachment instanceof File) {
+    const formData = new FormData();
+    formData.append("employeeId", payload.employeeId);
+    formData.append("leave_type_id", payload.leave_type_id);
+    formData.append("start_date", payload.start_date);
+    formData.append("end_date", payload.end_date);
+    if (payload.reason) {
+      formData.append("reason", payload.reason);
+    }
+    if (payload.is_half_day) {
+      formData.append("is_half_day", "true");
+    }
+    if (payload.half_day_type) {
+      formData.append("half_day_type", payload.half_day_type);
+    }
+    formData.append("attachment", payload.attachment);
+
+    const response = await fetch("/api/leave/apply", {
+      method: "POST",
+      headers: {
+        "Idempotency-Key": crypto.randomUUID()
+      },
+      body: formData
+    });
+
+    return parseJson<LeaveApplyResponse>(response);
+  }
+
+  const { attachment: _attachment, ...body } = payload;
   return postJson<LeaveApplyResponse>(
     "/api/leave/apply",
-    payload,
+    body,
     { "Idempotency-Key": crypto.randomUUID() }
   );
 };

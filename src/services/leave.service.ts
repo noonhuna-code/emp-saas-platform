@@ -53,6 +53,17 @@ export type LeaveRequestItem = {
   leave_type_name?: string | null;
   next_approver_name?: string | null;
   approval_stage_label?: string | null;
+  attachments?: LeaveRequestAttachmentItem[];
+};
+
+export type LeaveRequestAttachmentItem = {
+  id: string;
+  file_name: string;
+  storage_bucket?: string | null;
+  storage_path?: string | null;
+  storage_mime_type?: string | null;
+  storage_size?: number | null;
+  download_url?: string | null;
 };
 
 export type LeaveRequestFilters = {
@@ -65,6 +76,15 @@ export type LeaveRequestFilters = {
 
 export type LeaveReviewFilters = LeaveRequestFilters & {
   employeeId?: string;
+};
+
+type LeaveAttachmentRow = {
+  id: string;
+  file_name: string;
+  storage_bucket?: string | null;
+  storage_path?: string | null;
+  storage_mime_type?: string | null;
+  storage_size?: number | null;
 };
 
 type ApprovalDirectoryRow = {
@@ -112,6 +132,17 @@ const sanitizeError = (message: string, fallback: string): string => {
   return fallback;
 };
 
+const LEAVE_ATTACHMENT_BUCKET = "leave-attachments";
+const LEAVE_ATTACHMENT_MAX_SIZE_BYTES = 10 * 1024 * 1024;
+const LEAVE_ATTACHMENT_ALLOWED_TYPES = new Set([
+  "application/pdf",
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+]);
+
 const getAdminEnv = (key: string): string => process.env[key] ?? "";
 
 const createSupabaseAdminClient = (): SupabaseClient => {
@@ -128,6 +159,54 @@ const createSupabaseAdminClient = (): SupabaseClient => {
       persistSession: false
     }
   });
+};
+
+const mapLeaveAttachment = (row: LeaveAttachmentRow): LeaveRequestAttachmentItem => ({
+  id: row.id,
+  file_name: row.file_name,
+  storage_bucket: row.storage_bucket ?? null,
+  storage_path: row.storage_path ?? null,
+  storage_mime_type: row.storage_mime_type ?? null,
+  storage_size: row.storage_size ?? null,
+});
+
+const enrichLeaveRequestsWithAttachments = async (
+  admin: SupabaseClient,
+  requests: LeaveRequestItem[]
+): Promise<LeaveRequestItem[]> => {
+  return Promise.all(
+    requests.map(async (request) => {
+      const attachments = (request.attachments ?? []).filter(
+        (item) => item.storage_bucket && item.storage_path
+      );
+
+      if (attachments.length === 0) {
+        return { ...request, attachments: [] };
+      }
+
+      const resolvedAttachments = await Promise.all(
+        attachments.map(async (attachment) => {
+          try {
+            const { data } = await admin.storage
+              .from(attachment.storage_bucket as string)
+              .createSignedUrl(attachment.storage_path as string, 60 * 15);
+
+            return {
+              ...attachment,
+              download_url: data?.signedUrl ?? null,
+            } satisfies LeaveRequestAttachmentItem;
+          } catch {
+            return attachment;
+          }
+        })
+      );
+
+      return {
+        ...request,
+        attachments: resolvedAttachments,
+      } satisfies LeaveRequestItem;
+    })
+  );
 };
 
 const normalizeRoleName = (value?: string | null): string =>
@@ -755,7 +834,7 @@ export const listLeaveRequests = async (
     let query = admin
       .from("leave_requests")
       .select(
-        "id, employee_id, leave_type_id, start_date, end_date, total_days, status, reason, is_half_day, half_day_type, approval_level, final_approved, created_at, updated_at, approved_at, leave_types(name), employees!leave_requests_employee_id_fkey(id, department_id, user_profile_id, user_profiles(full_name, avatar_url))"
+        "id, employee_id, leave_type_id, start_date, end_date, total_days, status, reason, is_half_day, half_day_type, approval_level, final_approved, created_at, updated_at, approved_at, leave_types(name), employees!leave_requests_employee_id_fkey(id, department_id, user_profile_id, user_profiles(full_name, avatar_url)), leave_request_attachments(id, file_name, storage_bucket, storage_path, storage_mime_type, storage_size)"
       )
       .eq("company_id", ctx.companyId)
       .eq("employee_id", employeeId)
@@ -799,13 +878,16 @@ export const listLeaveRequests = async (
         employee_name: employee?.user_profiles?.full_name ?? null,
         employee_avatar_url: employee?.user_profiles?.avatar_url ?? null,
         department_id: employee?.department_id ?? null,
-        leave_type_name: (row.leave_types as { name?: string } | null)?.name ?? null
+        leave_type_name: (row.leave_types as { name?: string } | null)?.name ?? null,
+        attachments: ((row.leave_request_attachments as LeaveAttachmentRow[] | null) ?? []).map(mapLeaveAttachment)
       } satisfies LeaveRequestItem;
     });
 
     const directory = await loadApprovalDirectory(ctx, admin);
+    const stagedRequests = enrichLeaveRequestsWithApprovalStage(requests, directory);
+    const enrichedRequests = await enrichLeaveRequestsWithAttachments(admin, stagedRequests);
 
-    return { ok: true, data: { requests: enrichLeaveRequestsWithApprovalStage(requests, directory) } };
+    return { ok: true, data: { requests: enrichedRequests } };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "Leave history error" };
   }
@@ -826,7 +908,7 @@ export const listPendingLeaveRequests = async (
     let query = admin
       .from("leave_requests")
       .select(
-        "id, employee_id, leave_type_id, start_date, end_date, total_days, status, reason, is_half_day, half_day_type, approval_level, final_approved, created_at, updated_at, approved_at, leave_types(name), employees!leave_requests_employee_id_fkey(id, department_id, user_profile_id, user_profiles(full_name, avatar_url))"
+        "id, employee_id, leave_type_id, start_date, end_date, total_days, status, reason, is_half_day, half_day_type, approval_level, final_approved, created_at, updated_at, approved_at, leave_types(name), employees!leave_requests_employee_id_fkey(id, department_id, user_profile_id, user_profiles(full_name, avatar_url)), leave_request_attachments(id, file_name, storage_bucket, storage_path, storage_mime_type, storage_size)"
       )
       .eq("company_id", ctx.companyId)
       .eq("status", "pending")
@@ -874,7 +956,8 @@ export const listPendingLeaveRequests = async (
         employee_name: employee?.user_profiles?.full_name ?? null,
         employee_avatar_url: employee?.user_profiles?.avatar_url ?? null,
         department_id: employee?.department_id ?? null,
-        leave_type_name: (row.leave_types as { name?: string } | null)?.name ?? null
+        leave_type_name: (row.leave_types as { name?: string } | null)?.name ?? null,
+        attachments: ((row.leave_request_attachments as LeaveAttachmentRow[] | null) ?? []).map(mapLeaveAttachment)
       } satisfies LeaveRequestItem;
     });
 
@@ -885,7 +968,9 @@ export const listPendingLeaveRequests = async (
       return actorEmployeeId !== null && approval.currentStep?.employeeId === actorEmployeeId;
     });
 
-    return { ok: true, data: { requests: visibleRequests } };
+    const enrichedRequests = await enrichLeaveRequestsWithAttachments(admin, visibleRequests);
+
+    return { ok: true, data: { requests: enrichedRequests } };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "Pending leave error" };
   }
@@ -906,7 +991,7 @@ export const listLeaveApprovalHistory = async (
     let query = admin
       .from("leave_requests")
       .select(
-        "id, employee_id, leave_type_id, start_date, end_date, total_days, status, reason, is_half_day, half_day_type, approval_level, final_approved, created_at, updated_at, approved_at, leave_types(name), employees!leave_requests_employee_id_fkey(id, department_id, user_profile_id, user_profiles(full_name, avatar_url))"
+        "id, employee_id, leave_type_id, start_date, end_date, total_days, status, reason, is_half_day, half_day_type, approval_level, final_approved, created_at, updated_at, approved_at, leave_types(name), employees!leave_requests_employee_id_fkey(id, department_id, user_profile_id, user_profiles(full_name, avatar_url)), leave_request_attachments(id, file_name, storage_bucket, storage_path, storage_mime_type, storage_size)"
       )
       .eq("company_id", ctx.companyId)
       .neq("status", "pending")
@@ -954,13 +1039,16 @@ export const listLeaveApprovalHistory = async (
         employee_name: employee?.user_profiles?.full_name ?? null,
         employee_avatar_url: employee?.user_profiles?.avatar_url ?? null,
         department_id: employee?.department_id ?? null,
-        leave_type_name: (row.leave_types as { name?: string } | null)?.name ?? null
+        leave_type_name: (row.leave_types as { name?: string } | null)?.name ?? null,
+        attachments: ((row.leave_request_attachments as LeaveAttachmentRow[] | null) ?? []).map(mapLeaveAttachment)
       } satisfies LeaveRequestItem;
     });
 
     const directory = await loadApprovalDirectory(ctx, admin);
+    const stagedRequests = enrichLeaveRequestsWithApprovalStage(requests, directory);
+    const enrichedRequests = await enrichLeaveRequestsWithAttachments(admin, stagedRequests);
 
-    return { ok: true, data: { requests: enrichLeaveRequestsWithApprovalStage(requests, directory) } };
+    return { ok: true, data: { requests: enrichedRequests } };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "Leave approval history error" };
   }
@@ -1179,6 +1267,84 @@ export const approveLeave = async (
     return { ok: true, data: { status: "approved" } };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "Leave approval error" };
+  }
+};
+
+export const uploadLeaveRequestAttachment = async (
+  ctx: ServiceContext,
+  employeeId: string,
+  leaveRequestId: string,
+  file: File
+): Promise<ServiceResult<{ attachmentId: string }>> => {
+  try {
+    await requireLeaveEntitlement(ctx);
+    assertEmployeeScope(employeeId, ctx);
+    const identity = await ensureSelfOrManager(ctx, employeeId);
+    const admin = createSupabaseAdminClient();
+
+    if (!file || !file.name) {
+      return { ok: false, error: "Attachment is required" };
+    }
+
+    if (file.size > LEAVE_ATTACHMENT_MAX_SIZE_BYTES) {
+      return { ok: false, error: "Attachment must be 10 MB or smaller" };
+    }
+
+    const mimeType = file.type || "application/octet-stream";
+    if (!LEAVE_ATTACHMENT_ALLOWED_TYPES.has(mimeType)) {
+      return { ok: false, error: "Unsupported attachment type" };
+    }
+
+    const { data: leaveRequest, error: leaveRequestError } = await admin
+      .from("leave_requests")
+      .select("id, employee_id")
+      .eq("id", leaveRequestId)
+      .eq("company_id", ctx.companyId)
+      .eq("employee_id", employeeId)
+      .is("is_deleted", false)
+      .maybeSingle();
+
+    if (leaveRequestError || !leaveRequest) {
+      return { ok: false, error: "Leave request not found" };
+    }
+
+    const attachmentId = crypto.randomUUID();
+    const sanitizedName = file.name.replace(/\s+/g, "_");
+    const storagePath = `${ctx.companyId}/${employeeId}/${leaveRequestId}/${attachmentId}/${sanitizedName}`;
+
+    const { error: uploadError } = await admin.storage
+      .from(LEAVE_ATTACHMENT_BUCKET)
+      .upload(storagePath, file, {
+        contentType: mimeType,
+        upsert: false,
+      });
+
+    if (uploadError) {
+      return { ok: false, error: "Unable to upload attachment" };
+    }
+
+    const { error: insertError } = await admin.from("leave_request_attachments").insert({
+      id: attachmentId,
+      company_id: ctx.companyId,
+      leave_request_id: leaveRequestId,
+      employee_id: employeeId,
+      file_name: sanitizedName,
+      storage_bucket: LEAVE_ATTACHMENT_BUCKET,
+      storage_path: storagePath,
+      storage_mime_type: mimeType,
+      storage_size: file.size,
+      storage_checksum: null,
+      uploaded_by: identity.actorProfileId,
+    });
+
+    if (insertError) {
+      await admin.storage.from(LEAVE_ATTACHMENT_BUCKET).remove([storagePath]);
+      return { ok: false, error: "Unable to save attachment metadata" };
+    }
+
+    return { ok: true, data: { attachmentId } };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Unable to upload attachment" };
   }
 };
 

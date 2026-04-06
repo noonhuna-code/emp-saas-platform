@@ -15,6 +15,7 @@ export const LeaveApprovalHistoryTable = ({ requests }: { requests: LeaveRequest
               <th className="px-4 py-3">Dates</th>
               <th className="px-4 py-3">Status</th>
               <th className="px-4 py-3">Stage</th>
+              <th className="px-4 py-3">Attachment</th>
               <th className="px-4 py-3">Reviewed</th>
             </tr>
           </thead>
@@ -25,12 +26,26 @@ export const LeaveApprovalHistoryTable = ({ requests }: { requests: LeaveRequest
                 <td className="px-4 py-3">{req.start_date} to {req.end_date}</td>
                 <td className="px-4 py-3">{req.status}</td>
                 <td className="px-4 py-3 text-slate-500">{req.approval_stage_label ?? "-"}</td>
+                <td className="px-4 py-3">
+                  {req.attachments?.[0]?.download_url ? (
+                    <a
+                      className="inline-flex rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:border-blue-200 hover:text-blue-700"
+                      href={req.attachments[0].download_url}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      {req.attachments[0].file_name}
+                    </a>
+                  ) : (
+                    <span className="text-slate-400">-</span>
+                  )}
+                </td>
                 <td className="px-4 py-3 text-slate-500">{new Date(req.approved_at ?? req.updated_at).toLocaleDateString()}</td>
               </tr>
             ))}
             {requests.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-sm text-slate-500">No approval history yet</td>
+                <td colSpan={6} className="px-4 py-8 text-center text-sm text-slate-500">No approval history yet</td>
               </tr>
             ) : null}
           </tbody>
