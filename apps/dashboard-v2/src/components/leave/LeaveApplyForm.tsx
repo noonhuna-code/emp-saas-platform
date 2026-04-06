@@ -3,8 +3,8 @@ import type { LeaveApplyInput, LeaveBalance, LeaveTypeOption } from "@/lib/types
 import { Button } from "@/components/ui/button";
 
 const fieldClassName =
-  "h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50 disabled:text-slate-400";
-const labelClassName = "grid gap-2 text-sm font-medium text-slate-700";
+  "h-11 w-full min-w-0 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50 disabled:text-slate-400";
+const labelClassName = "grid min-w-0 gap-2 text-sm font-medium text-slate-700";
 const panelClassName = "rounded-[20px] border border-slate-200 bg-slate-50/70 p-4";
 
 export const LeaveApplyForm = ({
