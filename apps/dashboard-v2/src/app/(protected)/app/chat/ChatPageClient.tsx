@@ -2,13 +2,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  fetchEmployeeDashboard,
   fetchWorkspaceChat,
   fetchWorkspaceContacts,
   peekCachedResult,
   sendWorkspaceChat,
 } from "@/lib/client/api";
-import type { WorkspaceChatMessage, WorkspaceContact } from "@/lib/types/workspace";
+import type { WorkspaceChatMessage, WorkspaceChatResponse, WorkspaceContact, WorkspaceContactsResponse } from "@/lib/types/workspace";
 import {
   DashboardRail,
   FeatureCallout,
@@ -30,8 +29,8 @@ const formatStamp = (value: string) => {
 };
 
 const ChatPageClient = () => {
-  const cachedChat = peekCachedResult<{ rows: WorkspaceChatMessage[] }>("/api/workspace/chat?limit=120");
-  const cachedContacts = peekCachedResult<{ rows: WorkspaceContact[] }>("/api/workspace/contacts?limit=300");
+  const cachedChat = peekCachedResult<WorkspaceChatResponse>("/api/workspace/chat?limit=120");
+  const cachedContacts = peekCachedResult<WorkspaceContactsResponse>("/api/workspace/contacts?limit=300");
 
   const [rows, setRows] = useState<WorkspaceChatMessage[]>(cachedChat?.ok ? (cachedChat.data?.rows ?? []) : []);
   const initialContacts = cachedContacts?.ok ? (cachedContacts.data?.rows ?? []).filter((item) => !item.is_self) : [];
@@ -45,35 +44,46 @@ const ChatPageClient = () => {
   const load = async () => {
     setError(null);
 
-    const [chatResult, contactsResult, dashboardResult] = await Promise.all([
+    const [chatResult, contactsResult] = await Promise.all([
       fetchWorkspaceChat({ limit: 120 }),
       fetchWorkspaceContacts(300),
-      fetchEmployeeDashboard(),
     ]);
 
-    const allFailed = [chatResult, contactsResult, dashboardResult].every((result) => !result.ok || !result.data);
+    const allFailed = [chatResult, contactsResult].every((result) => !result.ok || !result.data);
     if (allFailed) {
-      setError(chatResult.error ?? contactsResult.error ?? dashboardResult.error ?? "Unable to load chat");
+      setError(chatResult.error ?? contactsResult.error ?? "Unable to load chat");
       setLoading(false);
       return;
     }
 
+    const nextRows = chatResult.ok && chatResult.data ? chatResult.data.rows : [];
+    const nextContacts = contactsResult.ok && contactsResult.data ? contactsResult.data.rows.filter((item) => !item.is_self) : [];
+
     if (chatResult.ok && chatResult.data) {
-      setRows(chatResult.data.rows);
+      setRows(nextRows);
     }
 
     if (contactsResult.ok && contactsResult.data) {
-      const recipients = contactsResult.data.rows.filter((item) => !item.is_self);
-      setContacts(recipients);
-      if (!selectedEmployeeId && recipients[0]) {
-        setSelectedEmployeeId(recipients[0].employee_id);
-      }
+      setContacts(nextContacts);
     }
 
-    const teamLeadEmployeeId = dashboardResult.ok ? dashboardResult.data?.workspace.teamLead?.employee_id ?? "" : "";
-    if (teamLeadEmployeeId) {
-      setSelectedEmployeeId((prev) => prev || teamLeadEmployeeId);
-    }
+    const recentPeerIds = nextRows
+      .map((row) =>
+        row.direction === "out" ? row.recipient_employee_id : row.sender_employee_id
+      )
+      .filter(Boolean);
+
+    setSelectedEmployeeId((prev) => {
+      if (prev && nextContacts.some((contact) => contact.employee_id === prev)) {
+        return prev;
+      }
+
+      const recentContact = recentPeerIds.find((peerId) =>
+        nextContacts.some((contact) => contact.employee_id === peerId)
+      );
+      if (recentContact) return recentContact;
+      return nextContacts[0]?.employee_id ?? "";
+    });
 
     setLoading(false);
   };

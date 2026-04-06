@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getCached, setCached } from "@/lib/server/dashboard-cache";
+import { clearDashboardCache, getCached, setCached } from "@/lib/server/dashboard-cache";
 import { beginRoute, finalizeRoute } from "@/lib/server/route-helpers";
 import { handleRouteError, jsonError, mapServiceErrorStatus, sanitizeServiceError } from "@/lib/server/api-errors";
 import { runGuardedMutation } from "@/lib/server/mutation-guard";
@@ -90,6 +90,11 @@ export async function POST(request: Request) {
     if (!guarded.ok) {
       return finalizeRoute(route, endpoint, jsonError(guarded.error, guarded.status, route.requestId));
     }
+
+    clearDashboardCache("/api/workspace/chat");
+    clearDashboardCache("/api/workspace/contacts");
+    clearDashboardCache("/api/dashboard/employee");
+    clearDashboardCache("/api/dashboard/manager");
 
     return finalizeRoute(route, endpoint, NextResponse.json(guarded.response.body, { status: guarded.response.status }));
   } catch (error) {

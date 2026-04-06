@@ -286,6 +286,32 @@ const invalidateCachedUrls = (urls: string[]): void => {
   }
 };
 
+const invalidateCachedUrlPrefix = (prefix: string): void => {
+  const scopedPrefix = `${CACHE_SCOPE}:${prefix}`;
+
+  for (const key of Array.from(GET_CACHE.keys())) {
+    if (key.startsWith(scopedPrefix)) {
+      GET_CACHE.delete(key);
+    }
+  }
+
+  if (typeof window === "undefined") return;
+  try {
+    const keysToDelete: string[] = [];
+    for (let index = 0; index < window.sessionStorage.length; index += 1) {
+      const key = window.sessionStorage.key(index);
+      if (key && key.startsWith(`${STORAGE_PREFIX}${scopedPrefix}`)) {
+        keysToDelete.push(key);
+      }
+    }
+    for (const key of keysToDelete) {
+      window.sessionStorage.removeItem(key);
+    }
+  } catch {
+    // ignore browser storage failures
+  }
+};
+
 const invalidateEmployeeProfileCache = (employeeId: string): void => {
   invalidateCachedUrls([
     `/api/employees/${employeeId}/profile`,
@@ -1543,11 +1569,17 @@ export const sendWorkspaceChat = async (payload: {
   recipientEmployeeId: string;
   message: string;
 }): Promise<DashboardApiResult<WorkspaceSendChatResponse>> => {
-  return postJson<WorkspaceSendChatResponse>(
+  const result = await postJson<WorkspaceSendChatResponse>(
     "/api/workspace/chat",
     payload as Record<string, unknown>,
     { "Idempotency-Key": crypto.randomUUID() }
   );
+  if (result.ok) {
+    invalidateCachedUrlPrefix("/api/workspace/chat");
+    invalidateCachedUrlPrefix("/api/workspace/contacts");
+    invalidateCachedUrls(["/api/dashboard/employee", "/api/dashboard/manager"]);
+  }
+  return result;
 };
 
 export const fetchWorkspaceContacts = async (

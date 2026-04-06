@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import type { ServiceContext, ServiceResult } from "../lib/types";
 import { requirePlanFeature } from "../lib/entitlements";
 import { classifyAttendanceDayState, type AttendancePayrollImpact } from "./attendance.service";
+import { getAccessibleEmployeeScope } from "./access-scope.service";
 
 export type WorkspaceResourceRow = {
   id: string;
@@ -485,8 +486,9 @@ export const listWorkspaceChatMessages = async (
     await requirePlanFeature(ctx, "feature.core_notifications");
     const employeeId = await requireWorkspaceAccess(ctx);
     const safeLimit = Math.max(1, Math.min(filters.limit ?? 50, 200));
+    const readClient = createWorkspaceReadClient();
 
-    let query = ctx.supabase
+    let query = readClient
       .from("employee_chat_messages")
       .select("id, sender_employee_id, recipient_employee_id, message_text, created_at")
       .eq("company_id", ctx.companyId)
@@ -509,7 +511,7 @@ export const listWorkspaceChatMessages = async (
     ) as string[];
 
     const participantRows = participantIds.length
-      ? await ctx.supabase
+      ? await readClient
           .from("employees")
           .select("id, user_profiles(full_name)")
           .eq("company_id", ctx.companyId)
@@ -557,6 +559,40 @@ export const sendWorkspaceChatMessage = async (
 
     if (!recipientEmployeeId) return { ok: false, error: "Recipient is required" };
     if (!messageText) return { ok: false, error: "Message is required" };
+    if (recipientEmployeeId === senderEmployeeId) return { ok: false, error: "You cannot message yourself" };
+
+    const [scope, recipientResult, existingThreadResult] = await Promise.all([
+      getAccessibleEmployeeScope(ctx),
+      ctx.supabase
+        .from("employees")
+        .select("id")
+        .eq("company_id", ctx.companyId)
+        .eq("id", recipientEmployeeId)
+        .is("is_deleted", false)
+        .maybeSingle(),
+      ctx.supabase
+        .from("employee_chat_messages")
+        .select("id")
+        .eq("company_id", ctx.companyId)
+        .is("is_deleted", false)
+        .or(
+          `and(sender_employee_id.eq.${senderEmployeeId},recipient_employee_id.eq.${recipientEmployeeId}),and(sender_employee_id.eq.${recipientEmployeeId},recipient_employee_id.eq.${senderEmployeeId})`
+        )
+        .limit(1)
+    ]);
+
+    if (!recipientResult.data?.id) {
+      return { ok: false, error: "Recipient is unavailable" };
+    }
+
+    const canMessageRecipient =
+      scope.broadAccess ||
+      scope.ids.has(recipientEmployeeId) ||
+      Boolean(existingThreadResult.data && existingThreadResult.data.length > 0);
+
+    if (!canMessageRecipient) {
+      return { ok: false, error: "Recipient is outside your current chat scope" };
+    }
 
     const { data, error } = await ctx.supabase
       .from("employee_chat_messages")
@@ -587,8 +623,9 @@ export const listWorkspaceContacts = async (
   try {
     const employeeId = await requireWorkspaceAccess(ctx);
     const safeLimit = Math.max(1, Math.min(limit, 500));
+    const readClient = createWorkspaceReadClient();
 
-    const { data: currentEmployee, error: currentError } = await ctx.supabase
+    const { data: currentEmployee, error: currentError } = await readClient
       .from("employees")
       .select("id, manager_id, department_id, team_id")
       .eq("company_id", ctx.companyId)
@@ -600,7 +637,47 @@ export const listWorkspaceContacts = async (
       return { ok: false, error: sanitizeError(currentError?.message, "Unable to resolve employee scope") };
     }
 
-    const { data, error } = await ctx.supabase
+    const [scope, existingThreadRows, teamPeerRows] = await Promise.all([
+      getAccessibleEmployeeScope(ctx),
+      readClient
+        .from("employee_chat_messages")
+        .select("sender_employee_id, recipient_employee_id")
+        .eq("company_id", ctx.companyId)
+        .or(`sender_employee_id.eq.${employeeId},recipient_employee_id.eq.${employeeId}`)
+        .is("is_deleted", false)
+        .order("created_at", { ascending: false })
+        .limit(safeLimit),
+      currentEmployee.team_id
+        ? readClient
+            .from("employees")
+            .select("id")
+            .eq("company_id", ctx.companyId)
+            .eq("team_id", currentEmployee.team_id as string)
+            .is("is_deleted", false)
+            .limit(safeLimit)
+        : Promise.resolve({ data: [] as Array<{ id: string }>, error: null }),
+    ]);
+
+    const eligibleEmployeeIds = new Set<string>([employeeId]);
+    if (currentEmployee.manager_id) {
+      eligibleEmployeeIds.add(currentEmployee.manager_id as string);
+    }
+    if (!scope.broadAccess) {
+      for (const id of scope.ids) {
+        eligibleEmployeeIds.add(id);
+      }
+    }
+    for (const row of existingThreadRows.data ?? []) {
+      const senderId = row.sender_employee_id as string | null;
+      const recipientId = row.recipient_employee_id as string | null;
+      if (senderId && senderId !== employeeId) eligibleEmployeeIds.add(senderId);
+      if (recipientId && recipientId !== employeeId) eligibleEmployeeIds.add(recipientId);
+    }
+    for (const row of teamPeerRows.data ?? []) {
+      if (row.id) eligibleEmployeeIds.add(row.id as string);
+    }
+
+    const contactsQuery = readClient
       .from("employees")
       .select(
         "id, employee_code, designation, user_profile_id, department_id, team_id, user_profiles(full_name, avatar_url), departments(name), teams(name)"
@@ -610,16 +687,32 @@ export const listWorkspaceContacts = async (
       .order("created_at", { ascending: true })
       .limit(safeLimit);
 
+    const { data, error } = scope.broadAccess
+      ? await contactsQuery
+      : await contactsQuery.in("id", Array.from(eligibleEmployeeIds));
+
     if (error) return { ok: false, error: sanitizeError(error.message, "Unable to load contacts") };
 
     const managerId = (currentEmployee.manager_id as string | null) ?? null;
     const currentTeamId = (currentEmployee.team_id as string | null) ?? null;
+    const recentPeerOrder = new Map<string, number>();
+    let peerPriority = 0;
+    for (const row of existingThreadRows.data ?? []) {
+      const otherEmployeeId =
+        (row.sender_employee_id as string) === employeeId
+          ? (row.recipient_employee_id as string)
+          : (row.sender_employee_id as string);
+      if (!recentPeerOrder.has(otherEmployeeId)) {
+        recentPeerOrder.set(otherEmployeeId, peerPriority++);
+      }
+    }
 
     const contacts = (data ?? []).map((row: any) => {
       const rowTeamId = (row.team_id as string | null) ?? null;
       const isSelf = (row.id as string) === employeeId;
       const isTeamLead = managerId !== null && (row.id as string) === managerId;
       const isTeamPeer = currentTeamId !== null && rowTeamId === currentTeamId;
+      const recentPeerRank = recentPeerOrder.get(row.id as string);
       return {
         employee_id: row.id as string,
         full_name: (row.user_profiles?.full_name as string | null) ?? null,
@@ -630,12 +723,14 @@ export const listWorkspaceContacts = async (
         avatar_url: (row.user_profiles?.avatar_url as string | null) ?? null,
         is_team_lead: isTeamLead,
         is_self: isSelf,
-        priority: isSelf ? 0 : isTeamLead ? 1 : isTeamPeer ? 2 : 3
+        priority: isSelf ? 0 : recentPeerRank !== undefined ? 1 : isTeamLead ? 2 : isTeamPeer ? 3 : 4,
+        recentPeerRank: recentPeerRank ?? Number.MAX_SAFE_INTEGER,
       };
     });
 
     contacts.sort((a, b) => {
       if (a.priority !== b.priority) return a.priority - b.priority;
+      if (a.recentPeerRank !== b.recentPeerRank) return a.recentPeerRank - b.recentPeerRank;
       return (a.full_name ?? "").localeCompare(b.full_name ?? "");
     });
 
@@ -643,7 +738,7 @@ export const listWorkspaceContacts = async (
       ok: true,
       data: {
         employeeId,
-        rows: contacts.map(({ priority, ...contact }) => contact)
+        rows: contacts.map(({ priority, recentPeerRank, ...contact }) => contact)
       }
     };
   } catch (error) {
