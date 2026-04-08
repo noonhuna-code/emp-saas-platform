@@ -27,6 +27,7 @@ const TEAM_LEAD_OPERATIONS_TABS = [
   { id: "profiles", label: "Employee profiles" },
   { id: "shifts", label: "Assign shifts" },
   { id: "breaks", label: "Assign breaks" },
+  { id: "shift-changes", label: "Shift changes" },
 ];
 
 export const TeamLeadDashboard = ({
@@ -45,6 +46,11 @@ export const TeamLeadDashboard = ({
   const [operationsTab, setOperationsTab] = useState("leave");
   const perf = useDashboardPerf("team_lead");
   const allowedRouteSet = useMemo(() => new Set(allowedRoutes), [allowedRoutes]);
+  const peopleHref = allowedRouteSet.has("/app/people")
+    ? "/app/people"
+    : allowedRouteSet.has("/app/employees")
+      ? "/app/employees"
+      : null;
   const heroActions = [
     canViewTeamAttendance && allowedRouteSet.has("/app/attendance/team")
       ? { href: "/app/attendance/team", label: "Team Attendance", tone: "primary" as const }
@@ -58,8 +64,8 @@ export const TeamLeadDashboard = ({
     canReviewLeave && allowedRouteSet.has("/app/leave/review")
       ? { href: "/app/leave/review", label: "Leave Review", tone: "secondary" as const }
       : null,
-    allowedRouteSet.has("/app/employees")
-      ? { href: "/app/employees", label: "Employee Directory", tone: "secondary" as const }
+    peopleHref
+      ? { href: peopleHref, label: "People Directory", tone: "secondary" as const }
       : null,
   ].filter(Boolean) as Array<{ href: string; label: string; tone: "primary" | "secondary" }>;
 
@@ -116,8 +122,8 @@ export const TeamLeadDashboard = ({
       : null,
   ].filter(Boolean) as Array<{ label: string; href: string; caption: string }>;
   const profileActions = [
-    allowedRouteSet.has("/app/employees")
-      ? { label: "Employee profiles", href: "/app/employees", caption: "Open direct-report records and profile context" }
+    peopleHref
+      ? { label: "Employee profiles", href: peopleHref, caption: "Open direct-report records and profile context" }
       : null,
     allowedRouteSet.has("/app/chat")
       ? { label: "Team chat", href: "/app/chat", caption: "Coordinate directly with your team" }
@@ -137,6 +143,17 @@ export const TeamLeadDashboard = ({
       : null,
     canViewTeamAttendance && allowedRouteSet.has("/app/attendance/team")
       ? { label: "Team attendance", href: "/app/attendance/team", caption: "Check live break and presence context" }
+      : null,
+  ].filter(Boolean) as Array<{ label: string; href: string; caption: string }>;
+  const shiftChangeActions = [
+    allowedRouteSet.has("/app/attendance/shift-swaps")
+      ? { label: "Shift changes", href: "/app/attendance/shift-swaps", caption: "Review swap and shift change requests" }
+      : null,
+    allowedRouteSet.has("/app/attendance/shifts")
+      ? { label: "Update schedules", href: "/app/attendance/shifts", caption: "Adjust assigned shifts and coverage" }
+      : null,
+    canViewTeamAttendance && allowedRouteSet.has("/app/attendance/team")
+      ? { label: "Coverage view", href: "/app/attendance/team", caption: "Confirm downstream staffing impact" }
       : null,
   ].filter(Boolean) as Array<{ label: string; href: string; caption: string }>;
 
@@ -273,7 +290,11 @@ export const TeamLeadDashboard = ({
         <section className="space-y-4">
           <Suspense fallback={<div className="grid-2"><SkeletonCard rows={6} /><SkeletonChart /></div>}>
             <DashboardWidgetBoundary title="Team lead operations" message="Team operations are temporarily unavailable.">
-              <ManagerOperationsWidget variant="team_lead" />
+              <ManagerOperationsWidget
+                variant="team_lead"
+                allowedRoutes={allowedRoutes}
+                canViewTeamAttendance={canViewTeamAttendance}
+              />
             </DashboardWidgetBoundary>
           </Suspense>
         </section>
@@ -285,7 +306,11 @@ export const TeamLeadDashboard = ({
             <DashboardWidgetBoundary title="Team analytics" message="Analytics are temporarily unavailable.">
               <>
                 <DashboardPerfMarker onReady={perf.markChartsLoaded} />
-                <ManagerOperationsWidget variant="team_lead" />
+                <ManagerOperationsWidget
+                  variant="team_lead"
+                  allowedRoutes={allowedRoutes}
+                  canViewTeamAttendance={canViewTeamAttendance}
+                />
               </>
             </DashboardWidgetBoundary>
           </Suspense>
@@ -297,13 +322,16 @@ export const TeamLeadDashboard = ({
           <WorkflowPanel title="Team workflow" subtitle="Review queue and pending actions">
             <Suspense fallback={<div className="grid-2"><SkeletonList rows={6} /><SkeletonList rows={6} /></div>}>
               <DashboardWidgetBoundary title="Team workflow" message="Workflow data is temporarily unavailable.">
-                <ManagerWorkflowWidget variant="team_lead" />
+                <ManagerWorkflowWidget
+                  variant="team_lead"
+                  canOpenEmployees={Boolean(peopleHref)}
+                />
               </DashboardWidgetBoundary>
             </Suspense>
           </WorkflowPanel>
           <WorkflowPanel title="Team lead action paths" subtitle="Open the exact work lane you need instead of hunting through one crowded portal.">
             <div className="space-y-4">
-              <Tabs tabs={TEAM_LEAD_OPERATIONS_TABS} active={operationsTab} onChange={setOperationsTab} noWrap variant="soft" />
+              <Tabs tabs={TEAM_LEAD_OPERATIONS_TABS} active={operationsTab} onChange={setOperationsTab} variant="soft" />
               {operationsTab === "leave" ? (
                 leaveActions.length > 0 ? <QuickActionGrid actions={leaveActions} /> : <p className="muted">Leave approval tools are not available in this scope.</p>
               ) : null}
@@ -318,6 +346,9 @@ export const TeamLeadDashboard = ({
               ) : null}
               {operationsTab === "breaks" ? (
                 breakActions.length > 0 ? <QuickActionGrid actions={breakActions} /> : <p className="muted">Break tools are not available in this scope.</p>
+              ) : null}
+              {operationsTab === "shift-changes" ? (
+                shiftChangeActions.length > 0 ? <QuickActionGrid actions={shiftChangeActions} /> : <p className="muted">Shift change tools are not available in this scope.</p>
               ) : null}
             </div>
           </WorkflowPanel>

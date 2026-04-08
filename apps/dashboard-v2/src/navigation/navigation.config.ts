@@ -70,12 +70,12 @@ export const TENANT_NAVIGATION_ITEMS: NavigationItem[] = [
     personas: ["employee", "manager", "admin_ops", "finance", "executive"]
   }),
   item({
-    href: "/app/employees",
+    href: "/app/people",
     label: "People",
     icon: "users",
     description: "Employee directory and people operations",
     personas: ["manager", "admin_ops", "finance", "executive"],
-    requiredCapability: ["manage_employees", "manage_company", "manage_reporting_lines", "manage_delegations"],
+    requiredCapability: ["manage_employees", "manage_company", "manage_reporting_lines", "manage_delegations", "manage_attendance", "view_attendance"],
     requiredFeatureKey: "feature.core_employee_management"
   }),
   item({
@@ -329,7 +329,7 @@ export const TENANT_NAVIGATION_GROUPS: NavigationGroup[] = [
     id: "people",
     label: "People & Org",
     description: "Directory, org structure, team coverage, and reporting context",
-    items: [byHref("/app/employees"), byHref("/app/organization"), byHref("/app/org-chart")]
+    items: [byHref("/app/people"), byHref("/app/organization"), byHref("/app/org-chart")]
   },
   {
     id: "intelligence",

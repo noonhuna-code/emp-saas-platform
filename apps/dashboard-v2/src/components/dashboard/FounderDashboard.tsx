@@ -120,6 +120,11 @@ export const FounderDashboard = ({
   const securityIntelligenceEnabled = isFeatureEnabled(billing?.entitlements, "feature.security_intelligence");
   const seatLimit = getLimitInteger(billing?.entitlements, "limit.active_seats");
   const payrollRunLimit = getLimitInteger(billing?.entitlements, "limit.payroll_runs_per_month_max");
+  const peopleHref = allowedRouteSet.has("/app/people")
+    ? "/app/people"
+    : allowedRouteSet.has("/app/employees")
+      ? "/app/employees"
+      : null;
 
   const activityItems = useMemo(
     () =>
@@ -135,14 +140,14 @@ export const FounderDashboard = ({
     allowedRouteSet.has("/app/monitoring") ? { href: "/app/monitoring", label: "Monitoring", tone: "primary" as const } : null,
     allowedRouteSet.has("/app/payroll") ? { href: "/app/payroll", label: "Payroll", tone: "secondary" as const } : null,
     allowedRouteSet.has("/app/billing") ? { href: "/app/billing", label: "Billing", tone: "secondary" as const } : null,
-    allowedRouteSet.has("/app/employees") ? { href: "/app/employees", label: "People", tone: "secondary" as const } : null,
+    peopleHref ? { href: peopleHref, label: "People", tone: "secondary" as const } : null,
   ].filter(Boolean) as Array<{ href: string; label: string; tone: "primary" | "secondary" }>;
   const executiveActions = [
     allowedRouteSet.has("/app/payroll") ? { label: "Payroll timelines", href: "/app/payroll", caption: "Run-level lifecycle" } : null,
     allowedRouteSet.has("/app/monitoring") ? { label: "Security monitoring", href: "/app/monitoring", caption: "Alerts and failures" } : null,
     allowedRouteSet.has("/app/billing") ? { label: "Billing console", href: "/app/billing", caption: "Invoices, seats, and subscription" } : null,
     allowedRouteSet.has("/app/approvals") ? { label: "Approvals queue", href: "/app/approvals", caption: "Operational backlog" } : null,
-    allowedRouteSet.has("/app/employees") ? { label: "People directory", href: "/app/employees", caption: "Headcount view" } : null,
+    peopleHref ? { label: "People directory", href: peopleHref, caption: "Headcount view" } : null,
   ].filter(Boolean) as Array<{ label: string; href: string; caption: string }>;
 
   if (loading) return <LoadingState label="Loading founder dashboard..." />;

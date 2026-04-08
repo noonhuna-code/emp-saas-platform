@@ -20,6 +20,11 @@ export default function AdminOperationsWidget({
   const [adminData, setAdminData] = useState<Awaited<ReturnType<typeof loadAdminDashboardData>>>(null);
   const [billingData, setBillingData] = useState<Awaited<ReturnType<typeof loadBillingOverviewData>>>(null);
   const allowedRouteSet = new Set(allowedRoutes);
+  const peopleHref = allowedRouteSet.has("/app/people")
+    ? "/app/people"
+    : allowedRouteSet.has("/app/employees")
+      ? "/app/employees"
+      : null;
 
   useEffect(() => {
     let active = true;
@@ -65,7 +70,7 @@ export default function AdminOperationsWidget({
       <DashboardPanel title="Executive quick actions" subtitle="Common admin workflows">
         <QuickActionGrid
           actions={[
-            ...(allowedRouteSet.has("/app/employees") ? [{ label: "Employee Directory", href: "/app/employees", caption: "Headcount and profiles" }] : []),
+            ...(peopleHref ? [{ label: "Employee Directory", href: peopleHref, caption: "Headcount and profiles" }] : []),
             ...(payrollEnabled && allowedRouteSet.has("/app/payroll") ? [{ label: "Payroll Runs", href: "/app/payroll", caption: "Review lifecycle" }] : []),
             ...(payslipsEnabled && allowedRouteSet.has("/app/payslips") ? [{ label: "Payslips", href: "/app/payslips", caption: "Snapshot history" }] : []),
             ...(securityIntelligenceEnabled && allowedRouteSet.has("/app/monitoring") ? [{ label: "Security Monitoring", href: "/app/monitoring", caption: "Tenant signals" }] : [])

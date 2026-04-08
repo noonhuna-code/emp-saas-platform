@@ -17,7 +17,7 @@ const COMMANDS: CommandItem[] = [
   { label: "Open Home", href: "/app/dashboard", section: "Workspace", personas: ["employee", "manager", "admin_ops", "finance", "executive"] },
   { label: "Open Attendance", href: "/app/attendance", section: "Workforce", personas: ["employee", "manager", "admin_ops", "finance", "executive"] },
   { label: "Request Leave", href: "/app/leave", section: "Workforce", personas: ["employee", "manager", "admin_ops", "finance", "executive"] },
-  { label: "Open People", href: "/app/employees", section: "Workforce", personas: ["manager", "admin_ops", "finance", "executive"] },
+  { label: "Open People", href: "/app/people", section: "Workforce", personas: ["manager", "admin_ops", "finance", "executive"] },
   { label: "Open Organization", href: "/app/organization", section: "Workforce", personas: ["manager", "admin_ops", "finance", "executive"] },
   { label: "Open Payroll", href: "/app/payroll", section: "Operations", personas: ["admin_ops", "finance", "executive"] },
   { label: "Open Projects", href: "/app/projects", section: "Operations", personas: ["manager", "admin_ops", "executive"] },

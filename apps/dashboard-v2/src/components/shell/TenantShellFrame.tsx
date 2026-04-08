@@ -48,9 +48,9 @@ export const TenantShellFrame = ({
     const baseRoutes = ["/app/dashboard", "/app/attendance", "/app/leave", "/app/calendar"];
     const personaRoutes: Record<string, string[]> = {
       employee: ["/app/profile", "/app/notes", "/app/notifications", "/app/resources", "/app/chat", "/app/payslips", "/app/attendance/shift-swaps"],
-      manager: ["/app/attendance/team", "/app/attendance/shift-swaps", "/app/approvals", "/app/employees", "/app/projects"],
-      admin_ops: ["/app/leave/review", "/app/employees", "/app/payroll", "/app/billing", "/app/monitoring", "/app/notifications"],
-      executive: ["/app/billing", "/app/monitoring", "/app/employees", "/app/payroll", "/app/approvals"],
+      manager: ["/app/attendance/team", "/app/attendance/shift-swaps", "/app/approvals", "/app/people", "/app/projects"],
+      admin_ops: ["/app/leave/review", "/app/people", "/app/payroll", "/app/billing", "/app/monitoring", "/app/notifications"],
+      executive: ["/app/billing", "/app/monitoring", "/app/people", "/app/payroll", "/app/approvals"],
       finance: ["/app/billing", "/app/payroll", "/app/payslips", "/app/notifications"],
       platform_owner: ["/platform"]
     };

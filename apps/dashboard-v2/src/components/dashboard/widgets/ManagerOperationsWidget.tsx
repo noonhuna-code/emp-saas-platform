@@ -20,6 +20,11 @@ export default function ManagerOperationsWidget({
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<Awaited<ReturnType<typeof loadManagerDashboardData>>>(null);
   const allowedRouteSet = useMemo(() => new Set(allowedRoutes), [allowedRoutes]);
+  const peopleHref = allowedRouteSet.has("/app/people")
+    ? "/app/people"
+    : allowedRouteSet.has("/app/employees")
+      ? "/app/employees"
+      : null;
 
   useEffect(() => {
     let active = true;
@@ -72,9 +77,9 @@ export default function ManagerOperationsWidget({
             ...(allowedRouteSet.has("/app/attendance/shift-swaps") ? [{ label: "Shift swaps", href: "/app/attendance/shift-swaps", caption: "Requests and review" }] : []),
             ...(variant === "team_lead" && allowedRouteSet.has("/app/chat") ? [{ label: "Team chat", href: "/app/chat", caption: "Coordination updates" }] : []),
             ...(allowedRouteSet.has("/app/projects") && variant === "manager" ? [{ label: "Projects", href: "/app/projects", caption: "Execution and staffing" }] : []),
-            ...(allowedRouteSet.has("/app/employees") ? [{
+            ...(peopleHref ? [{
               label: variant === "team_lead" ? "Employee profiles" : "Team search",
-              href: "/app/employees",
+              href: peopleHref,
               caption: "Directory"
             }] : [])
           ]}

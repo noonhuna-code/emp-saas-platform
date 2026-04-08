@@ -29,16 +29,21 @@ export const HRDashboard = ({
   const [view, setView] = useState<DashboardView>("workspace");
   const perf = useDashboardPerf("hr");
   const allowedRouteSet = useMemo(() => new Set(allowedRoutes), [allowedRoutes]);
+  const peopleHref = allowedRouteSet.has("/app/people")
+    ? "/app/people"
+    : allowedRouteSet.has("/app/employees")
+      ? "/app/employees"
+      : null;
 
   const heroActions = [
-    allowedRouteSet.has("/app/employees") ? { href: "/app/employees", label: "Employee Records", tone: "primary" as const } : null,
+    peopleHref ? { href: peopleHref, label: "Employee Records", tone: "primary" as const } : null,
     canReviewLeave ? { href: "/app/leave/review", label: "Leave Review", tone: "secondary" as const } : null,
     allowedRouteSet.has("/app/payroll") ? { href: "/app/payroll", label: "Payroll Runs", tone: "secondary" as const } : null,
     allowedRouteSet.has("/app/resources") ? { href: "/app/resources", label: "Knowledge / SOPs", tone: "secondary" as const } : null,
   ].filter(Boolean) as Array<{ href: string; label: string; tone: "primary" | "secondary" }>;
 
   const hrActions = [
-    allowedRouteSet.has("/app/employees") ? { label: "Employee records", href: "/app/employees", caption: "Profiles and hierarchy" } : null,
+    peopleHref ? { label: "Employee records", href: peopleHref, caption: "Profiles and hierarchy" } : null,
     canReviewLeave ? { label: "Leave review", href: "/app/leave/review", caption: "Queues and coverage" } : null,
     allowedRouteSet.has("/app/payroll") ? { label: "Payroll runs", href: "/app/payroll", caption: "Run readiness" } : null,
     allowedRouteSet.has("/app/resources") ? { label: "Knowledge / SOPs", href: "/app/resources", caption: "Policies and guides" } : null,

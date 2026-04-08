@@ -33,7 +33,12 @@ export const ManagerDashboard = ({
   const [view, setView] = useState<DashboardView>("workspace");
   const perf = useDashboardPerf("manager");
   const allowedRouteSet = routeSet(allowedRoutes);
-  const hasEmployees = allowedRouteSet.has("/app/employees");
+  const peopleHref = allowedRouteSet.has("/app/people")
+    ? "/app/people"
+    : allowedRouteSet.has("/app/employees")
+      ? "/app/employees"
+      : null;
+  const hasEmployees = Boolean(peopleHref);
   const hasProjects = allowedRouteSet.has("/app/projects");
   const hasShiftSwaps = allowedRouteSet.has("/app/attendance/shift-swaps");
 
@@ -43,7 +48,7 @@ export const ManagerDashboard = ({
     canReviewLeave ? { href: "/app/leave/review", label: "Leave Review", tone: "secondary" as const } : null,
     hasShiftSwaps ? { href: "/app/attendance/shift-swaps", label: "Shift Swaps", tone: "secondary" as const } : null,
     hasProjects ? { href: "/app/projects", label: "Projects", tone: "secondary" as const } : null,
-    hasEmployees ? { href: "/app/employees", label: "People Directory", tone: "secondary" as const } : null,
+    hasEmployees ? { href: peopleHref!, label: "People Directory", tone: "secondary" as const } : null,
   ].filter(Boolean) as Array<{ href: string; label: string; tone: "primary" | "secondary" }>;
 
   const actionPaths = [
@@ -51,7 +56,7 @@ export const ManagerDashboard = ({
     allowedRouteSet.has("/app/approvals") ? { label: "Approvals queue", href: "/app/approvals", caption: "Leave and corrections" } : null,
     canReviewLeave ? { label: "Leave review", href: "/app/leave/review", caption: "Approve, reject, or cancel" } : null,
     hasShiftSwaps ? { label: "Shift swaps", href: "/app/attendance/shift-swaps", caption: "Requests and review queue" } : null,
-    hasEmployees ? { label: "People directory", href: "/app/employees", caption: "Direct reports and profiles" } : null,
+    hasEmployees ? { label: "People directory", href: peopleHref!, caption: "Direct reports and profiles" } : null,
     hasProjects ? { label: "Projects", href: "/app/projects", caption: "Execution and staffing" } : null,
   ].filter(Boolean) as Array<{ label: string; href: string; caption: string }>;
 

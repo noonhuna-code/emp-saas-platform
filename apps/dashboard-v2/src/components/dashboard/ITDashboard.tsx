@@ -95,11 +95,16 @@ export const ITDashboard = ({
     allowedRouteSet.has("/app/notifications") ? { label: "Notifications", href: "/app/notifications", caption: "System events" } : null,
     allowedRouteSet.has("/app/billing") ? { label: "Billing licenses", href: "/app/billing", caption: "Seat and license counts" } : null,
   ].filter(Boolean) as Array<{ label: string; href: string; caption: string }>;
+  const peopleHref = allowedRouteSet.has("/app/people")
+    ? "/app/people"
+    : allowedRouteSet.has("/app/employees")
+      ? "/app/employees"
+      : null;
 
   const responseActions = [
     allowedRouteSet.has("/app/monitoring") ? { label: "Monitoring center", href: "/app/monitoring", caption: "Security and system telemetry" } : null,
     allowedRouteSet.has("/app/notifications") ? { label: "Notification queue", href: "/app/notifications", caption: "Delivery and incident alerts" } : null,
-    allowedRouteSet.has("/app/employees") ? { label: "Employee access", href: "/app/employees", caption: "Identity and assignment context" } : null,
+    peopleHref ? { label: "Employee access", href: peopleHref, caption: "Identity and assignment context" } : null,
     allowedRouteSet.has("/app/billing") ? { label: "Billing / seats", href: "/app/billing", caption: "License and seat posture" } : null,
   ].filter(Boolean) as Array<{ label: string; href: string; caption: string }>;
 
