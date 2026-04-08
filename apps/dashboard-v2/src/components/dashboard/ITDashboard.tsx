@@ -9,9 +9,8 @@ import { LoadingState } from "@/components/states/LoadingState";
 import { ErrorState } from "@/components/states/ErrorState";
 import {
   ChartPanel,
-  DashboardHero,
+  DashboardScaffold,
   DashboardKpiTile,
-  DashboardModeSwitch,
   DashboardSection,
   QuickActionGrid,
   SignalRow,
@@ -108,8 +107,7 @@ export const ITDashboard = ({
   if (error || !monitoring) return <ErrorState message={error ?? "IT dashboard unavailable"} />;
 
   return (
-    <div className="page-wrap space-y-8 fade-in">
-      <DashboardHero
+    <DashboardScaffold
         eyebrow="IT Workspace"
         title="Security and system operations"
         subtitle="Monitor tenant-safe security pressure, request integrity conflicts, and operational risk signals in one read-only IT view."
@@ -123,14 +121,11 @@ export const ITDashboard = ({
             ))}
           </>
         )}
-      />
-
-      <DashboardModeSwitch
         value={view}
-        onChange={setView}
-        title="Workspace lenses"
-        subtitle="Shift between IT operations, monitoring summaries, and system response paths without losing platform context."
-      />
+        onViewChange={setView}
+        modeTitle="Workspace lenses"
+        modeSubtitle="Shift between IT operations, monitoring summaries, and system response paths without losing platform context."
+      >
 
       <DashboardSection visible={view === "workspace"}>
         <div className="dashboard-kpi-grid">
@@ -167,6 +162,6 @@ export const ITDashboard = ({
           <SignalRow label="Current health" value={securityPressure.health} tone={securityPressure.health === "healthy" ? "success" : "warning"} />
         </WorkflowPanel>
       </DashboardSection>
-    </div>
+    </DashboardScaffold>
   );
 };

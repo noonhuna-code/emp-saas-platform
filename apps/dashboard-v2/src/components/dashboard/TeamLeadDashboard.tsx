@@ -6,8 +6,7 @@ import { DashboardPerfMarker, useDashboardPerf } from "@/components/dashboard/us
 import { DashboardWidgetBoundary } from "@/components/dashboard/DashboardWidgetBoundary";
 import {
   ChartPanel,
-  DashboardHero,
-  DashboardModeSwitch,
+  DashboardScaffold,
   DashboardPanel,
   QuickActionGrid,
   DashboardSection,
@@ -30,13 +29,39 @@ const TEAM_LEAD_OPERATIONS_TABS = [
   { id: "breaks", label: "Assign breaks" },
 ];
 
-export const TeamLeadDashboard = () => {
+export const TeamLeadDashboard = ({
+  allowedRoutes = [],
+  canViewTeamAttendance = false,
+  canReviewLeave = false,
+}: {
+  allowedRoutes?: string[];
+  canViewTeamAttendance?: boolean;
+  canReviewLeave?: boolean;
+}) => {
   const [view, setView] = useState<DashboardView>("workspace");
   const [teamRows, setTeamRows] = useState<TeamAttendanceRow[]>([]);
   const [teamRowsLoading, setTeamRowsLoading] = useState(true);
   const [teamRowsError, setTeamRowsError] = useState<string | null>(null);
   const [operationsTab, setOperationsTab] = useState("leave");
   const perf = useDashboardPerf("team_lead");
+  const allowedRouteSet = useMemo(() => new Set(allowedRoutes), [allowedRoutes]);
+  const heroActions = [
+    canViewTeamAttendance && allowedRouteSet.has("/app/attendance/team")
+      ? { href: "/app/attendance/team", label: "Team Attendance", tone: "primary" as const }
+      : null,
+    allowedRouteSet.has("/app/attendance/review")
+      ? { href: "/app/attendance/review", label: "Attendance Review", tone: "secondary" as const }
+      : null,
+    allowedRouteSet.has("/app/attendance/shifts")
+      ? { href: "/app/attendance/shifts", label: "Shifts & Breaks", tone: "secondary" as const }
+      : null,
+    canReviewLeave && allowedRouteSet.has("/app/leave/review")
+      ? { href: "/app/leave/review", label: "Leave Review", tone: "secondary" as const }
+      : null,
+    allowedRouteSet.has("/app/employees")
+      ? { href: "/app/employees", label: "Employee Directory", tone: "secondary" as const }
+      : null,
+  ].filter(Boolean) as Array<{ href: string; label: string; tone: "primary" | "secondary" }>;
 
   useEffect(() => {
     perf.markKpiRendered();
@@ -74,31 +99,67 @@ export const TeamLeadDashboard = () => {
   }, []);
 
   const previewRows = useMemo(() => teamRows.slice(0, 8), [teamRows]);
+  const leaveActions = [
+    canReviewLeave && allowedRouteSet.has("/app/leave/review")
+      ? { label: "Leave approvals", href: "/app/leave/review", caption: "Approve, reject, or cancel requests" }
+      : null,
+    allowedRouteSet.has("/app/approvals")
+      ? { label: "Approvals queue", href: "/app/approvals", caption: "Cross-module pending blockers" }
+      : null,
+  ].filter(Boolean) as Array<{ label: string; href: string; caption: string }>;
+  const lateLoginActions = [
+    allowedRouteSet.has("/app/attendance/review")
+      ? { label: "Attendance review", href: "/app/attendance/review", caption: "Late Login and attendance corrections" }
+      : null,
+    canViewTeamAttendance && allowedRouteSet.has("/app/attendance/team")
+      ? { label: "Team attendance", href: "/app/attendance/team", caption: "Live late and presence context" }
+      : null,
+  ].filter(Boolean) as Array<{ label: string; href: string; caption: string }>;
+  const profileActions = [
+    allowedRouteSet.has("/app/employees")
+      ? { label: "Employee profiles", href: "/app/employees", caption: "Open direct-report records and profile context" }
+      : null,
+    allowedRouteSet.has("/app/chat")
+      ? { label: "Team chat", href: "/app/chat", caption: "Coordinate directly with your team" }
+      : null,
+  ].filter(Boolean) as Array<{ label: string; href: string; caption: string }>;
+  const shiftActions = [
+    allowedRouteSet.has("/app/attendance/shifts")
+      ? { label: "Assign shifts", href: "/app/attendance/shifts", caption: "Set or edit shift windows" }
+      : null,
+    allowedRouteSet.has("/app/attendance/shift-swaps")
+      ? { label: "Shift swaps", href: "/app/attendance/shift-swaps", caption: "Review swap requests and outcomes" }
+      : null,
+  ].filter(Boolean) as Array<{ label: string; href: string; caption: string }>;
+  const breakActions = [
+    allowedRouteSet.has("/app/attendance/shifts")
+      ? { label: "Assign breaks", href: "/app/attendance/shifts", caption: "Set or edit break windows" }
+      : null,
+    canViewTeamAttendance && allowedRouteSet.has("/app/attendance/team")
+      ? { label: "Team attendance", href: "/app/attendance/team", caption: "Check live break and presence context" }
+      : null,
+  ].filter(Boolean) as Array<{ label: string; href: string; caption: string }>;
 
   return (
-    <div className="page-wrap space-y-8 fade-in">
-      <DashboardHero
+    <DashboardScaffold
         eyebrow="Team Lead Workspace"
         title="Daily team coordination"
         subtitle="Keep frontline coverage, approvals, and direct-report context in one action-ready team lead desk."
         emphasis="operations"
         actions={(
           <>
-            <Link href="/app/attendance/team" className="primary-btn">Team Attendance</Link>
-            <Link href="/app/attendance/review" className="secondary-btn">Attendance Review</Link>
-            <Link href="/app/attendance/shifts" className="secondary-btn">Shifts & Breaks</Link>
-            <Link href="/app/approvals" className="secondary-btn">Approvals</Link>
-            <Link href="/app/employees" className="secondary-btn">Directory</Link>
+            {heroActions.map((action) => (
+              <Link key={action.href} href={action.href} className={action.tone === "primary" ? "primary-btn" : "secondary-btn"}>
+                {action.label}
+              </Link>
+            ))}
           </>
         )}
-      />
-
-      <DashboardModeSwitch
         value={view}
-        onChange={setView}
-        title="Workspace lenses"
-        subtitle="Switch between frontline coverage, team-level trends, and review queues without leaving your operating desk."
-      />
+        onViewChange={setView}
+        modeTitle="Workspace lenses"
+        modeSubtitle="Switch between frontline coverage, team-level trends, and the operating queues you resolve most often."
+      >
 
       <DashboardSection visible={view === "workspace"}>
         <section className="space-y-4">
@@ -117,7 +178,50 @@ export const TeamLeadDashboard = () => {
           ) : previewRows.length === 0 ? (
             <p className="muted">No scoped employee rows are available right now.</p>
           ) : (
-            <div className="overflow-hidden rounded-[22px] border border-slate-200 bg-white/90">
+            <div className="space-y-4">
+              <div className="grid gap-3 lg:hidden">
+                {previewRows.map((row) => (
+                  <div key={`${row.employee_id}:${row.attendance_date}:card`} className="rounded-[20px] border border-slate-200/80 bg-white/92 p-4 shadow-sm">
+                    <div className="space-y-1">
+                      <p className="font-semibold text-slate-950">{row.employee_name ?? row.employee_id}</p>
+                      <p className="text-xs text-slate-500">
+                        {[row.employee_code, row.designation].filter(Boolean).join(" · ") || "No profile metadata"}
+                      </p>
+                      <p className="text-xs text-slate-400">{row.team_name ?? row.department_name ?? "No team"}</p>
+                    </div>
+                    <div className="mt-3 grid gap-2 text-sm">
+                      <div className="flex items-start justify-between gap-3">
+                        <span className="text-slate-500">State</span>
+                        <div className="text-right">
+                          <div className="font-medium text-slate-900">{row.day_state.replace(/_/g, " ")}</div>
+                          <div className="text-xs text-slate-500">{row.payroll_impact.replace(/_/g, " ")}</div>
+                        </div>
+                      </div>
+                      <div className="flex items-start justify-between gap-3">
+                        <span className="text-slate-500">Shift</span>
+                        <div className="text-right">
+                          <div>{row.shift_name ?? "-"}</div>
+                          <div className="text-xs text-slate-500">
+                            {row.shift_start_time && row.shift_end_time ? `${row.shift_start_time.slice(0, 5)}-${row.shift_end_time.slice(0, 5)}` : "No active shift window"}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-start justify-between gap-3">
+                        <span className="text-slate-500">Break</span>
+                        <span className="text-right text-xs text-slate-600">{row.break_summary ?? "No break assigned"}</span>
+                      </div>
+                      <div className="flex items-start justify-between gap-3">
+                        <span className="text-slate-500">Clock</span>
+                        <div className="text-right">
+                          <div>{row.check_in ? new Date(row.check_in).toLocaleTimeString() : "-"}</div>
+                          <div className="text-xs text-slate-500">{row.check_out ? `Out ${new Date(row.check_out).toLocaleTimeString()}` : "Still active"}</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="hidden overflow-hidden rounded-[22px] border border-slate-200 bg-white/90 lg:block">
               <div className="max-h-[360px] overflow-auto">
                 <table className="min-w-full divide-y divide-slate-200 text-sm">
                   <thead className="bg-slate-50/90 text-left text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
@@ -162,6 +266,7 @@ export const TeamLeadDashboard = () => {
                 </table>
               </div>
             </div>
+            </div>
           )}
         </DashboardPanel>
 
@@ -200,55 +305,30 @@ export const TeamLeadDashboard = () => {
             <div className="space-y-4">
               <Tabs tabs={TEAM_LEAD_OPERATIONS_TABS} active={operationsTab} onChange={setOperationsTab} noWrap variant="soft" />
               {operationsTab === "leave" ? (
-                <QuickActionGrid
-                  actions={[
-                    { label: "Leave approvals", href: "/app/leave/review", caption: "Approve, reject, or cancel requests" },
-                    { label: "Approvals queue", href: "/app/approvals", caption: "Cross-module pending blockers" },
-                  ]}
-                />
+                leaveActions.length > 0 ? <QuickActionGrid actions={leaveActions} /> : <p className="muted">Leave approval tools are not available in this scope.</p>
               ) : null}
               {operationsTab === "late-login" ? (
-                <QuickActionGrid
-                  actions={[
-                    { label: "Attendance review", href: "/app/attendance/review", caption: "Late Login and attendance corrections" },
-                    { label: "Team attendance", href: "/app/attendance/team", caption: "Live late and presence context" },
-                  ]}
-                />
+                lateLoginActions.length > 0 ? <QuickActionGrid actions={lateLoginActions} /> : <p className="muted">Attendance review tools are not available in this scope.</p>
               ) : null}
               {operationsTab === "profiles" ? (
-                <QuickActionGrid
-                  actions={[
-                    { label: "Employee profiles", href: "/app/employees", caption: "Open direct-report records and profile context" },
-                    { label: "Team chat", href: "/app/chat", caption: "Coordinate directly with your team" },
-                  ]}
-                />
+                profileActions.length > 0 ? <QuickActionGrid actions={profileActions} /> : <p className="muted">Profile and communication tools are not available in this scope.</p>
               ) : null}
               {operationsTab === "shifts" ? (
-                <QuickActionGrid
-                  actions={[
-                    { label: "Assign shifts", href: "/app/attendance/shifts", caption: "Set or edit shift windows" },
-                    { label: "Shift swaps", href: "/app/attendance/shift-swaps", caption: "Review swap requests and outcomes" },
-                  ]}
-                />
+                shiftActions.length > 0 ? <QuickActionGrid actions={shiftActions} /> : <p className="muted">Shift tools are not available in this scope.</p>
               ) : null}
               {operationsTab === "breaks" ? (
-                <QuickActionGrid
-                  actions={[
-                    { label: "Assign breaks", href: "/app/attendance/shifts", caption: "Set or edit break windows" },
-                    { label: "Team attendance", href: "/app/attendance/team", caption: "Check live break and presence context" },
-                  ]}
-                />
+                breakActions.length > 0 ? <QuickActionGrid actions={breakActions} /> : <p className="muted">Break tools are not available in this scope.</p>
               ) : null}
             </div>
           </WorkflowPanel>
         </div>
 
-        <DashboardPanel title="Operating scope" subtitle="What this desk is built to resolve quickly">
+      <DashboardPanel title="Operating scope" subtitle="What this desk is built to resolve quickly">
           <p className="muted">
             Team leads stay focused on today&apos;s coverage, swap requests, attendance corrections, and the direct-report context needed to keep frontline work moving.
           </p>
         </DashboardPanel>
       </DashboardSection>
-    </div>
+    </DashboardScaffold>
   );
 };

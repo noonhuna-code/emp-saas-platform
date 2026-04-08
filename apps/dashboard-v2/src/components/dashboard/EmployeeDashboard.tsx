@@ -26,8 +26,7 @@ import { DashboardPerfMarker, useDashboardPerf } from "@/components/dashboard/us
 import { DashboardWidgetBoundary } from "@/components/dashboard/DashboardWidgetBoundary";
 import {
   ChartPanel,
-  DashboardHero,
-  DashboardModeSwitch,
+  DashboardScaffold,
   DashboardSection,
   SignalRow,
   TimelineList,
@@ -224,19 +223,15 @@ export const EmployeeDashboard = ({
   }
 
   return (
-    <div className="space-y-8 fade-in">
-      <DashboardHero
+    <DashboardScaffold
         eyebrow="Employee Workspace"
         title="Your day, requests, records, and support context in one premium lane"
         subtitle="Stay on top of the self-service tools, records, and shared support context available in your workspace without leaving the employee shell."
-      />
-
-      <DashboardModeSwitch
         value={view}
-        onChange={setView}
-        title="Employee control lanes"
-        subtitle="Move between daily execution, insight, and operating context while keeping your own requests and visibility boundaries clear."
-      />
+        onViewChange={setView}
+        modeTitle="Employee control lanes"
+        modeSubtitle="Move between daily execution, insight, and operating context while keeping your own requests and visibility boundaries clear."
+      >
 
       <DashboardSection visible={view === "workspace"}>
         <DashboardRail className="items-start xl:grid-cols-[minmax(0,1.55fr)_minmax(320px,0.85fr)]">
@@ -638,6 +633,6 @@ export const EmployeeDashboard = ({
           </SurfacePanel>
         ) : null}
       </DashboardSection>
-    </div>
+    </DashboardScaffold>
   );
 };

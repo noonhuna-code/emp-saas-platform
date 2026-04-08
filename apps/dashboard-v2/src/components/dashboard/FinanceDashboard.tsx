@@ -12,9 +12,8 @@ import { ErrorState } from "@/components/states/ErrorState";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import {
   ChartPanel,
-  DashboardHero,
+  DashboardScaffold,
   DashboardKpiTile,
-  DashboardModeSwitch,
   DashboardSection,
   QuickActionGrid,
   SignalRow,
@@ -125,8 +124,7 @@ export const FinanceDashboard = ({
   if (error || !billing) return <ErrorState message={error ?? "Finance dashboard unavailable"} />;
 
   return (
-    <div className="page-wrap space-y-8 fade-in">
-      <DashboardHero
+    <DashboardScaffold
         eyebrow="Finance Workspace"
         title="Payroll and billing operations"
         subtitle="Track invoice health, payroll runs, and payslip output from one operational view."
@@ -140,14 +138,11 @@ export const FinanceDashboard = ({
             ))}
           </>
         )}
-      />
-
-      <DashboardModeSwitch
         value={view}
-        onChange={setView}
-        title="Workspace lenses"
-        subtitle="Switch between finance operations, commercial visibility, and payroll execution context without leaving the same shell."
-      />
+        onViewChange={setView}
+        modeTitle="Workspace lenses"
+        modeSubtitle="Switch between finance operations, commercial visibility, and payroll execution context without leaving the same shell."
+      >
 
       <DashboardSection visible={view === "workspace"}>
         <div className="dashboard-kpi-grid">
@@ -229,6 +224,6 @@ export const FinanceDashboard = ({
           </WorkflowPanel>
         </div>
       </DashboardSection>
-    </div>
+    </DashboardScaffold>
   );
 };

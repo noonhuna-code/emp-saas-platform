@@ -20,6 +20,9 @@ const EmployeeDashboard = lazy(() =>
 const ManagerDashboard = lazy(() =>
   import("@/components/dashboard/ManagerDashboard").then((module) => ({ default: module.ManagerDashboard }))
 );
+const TeamLeadDashboard = lazy(() =>
+  import("@/components/dashboard/TeamLeadDashboard").then((module) => ({ default: module.TeamLeadDashboard }))
+);
 const AdminDashboard = lazy(() =>
   import("@/components/dashboard/AdminDashboard").then((module) => ({ default: module.AdminDashboard }))
 );
@@ -41,6 +44,10 @@ export const DashboardPageClient = ({ role, permissions, hasEmployeeContext, ent
   const persona = resolveDashboardPersona({ role, permissions });
   const caps = resolveDashboardCapabilities({ role, permissions });
   const normalizedRole = normalizeRole(role);
+  const isTeamLeadRole =
+    normalizedRole === "team_lead"
+    || normalizedRole === "teamlead"
+    || (permissions.includes("manage_attendance") && !permissions.includes("manage_employees"));
   const visibleGroups = useMemo(
     () =>
       resolveVisibleNavigationGroups(TENANT_NAVIGATION_GROUPS, {
@@ -73,9 +80,6 @@ export const DashboardPageClient = ({ role, permissions, hasEmployeeContext, ent
     },
     [hasEmployeeContext, permissions, visibleGroups]
   );
-  const managerMode = normalizedRole === "team_lead" || normalizedRole === "teamlead" || (permissions.includes("manage_attendance") && !permissions.includes("manage_employees"))
-    ? "team_lead"
-    : "manager";
   const adminOpsMode = useMemo(() => {
     if (
       normalizedRole === "it"
@@ -107,14 +111,16 @@ export const DashboardPageClient = ({ role, permissions, hasEmployeeContext, ent
       case "finance":
         return <FinanceDashboard allowedRoutes={allowedRoutes} />;
       case "manager":
-        return <ManagerDashboard mode={managerMode} allowedRoutes={allowedRoutes} canViewTeamAttendance={canViewTeamAttendance} canReviewLeave={canReviewLeave} />;
+        return isTeamLeadRole
+          ? <TeamLeadDashboard allowedRoutes={allowedRoutes} canViewTeamAttendance={canViewTeamAttendance} canReviewLeave={canReviewLeave} />
+          : <ManagerDashboard allowedRoutes={allowedRoutes} canViewTeamAttendance={canViewTeamAttendance} canReviewLeave={canReviewLeave} />;
       case "employee":
       default:
         return hasEmployeeContext
           ? <EmployeeDashboard allowedRoutes={allowedRoutes} />
-          : <ManagerDashboard mode="manager" allowedRoutes={allowedRoutes} canViewTeamAttendance={canViewTeamAttendance} canReviewLeave={canReviewLeave} />;
+          : <ManagerDashboard allowedRoutes={allowedRoutes} canViewTeamAttendance={canViewTeamAttendance} canReviewLeave={canReviewLeave} />;
     }
-  }, [adminOpsMode, allowedRoutes, canReviewLeave, canViewTeamAttendance, hasEmployeeContext, managerMode, persona]);
+  }, [adminOpsMode, allowedRoutes, canReviewLeave, canViewTeamAttendance, hasEmployeeContext, isTeamLeadRole, persona]);
 
   if (persona === "platform_owner") {
     return (

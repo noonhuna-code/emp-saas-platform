@@ -6,8 +6,7 @@ import { DashboardPerfMarker, useDashboardPerf } from "@/components/dashboard/us
 import { DashboardWidgetBoundary } from "@/components/dashboard/DashboardWidgetBoundary";
 import {
   ChartPanel,
-  DashboardHero,
-  DashboardModeSwitch,
+  DashboardScaffold,
   DashboardPanel,
   QuickActionGrid,
   DashboardSection,
@@ -50,8 +49,7 @@ export const HRDashboard = ({
   }, [perf]);
 
   return (
-    <div className="page-wrap space-y-8 fade-in">
-      <DashboardHero
+    <DashboardScaffold
         eyebrow="HR Workspace"
         title="Payroll and workforce operations"
         subtitle="Stay close to employee records, leave review, payroll readiness, and policy delivery from one HR-ready start surface."
@@ -65,14 +63,11 @@ export const HRDashboard = ({
             ))}
           </>
         )}
-      />
-
-      <DashboardModeSwitch
         value={view}
-        onChange={setView}
-        title="Workspace lenses"
-        subtitle="Switch between workforce operations, trend visibility, and HR queue management from one role-aware shell."
-      />
+        onViewChange={setView}
+        modeTitle="Workspace lenses"
+        modeSubtitle="Switch between workforce operations, trend visibility, and HR queue management from one role-aware shell."
+      >
 
       <DashboardSection visible={view === "workspace"}>
         <section className="space-y-4">
@@ -121,6 +116,6 @@ export const HRDashboard = ({
           </p>
         </DashboardPanel>
       </DashboardSection>
-    </div>
+    </DashboardScaffold>
   );
 };

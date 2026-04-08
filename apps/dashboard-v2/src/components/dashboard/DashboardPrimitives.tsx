@@ -52,22 +52,22 @@ export const DashboardHero = ({
   return (
     <Card
       className={cn(
-        "dashboard-hero-shell rounded-xl border-border shadow-sm",
+        "dashboard-hero-shell overflow-hidden rounded-[28px] border border-slate-200/80 bg-white/92 shadow-[0_18px_48px_rgba(15,23,42,0.07)]",
         emphasis === "executive" && "dashboard-hero dashboard-hero--executive",
         emphasis === "operations" && "dashboard-hero dashboard-hero--operations",
         emphasis === "default" && "dashboard-hero"
       )}
     >
-      <CardContent className="dashboard-hero__layout p-6">
-        <div className="dashboard-hero__content">
+      <CardContent className="dashboard-hero__layout gap-5 p-5 sm:p-6 xl:p-7">
+        <div className="dashboard-hero__content min-w-0">
           {eyebrow ? <p className="dashboard-hero__eyebrow">{eyebrow}</p> : null}
-          <div className="dashboard-hero__copy">
+          <div className="dashboard-hero__copy min-w-0">
             <h2 className="dashboard-hero__title">{title}</h2>
             <p className="dashboard-hero__subtitle">{subtitle}</p>
           </div>
-          {actions ? <div className="dashboard-hero__actions">{actions}</div> : null}
+          {actions ? <div className="dashboard-hero__actions min-w-0">{actions}</div> : null}
         </div>
-        <div className="dashboard-hero__aside">
+        <div className="dashboard-hero__aside min-w-0">
           <div className="dashboard-hero__signal-grid">
             {signals.map((signal) => (
               <div key={`${signal.label}-${signal.value}`} className="dashboard-hero__signal-card">
@@ -93,16 +93,54 @@ export const DashboardModeSwitch = ({
   subtitle?: string;
 }) => {
   return (
-    <div className="dashboard-mode-switch">
-      <div className="dashboard-mode-switch__copy">
+    <div className="dashboard-mode-switch rounded-[24px] border border-slate-200/80 bg-white/90 shadow-[0_14px_36px_rgba(15,23,42,0.05)]">
+      <div className="dashboard-mode-switch__copy min-w-0">
         <p className="dashboard-mode-switch__title">{title}</p>
         <p className="dashboard-mode-switch__subtitle">{subtitle}</p>
       </div>
-      <Tabs
-        tabs={DASHBOARD_VIEW_OPTIONS}
-        active={value}
-        onChange={(next) => onChange((next as DashboardView) ?? "workspace")}
-      />
+      <div className="dashboard-mode-switch__tabs min-w-0">
+        <Tabs
+          tabs={DASHBOARD_VIEW_OPTIONS}
+          active={value}
+          onChange={(next) => onChange((next as DashboardView) ?? "workspace")}
+          noWrap
+          variant="soft"
+        />
+      </div>
+    </div>
+  );
+};
+
+export const DashboardScaffold = ({
+  eyebrow,
+  title,
+  subtitle,
+  actions,
+  emphasis = "default",
+  value,
+  onViewChange,
+  modeTitle = "Workspace lenses",
+  modeSubtitle = "Move between overview, analytics, and operations without losing context.",
+  children,
+}: {
+  eyebrow?: string;
+  title: string;
+  subtitle: string;
+  actions?: ReactNode;
+  emphasis?: "default" | "executive" | "operations";
+  value: DashboardView;
+  onViewChange: (value: DashboardView) => void;
+  modeTitle?: string;
+  modeSubtitle?: string;
+  children: ReactNode;
+}) => {
+  return (
+    <div className="dashboard-page page-wrap space-y-8 fade-in">
+      <div className="dashboard-page__masthead">
+        <DashboardHero eyebrow={eyebrow} title={title} subtitle={subtitle} actions={actions} emphasis={emphasis} />
+        <DashboardModeSwitch value={value} onChange={onViewChange} title={modeTitle} subtitle={modeSubtitle} />
+      </div>
+      <div className="dashboard-page__body space-y-8">{children}</div>
     </div>
   );
 };

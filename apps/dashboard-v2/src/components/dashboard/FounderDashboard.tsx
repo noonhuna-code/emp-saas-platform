@@ -17,9 +17,8 @@ import { PayrollAnalyticsWidgetsSection } from "@/components/dashboard/payroll-a
 import { SubscriptionHealthPanel } from "@/components/dashboard/SubscriptionHealthPanel";
 import {
   ChartPanel,
-  DashboardHero,
+  DashboardScaffold,
   DashboardKpiTile,
-  DashboardModeSwitch,
   DashboardPanel,
   DashboardSection,
   QuickActionGrid,
@@ -150,8 +149,7 @@ export const FounderDashboard = ({
   if (error || !adminData || !monitoring || !payrollRuns) return <ErrorState message={error ?? "Founder dashboard unavailable"} />;
 
   return (
-    <div className="page-wrap space-y-8 fade-in">
-      <DashboardHero
+    <DashboardScaffold
         eyebrow="Executive Workspace"
         title="Founder and CEO command view"
         subtitle="Read-only executive visibility across workforce, payroll lifecycle, and operational risk signals with tenant-safe summaries only."
@@ -165,14 +163,11 @@ export const FounderDashboard = ({
             ))}
           </>
         )}
-      />
-
-      <DashboardModeSwitch
         value={view}
-        onChange={setView}
-        title="Executive lenses"
-        subtitle="Shift between cross-company visibility, trend reading, and operating pressure without losing the executive summary layer."
-      />
+        onViewChange={setView}
+        modeTitle="Executive lenses"
+        modeSubtitle="Shift between cross-company visibility, trend reading, and operating pressure without losing the executive summary layer."
+      >
 
       <DashboardSection visible={view === "workspace"}>
         <div className="dashboard-kpi-grid">
@@ -296,7 +291,7 @@ export const FounderDashboard = ({
           ))}
         </DashboardPanel>
       </DashboardSection>
-    </div>
+    </DashboardScaffold>
   );
 };
 

@@ -8,8 +8,7 @@ import { DashboardPerfMarker, useDashboardPerf } from "@/components/dashboard/us
 import { DashboardWidgetBoundary } from "@/components/dashboard/DashboardWidgetBoundary";
 import {
   ChartPanel,
-  DashboardHero,
-  DashboardModeSwitch,
+  DashboardScaffold,
   DashboardPanel,
   QuickActionGrid,
   DashboardSection,
@@ -72,8 +71,7 @@ const AdminDashboardCore = ({
   }, [perf]);
 
   return (
-    <div className="page-wrap space-y-8 fade-in">
-      <DashboardHero
+    <DashboardScaffold
         eyebrow="Admin Workspace"
         title="Company operations and governance overview"
         subtitle="Tenant-scoped headcount, attendance, leave utilization, payroll snapshot, and recent security alerts."
@@ -87,14 +85,11 @@ const AdminDashboardCore = ({
             ))}
           </>
         )}
-      />
-
-      <DashboardModeSwitch
         value={view}
-        onChange={setView}
-        title="Workspace lenses"
-        subtitle="Move between company operations, analysis, and governance without leaving the admin command surface."
-      />
+        onViewChange={setView}
+        modeTitle="Workspace lenses"
+        modeSubtitle="Move between company operations, analysis, and governance without leaving the admin command surface."
+      >
 
       <DashboardSection visible={view === "workspace"}>
         <section className="space-y-4">
@@ -152,6 +147,6 @@ const AdminDashboardCore = ({
           </p>
         </DashboardPanel>
       </DashboardSection>
-    </div>
+    </DashboardScaffold>
   );
 };
