@@ -127,7 +127,7 @@ export const ManagerDashboard = ({
               <DashboardWidgetBoundary title="Workflow queue" message="Workflow data is temporarily unavailable.">
                 <ManagerWorkflowWidget
                   variant="manager"
-                  canOpenEmployees={hasEmployees}
+                  peopleHref={peopleHref}
                 />
               </DashboardWidgetBoundary>
             </Suspense>

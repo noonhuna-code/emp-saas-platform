@@ -183,109 +183,137 @@ export const TeamLeadDashboard = ({
           <ManagerKpiWidget variant="team_lead" />
         </section>
 
-        <DashboardPanel
-          title="Live team coverage"
-          subtitle="See employee profile, shift, breaks, and present-state context without leaving the dashboard."
-          actions={<Link href="/app/attendance/team" className="secondary-btn">Open full team attendance</Link>}
-        >
-          {teamRowsLoading ? (
-            <SkeletonList rows={6} />
-          ) : teamRowsError ? (
-            <p className="text-sm text-rose-600">{teamRowsError}</p>
-          ) : previewRows.length === 0 ? (
-            <p className="muted">No scoped employee rows are available right now.</p>
-          ) : (
-            <div className="space-y-4">
-              <div className="grid gap-3 lg:hidden">
-                {previewRows.map((row) => (
-                  <div key={`${row.employee_id}:${row.attendance_date}:card`} className="rounded-[20px] border border-slate-200/80 bg-white/92 p-4 shadow-sm">
-                    <div className="space-y-1">
-                      <p className="font-semibold text-slate-950">{row.employee_name ?? row.employee_id}</p>
-                      <p className="text-xs text-slate-500">
-                        {[row.employee_code, row.designation].filter(Boolean).join(" · ") || "No profile metadata"}
-                      </p>
-                      <p className="text-xs text-slate-400">{row.team_name ?? row.department_name ?? "No team"}</p>
-                    </div>
-                    <div className="mt-3 grid gap-2 text-sm">
-                      <div className="flex items-start justify-between gap-3">
-                        <span className="text-slate-500">State</span>
-                        <div className="text-right">
-                          <div className="font-medium text-slate-900">{row.day_state.replace(/_/g, " ")}</div>
-                          <div className="text-xs text-slate-500">{row.payroll_impact.replace(/_/g, " ")}</div>
-                        </div>
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.72fr)]">
+          <DashboardPanel
+            title="Live team coverage"
+            subtitle="See employee profile, shift, break, and present-state context without leaving the dashboard."
+            actions={<Link href="/app/attendance/team" className="secondary-btn">Open full team attendance</Link>}
+          >
+            {teamRowsLoading ? (
+              <SkeletonList rows={6} />
+            ) : teamRowsError ? (
+              <p className="text-sm text-rose-600">{teamRowsError}</p>
+            ) : previewRows.length === 0 ? (
+              <p className="muted">No scoped employee rows are available right now.</p>
+            ) : (
+              <div className="space-y-4">
+                <div className="grid gap-3 lg:hidden">
+                  {previewRows.map((row) => (
+                    <div key={`${row.employee_id}:${row.attendance_date}:card`} className="rounded-[20px] border border-slate-200/80 bg-white/92 p-4 shadow-sm">
+                      <div className="space-y-1">
+                        <p className="truncate font-semibold text-slate-950">{row.employee_name ?? row.employee_id}</p>
+                        <p className="truncate text-xs text-slate-500">
+                          {[row.employee_code, row.designation].filter(Boolean).join(" / ") || "No profile metadata"}
+                        </p>
+                        <p className="truncate text-xs text-slate-400">{row.team_name ?? row.department_name ?? "No team"}</p>
                       </div>
-                      <div className="flex items-start justify-between gap-3">
-                        <span className="text-slate-500">Shift</span>
-                        <div className="text-right">
-                          <div>{row.shift_name ?? "-"}</div>
-                          <div className="text-xs text-slate-500">
-                            {row.shift_start_time && row.shift_end_time ? `${row.shift_start_time.slice(0, 5)}-${row.shift_end_time.slice(0, 5)}` : "No active shift window"}
+                      <div className="mt-3 grid gap-2 text-sm">
+                        <div className="flex items-start justify-between gap-3">
+                          <span className="text-slate-500">State</span>
+                          <div className="min-w-0 text-right">
+                            <div className="font-medium text-slate-900">{row.day_state.replace(/_/g, " ")}</div>
+                            <div className="truncate text-xs text-slate-500">{row.payroll_impact.replace(/_/g, " ")}</div>
+                          </div>
+                        </div>
+                        <div className="flex items-start justify-between gap-3">
+                          <span className="text-slate-500">Shift</span>
+                          <div className="min-w-0 text-right">
+                            <div className="truncate">{row.shift_name ?? "-"}</div>
+                            <div className="truncate text-xs text-slate-500">
+                              {row.shift_start_time && row.shift_end_time ? `${row.shift_start_time.slice(0, 5)}-${row.shift_end_time.slice(0, 5)}` : "No active shift window"}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-start justify-between gap-3">
+                          <span className="text-slate-500">Break</span>
+                          <span className="line-clamp-2 text-right text-xs text-slate-600">{row.break_summary ?? "No break assigned"}</span>
+                        </div>
+                        <div className="flex items-start justify-between gap-3">
+                          <span className="text-slate-500">Clock</span>
+                          <div className="text-right">
+                            <div>{row.check_in ? new Date(row.check_in).toLocaleTimeString() : "-"}</div>
+                            <div className="text-xs text-slate-500">{row.check_out ? `Out ${new Date(row.check_out).toLocaleTimeString()}` : "Still active"}</div>
                           </div>
                         </div>
                       </div>
-                      <div className="flex items-start justify-between gap-3">
-                        <span className="text-slate-500">Break</span>
-                        <span className="text-right text-xs text-slate-600">{row.break_summary ?? "No break assigned"}</span>
-                      </div>
-                      <div className="flex items-start justify-between gap-3">
-                        <span className="text-slate-500">Clock</span>
-                        <div className="text-right">
-                          <div>{row.check_in ? new Date(row.check_in).toLocaleTimeString() : "-"}</div>
-                          <div className="text-xs text-slate-500">{row.check_out ? `Out ${new Date(row.check_out).toLocaleTimeString()}` : "Still active"}</div>
-                        </div>
-                      </div>
                     </div>
+                  ))}
+                </div>
+                <div className="hidden overflow-hidden rounded-[22px] border border-slate-200 bg-white/90 lg:block">
+                  <div className="max-h-[360px] overflow-auto">
+                    <table className="min-w-full divide-y divide-slate-200 text-sm">
+                      <thead className="bg-slate-50/90 text-left text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                        <tr>
+                          <th className="px-4 py-3">Employee</th>
+                          <th className="px-4 py-3">State</th>
+                          <th className="px-4 py-3">Shift</th>
+                          <th className="px-4 py-3">Breaks</th>
+                          <th className="px-4 py-3">Clock</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 bg-white text-slate-700">
+                        {previewRows.map((row) => (
+                          <tr key={`${row.employee_id}:${row.attendance_date}`}>
+                            <td className="px-4 py-3">
+                              <div className="space-y-1">
+                                <p className="truncate font-medium text-slate-900">{row.employee_name ?? row.employee_id}</p>
+                                <p className="truncate text-xs text-slate-500">
+                                  {[row.employee_code, row.designation].filter(Boolean).join(" / ") || "No profile metadata"}
+                                </p>
+                                <p className="truncate text-xs text-slate-400">{row.team_name ?? row.department_name ?? "No team"}</p>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="font-medium text-slate-900">{row.day_state.replace(/_/g, " ")}</div>
+                              <div className="truncate text-xs text-slate-500">{row.payroll_impact.replace(/_/g, " ")}</div>
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="truncate">{row.shift_name ?? "-"}</div>
+                              <div className="truncate text-xs text-slate-500">
+                                {row.shift_start_time && row.shift_end_time ? `${row.shift_start_time.slice(0, 5)}-${row.shift_end_time.slice(0, 5)}` : "No active shift window"}
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 text-xs text-slate-600">
+                              <span className="line-clamp-2">{row.break_summary ?? "No break assigned"}</span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <div>{row.check_in ? new Date(row.check_in).toLocaleTimeString() : "-"}</div>
+                              <div className="text-xs text-slate-500">{row.check_out ? `Out ${new Date(row.check_out).toLocaleTimeString()}` : "Still active"}</div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
-                ))}
+                </div>
               </div>
-              <div className="hidden overflow-hidden rounded-[22px] border border-slate-200 bg-white/90 lg:block">
-              <div className="max-h-[360px] overflow-auto">
-                <table className="min-w-full divide-y divide-slate-200 text-sm">
-                  <thead className="bg-slate-50/90 text-left text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-                    <tr>
-                      <th className="px-4 py-3">Employee</th>
-                      <th className="px-4 py-3">State</th>
-                      <th className="px-4 py-3">Shift</th>
-                      <th className="px-4 py-3">Breaks</th>
-                      <th className="px-4 py-3">Clock</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 bg-white text-slate-700">
-                    {previewRows.map((row) => (
-                      <tr key={`${row.employee_id}:${row.attendance_date}`}>
-                        <td className="px-4 py-3">
-                          <div className="space-y-1">
-                            <p className="font-medium text-slate-900">{row.employee_name ?? row.employee_id}</p>
-                            <p className="text-xs text-slate-500">
-                              {[row.employee_code, row.designation].filter(Boolean).join(" · ") || "No profile metadata"}
-                            </p>
-                            <p className="text-xs text-slate-400">{row.team_name ?? row.department_name ?? "No team"}</p>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="font-medium text-slate-900">{row.day_state.replace(/_/g, " ")}</div>
-                          <div className="text-xs text-slate-500">{row.payroll_impact.replace(/_/g, " ")}</div>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div>{row.shift_name ?? "-"}</div>
-                          <div className="text-xs text-slate-500">
-                            {row.shift_start_time && row.shift_end_time ? `${row.shift_start_time.slice(0, 5)}-${row.shift_end_time.slice(0, 5)}` : "No active shift window"}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 text-xs text-slate-600">{row.break_summary ?? "No break assigned"}</td>
-                        <td className="px-4 py-3">
-                          <div>{row.check_in ? new Date(row.check_in).toLocaleTimeString() : "-"}</div>
-                          <div className="text-xs text-slate-500">{row.check_out ? `Out ${new Date(row.check_out).toLocaleTimeString()}` : "Still active"}</div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+            )}
+          </DashboardPanel>
+
+          <WorkflowPanel title="Team lead action lanes" subtitle="Jump straight into the queue or workspace that needs your attention next.">
+            <div className="space-y-4">
+              <Tabs tabs={TEAM_LEAD_OPERATIONS_TABS} active={operationsTab} onChange={setOperationsTab} variant="soft" />
+              {operationsTab === "leave" ? (
+                leaveActions.length > 0 ? <QuickActionGrid actions={leaveActions} /> : <p className="muted">Leave approval tools are not available in this scope.</p>
+              ) : null}
+              {operationsTab === "late-login" ? (
+                lateLoginActions.length > 0 ? <QuickActionGrid actions={lateLoginActions} /> : <p className="muted">Attendance review tools are not available in this scope.</p>
+              ) : null}
+              {operationsTab === "profiles" ? (
+                profileActions.length > 0 ? <QuickActionGrid actions={profileActions} /> : <p className="muted">Profile and communication tools are not available in this scope.</p>
+              ) : null}
+              {operationsTab === "shifts" ? (
+                shiftActions.length > 0 ? <QuickActionGrid actions={shiftActions} /> : <p className="muted">Shift tools are not available in this scope.</p>
+              ) : null}
+              {operationsTab === "breaks" ? (
+                breakActions.length > 0 ? <QuickActionGrid actions={breakActions} /> : <p className="muted">Break tools are not available in this scope.</p>
+              ) : null}
+              {operationsTab === "shift-changes" ? (
+                shiftChangeActions.length > 0 ? <QuickActionGrid actions={shiftChangeActions} /> : <p className="muted">Shift change tools are not available in this scope.</p>
+              ) : null}
             </div>
-            </div>
-          )}
-        </DashboardPanel>
+          </WorkflowPanel>
+        </div>
 
         <section className="space-y-4">
           <Suspense fallback={<div className="grid-2"><SkeletonCard rows={6} /><SkeletonChart /></div>}>
@@ -324,32 +352,17 @@ export const TeamLeadDashboard = ({
               <DashboardWidgetBoundary title="Team workflow" message="Workflow data is temporarily unavailable.">
                 <ManagerWorkflowWidget
                   variant="team_lead"
-                  canOpenEmployees={Boolean(peopleHref)}
+                  peopleHref={peopleHref}
                 />
               </DashboardWidgetBoundary>
             </Suspense>
           </WorkflowPanel>
-          <WorkflowPanel title="Team lead action paths" subtitle="Open the exact work lane you need instead of hunting through one crowded portal.">
-            <div className="space-y-4">
-              <Tabs tabs={TEAM_LEAD_OPERATIONS_TABS} active={operationsTab} onChange={setOperationsTab} variant="soft" />
-              {operationsTab === "leave" ? (
-                leaveActions.length > 0 ? <QuickActionGrid actions={leaveActions} /> : <p className="muted">Leave approval tools are not available in this scope.</p>
-              ) : null}
-              {operationsTab === "late-login" ? (
-                lateLoginActions.length > 0 ? <QuickActionGrid actions={lateLoginActions} /> : <p className="muted">Attendance review tools are not available in this scope.</p>
-              ) : null}
-              {operationsTab === "profiles" ? (
-                profileActions.length > 0 ? <QuickActionGrid actions={profileActions} /> : <p className="muted">Profile and communication tools are not available in this scope.</p>
-              ) : null}
-              {operationsTab === "shifts" ? (
-                shiftActions.length > 0 ? <QuickActionGrid actions={shiftActions} /> : <p className="muted">Shift tools are not available in this scope.</p>
-              ) : null}
-              {operationsTab === "breaks" ? (
-                breakActions.length > 0 ? <QuickActionGrid actions={breakActions} /> : <p className="muted">Break tools are not available in this scope.</p>
-              ) : null}
-              {operationsTab === "shift-changes" ? (
-                shiftChangeActions.length > 0 ? <QuickActionGrid actions={shiftChangeActions} /> : <p className="muted">Shift change tools are not available in this scope.</p>
-              ) : null}
+          <WorkflowPanel title="Action lane status" subtitle="What this desk is built to resolve first">
+            <div className="space-y-3">
+              <p className="muted">
+                Team leads stay anchored to today&apos;s coverage, leave approvals, late attendance, employee context, and shift changes without bouncing across mixed portals.
+              </p>
+              <QuickActionGrid actions={heroActions.map((action) => ({ label: action.label, href: action.href, caption: "Open workspace" }))} />
             </div>
           </WorkflowPanel>
         </div>

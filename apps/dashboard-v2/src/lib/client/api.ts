@@ -333,6 +333,18 @@ const invalidateLeaveCache = (): void => {
   ]);
 };
 
+const invalidateShiftWorkspaceCache = (): void => {
+  invalidateCachedUrlPrefix("/api/attendance/shifts/assignable");
+  invalidateCachedUrlPrefix("/api/attendance/shifts/assignments");
+  invalidateCachedUrlPrefix("/api/attendance/breaks/assignments");
+  invalidateCachedUrlPrefix("/api/attendance/shift-swaps");
+  invalidateCachedUrls([
+    "/api/dashboard/employee",
+    "/api/dashboard/manager",
+    "/api/attendance/team",
+  ]);
+};
+
 const postJson = async <T>(
   url: string,
   body: Record<string, unknown>,
@@ -1710,11 +1722,15 @@ export const assignShift = async (payload: {
   effectiveFrom: string;
   effectiveTo?: string | null;
 }): Promise<DashboardApiResult<AssignShiftResponse>> => {
-  return postJson<AssignShiftResponse>(
+  const result = await postJson<AssignShiftResponse>(
     "/api/attendance/shifts/assign",
     payload as Record<string, unknown>,
     { "Idempotency-Key": crypto.randomUUID() }
   );
+  if (result.ok) {
+    invalidateShiftWorkspaceCache();
+  }
+  return result;
 };
 
 export const updateShiftAssignment = async (
@@ -1733,7 +1749,11 @@ export const updateShiftAssignment = async (
     },
     body: JSON.stringify(payload),
   });
-  return parseJson<UpdateShiftAssignmentResponse>(response);
+  const result = await parseJson<UpdateShiftAssignmentResponse>(response);
+  if (result.ok) {
+    invalidateShiftWorkspaceCache();
+  }
+  return result;
 };
 
 export const removeShiftAssignment = async (
@@ -1745,7 +1765,11 @@ export const removeShiftAssignment = async (
       "Idempotency-Key": crypto.randomUUID(),
     },
   });
-  return parseJson<RemoveShiftAssignmentResponse>(response);
+  const result = await parseJson<RemoveShiftAssignmentResponse>(response);
+  if (result.ok) {
+    invalidateShiftWorkspaceCache();
+  }
+  return result;
 };
 
 export const fetchBreakAssignments = async (params: {
@@ -1767,11 +1791,15 @@ export const assignBreak = async (payload: {
   effectiveFrom: string;
   effectiveTo?: string | null;
 }): Promise<DashboardApiResult<AssignBreakResponse>> => {
-  return postJson<AssignBreakResponse>(
+  const result = await postJson<AssignBreakResponse>(
     "/api/attendance/breaks/assign",
     payload as Record<string, unknown>,
     { "Idempotency-Key": crypto.randomUUID() }
   );
+  if (result.ok) {
+    invalidateShiftWorkspaceCache();
+  }
+  return result;
 };
 
 export const updateBreakAssignment = async (
@@ -1792,7 +1820,11 @@ export const updateBreakAssignment = async (
     },
     body: JSON.stringify(payload),
   });
-  return parseJson<UpdateBreakAssignmentResponse>(response);
+  const result = await parseJson<UpdateBreakAssignmentResponse>(response);
+  if (result.ok) {
+    invalidateShiftWorkspaceCache();
+  }
+  return result;
 };
 
 export const removeBreakAssignment = async (
@@ -1804,7 +1836,11 @@ export const removeBreakAssignment = async (
       "Idempotency-Key": crypto.randomUUID(),
     },
   });
-  return parseJson<RemoveBreakAssignmentResponse>(response);
+  const result = await parseJson<RemoveBreakAssignmentResponse>(response);
+  if (result.ok) {
+    invalidateShiftWorkspaceCache();
+  }
+  return result;
 };
 
 export const fetchShiftSwapRequests = async (params: {
@@ -1826,11 +1862,15 @@ export const requestShiftSwap = async (payload: {
   requestedShiftTemplateId: string;
   reason: string;
 }): Promise<DashboardApiResult<ShiftSwapCreateResponse>> => {
-  return postJson<ShiftSwapCreateResponse>(
+  const result = await postJson<ShiftSwapCreateResponse>(
     "/api/attendance/shift-swaps",
     payload as Record<string, unknown>,
     { "Idempotency-Key": crypto.randomUUID() }
   );
+  if (result.ok) {
+    invalidateShiftWorkspaceCache();
+  }
+  return result;
 };
 
 export const reviewShiftSwap = async (payload: {
@@ -1838,11 +1878,15 @@ export const reviewShiftSwap = async (payload: {
   decision: "approved" | "rejected";
   note?: string;
 }): Promise<DashboardApiResult<ShiftSwapReviewResponse>> => {
-  return postJson<ShiftSwapReviewResponse>(
+  const result = await postJson<ShiftSwapReviewResponse>(
     "/api/attendance/shift-swaps/review",
     payload as Record<string, unknown>,
     { "Idempotency-Key": crypto.randomUUID() }
   );
+  if (result.ok) {
+    invalidateShiftWorkspaceCache();
+  }
+  return result;
 };
 
 

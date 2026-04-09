@@ -384,7 +384,7 @@ const ShiftSwapsPageClient = () => {
                             <td className="px-4 py-3">{row.requested_shift_name ?? row.requested_shift_template_id}</td>
                             <td className="px-4 py-3 text-slate-500">{row.reason}</td>
                             <td className="px-4 py-3">
-                              <div className="flex flex-nowrap gap-2">
+                              <div className="flex flex-wrap gap-2">
                                 <Button type="button" className="rounded-full px-4" onClick={() => void onReview(row.id, "approved")} disabled={submitting}>
                                   Approve
                                 </Button>

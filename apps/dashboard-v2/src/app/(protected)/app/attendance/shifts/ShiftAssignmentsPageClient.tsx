@@ -1,27 +1,52 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { type FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import {
   assignBreak,
-  removeBreakAssignment,
-  removeShiftAssignment,
-  fetchBreakAssignments,
   assignShift,
+  fetchBreakAssignments,
   fetchShiftAssignableEmployees,
   fetchShiftAssignments,
   fetchShiftTemplates,
+  removeBreakAssignment,
+  removeShiftAssignment,
   updateBreakAssignment,
-  updateShiftAssignment
+  updateShiftAssignment,
 } from "@/lib/client/api";
-import type { BreakAssignment, ShiftAssignableEmployee, ShiftAssignment, ShiftTemplate } from "@/lib/types/workspace";
-import { LoadingState } from "@/components/states/LoadingState";
+import type {
+  BreakAssignment,
+  ShiftAssignableEmployee,
+  ShiftAssignment,
+  ShiftTemplate,
+} from "@/lib/types/workspace";
 import { ErrorState } from "@/components/states/ErrorState";
+import { LoadingState } from "@/components/states/LoadingState";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Badge } from "@/components/ui/badge";
+import { Button, buttonVariants } from "@/components/ui/button";
+import {
+  DashboardRail,
+  PageContainer,
+  PageHeader,
+  StatCard,
+  StatGrid,
+  SurfacePanel,
+} from "@/components/dashboard-v2/PagePrimitives";
+import {
+  ProfileTableShell,
+  ProfileTableToolbar,
+  profileFieldClassName,
+} from "@/components/profile/ProfileSectionPrimitives";
 
 const addDays = (dateText: string, days: number) => {
   const base = new Date(`${dateText}T00:00:00`);
   base.setDate(base.getDate() + days);
   return base.toISOString().slice(0, 10);
 };
+
+const cardFieldLabelClassName = "text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500";
+const cardFieldValueClassName = "text-sm font-medium text-slate-900";
 
 const ShiftAssignmentsPageClient = () => {
   const [templates, setTemplates] = useState<ShiftTemplate[]>([]);
@@ -42,11 +67,12 @@ const ShiftAssignmentsPageClient = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [employeeQuery, setEmployeeQuery] = useState("");
 
   const loadTemplates = async () => {
     const [templatesResult, employeesResult] = await Promise.all([
       fetchShiftTemplates(),
-      fetchShiftAssignableEmployees(300)
+      fetchShiftAssignableEmployees(300),
     ]);
 
     if (!templatesResult.ok || !templatesResult.data) {
@@ -58,36 +84,43 @@ const ShiftAssignmentsPageClient = () => {
       return;
     }
 
-    setTemplates(templatesResult.data.rows);
-    setEmployees(employeesResult.data.rows);
-    setShiftTemplateId((prev) => prev || templatesResult.data?.rows?.[0]?.id || "");
-    setEmployeeId((prev) => prev || employeesResult.data?.rows?.[0]?.id || "");
+    const templateRows = templatesResult.data.rows;
+    const employeeRows = employeesResult.data.rows;
+
+    setTemplates(templateRows);
+    setEmployees(employeeRows);
+    setShiftTemplateId((prev) => prev || templateRows[0]?.id || "");
+    setEmployeeId((prev) => prev || employeeRows[0]?.id || "");
   };
 
-  const loadAssignments = useCallback(async (selectedEmployeeId?: string) => {
-    const resolved = (selectedEmployeeId ?? employeeId).trim();
-    if (!resolved) {
-      setAssignments([]);
-      setBreakAssignments([]);
-      return;
-    }
+  const loadAssignments = useCallback(
+    async (selectedEmployeeId?: string) => {
+      const resolved = (selectedEmployeeId ?? employeeId).trim();
+      if (!resolved) {
+        setAssignments([]);
+        setBreakAssignments([]);
+        return;
+      }
 
-    const [shiftResult, breakResult] = await Promise.all([
-      fetchShiftAssignments({ employeeId: resolved, limit: 20 }),
-      fetchBreakAssignments({ employeeId: resolved, limit: 30 }),
-    ]);
+      const [shiftResult, breakResult] = await Promise.all([
+        fetchShiftAssignments({ employeeId: resolved, limit: 20 }),
+        fetchBreakAssignments({ employeeId: resolved, limit: 30 }),
+      ]);
 
-    if (!shiftResult.ok || !shiftResult.data) {
-      setError(shiftResult.error ?? "Unable to load assignments");
-      return;
-    }
-    if (!breakResult.ok || !breakResult.data) {
-      setError(breakResult.error ?? "Unable to load break assignments");
-      return;
-    }
-    setAssignments(shiftResult.data.rows);
-    setBreakAssignments(breakResult.data.rows);
-  }, [employeeId]);
+      if (!shiftResult.ok || !shiftResult.data) {
+        setError(shiftResult.error ?? "Unable to load assignments");
+        return;
+      }
+      if (!breakResult.ok || !breakResult.data) {
+        setError(breakResult.error ?? "Unable to load break assignments");
+        return;
+      }
+
+      setAssignments(shiftResult.data.rows);
+      setBreakAssignments(breakResult.data.rows);
+    },
+    [employeeId],
+  );
 
   useEffect(() => {
     let active = true;
@@ -127,10 +160,31 @@ const ShiftAssignmentsPageClient = () => {
 
   const templateOptions = useMemo(
     () => new Map(templates.map((template) => [template.id, template])),
-    [templates]
+    [templates],
   );
 
-  const onAssign = async (event: React.FormEvent) => {
+  const selectedEmployee = useMemo(
+    () => employees.find((employee) => employee.id === employeeId) ?? null,
+    [employeeId, employees],
+  );
+
+  const filteredEmployees = useMemo(() => {
+    const normalized = employeeQuery.trim().toLowerCase();
+    if (!normalized) return employees;
+    return employees.filter((employee) =>
+      [
+        employee.full_name,
+        employee.employee_code,
+        employee.designation,
+        employee.department_name,
+        employee.team_name,
+      ]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(normalized)),
+    );
+  }, [employeeQuery, employees]);
+
+  const onAssign = async (event: FormEvent) => {
     event.preventDefault();
     setError(null);
     setMessage(null);
@@ -139,13 +193,13 @@ const ShiftAssignmentsPageClient = () => {
       ? await updateShiftAssignment(editingShiftAssignmentId, {
           shiftTemplateId,
           effectiveFrom: shiftEffectiveFrom,
-          effectiveTo: shiftEffectiveTo || null
+          effectiveTo: shiftEffectiveTo || null,
         })
       : await assignShift({
           employeeId,
           shiftTemplateId,
           effectiveFrom: shiftEffectiveFrom,
-          effectiveTo: shiftEffectiveTo || null
+          effectiveTo: shiftEffectiveTo || null,
         });
 
     if (!result.ok) {
@@ -158,7 +212,7 @@ const ShiftAssignmentsPageClient = () => {
     await loadAssignments(employeeId);
   };
 
-  const onAssignBreak = async (event: React.FormEvent) => {
+  const onAssignBreak = async (event: FormEvent) => {
     event.preventDefault();
     setError(null);
     setMessage(null);
@@ -169,7 +223,7 @@ const ShiftAssignmentsPageClient = () => {
           breakStartTime,
           breakEndTime,
           effectiveFrom: breakEffectiveFrom,
-          effectiveTo: breakEffectiveTo || null
+          effectiveTo: breakEffectiveTo || null,
         })
       : await assignBreak({
           employeeId,
@@ -177,7 +231,7 @@ const ShiftAssignmentsPageClient = () => {
           breakStartTime,
           breakEndTime,
           effectiveFrom: breakEffectiveFrom,
-          effectiveTo: breakEffectiveTo || null
+          effectiveTo: breakEffectiveTo || null,
         });
 
     if (!result.ok) {
@@ -229,9 +283,7 @@ const ShiftAssignmentsPageClient = () => {
       setError(result.error ?? "Unable to remove shift assignment");
       return;
     }
-    if (editingShiftAssignmentId === assignmentId) {
-      resetShiftForm();
-    }
+    if (editingShiftAssignmentId === assignmentId) resetShiftForm();
     setMessage("Shift assignment removed.");
     await loadAssignments(employeeId);
   };
@@ -245,221 +297,465 @@ const ShiftAssignmentsPageClient = () => {
       setError(result.error ?? "Unable to remove break assignment");
       return;
     }
-    if (editingBreakAssignmentId === assignmentId) {
-      resetBreakForm();
-    }
+    if (editingBreakAssignmentId === assignmentId) resetBreakForm();
     setMessage("Break assignment removed.");
     await loadAssignments(employeeId);
   };
 
   return (
-    <div className="page-wrap page-grid">
-      <section className="card stack">
-        <h1>Shift Assignment</h1>
-        <p className="muted">Team leads, HR, and admin roles can assign shifts within their scoped employee hierarchy.</p>
-      </section>
+    <PageContainer>
+      <PageHeader
+        eyebrow="Operations"
+        title="Shift and break assignments"
+        description="Assign schedules, update effective ranges, and keep break coverage clean for your scoped employee hierarchy."
+        chips={["Team lead / HR / admin scope", "Live assignment workspace"]}
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="secondary" className="rounded-full" onClick={() => void loadAssignments()}>
+              Refresh assignments
+            </Button>
+            <Link href="/app/attendance/team" className={buttonVariants({ variant: "secondary", className: "rounded-full" })}>
+              Team attendance
+            </Link>
+            <Link href="/app/attendance/shift-swaps" className={buttonVariants({ variant: "secondary", className: "rounded-full" })}>
+              Shift changes
+            </Link>
+          </div>
+        }
+      />
 
-      {loading ? <LoadingState label="Loading shift module..." /> : null}
+      {loading ? <LoadingState label="Loading shift and break workspace..." /> : null}
       {!loading && error ? <ErrorState message={error} /> : null}
 
-      <section className="card stack">
-        <h3>Assign shift</h3>
-        <form className="form-grid form-grid--three" onSubmit={onAssign}>
-          <label>
-            Employee
-            <select value={employeeId} onChange={(event) => setEmployeeId(event.target.value)} required>
-              {employees.map((employee) => (
-                <option key={employee.id} value={employee.id}>
-                  {(employee.full_name ?? employee.employee_code ?? employee.id)}{employee.is_direct_report ? " (direct report)" : ""}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Shift template
-            <select value={shiftTemplateId} onChange={(event) => setShiftTemplateId(event.target.value)} required>
-              {templates.map((template) => (
-                <option key={template.id} value={template.id}>
-                  {template.name} ({template.start_time}-{template.end_time})
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Effective from
-            <input type="date" required value={shiftEffectiveFrom} onChange={(event) => setShiftEffectiveFrom(event.target.value)} />
-          </label>
-          <label>
-            Effective to (optional)
-            <input type="date" value={shiftEffectiveTo} onChange={(event) => setShiftEffectiveTo(event.target.value)} />
-          </label>
-          <div className="stack" style={{ justifyContent: "end" }}>
-            <span className="muted">Range presets</span>
-            <div className="row">
-              <button type="button" className="secondary-btn" onClick={() => applyShiftRangePreset(1)}>1 day</button>
-              <button type="button" className="secondary-btn" onClick={() => applyShiftRangePreset(7)}>7 days</button>
-              <button type="button" className="secondary-btn" onClick={() => applyShiftRangePreset(30)}>30 days</button>
-              <button type="button" className="secondary-btn" onClick={() => setShiftEffectiveTo("")}>Custom</button>
+      {!loading ? (
+        <>
+          <StatGrid>
+            <StatCard label="Shift templates" value={templates.length} hint="Live templates available for assignment" />
+            <StatCard label="Assignable employees" value={employees.length} hint="Employees in your assignment scope" />
+            <StatCard label="Loaded shifts" value={assignments.length} hint={selectedEmployee ? "Current employee assignments" : "Select an employee to load"} />
+            <StatCard label="Loaded breaks" value={breakAssignments.length} hint={selectedEmployee ? "Current employee break windows" : "Select an employee to load"} />
+          </StatGrid>
+
+          <DashboardRail className="items-start">
+            <SurfacePanel
+              title={editingShiftAssignmentId ? "Edit shift assignment" : "Assign shift"}
+              description="Choose the employee, template, and date range to create or update the working shift window."
+              actions={
+                selectedEmployee ? (
+                  <Badge className="rounded-full border-slate-200 bg-slate-50 text-slate-700">
+                    {selectedEmployee.full_name ?? selectedEmployee.employee_code ?? "Selected employee"}
+                  </Badge>
+                ) : null
+              }
+            >
+              <form className="grid gap-4 xl:grid-cols-2" onSubmit={onAssign}>
+                <label className="grid gap-1.5 text-sm">
+                  Employee
+                  <select
+                    className={profileFieldClassName}
+                    value={employeeId}
+                    onChange={(event) => setEmployeeId(event.target.value)}
+                    required
+                  >
+                    {employees.map((employee) => (
+                      <option key={employee.id} value={employee.id}>
+                        {(employee.full_name ?? employee.employee_code ?? employee.id)}
+                        {employee.is_direct_report ? " (direct report)" : ""}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="grid gap-1.5 text-sm">
+                  Shift template
+                  <select
+                    className={profileFieldClassName}
+                    value={shiftTemplateId}
+                    onChange={(event) => setShiftTemplateId(event.target.value)}
+                    required
+                  >
+                    {templates.map((template) => (
+                      <option key={template.id} value={template.id}>
+                        {template.name} ({template.start_time}-{template.end_time})
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="grid gap-1.5 text-sm">
+                  Effective from
+                  <input
+                    className={profileFieldClassName}
+                    type="date"
+                    required
+                    value={shiftEffectiveFrom}
+                    onChange={(event) => setShiftEffectiveFrom(event.target.value)}
+                  />
+                </label>
+                <label className="grid gap-1.5 text-sm">
+                  Effective to
+                  <input
+                    className={profileFieldClassName}
+                    type="date"
+                    value={shiftEffectiveTo}
+                    onChange={(event) => setShiftEffectiveTo(event.target.value)}
+                  />
+                </label>
+                <div className="xl:col-span-2 flex flex-wrap items-center gap-2">
+                  <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-600">
+                    Range presets
+                  </span>
+                  <Button type="button" variant="secondary" className="rounded-full" onClick={() => applyShiftRangePreset(1)}>
+                    1 day
+                  </Button>
+                  <Button type="button" variant="secondary" className="rounded-full" onClick={() => applyShiftRangePreset(7)}>
+                    7 days
+                  </Button>
+                  <Button type="button" variant="secondary" className="rounded-full" onClick={() => applyShiftRangePreset(30)}>
+                    30 days
+                  </Button>
+                  <Button type="button" variant="secondary" className="rounded-full" onClick={() => setShiftEffectiveTo("")}>
+                    Custom
+                  </Button>
+                </div>
+                <div className="xl:col-span-2 flex flex-wrap items-center gap-2">
+                  <Button type="submit" className="rounded-full px-5">
+                    {editingShiftAssignmentId ? "Save shift" : "Assign shift"}
+                  </Button>
+                  {editingShiftAssignmentId ? (
+                    <Button type="button" variant="secondary" className="rounded-full" onClick={resetShiftForm}>
+                      Cancel edit
+                    </Button>
+                  ) : null}
+                </div>
+              </form>
+            </SurfacePanel>
+
+            <SurfacePanel
+              title={editingBreakAssignmentId ? "Edit break assignment" : "Assign break"}
+              description="Attach one break window at a time with exact timing and a clean effective range."
+            >
+              <form className="grid gap-4 xl:grid-cols-2" onSubmit={onAssignBreak}>
+                <label className="grid gap-1.5 text-sm">
+                  Break name
+                  <input
+                    className={profileFieldClassName}
+                    type="text"
+                    value={breakName}
+                    onChange={(event) => setBreakName(event.target.value)}
+                    placeholder="Break 1 / Lunch / Break 2"
+                  />
+                </label>
+                <label className="grid gap-1.5 text-sm">
+                  Break start
+                  <input
+                    className={profileFieldClassName}
+                    type="time"
+                    required
+                    value={breakStartTime}
+                    onChange={(event) => setBreakStartTime(event.target.value)}
+                  />
+                </label>
+                <label className="grid gap-1.5 text-sm">
+                  Break end
+                  <input
+                    className={profileFieldClassName}
+                    type="time"
+                    required
+                    value={breakEndTime}
+                    onChange={(event) => setBreakEndTime(event.target.value)}
+                  />
+                </label>
+                <label className="grid gap-1.5 text-sm">
+                  Effective from
+                  <input
+                    className={profileFieldClassName}
+                    type="date"
+                    required
+                    value={breakEffectiveFrom}
+                    onChange={(event) => setBreakEffectiveFrom(event.target.value)}
+                  />
+                </label>
+                <label className="grid gap-1.5 text-sm">
+                  Effective to
+                  <input
+                    className={profileFieldClassName}
+                    type="date"
+                    value={breakEffectiveTo}
+                    onChange={(event) => setBreakEffectiveTo(event.target.value)}
+                  />
+                </label>
+                <div className="xl:col-span-2 flex flex-wrap items-center gap-2">
+                  <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-600">
+                    Range presets
+                  </span>
+                  <Button type="button" variant="secondary" className="rounded-full" onClick={() => applyBreakRangePreset(1)}>
+                    1 day
+                  </Button>
+                  <Button type="button" variant="secondary" className="rounded-full" onClick={() => applyBreakRangePreset(7)}>
+                    7 days
+                  </Button>
+                  <Button type="button" variant="secondary" className="rounded-full" onClick={() => applyBreakRangePreset(30)}>
+                    30 days
+                  </Button>
+                  <Button type="button" variant="secondary" className="rounded-full" onClick={() => setBreakEffectiveTo("")}>
+                    Custom
+                  </Button>
+                </div>
+                <div className="xl:col-span-2 flex flex-wrap items-center gap-2">
+                  <Button type="submit" className="rounded-full px-5">
+                    {editingBreakAssignmentId ? "Save break" : "Assign break"}
+                  </Button>
+                  {editingBreakAssignmentId ? (
+                    <Button type="button" variant="secondary" className="rounded-full" onClick={resetBreakForm}>
+                      Cancel edit
+                    </Button>
+                  ) : null}
+                </div>
+              </form>
+            </SurfacePanel>
+          </DashboardRail>
+
+          {message ? (
+            <div className="rounded-[20px] border border-emerald-200 bg-emerald-50/80 px-4 py-3 text-sm font-medium text-emerald-700">
+              {message}
             </div>
-          </div>
-          <div className="row" style={{ alignItems: "end" }}>
-            <button type="submit" className="primary-btn">{editingShiftAssignmentId ? "Save shift" : "Assign"}</button>
-            {editingShiftAssignmentId ? (
-              <button type="button" className="secondary-btn" onClick={resetShiftForm}>Cancel edit</button>
-            ) : null}
-            <button type="button" className="secondary-btn" onClick={() => void loadAssignments()}>Load assignments</button>
-          </div>
-        </form>
-        {message ? <p>{message}</p> : null}
-      </section>
+          ) : null}
 
-      <section className="card stack">
-        <h3>Assign break</h3>
-        <p className="muted">Assign one or more break windows to the selected agent using real effective dates and exact times.</p>
-        <form className="form-grid form-grid--three" onSubmit={onAssignBreak}>
-          <label>
-            Break name
-            <input type="text" value={breakName} onChange={(event) => setBreakName(event.target.value)} placeholder="Break 1 / Lunch / Break 2" />
-          </label>
-          <label>
-            Break start
-            <input type="time" required value={breakStartTime} onChange={(event) => setBreakStartTime(event.target.value)} />
-          </label>
-          <label>
-            Break end
-            <input type="time" required value={breakEndTime} onChange={(event) => setBreakEndTime(event.target.value)} />
-          </label>
-          <label>
-            Effective from
-            <input type="date" required value={breakEffectiveFrom} onChange={(event) => setBreakEffectiveFrom(event.target.value)} />
-          </label>
-          <label>
-            Effective to (optional)
-            <input type="date" value={breakEffectiveTo} onChange={(event) => setBreakEffectiveTo(event.target.value)} />
-          </label>
-          <div className="stack" style={{ justifyContent: "end" }}>
-            <span className="muted">Range presets</span>
-            <div className="row">
-              <button type="button" className="secondary-btn" onClick={() => applyBreakRangePreset(1)}>1 day</button>
-              <button type="button" className="secondary-btn" onClick={() => applyBreakRangePreset(7)}>7 days</button>
-              <button type="button" className="secondary-btn" onClick={() => applyBreakRangePreset(30)}>30 days</button>
-              <button type="button" className="secondary-btn" onClick={() => setBreakEffectiveTo("")}>Custom</button>
-            </div>
-          </div>
-          <div className="row" style={{ alignItems: "end" }}>
-            <button type="submit" className="primary-btn">{editingBreakAssignmentId ? "Save break" : "Assign break"}</button>
-            {editingBreakAssignmentId ? (
-              <button type="button" className="secondary-btn" onClick={resetBreakForm}>Cancel edit</button>
-            ) : null}
-          </div>
-        </form>
-      </section>
-
-      <section className="card stack">
-        <h3>Assignable employees</h3>
-        {employees.length === 0 ? <p className="muted">No employees available in your assignment scope.</p> : null}
-        {employees.length > 0 ? (
-          <div className="table-wrap">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Employee</th>
-                  <th>Code</th>
-                  <th>Designation</th>
-                  <th>Department / Team</th>
-                  <th>Scope</th>
-                </tr>
-              </thead>
-              <tbody>
-                {employees.map((employee) => (
-                  <tr key={employee.id}>
-                    <td>{employee.full_name ?? "-"}</td>
-                    <td>{employee.employee_code ?? "-"}</td>
-                    <td>{employee.designation ?? "-"}</td>
-                    <td>{employee.department_name ?? "-"} / {employee.team_name ?? "-"}</td>
-                    <td>{employee.is_direct_report ? "Direct report" : "Self / scoped"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : null}
-      </section>
-
-      <section className="card stack">
-        <h3>Assignments</h3>
-        {assignments.length === 0 ? <p className="muted">No assignments loaded.</p> : null}
-        {assignments.length > 0 ? (
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Assignment</th>
-                <th>Shift Template</th>
-                <th>Effective From</th>
-                <th>Effective To</th>
-                <th>Created</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {assignments.map((row) => (
-                <tr key={row.id}>
-                  <td>{row.id.slice(0, 8)}...</td>
-                  <td>{templateOptions.get(row.shift_template_id)?.name ?? row.shift_template_id}</td>
-                  <td>{row.effective_from}</td>
-                  <td>{row.effective_to ?? "-"}</td>
-                  <td>{new Date(row.created_at).toLocaleString()}</td>
-                  <td>
-                    <div className="row">
-                      <button type="button" className="secondary-btn" onClick={() => startEditingShift(row)}>Edit</button>
-                      <button type="button" className="secondary-btn" onClick={() => void onRemoveShift(row.id)}>Remove</button>
+          <SurfacePanel
+            title="Assignable employees"
+            description="Review the scoped employee list before assigning shifts or breaks."
+            actions={
+              <div className="w-full min-w-0 sm:w-auto">
+                <ProfileTableToolbar
+                  query={employeeQuery}
+                  onQueryChange={setEmployeeQuery}
+                  placeholder="Search employee, code, team, or designation"
+                  countLabel={`${filteredEmployees.length} employees`}
+                />
+              </div>
+            }
+          >
+            {filteredEmployees.length === 0 ? (
+              <EmptyState title="No assignable employees" subtitle="No employees are available inside your assignment scope right now." compact />
+            ) : (
+              <>
+                <div className="grid gap-3 lg:hidden">
+                  {filteredEmployees.map((employee) => (
+                    <div key={employee.id} className="rounded-[20px] border border-slate-200 bg-slate-50/70 p-4">
+                      <div className="space-y-1">
+                        <p className="truncate text-base font-semibold text-slate-950">{employee.full_name ?? "-"}</p>
+                        <p className="truncate text-xs text-slate-500">{employee.employee_code ?? "-"}</p>
+                      </div>
+                      <div className="mt-3 grid gap-2 text-sm">
+                        <div>
+                          <p className={cardFieldLabelClassName}>Designation</p>
+                          <p className={cardFieldValueClassName}>{employee.designation ?? "-"}</p>
+                        </div>
+                        <div>
+                          <p className={cardFieldLabelClassName}>Department / team</p>
+                          <p className={cardFieldValueClassName}>{employee.department_name ?? "-"} / {employee.team_name ?? "-"}</p>
+                        </div>
+                        <div>
+                          <p className={cardFieldLabelClassName}>Scope</p>
+                          <p className={cardFieldValueClassName}>{employee.is_direct_report ? "Direct report" : "Self / scoped"}</p>
+                        </div>
+                      </div>
                     </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        ) : null}
-      </section>
+                  ))}
+                </div>
+                <div className="hidden lg:block">
+                  <ProfileTableShell>
+                    <table className="min-w-full divide-y divide-slate-200 text-sm">
+                      <thead className="bg-slate-50/80 text-left text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                        <tr>
+                          <th className="px-4 py-3">Employee</th>
+                          <th className="px-4 py-3">Code</th>
+                          <th className="px-4 py-3">Designation</th>
+                          <th className="px-4 py-3">Department / Team</th>
+                          <th className="px-4 py-3">Scope</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 bg-white text-slate-700">
+                        {filteredEmployees.map((employee) => (
+                          <tr key={employee.id}>
+                            <td className="px-4 py-3 font-medium text-slate-900">{employee.full_name ?? "-"}</td>
+                            <td className="px-4 py-3">{employee.employee_code ?? "-"}</td>
+                            <td className="px-4 py-3">{employee.designation ?? "-"}</td>
+                            <td className="px-4 py-3">{employee.department_name ?? "-"} / {employee.team_name ?? "-"}</td>
+                            <td className="px-4 py-3">{employee.is_direct_report ? "Direct report" : "Self / scoped"}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </ProfileTableShell>
+                </div>
+              </>
+            )}
+          </SurfacePanel>
 
-      <section className="card stack">
-        <h3>Assigned breaks</h3>
-        {breakAssignments.length === 0 ? <p className="muted">No break assignments loaded.</p> : null}
-        {breakAssignments.length > 0 ? (
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Break</th>
-                <th>Start</th>
-                <th>End</th>
-                <th>Effective From</th>
-                <th>Effective To</th>
-                <th>Created</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {breakAssignments.map((row) => (
-                <tr key={row.id}>
-                  <td>{row.break_name ?? "Assigned break"}</td>
-                  <td>{row.break_start_time}</td>
-                  <td>{row.break_end_time}</td>
-                  <td>{row.effective_from}</td>
-                  <td>{row.effective_to ?? "-"}</td>
-                  <td>{new Date(row.created_at).toLocaleString()}</td>
-                  <td>
-                    <div className="row">
-                      <button type="button" className="secondary-btn" onClick={() => startEditingBreak(row)}>Edit</button>
-                      <button type="button" className="secondary-btn" onClick={() => void onRemoveBreak(row.id)}>Remove</button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        ) : null}
-      </section>
-    </div>
+          <div className="grid gap-5 xl:grid-cols-2">
+            <SurfacePanel
+              title="Shift assignments"
+              description="Edit current shift windows or remove them if the employee roster changes."
+            >
+              {assignments.length === 0 ? (
+                <EmptyState title="No shift assignments loaded" subtitle="Select an employee and load their assignments to review the active schedule." compact />
+              ) : (
+                <>
+                  <div className="grid gap-3 lg:hidden">
+                    {assignments.map((row) => (
+                      <div key={row.id} className="rounded-[20px] border border-slate-200 bg-slate-50/70 p-4">
+                        <div className="space-y-1">
+                          <p className="truncate text-base font-semibold text-slate-950">
+                            {templateOptions.get(row.shift_template_id)?.name ?? row.shift_template_id}
+                          </p>
+                          <p className="truncate text-xs text-slate-500">{row.id.slice(0, 8)}...</p>
+                        </div>
+                        <div className="mt-3 grid gap-2 text-sm">
+                          <div>
+                            <p className={cardFieldLabelClassName}>Effective range</p>
+                            <p className={cardFieldValueClassName}>{row.effective_from} to {row.effective_to ?? "-"}</p>
+                          </div>
+                          <div>
+                            <p className={cardFieldLabelClassName}>Created</p>
+                            <p className={cardFieldValueClassName}>{new Date(row.created_at).toLocaleString()}</p>
+                          </div>
+                        </div>
+                        <div className="mt-4 flex flex-wrap gap-2">
+                          <Button type="button" variant="secondary" className="rounded-full" onClick={() => startEditingShift(row)}>
+                            Edit
+                          </Button>
+                          <Button type="button" variant="secondary" className="rounded-full" onClick={() => void onRemoveShift(row.id)}>
+                            Remove
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="hidden lg:block">
+                    <ProfileTableShell>
+                      <table className="min-w-full divide-y divide-slate-200 text-sm">
+                        <thead className="bg-slate-50/80 text-left text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                          <tr>
+                            <th className="px-4 py-3">Assignment</th>
+                            <th className="px-4 py-3">Shift template</th>
+                            <th className="px-4 py-3">Effective from</th>
+                            <th className="px-4 py-3">Effective to</th>
+                            <th className="px-4 py-3">Created</th>
+                            <th className="px-4 py-3">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 bg-white text-slate-700">
+                          {assignments.map((row) => (
+                            <tr key={row.id}>
+                              <td className="px-4 py-3">{row.id.slice(0, 8)}...</td>
+                              <td className="px-4 py-3">
+                                {templateOptions.get(row.shift_template_id)?.name ?? row.shift_template_id}
+                              </td>
+                              <td className="px-4 py-3">{row.effective_from}</td>
+                              <td className="px-4 py-3">{row.effective_to ?? "-"}</td>
+                              <td className="px-4 py-3">{new Date(row.created_at).toLocaleString()}</td>
+                              <td className="px-4 py-3">
+                                <div className="flex flex-wrap gap-2">
+                                  <Button type="button" variant="secondary" className="rounded-full" onClick={() => startEditingShift(row)}>
+                                    Edit
+                                  </Button>
+                                  <Button type="button" variant="secondary" className="rounded-full" onClick={() => void onRemoveShift(row.id)}>
+                                    Remove
+                                  </Button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </ProfileTableShell>
+                  </div>
+                </>
+              )}
+            </SurfacePanel>
+
+            <SurfacePanel
+              title="Break assignments"
+              description="Keep break windows clean and editable for the selected employee."
+            >
+              {breakAssignments.length === 0 ? (
+                <EmptyState title="No break assignments loaded" subtitle="Select an employee and load break windows to review the current break plan." compact />
+              ) : (
+                <>
+                  <div className="grid gap-3 lg:hidden">
+                    {breakAssignments.map((row) => (
+                      <div key={row.id} className="rounded-[20px] border border-slate-200 bg-slate-50/70 p-4">
+                        <div className="space-y-1">
+                          <p className="truncate text-base font-semibold text-slate-950">{row.break_name ?? "Assigned break"}</p>
+                          <p className="truncate text-xs text-slate-500">{row.break_start_time} - {row.break_end_time}</p>
+                        </div>
+                        <div className="mt-3 grid gap-2 text-sm">
+                          <div>
+                            <p className={cardFieldLabelClassName}>Effective range</p>
+                            <p className={cardFieldValueClassName}>{row.effective_from} to {row.effective_to ?? "-"}</p>
+                          </div>
+                          <div>
+                            <p className={cardFieldLabelClassName}>Created</p>
+                            <p className={cardFieldValueClassName}>{new Date(row.created_at).toLocaleString()}</p>
+                          </div>
+                        </div>
+                        <div className="mt-4 flex flex-wrap gap-2">
+                          <Button type="button" variant="secondary" className="rounded-full" onClick={() => startEditingBreak(row)}>
+                            Edit
+                          </Button>
+                          <Button type="button" variant="secondary" className="rounded-full" onClick={() => void onRemoveBreak(row.id)}>
+                            Remove
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="hidden lg:block">
+                    <ProfileTableShell>
+                      <table className="min-w-full divide-y divide-slate-200 text-sm">
+                        <thead className="bg-slate-50/80 text-left text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                          <tr>
+                            <th className="px-4 py-3">Break</th>
+                            <th className="px-4 py-3">Start</th>
+                            <th className="px-4 py-3">End</th>
+                            <th className="px-4 py-3">Effective from</th>
+                            <th className="px-4 py-3">Effective to</th>
+                            <th className="px-4 py-3">Created</th>
+                            <th className="px-4 py-3">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 bg-white text-slate-700">
+                          {breakAssignments.map((row) => (
+                            <tr key={row.id}>
+                              <td className="px-4 py-3">{row.break_name ?? "Assigned break"}</td>
+                              <td className="px-4 py-3">{row.break_start_time}</td>
+                              <td className="px-4 py-3">{row.break_end_time}</td>
+                              <td className="px-4 py-3">{row.effective_from}</td>
+                              <td className="px-4 py-3">{row.effective_to ?? "-"}</td>
+                              <td className="px-4 py-3">{new Date(row.created_at).toLocaleString()}</td>
+                              <td className="px-4 py-3">
+                                <div className="flex flex-wrap gap-2">
+                                  <Button type="button" variant="secondary" className="rounded-full" onClick={() => startEditingBreak(row)}>
+                                    Edit
+                                  </Button>
+                                  <Button type="button" variant="secondary" className="rounded-full" onClick={() => void onRemoveBreak(row.id)}>
+                                    Remove
+                                  </Button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </ProfileTableShell>
+                  </div>
+                </>
+              )}
+            </SurfacePanel>
+          </div>
+        </>
+      ) : null}
+    </PageContainer>
   );
 };
 

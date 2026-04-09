@@ -179,12 +179,12 @@ body .ui-sidebar {
 }
 
 .navmenu__section-title {
-  padding: 0 10px;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.18em;
+  padding: 0 12px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.24em;
   text-transform: uppercase;
-  color: rgba(148, 163, 184, 0.82);
+  color: rgba(148, 163, 184, 0.76);
 }
 
 .navmenu__items {
@@ -194,14 +194,29 @@ body .ui-sidebar {
 }
 
 .navmenu__item {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 12px;
-  min-height: 48px;
-  padding: 0 14px;
+  min-height: 46px;
+  min-width: 0;
+  padding: 0 14px 0 16px;
   border-radius: 16px;
   text-decoration: none;
   transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease, transform 140ms ease;
+}
+
+.navmenu__item::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 10px;
+  bottom: 10px;
+  width: 3px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(96, 165, 250, 0.98), rgba(59, 130, 246, 0.42));
+  opacity: 0;
+  transition: opacity 140ms ease;
 }
 
 .navmenu__item--idle {
@@ -220,6 +235,10 @@ body .ui-sidebar {
   background: linear-gradient(180deg, rgba(29, 78, 216, 0.72), rgba(30, 64, 175, 0.58));
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 16px 30px rgba(15, 23, 42, 0.18);
   color: #ffffff;
+}
+
+.navmenu__item--active::before {
+  opacity: 1;
 }
 
 .navmenu__item--active:hover {
@@ -251,6 +270,9 @@ body .ui-sidebar {
   font-weight: 600;
   line-height: 1;
   color: inherit;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 body .ui-shell--collapsed .navshell__copy,
@@ -468,6 +490,10 @@ body .ui-shell--collapsed .navmenu__icon-wrap {
   flex-wrap: nowrap;
 }
 
+.commandbar__right > * {
+  min-width: 0;
+}
+
 .commandbar__pill {
   display: inline-flex;
   align-items: center;
@@ -481,6 +507,8 @@ body .ui-shell--collapsed .navmenu__icon-wrap {
   font-weight: 600;
   line-height: 1;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   color: rgb(51 65 85);
 }
 
@@ -824,7 +852,19 @@ body .ui-shell--collapsed .navmenu__icon-wrap {
 
 .dashboard-page__masthead {
   display: grid;
-  gap: 16px;
+  gap: 18px;
+}
+
+.dashboard-page__body {
+  display: grid;
+  gap: 28px;
+}
+
+.dashboard-page__body > section,
+.dashboard-page__body > div,
+.dashboard-kpi-grid > *,
+.dashboard-quick-grid > * {
+  min-width: 0;
 }
 
 .dashboard-hero-shell {
@@ -887,6 +927,7 @@ body .ui-shell--collapsed .navmenu__icon-wrap {
 
 .dashboard-hero__actions > * {
   min-width: 0;
+  max-width: 100%;
 }
 
 .dashboard-hero__signal-grid {

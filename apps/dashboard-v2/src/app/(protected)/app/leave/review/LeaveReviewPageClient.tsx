@@ -226,7 +226,7 @@ export const LeaveReviewPageClient = ({
                 <Link className="inline-flex h-auto items-center justify-start rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-950" href="/app/attendance/review">
                   Late Login
                 </Link>
-                <Link className="inline-flex h-auto items-center justify-start rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-950" href="/app/employees">
+                <Link className="inline-flex h-auto items-center justify-start rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-950" href="/app/people">
                   Employee profiles
                 </Link>
                 <Link className="inline-flex h-auto items-center justify-start rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-950" href="/app/attendance/shifts">
@@ -234,6 +234,9 @@ export const LeaveReviewPageClient = ({
                 </Link>
                 <Link className="inline-flex h-auto items-center justify-start rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-950" href="/app/attendance/shifts">
                   Assign breaks
+                </Link>
+                <Link className="inline-flex h-auto items-center justify-start rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-950" href="/app/attendance/shift-swaps">
+                  Shift changes
                 </Link>
               </div>
             </SurfacePanel>
