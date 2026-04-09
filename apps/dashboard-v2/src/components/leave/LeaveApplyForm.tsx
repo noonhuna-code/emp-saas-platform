@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 
 const fieldClassName =
   "h-11 w-full max-w-full min-w-0 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50 disabled:text-slate-400";
+const textAreaClassName =
+  "min-h-[112px] w-full max-w-full min-w-0 rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50 disabled:text-slate-400";
 const labelClassName = "grid min-w-0 gap-2 text-sm font-medium text-slate-700";
 const panelClassName = "rounded-[20px] border border-slate-200 bg-slate-50/70 p-4";
 
@@ -61,7 +63,7 @@ export const LeaveApplyForm = ({
     <form className="space-y-4" onSubmit={submit}>
       <div className="grid gap-4 xl:grid-cols-[minmax(0,7fr)_minmax(280px,3fr)]">
         <div className={panelClassName}>
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <div className="space-y-4">
             <label className={labelClassName}>
               <span>Leave type</span>
               <select
@@ -79,39 +81,41 @@ export const LeaveApplyForm = ({
               </select>
             </label>
 
-            <label className={labelClassName}>
-              <span>Start date</span>
-              <input
-                className={fieldClassName}
-                type="date"
-                value={payload.start_date}
-                onChange={(event) => setPayload((prev) => ({ ...prev, start_date: event.target.value }))}
-                required
-              />
-            </label>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className={labelClassName}>
+                <span>Start date</span>
+                <input
+                  className={`${fieldClassName} min-w-[140px]`}
+                  type="date"
+                  value={payload.start_date}
+                  onChange={(event) => setPayload((prev) => ({ ...prev, start_date: event.target.value }))}
+                  required
+                />
+              </label>
+
+              <label className={labelClassName}>
+                <span>End date</span>
+                <input
+                  className={`${fieldClassName} min-w-[140px]`}
+                  type="date"
+                  value={payload.end_date}
+                  onChange={(event) => setPayload((prev) => ({ ...prev, end_date: event.target.value }))}
+                  required
+                />
+              </label>
+            </div>
 
             <label className={labelClassName}>
-              <span>End date</span>
-              <input
-                className={fieldClassName}
-                type="date"
-                value={payload.end_date}
-                onChange={(event) => setPayload((prev) => ({ ...prev, end_date: event.target.value }))}
-                required
-              />
-            </label>
-
-            <label className={`${labelClassName} md:col-span-2 xl:col-span-3`}>
               <span>Reason</span>
-              <input
-                className={fieldClassName}
+              <textarea
+                className={textAreaClassName}
                 value={payload.reason ?? ""}
                 placeholder="Short reason"
                 onChange={(event) => setPayload((prev) => ({ ...prev, reason: event.target.value }))}
               />
             </label>
 
-            <label className={`${labelClassName} md:col-span-2 xl:col-span-3`}>
+            <label className={labelClassName}>
               <span>Attachment</span>
               <input
                 className={`${fieldClassName} h-auto py-2.5 file:mr-3 file:rounded-full file:border-0 file:bg-blue-50 file:px-3 file:py-2 file:text-sm file:font-medium file:text-blue-700 hover:file:bg-blue-100`}
