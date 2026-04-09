@@ -370,6 +370,7 @@ export const Topbar = ({
     }
 
     const context: NavigationVisibilityContext = {
+      role,
       permissions,
       hasEmployeeContext: Boolean(employeeId),
       entitlements: billingContext?.entitlements ?? null,
@@ -377,7 +378,7 @@ export const Topbar = ({
     };
 
     return resolveShellHeaderMeta(pathname, context);
-  }, [billingContext?.entitlements, employeeId, navigationGroups, pathname, permissions, persona]);
+  }, [billingContext?.entitlements, employeeId, navigationGroups, pathname, permissions, persona, role]);
 
   const contextChips = useMemo(() => {
     const chips: string[] = [];

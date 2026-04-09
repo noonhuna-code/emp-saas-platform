@@ -195,7 +195,7 @@ const ShiftSwapsPageClient = () => {
     <PageContainer>
         <PageHeader
           eyebrow="Leave & swaps"
-          title="Shift swap workspace"
+          title="Shift swaps"
           description="Request, track, and review swaps from one compact register."
           actions={
             <div className="flex items-center gap-2 overflow-x-auto whitespace-nowrap">

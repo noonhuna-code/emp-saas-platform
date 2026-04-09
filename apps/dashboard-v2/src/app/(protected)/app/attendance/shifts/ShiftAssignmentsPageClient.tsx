@@ -306,7 +306,7 @@ const ShiftAssignmentsPageClient = () => {
     <PageContainer>
       <PageHeader
         eyebrow="Operations"
-        title="Shift and break assignments"
+        title="Shift assignments"
         description="Assign schedules, update effective ranges, and keep break coverage clean for your scoped employee hierarchy."
         chips={["Team lead / HR / admin scope", "Live assignment workspace"]}
         actions={

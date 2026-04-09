@@ -22,6 +22,7 @@ export type NavigationGroup = {
 };
 
 export type NavigationVisibilityContext = {
+  role?: string | null;
   permissions: string[];
   hasEmployeeContext: boolean;
   entitlements: Record<string, unknown> | null;
@@ -445,6 +446,22 @@ const PERSONA_HOME_COPY: Record<DashboardPersona, { title: string; subtitle: str
   }
 };
 
+const normalizeRole = (role: string | null | undefined) =>
+  (role ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[_-]+/g, "_")
+    .replace(/\s+/g, "_");
+
+const isTeamLeadContext = (context: NavigationVisibilityContext) => {
+  const normalizedRole = normalizeRole(context.role);
+  return (
+    normalizedRole === "team_lead" ||
+    normalizedRole === "teamlead" ||
+    (context.persona === "manager" && context.permissions.includes("manage_attendance") && !context.permissions.includes("manage_employees"))
+  );
+};
+
 export const resolveShellHeaderMeta = (
   pathname: string,
   context: NavigationVisibilityContext
@@ -454,7 +471,12 @@ export const resolveShellHeaderMeta = (
   const fallbackItemLabel = activeEntry?.item.label ?? "Current view";
   const fallbackGroupLabel = activeEntry?.group.label ?? "Workspace";
   const fallbackSubtitle = activeEntry?.item.description ?? "Search people, workflows, and actions";
-  const dashboardCopy = PERSONA_HOME_COPY[context.persona];
+  const dashboardCopy = isTeamLeadContext(context)
+    ? {
+        title: "Team dashboard",
+        subtitle: "Review frontline coverage, approvals, schedules, and direct-report actions from one team lead workspace."
+      }
+    : PERSONA_HOME_COPY[context.persona];
 
   if (pathname === "/app/dashboard" || pathname.startsWith("/app/dashboard/")) {
     return {

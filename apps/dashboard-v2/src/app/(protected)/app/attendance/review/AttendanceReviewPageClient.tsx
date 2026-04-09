@@ -23,7 +23,7 @@ export const AttendanceReviewPageClient = ({
     <PageContainer>
       <PageHeader
         eyebrow="Operations"
-        title="Attendance correction review"
+        title="Attendance review"
         description="Review pending Late Login and correction requests without leaving the team lead operations flow."
         chips={["Pending only", "Team lead + manager review"]}
         actions={
