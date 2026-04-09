@@ -354,7 +354,7 @@ const compactHolidayName = (title: string): string => {
   return normalized;
 };
 
-const mapApprovedLeaveStatus = (
+const mapLeaveStatus = (
   leave: { name: string | null; is_paid: boolean } | null
 ): Pick<WorkspaceCalendarResolvedStatusRow, "final_status_code" | "final_status_label" | "leave_type"> | null => {
   if (!leave) return null;
@@ -396,11 +396,11 @@ const resolveCalendarDayStatus = (input: {
   date: string;
   timezone: string;
   holiday: WorkspaceOfficialHolidayRow | null;
-  approvedLeave: { id: string; name: string | null; is_paid: boolean } | null;
+  leaveRequest: { id: string; name: string | null; is_paid: boolean; status: string } | null;
   attendance: any | null;
   shift: { id: string; title: string; start_time: string | null; end_time: string | null } | null;
 }): WorkspaceCalendarResolvedStatusRow => {
-  const { date, timezone, holiday, approvedLeave, attendance, shift } = input;
+  const { date, timezone, holiday, leaveRequest, attendance, shift } = input;
   const timezoneNow = getTimezoneSnapshot(timezone);
   const attendancePresent = hasAttendancePresentTruth(attendance);
   const lateFlag = isLateAttendance(attendance, shift?.start_time, timezone);
@@ -472,8 +472,9 @@ const resolveCalendarDayStatus = (input: {
     };
   }
 
-  const leaveStatus = mapApprovedLeaveStatus(approvedLeave);
+  const leaveStatus = mapLeaveStatus(leaveRequest);
   if (leaveStatus) {
+    const leaveRequestStatus = String(leaveRequest?.status ?? "").trim().toLowerCase();
     return {
       final_status_code: leaveStatus.final_status_code,
       final_status_label: leaveStatus.final_status_label,
@@ -484,7 +485,8 @@ const resolveCalendarDayStatus = (input: {
       shift_end_passed: shiftEndPassed,
       priority_used: 3,
       detail_title: leaveStatus.leave_type,
-      detail_subtitle: "Approved leave from backend truth."
+      detail_subtitle:
+        leaveRequestStatus === "approved" ? "Approved leave from backend truth." : "Pending leave from backend truth."
     };
   }
 
@@ -503,7 +505,7 @@ const resolveCalendarDayStatus = (input: {
     };
   }
 
-  if (explicitAbsent || shiftEndPassed) {
+  if (explicitAbsent || shiftEndPassed || date < timezoneNow.dateText) {
     return {
       final_status_code: "A",
       final_status_label: "A",
@@ -516,7 +518,9 @@ const resolveCalendarDayStatus = (input: {
       detail_title: "Absent",
       detail_subtitle: explicitAbsent
         ? "Explicitly marked absent in attendance truth."
-        : "Shift end passed with no approved leave and no valid clock-in."
+        : shiftEndPassed
+          ? "Shift end passed with no leave and no valid clock-in."
+          : "Past working day with no leave and no valid clock-in."
     };
   }
 
@@ -1293,12 +1297,13 @@ export const getWorkspaceCalendar = async (
 
     let approvedLeaveDays = 0;
     let pendingLeaveDays = 0;
-    const approvedLeaveByDate = new Map<
+    const leaveByDate = new Map<
       string,
       {
         id: string;
         name: string | null;
         is_paid: boolean;
+        status: string;
       }
     >();
     leaveRows.forEach((row: any) => {
@@ -1310,22 +1315,13 @@ export const getWorkspaceCalendar = async (
       if (status === "pending") pendingLeaveDays += dates.length;
 
       for (const date of dates) {
-        const dayEvents = dayMap.get(date);
-        if (!dayEvents) continue;
-        if (status === "approved") {
-          approvedLeaveByDate.set(date, {
+        const existing = leaveByDate.get(date);
+        if (!existing || existing.status !== "approved") {
+          leaveByDate.set(date, {
             id: row.id as string,
             name: (row.leave_types?.name as string | null) ?? null,
-            is_paid: row.leave_types?.is_paid !== false
-          });
-        } else {
-          dayEvents.push({
-            id: `leave:${row.id as string}:${date}`,
-            type: "leave",
-            title: "Pending leave request",
-            status,
-            payroll_impact: null,
-            source: "leave"
+            is_paid: row.leave_types?.is_paid !== false,
+            status
           });
         }
       }
@@ -1369,7 +1365,7 @@ export const getWorkspaceCalendar = async (
       if (!dayEvents) continue;
 
       const holiday = officialHolidayMap.get(date);
-      const approvedLeave = approvedLeaveByDate.get(date) ?? null;
+      const leaveRequest = leaveByDate.get(date) ?? null;
       const attendance = attendanceByDate.get(date) ?? null;
       const shift = assignedShiftByDate.get(date) ?? null;
       const goAssigned = (attendance?.status ?? "").toLowerCase() === "holiday";
@@ -1379,15 +1375,15 @@ export const getWorkspaceCalendar = async (
         attendanceDate: date,
         holiday: holiday ? { id: `holiday:${date}`, name: holiday.name, date } : null,
         goAssigned,
-        leave: approvedLeave
+        leave: leaveRequest
           ? {
-              request_id: approvedLeave.id,
+              request_id: leaveRequest.id,
               leave_type_id: null,
-              leave_type_name: approvedLeave.name,
-              is_paid: approvedLeave.is_paid,
+              leave_type_name: leaveRequest.name,
+              is_paid: leaveRequest.is_paid,
               start_date: date,
               end_date: date,
-              status: "approved"
+              status: leaveRequest.status
             }
           : null,
         explicitAbsent: (attendance?.status ?? "").toLowerCase() === "absent",
@@ -1406,7 +1402,7 @@ export const getWorkspaceCalendar = async (
         date,
         timezone,
         holiday: holiday ?? null,
-        approvedLeave,
+        leaveRequest,
         attendance,
         shift
       });
@@ -1428,9 +1424,9 @@ export const getWorkspaceCalendar = async (
           type: "holiday",
           title:
             derived.dayState === "go_active"
-              ? `${holiday.name} · GO Active`
+              ? `${holiday.name} - GO Active`
               : derived.dayState === "go_applied"
-                ? `${holiday.name} · GO`
+                ? `${holiday.name} - GO`
                 : holiday.name,
           status: derived.dayState === "go_active" || derived.dayState === "go_applied" ? derived.dayState : "holiday",
           payroll_impact: derived.payrollImpact,
@@ -1450,14 +1446,12 @@ export const getWorkspaceCalendar = async (
         }
       }
 
-      if (approvedLeave) {
+      if (leaveRequest) {
         dayEvents.push({
-          id: `leave:${approvedLeave.id}:${date}`,
+          id: `leave:${leaveRequest.id}:${date}`,
           type: "leave",
-          title: approvedLeave.is_paid
-            ? `${approvedLeave.name ?? "Approved leave"}`
-            : `${approvedLeave.name ?? "Unpaid leave"} · unpaid`,
-          status: derived.dayState,
+          title: `${leaveRequest.name ?? "Leave"}${leaveRequest.status === "pending" ? " (Pending)" : ""}`,
+          status: leaveRequest.status,
           payroll_impact: derived.payrollImpact,
           source: "leave"
         });
@@ -1465,7 +1459,7 @@ export const getWorkspaceCalendar = async (
 
       const shouldShowAttendanceEvent = Boolean(attendance?.id) || resolvedStatus.final_status_code === "A";
 
-      if (!approvedLeave && !holiday && shouldShowAttendanceEvent) {
+      if (!leaveRequest && !holiday && shouldShowAttendanceEvent) {
         dayEvents.push({
           id: `attendance:${attendance?.id ?? date}`,
           type: "attendance",
@@ -1501,7 +1495,7 @@ export const getWorkspaceCalendar = async (
           date,
           timezone,
           holiday: officialHolidayMap.get(date) ?? null,
-          approvedLeave: approvedLeaveByDate.get(date) ?? null,
+          leaveRequest: leaveByDate.get(date) ?? null,
           attendance: attendanceByDate.get(date) ?? null,
           shift: assignedShiftByDate.get(date) ?? null
         })
