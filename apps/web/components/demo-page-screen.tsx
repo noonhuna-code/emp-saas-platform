@@ -104,7 +104,7 @@ export function DemoPageScreen({ mode }: DemoPageScreenProps) {
       <section className="section pt-4">
         <div className="container">
           <div className="grid gap-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:items-start">
-            <ContactForm />
+            <ContactForm mode={mode} />
 
             <div className="space-y-5">
               <div className="rounded-[2rem] border border-slate-200/80 bg-white/85 p-6 shadow-[0_18px_60px_rgba(15,23,42,0.06)]">

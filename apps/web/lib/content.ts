@@ -868,7 +868,7 @@ export const contactFaqs: FAQItem[] = [
   {
     question: "Is the contact form connected to a backend?",
     answer:
-      "Once you submit the form, the EMP team can use your details to prepare a more relevant demo conversation and follow up with the right next step."
+      "Yes. Demo, contact, and workspace-request forms submit into EMP's server-side inquiry capture flow so the team can review your context and follow up with the right next step."
   }
 ];
 

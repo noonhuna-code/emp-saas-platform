@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 
 type AuthMode = "sign-in" | "sign-up";
@@ -13,7 +14,10 @@ type AuthFormProps = {
 
 export function AuthForm({ mode, actionUrl, nextPath = "/app/dashboard" }: AuthFormProps) {
   const [submitted, setSubmitted] = useState<string | null>(null);
+  const [isPending, setIsPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const isSignIn = mode === "sign-in";
+  const pathname = usePathname();
 
   return (
     <div className="surface rounded-[1.8rem] border border-slate-200/80 bg-white/94 p-5 shadow-[0_22px_70px_rgba(15,23,42,0.08)] sm:p-6">
@@ -28,7 +32,7 @@ export function AuthForm({ mode, actionUrl, nextPath = "/app/dashboard" }: AuthF
           <p className="mt-4 text-base leading-7 text-slate-700">
             {isSignIn
               ? "You can continue into the EMP workspace from here."
-              : "Your workspace request has been received and the next onboarding step can be prepared."}
+              : "Your workspace request has been received. The EMP team can now review onboarding fit and follow up with the right next step."}
           </p>
           <div className="mt-6 flex flex-wrap gap-4">
             <button
@@ -36,7 +40,7 @@ export function AuthForm({ mode, actionUrl, nextPath = "/app/dashboard" }: AuthF
               onClick={() => setSubmitted(null)}
               type="button"
             >
-              {isSignIn ? "Sign in again" : "Create another account"}
+              {isSignIn ? "Sign in again" : "Submit another request"}
             </button>
             <Link
               className="inline-flex items-center rounded-full border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-950 transition hover:border-slate-950"
@@ -92,20 +96,57 @@ export function AuthForm({ mode, actionUrl, nextPath = "/app/dashboard" }: AuthF
             onSubmit={
               isSignIn
                 ? undefined
-                : (event) => {
+                : async (event) => {
                     event.preventDefault();
+                    setError(null);
+
                     const formData = new FormData(event.currentTarget);
-                    const name = String(
-                      formData.get(isSignIn ? "email" : "fullName") ?? ""
-                    ).trim();
+                    const name = String(formData.get("fullName") ?? "").trim();
 
-                    setSubmitted(name || "there");
+                    try {
+                      setIsPending(true);
 
-                    event.currentTarget.reset();
+                      const response = await fetch("/api/contact", {
+                        method: "POST",
+                        headers: {
+                          "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                          kind: "workspace_request",
+                          name,
+                          email: String(formData.get("email") ?? "").trim(),
+                          company: String(formData.get("company") ?? "").trim(),
+                          message: String(formData.get("message") ?? "").trim(),
+                          sourcePath: String(formData.get("sourcePath") ?? pathname ?? "/"),
+                          website: String(formData.get("website") ?? "").trim()
+                        })
+                      });
+
+                      const result = (await response.json().catch(() => null)) as
+                        | { ok?: boolean; error?: string }
+                        | null;
+
+                      if (!response.ok || !result?.ok) {
+                        throw new Error(result?.error || "Unable to request workspace access right now");
+                      }
+
+                      setSubmitted(name || "there");
+                      event.currentTarget.reset();
+                    } catch (submitError) {
+                      setError(
+                        submitError instanceof Error
+                          ? submitError.message
+                          : "Unable to request workspace access right now"
+                      );
+                    } finally {
+                      setIsPending(false);
+                    }
                   }
             }
           >
             {isSignIn ? <input type="hidden" name="next" value={nextPath} /> : null}
+            {!isSignIn ? <input type="hidden" name="sourcePath" value={pathname ?? "/"} /> : null}
+            {!isSignIn ? <input autoComplete="off" className="hidden" name="website" tabIndex={-1} type="text" /> : null}
             {!isSignIn ? (
               <label className="grid gap-2">
                 <span className="text-sm font-medium text-slate-700">Full name</span>
@@ -146,17 +187,28 @@ export function AuthForm({ mode, actionUrl, nextPath = "/app/dashboard" }: AuthF
               </label>
             ) : null}
 
-            <label className="grid gap-2">
-              <span className="text-sm font-medium text-slate-700">Password</span>
-              <input
-                autoComplete={isSignIn ? "current-password" : "new-password"}
-                className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-950 outline-none placeholder:text-slate-400 focus:border-slate-950"
-                name="password"
-                placeholder={isSignIn ? "Enter your password" : "Create a secure password"}
-                required
-                type="password"
-              />
-            </label>
+            {isSignIn ? (
+              <label className="grid gap-2">
+                <span className="text-sm font-medium text-slate-700">Password</span>
+                <input
+                  autoComplete="current-password"
+                  className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-950 outline-none placeholder:text-slate-400 focus:border-slate-950"
+                  name="password"
+                  placeholder="Enter your password"
+                  required
+                  type="password"
+                />
+              </label>
+            ) : (
+              <label className="grid gap-2">
+                <span className="text-sm font-medium text-slate-700">What do you need help setting up? (optional)</span>
+                <textarea
+                  className="min-h-28 resize-y rounded-[1.5rem] border border-slate-200 bg-white px-4 py-3 text-base text-slate-950 outline-none placeholder:text-slate-400 focus:border-slate-950"
+                  name="message"
+                  placeholder="We are setting up a new team and want guided onboarding for attendance, leave, and approvals."
+                />
+              </label>
+            )}
 
             <div className="flex flex-wrap items-center justify-between gap-4 text-sm">
               <label className="flex items-center gap-2 text-slate-600">
@@ -170,11 +222,22 @@ export function AuthForm({ mode, actionUrl, nextPath = "/app/dashboard" }: AuthF
               )}
             </div>
 
+            {error ? (
+              <div
+                aria-live="polite"
+                className="rounded-[1.25rem] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700"
+                role="status"
+              >
+                {error}
+              </div>
+            ) : null}
+
             <button
               className="inline-flex items-center justify-center rounded-full bg-slate-950 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400"
+              disabled={isPending}
               type="submit"
             >
-              {isSignIn ? "Sign in" : "Create account"}
+              {isSignIn ? "Sign in" : isPending ? "Sending..." : "Request access"}
             </button>
           </form>
         </>
