@@ -1,6 +1,18 @@
+const normalizeAbsoluteUrl = (value: string | undefined | null): string | null => {
+  const raw = value?.trim();
+  if (!raw) return null;
+  return raw.startsWith("http://") || raw.startsWith("https://") ? raw : `https://${raw}`;
+};
+
+const siteUrl =
+  normalizeAbsoluteUrl(process.env.NEXT_PUBLIC_SITE_URL) ??
+  normalizeAbsoluteUrl(process.env.VERCEL_PROJECT_PRODUCTION_URL) ??
+  normalizeAbsoluteUrl(process.env.VERCEL_URL) ??
+  "https://emp-marketing-site.vercel.app";
+
 const dashboardUrl =
-  process.env.NEXT_PUBLIC_DASHBOARD_URL ??
-  "https://dashboard-noonhuna-8887s-projects.vercel.app";
+  normalizeAbsoluteUrl(process.env.NEXT_PUBLIC_DASHBOARD_URL) ??
+  "https://dashboard-one-ecru-83.vercel.app";
 
 export const siteConfig = {
   name: "EMP Workforce OS",
@@ -8,7 +20,7 @@ export const siteConfig = {
   title: "Employee operations and approvals",
   description:
     "EMP helps teams manage employee records, reporting lines, leave approvals, attendance exceptions, payroll visibility, admin controls, and workforce analytics in one place.",
-  url: process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.empworkforceos.com",
+  url: siteUrl,
   dashboardUrl,
   ogImage: "/opengraph-image",
   email: "noonhuna@gmail.com",
