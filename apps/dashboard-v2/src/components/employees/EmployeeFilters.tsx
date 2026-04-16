@@ -18,26 +18,32 @@ export const EmployeeFilters = ({
   onStatusChange
 }: EmployeeFiltersProps) => {
   return (
-    <div className="card row" style={{ flexWrap: "wrap" }}>
-      <label style={{ minWidth: 260, flex: "1 1 320px" }}>
-        <span className="muted">Search people</span>
+    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-[minmax(0,1.45fr)_minmax(180px,0.65fr)_minmax(180px,0.65fr)]">
+      <label className="flex min-w-0 flex-col gap-2">
+        <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Search people</span>
         <input
+          className="h-12 rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-100"
           value={query}
           onChange={(event) => onQueryChange(event.target.value)}
           placeholder="Name, employee code, status, or level"
         />
       </label>
-      <label>
-        <span className="muted">Department</span>
+      <label className="flex min-w-0 flex-col gap-2">
+        <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Department</span>
         <input
+          className="h-12 rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-100"
           value={departmentId}
           onChange={(event) => onDepartmentIdChange(event.target.value)}
           placeholder="department uuid"
         />
       </label>
-      <label>
-        <span className="muted">Status</span>
-        <select value={status} onChange={(event) => onStatusChange(event.target.value)}>
+      <label className="flex min-w-0 flex-col gap-2">
+        <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Status</span>
+        <select
+          className="h-12 rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-100"
+          value={status}
+          onChange={(event) => onStatusChange(event.target.value)}
+        >
           <option value="">All</option>
           <option value="Active">Active</option>
           <option value="Suspended">Suspended</option>

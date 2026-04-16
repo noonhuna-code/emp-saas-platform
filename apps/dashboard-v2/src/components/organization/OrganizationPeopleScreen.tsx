@@ -11,6 +11,7 @@ import {
   StatCard,
   StatGrid,
   SurfacePanel,
+  WorkspaceModuleGrid,
 } from "@/components/dashboard-v2/PagePrimitives";
 import { adminInputClassName, AdminTable } from "./OrganizationAdminPrimitives";
 import { getOrganizationCapabilities } from "./organization-access";
@@ -115,6 +116,32 @@ export function OrganizationPeopleScreen({
       );
     });
   }, [departmentId, myTeamIds, overview?.employees, rows, scope, search, teamId]);
+  const workspaceModules = [
+    {
+      title: "People directory",
+      description: "Stay in the verified directory view for scoped employee reads, reporting visibility, and workforce search.",
+      href: "/app/people",
+      label: "Directory",
+      metric: `${filteredRows.length} visible`,
+      highlights: ["Reporting lines", "Scoped reads", scope === "my-team" ? "My team" : "Company scope"],
+    },
+    {
+      title: "Organization workspace",
+      description: "Move into the broader organization workspace when structure, units, and governance context matter.",
+      href: "/app/organization",
+      label: "Structure",
+      metric: `${overview?.departments.length ?? 0} departments`,
+      highlights: ["Org model", "Units", "Governance"],
+    },
+    {
+      title: "Org chart view",
+      description: "Open the graph-first organization view when relationship and reporting visibility matter more than tabular search.",
+      href: "/app/org-chart",
+      label: "Relationships",
+      metric: `${overview?.teams.length ?? 0} teams`,
+      highlights: ["Org chart", "Managers", "Placement"],
+    },
+  ];
 
   if (!capabilities.canViewPeople) {
     return (
@@ -175,6 +202,13 @@ export function OrganizationPeopleScreen({
           hint={capabilities.isManagerial ? "Direct reports from current reporting lines" : "Shown when manager scope is available"}
         />
       </StatGrid>
+
+      <SurfacePanel
+        title="Workspace modules"
+        description="TailAdmin-style directory modules for people search, structure context, and relationship visibility."
+      >
+        <WorkspaceModuleGrid modules={workspaceModules} />
+      </SurfacePanel>
 
       <SurfacePanel
         title="Directory filters"

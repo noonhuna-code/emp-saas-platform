@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { buildAuthContext, getServerSession } from "@/lib/server/auth";
 import { Avatar } from "@/components/shared/Avatar";
 import { PasswordChangeCard } from "@/components/settings/PasswordChangeCard";
@@ -14,6 +13,7 @@ import {
   StatCard,
   StatGrid,
   SurfacePanel,
+  WorkspaceModuleGrid,
 } from "@/components/dashboard-v2/PagePrimitives";
 import { getSettingsWorkspaceSnapshot } from "@emp/services/settings.service";
 
@@ -107,6 +107,13 @@ export default async function SettingsPage() {
     { label: "Last login", value: formatDateTime(session.lastLoginAt), hint: "Most recent tracked authenticated session timestamp" },
     { label: "Assigned shift", value: session.shiftStartTime && session.shiftEndTime ? `${session.shiftStartTime} - ${session.shiftEndTime}` : "No shift assigned", hint: session.shiftHours ? `${session.shiftHours} scheduled hours` : "Shift summary from today's resolved session context" },
   ];
+  const workspaceModules = controlCards.map((card) => ({
+    title: card.label,
+    description: card.description,
+    href: card.href,
+    label: "Workspace",
+    highlights: ["Role-aware", "Owned surface", "Fast access"],
+  }));
 
   return (
     <PageContainer>
@@ -129,6 +136,13 @@ export default async function SettingsPage() {
         <StatCard label="Employee context" value={session.employeeId ? "Enabled" : "Unavailable"} hint="Whether self-service profile and workspace data are active" />
         <StatCard label="Tenant scope" value={session.companyId ? "Resolved" : "Unknown"} hint="Company resolution status for this session" />
       </StatGrid>
+
+      <SurfacePanel
+        title="Workspace modules"
+        description="TailAdmin-style links into the product areas that settings coordinates but does not duplicate."
+      >
+        <WorkspaceModuleGrid modules={workspaceModules} />
+      </SurfacePanel>
 
       <DashboardRail>
         <SurfacePanel title="Session posture" description="High-level identity and access context for the current user." tone="subtle">
@@ -158,18 +172,7 @@ export default async function SettingsPage() {
         </SurfacePanel>
 
         <SurfacePanel title="Workspace links" description="Move quickly into the owning surfaces where notes, notifications, billing, and profile records already live.">
-          <div className="grid gap-3">
-            {controlCards.map((card) => (
-              <Link
-                key={card.href}
-                href={card.href}
-                className="rounded-[22px] border border-slate-200/80 bg-white/92 p-5 shadow-sm transition hover:border-slate-300 hover:bg-slate-50/80"
-              >
-                <p className="text-sm font-semibold text-slate-950">{card.label}</p>
-                <p className="mt-2 text-sm leading-6 text-slate-600">{card.description}</p>
-              </Link>
-            ))}
-          </div>
+          <WorkspaceModuleGrid className="xl:grid-cols-1" modules={workspaceModules} />
         </SurfacePanel>
       </DashboardRail>
 

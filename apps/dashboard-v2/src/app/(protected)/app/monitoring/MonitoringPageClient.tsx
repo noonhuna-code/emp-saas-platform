@@ -15,6 +15,7 @@ import {
   StatCard,
   StatGrid,
   SurfacePanel,
+  WorkspaceModuleGrid,
 } from "@/components/dashboard-v2/PagePrimitives";
 import { ErrorState } from "@/components/states/ErrorState";
 import { LoadingState } from "@/components/states/LoadingState";
@@ -160,6 +161,32 @@ export const MonitoringPageClient = () => {
   }, [overview]);
 
   const timelineUnavailable = timelineError === "Feature disabled by current plan";
+  const workspaceModules = [
+    {
+      title: "Monitoring overview",
+      description: "Track request pressure, approval failures, and integrity issues from the main operations monitor.",
+      href: "/app/monitoring",
+      label: "Overview",
+      metric: `${stats.breaches + stats.conflicts + stats.failures} signals`,
+      highlights: ["Integrity", "Queue health", "Operator ready"],
+    },
+    {
+      title: "Security audit timeline",
+      description: "Inspect audit events around login, account locks, and MFA movement without leaving the monitor.",
+      href: "/app/monitoring",
+      label: "Audit",
+      metric: timelineFilter === "all" ? `${timelineRows.length} rows` : timelineFilter.replace("_", " "),
+      highlights: ["Login", "Account lock", "MFA trigger"],
+    },
+    {
+      title: "Approval recovery lane",
+      description: "When failures affect real work, move directly into the approvals queue to restore operational flow.",
+      href: "/app/approvals",
+      label: "Recovery",
+      metric: `${stats.failures} failures`,
+      highlights: ["Approvals", "Workflow", "Escalation"],
+    },
+  ];
 
   return (
     <PageContainer>
@@ -187,6 +214,13 @@ export const MonitoringPageClient = () => {
         <StatCard label="Approval failures" value={stats.failures} hint="Workflow endpoints failing in the last 24 hours" />
         <StatCard label="Last generated" value={stats.generatedAt === "-" ? "-" : formatStamp(stats.generatedAt)} hint="Most recent monitoring snapshot" />
       </StatGrid>
+
+      <SurfacePanel
+        title="Workspace modules"
+        description="TailAdmin-style monitoring modules for overview, audit review, and operational recovery."
+      >
+        <WorkspaceModuleGrid modules={workspaceModules} />
+      </SurfacePanel>
 
       {cleanupStatus ? (
         <div className="rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3 text-sm text-slate-600">

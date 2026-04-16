@@ -20,6 +20,7 @@ import {
   StatCard,
   StatGrid,
   SurfacePanel,
+  WorkspaceModuleGrid,
 } from "@/components/dashboard-v2/PagePrimitives";
 import { UnifiedApprovalsTable } from "@/components/approvals/UnifiedApprovalsTable";
 import { ErrorState } from "@/components/states/ErrorState";
@@ -120,6 +121,32 @@ export const ApprovalsPageClient = () => {
     const queue = typeFilter === "all" ? items : items.filter((item) => item.type === typeFilter);
     return queue.slice(0, 5);
   }, [items, typeFilter]);
+  const workspaceModules = [
+    {
+      title: "Unified approval queue",
+      description: "Work the mixed leave and attendance backlog from one lane before requests age into operational risk.",
+      href: "/app/approvals",
+      label: "Queue",
+      metric: `${stats.total} open`,
+      highlights: ["Unified review", "Aging queue", "Role-aware"],
+    },
+    {
+      title: "Leave review surface",
+      description: "Move into the leave-focused workspace when a request needs deeper context or coverage follow-up.",
+      href: "/app/leave/review",
+      label: "Leave",
+      metric: `${stats.leave} pending`,
+      highlights: ["Coverage", "Approvals", "Leave context"],
+    },
+    {
+      title: "Attendance corrections",
+      description: "Handle correction traffic and late-login issues in the attendance review workspace when needed.",
+      href: "/app/attendance/review",
+      label: "Attendance",
+      metric: `${stats.attendance} pending`,
+      highlights: ["Corrections", "Late login", "Exceptions"],
+    },
+  ];
 
   return (
     <PageContainer>
@@ -152,6 +179,13 @@ export const ApprovalsPageClient = () => {
           hint="Longest-waiting request in the current queue"
         />
       </StatGrid>
+
+      <SurfacePanel
+        title="Workspace modules"
+        description="TailAdmin-style modules for the decision surfaces that matter most while the queue is active."
+      >
+        <WorkspaceModuleGrid modules={workspaceModules} />
+      </SurfacePanel>
 
       <DashboardRail>
         <SurfacePanel
@@ -193,10 +227,25 @@ export const ApprovalsPageClient = () => {
               <p className="text-sm leading-6 text-slate-600">
                 Keep this queue focused on requests that affect staffing, payroll-adjacent corrections, and operational accountability. Older requests should be escalated first.
               </p>
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-                <Link href="/app/organization" className="secondary-btn justify-center">Organization context</Link>
-                <Link href="/app/dashboard" className="secondary-btn justify-center">Back to dashboard</Link>
-              </div>
+              <WorkspaceModuleGrid
+                className="xl:grid-cols-1"
+                modules={[
+                  {
+                    title: "Organization context",
+                    description: "Open reporting and structure context when a decision needs escalation or ownership clarity.",
+                    href: "/app/organization",
+                    label: "Context",
+                    highlights: ["Reporting", "Ownership", "Escalation"],
+                  },
+                  {
+                    title: "Dashboard return",
+                    description: "Jump back to the role dashboard once the active approval pressure is under control.",
+                    href: "/app/dashboard",
+                    label: "Navigation",
+                    highlights: ["Role home", "Workspace", "Follow-up"],
+                  },
+                ]}
+              />
             </div>
           </SurfacePanel>
 

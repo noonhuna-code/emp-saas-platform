@@ -36,11 +36,13 @@ import { ErrorState } from "@/components/states/ErrorState";
 import { LoadingState } from "@/components/states/LoadingState";
 import {
   DashboardRail,
+  OverviewChips,
   PageContainer,
   PageHeader,
   StatCard,
   StatGrid,
   SurfacePanel,
+  WorkspaceModuleGrid,
 } from "@/components/dashboard-v2/PagePrimitives";
 import { Badge } from "@/components/ui/badge";
 
@@ -174,6 +176,41 @@ export const EmployeeProfileScreen = ({ employeeId }: { employeeId: string }) =>
   const employmentStatus = getEmployeeField(profile, "employment_status") ?? "active";
   const employeeCode = getEmployeeField(profile, "employee_code") ?? employeeId;
   const profileCompleteness = profile.profileCompletenessScore ?? 0;
+  const workspaceModules = [
+    {
+      title: "Personal and contact record",
+      description: "Keep the employee identity record, contact details, and profile maintenance in one compact lane.",
+      href: "/app/profile",
+      label: "Profile",
+      metric: `${profileCompleteness}%`,
+      highlights: ["Personal", "Employment", "Profile quality"],
+    },
+    {
+      title: "Documents and qualifications",
+      description: "Move through supporting records, qualifications, and document coverage without losing profile context.",
+      href: "/app/profile",
+      label: "Records",
+      metric: `${profile.documents.length + profile.education.length} items`,
+      highlights: ["Documents", "Qualifications", "Compliance"],
+    },
+    canManageEmployees
+      ? {
+          title: "Employee directory",
+          description: "Return to the employee directory when you need broader people navigation or multi-record review.",
+          href: "/app/employees",
+          label: "Directory",
+          metric: employeeCode,
+          highlights: ["People search", "Manager view", "Directory"],
+        }
+      : {
+          title: "Dashboard return",
+          description: "Go back to the role dashboard once your profile actions and personal record review are complete.",
+          href: "/app/dashboard",
+          label: "Workspace",
+          metric: employmentStatus,
+          highlights: ["Role home", "Self service", "Navigation"],
+        },
+  ];
 
   return (
     <PageContainer>
@@ -197,6 +234,7 @@ export const EmployeeProfileScreen = ({ employeeId }: { employeeId: string }) =>
             </a>
           </>
         }
+        chips={[department, team, employmentStatus, `${profileCompleteness}% complete`]}
       />
 
       <EmployeeProfileHeader
@@ -210,6 +248,7 @@ export const EmployeeProfileScreen = ({ employeeId }: { employeeId: string }) =>
 
       <DashboardRail>
         <SurfacePanel title="Profile overview" description="Current reporting structure and organizational placement.">
+          <OverviewChips chips={[designation ?? "Employee", department, team, `Manager: ${escalatedManager}`]} />
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Designation</p>
@@ -237,6 +276,13 @@ export const EmployeeProfileScreen = ({ employeeId }: { employeeId: string }) =>
           <StatCard label="Skills" value={profile.skills.length} hint="Tracked capabilities" />
         </StatGrid>
       </DashboardRail>
+
+      <SurfacePanel
+        title="Workspace modules"
+        description="TailAdmin-style profile modules for record upkeep, supporting documents, and the next place you are likely to go."
+      >
+        <WorkspaceModuleGrid modules={workspaceModules} />
+      </SurfacePanel>
 
       {error ? <ErrorState message={error} /> : null}
 

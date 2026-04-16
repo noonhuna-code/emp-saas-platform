@@ -1,5 +1,8 @@
+import Link from "next/link";
 import type { ReactNode } from "react";
+import type { LucideIcon } from "lucide-react";
 import {
+  ArrowRight,
   BriefcaseBusiness,
   Building2,
   Crown,
@@ -188,4 +191,76 @@ export const StatePanel = ({
       {children}
     </CardContent>
   </Card>
+);
+
+export const WorkspaceModuleGrid = ({
+  modules,
+  className,
+}: {
+  modules: Array<{
+    title: string;
+    description: string;
+    href: string;
+    label?: string;
+    metric?: string;
+    highlights?: string[];
+    icon?: LucideIcon;
+  }>;
+  className?: string;
+}) => (
+  <div className={cn("grid gap-4 md:grid-cols-2 xl:grid-cols-3", className)}>
+    {modules.map((module) => {
+      const Icon = module.icon ?? Sparkles;
+
+      return (
+        <Link
+          key={`${module.href}-${module.title}`}
+          href={module.href}
+          className="group rounded-[24px] border border-slate-200/80 bg-white/94 p-5 shadow-[0_18px_42px_rgba(15,23,42,0.05)] transition hover:-translate-y-0.5 hover:border-blue-200 hover:bg-blue-50/40 hover:shadow-[0_24px_56px_rgba(37,99,235,0.1)]"
+        >
+          <div className="flex items-start justify-between gap-4">
+            <div className="space-y-3">
+              <div className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200/80 bg-slate-50 text-slate-700 shadow-sm">
+                <Icon className="h-5 w-5" />
+              </div>
+              <div className="space-y-2">
+                {module.label ? (
+                  <Badge className="rounded-full border-blue-200 bg-blue-50 text-[10px] font-semibold uppercase tracking-[0.24em] text-blue-700">
+                    {module.label}
+                  </Badge>
+                ) : null}
+                <div>
+                  <p className="text-base font-semibold tracking-tight text-slate-950">{module.title}</p>
+                  <p className="mt-2 text-sm leading-6 text-slate-600">{module.description}</p>
+                </div>
+              </div>
+            </div>
+            {module.metric ? (
+              <Badge className="rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-600">
+                {module.metric}
+              </Badge>
+            ) : null}
+          </div>
+
+          {module.highlights?.length ? (
+            <div className="mt-4 flex flex-wrap gap-2">
+              {module.highlights.map((highlight) => (
+                <Badge
+                  key={`${module.href}-${highlight}`}
+                  className="rounded-full border border-slate-200/80 bg-white/90 px-3 py-1 text-[11px] font-medium text-slate-600"
+                >
+                  {highlight}
+                </Badge>
+              ))}
+            </div>
+          ) : null}
+
+          <div className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-blue-700 transition group-hover:text-blue-800">
+            Open module
+            <ArrowRight className="h-4 w-4" />
+          </div>
+        </Link>
+      );
+    })}
+  </div>
 );
