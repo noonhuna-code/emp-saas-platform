@@ -6,6 +6,7 @@ import { DashboardPerfMarker, useDashboardPerf } from "@/components/dashboard/us
 import { DashboardWidgetBoundary } from "@/components/dashboard/DashboardWidgetBoundary";
 import {
   ChartPanel,
+  DashboardModuleDeck,
   DashboardScaffold,
   DashboardPanel,
   QuickActionGrid,
@@ -161,6 +162,38 @@ export const TeamLeadDashboard = ({
       ? { label: "Coverage view", href: "/app/attendance/team", caption: "Confirm downstream staffing impact" }
       : null,
   ].filter(Boolean) as Array<{ label: string; href: string; caption: string }>;
+  const workspaceModules = [
+    canViewTeamAttendance && allowedRouteSet.has("/app/attendance/team")
+      ? {
+          title: "Frontline team coverage",
+          description: "Watch direct-report attendance, break posture, and current staffing state from one live desk.",
+          href: "/app/attendance/team",
+          label: "Coverage",
+          metric: teamRowsLoading ? "Loading" : `${teamRows.length} scoped`,
+          highlights: ["Attendance", "Breaks", "Shift state"]
+        }
+      : null,
+    (canReviewLeave && allowedRouteSet.has("/app/leave/review")) || allowedRouteSet.has("/app/approvals")
+      ? {
+          title: "Approvals and exceptions",
+          description: "Resolve leave, late-login, and team workflow issues before they turn into coverage gaps.",
+          href: canReviewLeave && allowedRouteSet.has("/app/leave/review") ? "/app/leave/review" : "/app/approvals",
+          label: "Workflow",
+          metric: canReviewLeave ? "Review on" : "Queue",
+          highlights: ["Leave", "Late login", "Escalations"]
+        }
+      : null,
+    (allowedRouteSet.has("/app/attendance/shifts") || peopleHref)
+      ? {
+          title: "People and shift assignments",
+          description: "Keep direct-report context, shift assignment, and change handling close to the team lead surface.",
+          href: allowedRouteSet.has("/app/attendance/shifts") ? "/app/attendance/shifts" : peopleHref!,
+          label: "Assignments",
+          metric: `${[Boolean(peopleHref), allowedRouteSet.has("/app/attendance/shifts"), allowedRouteSet.has("/app/attendance/shift-swaps")].filter(Boolean).length} lanes`,
+          highlights: [peopleHref ? "Profiles" : "Team context", allowedRouteSet.has("/app/attendance/shifts") ? "Shifts" : "Coverage", allowedRouteSet.has("/app/attendance/shift-swaps") ? "Shift changes" : "Coordination"]
+        }
+      : null,
+  ].filter(Boolean) as Array<{ title: string; description: string; href: string; label?: string; metric?: string; highlights?: string[] }>;
 
   return (
     <DashboardScaffold
@@ -188,6 +221,12 @@ export const TeamLeadDashboard = ({
         <section className="space-y-4">
           <ManagerKpiWidget variant="team_lead" />
         </section>
+
+        {workspaceModules.length > 0 ? (
+          <DashboardPanel title="Workspace modules" subtitle="TailAdmin-style team lead modules for frontline coverage, approvals, and assignments.">
+            <DashboardModuleDeck modules={workspaceModules} />
+          </DashboardPanel>
+        ) : null}
 
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.72fr)]">
           <DashboardPanel

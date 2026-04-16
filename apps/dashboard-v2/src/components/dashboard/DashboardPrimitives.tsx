@@ -1,8 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
+  ArrowRight,
   BadgeCheck,
   BellDot,
   BookOpenText,
@@ -274,6 +276,78 @@ export const QuickActionGrid = ({
           icon={action.icon ?? resolveQuickActionIcon(action.href, action.label)}
         />
       ))}
+    </div>
+  );
+};
+
+export const DashboardModuleDeck = ({
+  modules
+}: {
+  modules: Array<{
+    title: string;
+    description: string;
+    href: string;
+    label?: string;
+    highlights?: string[];
+    metric?: string;
+    icon?: LucideIcon;
+  }>;
+}) => {
+  return (
+    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      {modules.map((module) => {
+        const Icon = module.icon ?? resolveQuickActionIcon(module.href, module.title);
+
+        return (
+          <Link
+            key={`${module.href}-${module.title}`}
+            href={module.href}
+            className="group rounded-[24px] border border-slate-200/80 bg-white/92 p-5 shadow-[0_12px_32px_rgba(15,23,42,0.05)] transition hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-[0_18px_40px_rgba(14,116,144,0.12)] dark:border-slate-800 dark:bg-slate-950/78 dark:hover:border-sky-500/30"
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div className="space-y-3">
+                <div className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200/80 bg-slate-50 text-slate-700 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100">
+                  <Icon className="h-5 w-5" />
+                </div>
+                <div className="space-y-2">
+                  {module.label ? (
+                    <span className="inline-flex rounded-full border border-sky-100 bg-sky-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-700 dark:border-sky-500/20 dark:bg-sky-500/10 dark:text-sky-300">
+                      {module.label}
+                    </span>
+                  ) : null}
+                  <div>
+                    <p className="text-base font-semibold tracking-[-0.02em] text-slate-950 dark:text-slate-50">{module.title}</p>
+                    <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-400">{module.description}</p>
+                  </div>
+                </div>
+              </div>
+              {module.metric ? (
+                <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
+                  {module.metric}
+                </span>
+              ) : null}
+            </div>
+
+            {module.highlights?.length ? (
+              <div className="mt-4 flex flex-wrap gap-2">
+                {module.highlights.map((highlight) => (
+                  <span
+                    key={`${module.href}-${highlight}`}
+                    className="inline-flex rounded-full border border-slate-200/80 bg-white px-2.5 py-1 text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300"
+                  >
+                    {highlight}
+                  </span>
+                ))}
+              </div>
+            ) : null}
+
+            <div className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-sky-700 transition group-hover:text-sky-800 dark:text-sky-300 dark:group-hover:text-sky-200">
+              Open module
+              <ArrowRight className="h-4 w-4" />
+            </div>
+          </Link>
+        );
+      })}
     </div>
   );
 };

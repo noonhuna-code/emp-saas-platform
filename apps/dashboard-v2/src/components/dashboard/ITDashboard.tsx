@@ -9,6 +9,7 @@ import { LoadingState } from "@/components/states/LoadingState";
 import { ErrorState } from "@/components/states/ErrorState";
 import {
   ChartPanel,
+  DashboardModuleDeck,
   DashboardScaffold,
   DashboardKpiTile,
   DashboardSection,
@@ -119,6 +120,38 @@ export const ITDashboard = ({
     peopleHref ? { label: "Employee access", href: peopleHref, caption: "Identity and assignment context" } : null,
     allowedRouteSet.has("/app/billing") ? { label: "Billing / seats", href: "/app/billing", caption: "License and seat posture" } : null,
   ].filter(Boolean) as Array<{ label: string; href: string; caption: string }>;
+  const workspaceModules = [
+    allowedRouteSet.has("/app/monitoring")
+      ? {
+          title: "Monitoring and system posture",
+          description: "Open the security and telemetry surface built for incident review, system health, and risk triage.",
+          href: "/app/monitoring",
+          label: "Monitoring",
+          metric: securityPressure.health,
+          highlights: ["Security", "Telemetry", "Incidents"]
+        }
+      : null,
+    allowedRouteSet.has("/app/notifications")
+      ? {
+          title: "Alerts and notification flow",
+          description: "Keep delivery issues and system-triggered alerts visible so IT response stays fast and contained.",
+          href: "/app/notifications",
+          label: "Alerts",
+          metric: `${securityPressure.breaches + securityPressure.approvalFailures} watch`,
+          highlights: ["Notifications", "Failures", "Escalation"]
+        }
+      : null,
+    (peopleHref || allowedRouteSet.has("/app/billing"))
+      ? {
+          title: "Identity and license context",
+          description: "Use access and seat posture together so workforce changes and system readiness stay connected.",
+          href: peopleHref ?? "/app/billing",
+          label: "Access",
+          metric: billing ? `${billing.seatSummary.activeBillable} seats` : "Scoped",
+          highlights: [peopleHref ? "Employee access" : "Seat posture", allowedRouteSet.has("/app/billing") ? "Billing / seats" : "Routing", "Tenant context"]
+        }
+      : null,
+  ].filter(Boolean) as Array<{ title: string; description: string; href: string; label?: string; metric?: string; highlights?: string[] }>;
 
   if (loading) return <LoadingState label="Loading IT dashboard..." />;
   if (error && monitoring.generated_at === "-") return <ErrorState message={error} />;
@@ -157,6 +190,12 @@ export const ITDashboard = ({
             accent="info"
           />
         </div>
+
+        {workspaceModules.length > 0 ? (
+          <ChartPanel title="Workspace modules" subtitle="TailAdmin-style IT entry points for response, monitoring, and license posture.">
+            <DashboardModuleDeck modules={workspaceModules} />
+          </ChartPanel>
+        ) : null}
 
         <WorkflowPanel title="Access and operations" subtitle="IT actions and review paths">
           <QuickActionGrid actions={accessActions} />

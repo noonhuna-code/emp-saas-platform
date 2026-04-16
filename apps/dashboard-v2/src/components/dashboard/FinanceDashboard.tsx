@@ -12,6 +12,7 @@ import { ErrorState } from "@/components/states/ErrorState";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import {
   ChartPanel,
+  DashboardModuleDeck,
   DashboardScaffold,
   DashboardKpiTile,
   DashboardSection,
@@ -135,6 +136,38 @@ export const FinanceDashboard = ({
     allowedRouteSet.has("/app/billing") ? { label: "Billing console", href: "/app/billing", caption: "Invoices and proofs" } : null,
     allowedRouteSet.has("/app/approvals") ? { label: "Approvals queue", href: "/app/approvals", caption: "Pending blockers" } : null,
   ].filter(Boolean) as Array<{ label: string; href: string; caption: string }>;
+  const workspaceModules = [
+    allowedRouteSet.has("/app/payroll")
+      ? {
+          title: "Payroll operations lane",
+          description: "Work through run lifecycle, closeout readiness, and payroll visibility from one finance-first starting point.",
+          href: "/app/payroll",
+          label: "Payroll",
+          metric: `${runs.rows.length} runs`,
+          highlights: ["Runs", "Closeout", "Delivery"]
+        }
+      : null,
+    allowedRouteSet.has("/app/billing")
+      ? {
+          title: "Billing and subscription posture",
+          description: "Keep plan status, invoices, and seat pressure visible before finance risk turns into operational friction.",
+          href: "/app/billing",
+          label: "Billing",
+          metric: billing?.subscription?.status ?? "Active",
+          highlights: ["Invoices", "Plan status", "Seats"]
+        }
+      : null,
+    (allowedRouteSet.has("/app/payslips") || allowedRouteSet.has("/app/loans"))
+      ? {
+          title: "Employee finance delivery",
+          description: "Track employee-facing finance surfaces like payslips and requests without leaving the finance shell.",
+          href: allowedRouteSet.has("/app/payslips") ? "/app/payslips" : "/app/loans",
+          label: "Delivery",
+          metric: `${totals.count} rows`,
+          highlights: [allowedRouteSet.has("/app/payslips") ? "Payslips" : "Payroll", allowedRouteSet.has("/app/loans") ? "Loans & advances" : "Finance history", "Employee linked"]
+        }
+      : null,
+  ].filter(Boolean) as Array<{ title: string; description: string; href: string; label?: string; metric?: string; highlights?: string[] }>;
   const seatSummary = billing?.seatSummary ?? {
     activeTotal: 0,
     activeBillable: 0,
@@ -202,6 +235,12 @@ export const FinanceDashboard = ({
             accent="success"
           />
         </div>
+
+        {workspaceModules.length > 0 ? (
+          <ChartPanel title="Workspace modules" subtitle="TailAdmin-style finance modules for payroll, billing, and employee-facing delivery.">
+            <DashboardModuleDeck modules={workspaceModules} />
+          </ChartPanel>
+        ) : null}
 
         <WorkflowPanel title="Operational modules" subtitle="Finance workflows and controls">
           <QuickActionGrid actions={operationalModules} />

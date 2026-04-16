@@ -17,6 +17,7 @@ import { PayrollAnalyticsWidgetsSection } from "@/components/dashboard/payroll-a
 import { SubscriptionHealthPanel } from "@/components/dashboard/SubscriptionHealthPanel";
 import {
   ChartPanel,
+  DashboardModuleDeck,
   DashboardScaffold,
   DashboardKpiTile,
   DashboardPanel,
@@ -166,6 +167,38 @@ export const FounderDashboard = ({
     allowedRouteSet.has("/app/approvals") ? { label: "Approvals queue", href: "/app/approvals", caption: "Operational backlog" } : null,
     peopleHref ? { label: "People directory", href: peopleHref, caption: "Headcount view" } : null,
   ].filter(Boolean) as Array<{ label: string; href: string; caption: string }>;
+  const workspaceModules = [
+    peopleHref
+      ? {
+          title: "Company visibility and headcount",
+          description: "Keep workforce posture, reporting visibility, and executive people context close without dropping into noisy admin detail.",
+          href: peopleHref,
+          label: "Executive view",
+          metric: `${adminData.headcount.total} headcount`,
+          highlights: ["Headcount", "Departments", "People view"]
+        }
+      : null,
+    allowedRouteSet.has("/app/payroll")
+      ? {
+          title: "Payroll lifecycle and delivery",
+          description: "Track run posture, closeout movement, and compensation readiness from the executive command surface.",
+          href: "/app/payroll",
+          label: "Payroll",
+          metric: `${payrollRuns.rows.length} runs`,
+          highlights: ["Run timeline", "Delivery", "Closeout"]
+        }
+      : null,
+    (allowedRouteSet.has("/app/monitoring") || allowedRouteSet.has("/app/billing"))
+      ? {
+          title: "Risk, monitoring, and commercial health",
+          description: "Stay close to governance, subscription posture, and risk indicators that affect company confidence.",
+          href: allowedRouteSet.has("/app/monitoring") ? "/app/monitoring" : "/app/billing",
+          label: "Governance",
+          metric: `${riskCounts.breaches + riskCounts.idempotency + riskCounts.approvals} risks`,
+          highlights: [allowedRouteSet.has("/app/monitoring") ? "Monitoring" : "Billing", allowedRouteSet.has("/app/billing") ? "Subscription" : "Executive", "Controls"]
+        }
+      : null,
+  ].filter(Boolean) as Array<{ title: string; description: string; href: string; label?: string; metric?: string; highlights?: string[] }>;
   const heroSignals = [
     { label: "Plan", value: billing?.subscription?.planName ?? "Executive view" },
     { label: "Risks", value: `${riskCounts.breaches + riskCounts.idempotency + riskCounts.approvals} monitored` },
@@ -222,6 +255,12 @@ export const FounderDashboard = ({
             accent="success"
           />
         </div>
+
+        {workspaceModules.length > 0 ? (
+          <DashboardPanel title="Workspace modules" subtitle="TailAdmin-style executive modules for people posture, payroll, and governance.">
+            <DashboardModuleDeck modules={workspaceModules} />
+          </DashboardPanel>
+        ) : null}
 
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
           <SubscriptionHealthPanel

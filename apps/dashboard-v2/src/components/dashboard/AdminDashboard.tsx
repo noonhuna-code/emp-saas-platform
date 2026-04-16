@@ -8,6 +8,7 @@ import { DashboardPerfMarker, useDashboardPerf } from "@/components/dashboard/us
 import { DashboardWidgetBoundary } from "@/components/dashboard/DashboardWidgetBoundary";
 import {
   ChartPanel,
+  DashboardModuleDeck,
   DashboardScaffold,
   DashboardPanel,
   QuickActionGrid,
@@ -70,6 +71,38 @@ const AdminDashboardCore = ({
     allowedRouteSet.has("/app/billing") ? { label: "Billing console", href: "/app/billing", caption: "Invoices, seats, and proofs" } : null,
     allowedRouteSet.has("/app/monitoring") ? { label: "System monitor", href: "/app/monitoring", caption: "Security and health" } : null,
   ].filter(Boolean) as Array<{ label: string; href: string; caption: string }>;
+  const workspaceModules = [
+    peopleHref
+      ? {
+          title: "People and organization control",
+          description: "Move through employee records, reporting structure, and role-sensitive headcount views from one admin lane.",
+          href: peopleHref,
+          label: "People ops",
+          metric: peopleHref === "/app/people" ? "Directory" : "Records",
+          highlights: ["Profiles", "Hierarchy", "Assignments"]
+        }
+      : null,
+    allowedRouteSet.has("/app/approvals")
+      ? {
+          title: "Approvals and workflow pressure",
+          description: "Stay close to the queues that block leave, attendance, and downstream operations before backlog grows.",
+          href: "/app/approvals",
+          label: "Workflow",
+          metric: "Queue ready",
+          highlights: ["Leave review", "Corrections", "Exceptions"]
+        }
+      : null,
+    allowedRouteSet.has("/app/monitoring")
+      ? {
+          title: "Governance and monitoring",
+          description: "Keep security, operational health, and tenant-wide control signals close to the admin surface.",
+          href: "/app/monitoring",
+          label: "Controls",
+          metric: "Live",
+          highlights: ["Security", "Health", "Auditability"]
+        }
+      : null,
+  ].filter(Boolean) as Array<{ title: string; description: string; href: string; label?: string; metric?: string; highlights?: string[] }>;
   const heroSignals = [
     { label: "People ops", value: peopleHref ? "Directory live" : "Scoped" },
     { label: "Control", value: allowedRouteSet.has("/app/monitoring") ? "Security enabled" : "Core ops" },
@@ -106,6 +139,12 @@ const AdminDashboardCore = ({
         <section className="space-y-4">
           <AdminKpiWidget />
         </section>
+
+        {workspaceModules.length > 0 ? (
+          <DashboardPanel title="Workspace modules" subtitle="TailAdmin-style entry lanes for the admin controls you use most.">
+            <DashboardModuleDeck modules={workspaceModules} />
+          </DashboardPanel>
+        ) : null}
 
         <section className="space-y-4">
           <Suspense fallback={<div className="grid-3"><SkeletonCard rows={5} /><SkeletonCard rows={6} /><SkeletonCard rows={5} /></div>}>

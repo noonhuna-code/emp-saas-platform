@@ -26,6 +26,7 @@ import { DashboardPerfMarker, useDashboardPerf } from "@/components/dashboard/us
 import { DashboardWidgetBoundary } from "@/components/dashboard/DashboardWidgetBoundary";
 import {
   ChartPanel,
+  DashboardModuleDeck,
   DashboardScaffold,
   DashboardSection,
   SignalRow,
@@ -222,6 +223,48 @@ export const EmployeeDashboard = ({
     { label: "Leave left", value: `${remainingLeave} days` },
     { label: "Updates", value: `${unreadNotifications} unread` }
   ];
+  const workspaceModules = [
+    hasAttendance
+      ? {
+          title: "My day and attendance",
+          description: "Keep shift status, break posture, and daily work progress visible in one employee-friendly module.",
+          href: "/app/attendance",
+          label: "My day",
+          metric: attendance ? dayState : "Loading",
+          highlights: ["Attendance", "Worked time", shift ? "Shift window" : "Today"]
+        }
+      : null,
+    hasLeave
+      ? {
+          title: "Leave balance and requests",
+          description: "Track remaining leave, recent approvals, and request flow without widening into manager-only operations.",
+          href: "/app/leave",
+          label: "Leave",
+          metric: `${remainingLeave} days`,
+          highlights: ["Balance", "Requests", upcomingLeave ? "Latest update" : "Coverage"]
+        }
+      : null,
+    (hasPayslips || hasLoans)
+      ? {
+          title: "Payroll and finance",
+          description: "See employee-facing payroll snapshots and finance requests from one controlled self-service lane.",
+          href: hasPayslips ? "/app/payslips" : "/app/loans",
+          label: "Finance",
+          metric: recentPayslip ? formatCurrency(recentPayslip.net_salary) : `${workspace?.counts.openLoanRequests ?? 0} open`,
+          highlights: [hasPayslips ? "Payslips" : "Payroll", hasLoans ? "Loans & advances" : "Finance context", "Self service"]
+        }
+      : null,
+    (hasNotes || hasResources || hasChat)
+      ? {
+          title: "Knowledge and collaboration",
+          description: "Stay close to notes, company resources, and conversation surfaces that support day-to-day execution.",
+          href: hasNotes ? "/app/notes" : hasResources ? "/app/resources" : "/app/chat",
+          label: "Support",
+          metric: `${[hasNotes, hasResources, hasChat].filter(Boolean).length} lanes`,
+          highlights: [hasNotes ? "Notes" : "Workspace", hasResources ? "Resources" : "Guidance", hasChat ? "Chat" : "Support"]
+        }
+      : null,
+  ].filter(Boolean) as Array<{ title: string; description: string; href: string; label?: string; metric?: string; highlights?: string[] }>;
 
   if (error && !data) {
     return <ErrorState message={error} />;
@@ -370,6 +413,13 @@ export const EmployeeDashboard = ({
             </StatGrid>
           )}
         </section>
+
+        {workspaceModules.length > 0 ? (
+          <section className="space-y-4">
+            <h2 className="text-xl font-semibold">Workspace Modules</h2>
+            <DashboardModuleDeck modules={workspaceModules} />
+          </section>
+        ) : null}
 
         <section className="space-y-4">
           <h2 className="text-xl font-semibold">My Stats</h2>

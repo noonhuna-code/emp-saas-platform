@@ -6,6 +6,7 @@ import { DashboardPerfMarker, useDashboardPerf } from "@/components/dashboard/us
 import { DashboardWidgetBoundary } from "@/components/dashboard/DashboardWidgetBoundary";
 import {
   ChartPanel,
+  DashboardModuleDeck,
   DashboardScaffold,
   DashboardPanel,
   QuickActionGrid,
@@ -59,6 +60,38 @@ export const ManagerDashboard = ({
     hasEmployees ? { label: "People directory", href: peopleHref!, caption: "Direct reports and profiles" } : null,
     hasProjects ? { label: "Projects", href: "/app/projects", caption: "Execution and staffing" } : null,
   ].filter(Boolean) as Array<{ label: string; href: string; caption: string }>;
+  const workspaceModules = [
+    canViewTeamAttendance
+      ? {
+          title: "Live team coverage",
+          description: "Track attendance posture, late marks, and current staffing reliability without leaving the manager home.",
+          href: "/app/attendance/team",
+          label: "Coverage",
+          metric: "Live",
+          highlights: ["Presence", "Late marks", "Reliability"]
+        }
+      : null,
+    (allowedRouteSet.has("/app/approvals") || canReviewLeave)
+      ? {
+          title: "Approvals and leave flow",
+          description: "Keep decision-heavy queues close so leave and attendance issues do not slow delivery or staffing continuity.",
+          href: canReviewLeave ? "/app/leave/review" : "/app/approvals",
+          label: "Workflow",
+          metric: canReviewLeave ? "Review on" : "Queue",
+          highlights: ["Approvals", "Leave review", "Exceptions"]
+        }
+      : null,
+    (hasEmployees || hasProjects)
+      ? {
+          title: "People and delivery context",
+          description: "Jump into direct reports, staffing context, and execution surfaces that affect team throughput most.",
+          href: hasProjects ? "/app/projects" : peopleHref!,
+          label: "Execution",
+          metric: `${[hasEmployees, hasProjects].filter(Boolean).length} lanes`,
+          highlights: [hasEmployees ? "People" : "Scoped", hasProjects ? "Projects" : "Delivery", hasShiftSwaps ? "Shift swaps" : "Coverage"]
+        }
+      : null,
+  ].filter(Boolean) as Array<{ title: string; description: string; href: string; label?: string; metric?: string; highlights?: string[] }>;
   const heroSignals = [
     { label: "Coverage", value: canViewTeamAttendance ? "Live team view" : "Scoped routes" },
     { label: "Approvals", value: canReviewLeave ? "Leave enabled" : "Standard routing" },
@@ -95,6 +128,12 @@ export const ManagerDashboard = ({
         <section className="space-y-4">
           <ManagerKpiWidget variant="manager" />
         </section>
+
+        {workspaceModules.length > 0 ? (
+          <DashboardPanel title="Workspace modules" subtitle="TailAdmin-style modules for the manager surfaces that need fast attention.">
+            <DashboardModuleDeck modules={workspaceModules} />
+          </DashboardPanel>
+        ) : null}
 
         <section className="space-y-4">
           <Suspense fallback={<div className="grid-2"><SkeletonCard rows={6} /><SkeletonChart /></div>}>

@@ -6,6 +6,7 @@ import { DashboardPerfMarker, useDashboardPerf } from "@/components/dashboard/us
 import { DashboardWidgetBoundary } from "@/components/dashboard/DashboardWidgetBoundary";
 import {
   ChartPanel,
+  DashboardModuleDeck,
   DashboardScaffold,
   DashboardPanel,
   QuickActionGrid,
@@ -48,6 +49,38 @@ export const HRDashboard = ({
     allowedRouteSet.has("/app/payroll") ? { label: "Payroll runs", href: "/app/payroll", caption: "Run readiness" } : null,
     allowedRouteSet.has("/app/resources") ? { label: "Knowledge / SOPs", href: "/app/resources", caption: "Policies and guides" } : null,
   ].filter(Boolean) as Array<{ label: string; href: string; caption: string }>;
+  const workspaceModules = [
+    peopleHref
+      ? {
+          title: "Employee records and hierarchy",
+          description: "Keep workforce records, reporting context, and people operations routing visible from the HR start surface.",
+          href: peopleHref,
+          label: "People ops",
+          metric: "Records",
+          highlights: ["Profiles", "Hierarchy", "Lifecycle"]
+        }
+      : null,
+    canReviewLeave
+      ? {
+          title: "Leave governance and coverage",
+          description: "Work through leave queues and related staffing pressure before it spills into payroll or scheduling issues.",
+          href: "/app/leave/review",
+          label: "Approvals",
+          metric: "Review on",
+          highlights: ["Leave review", "Coverage", "Approvals"]
+        }
+      : null,
+    allowedRouteSet.has("/app/payroll")
+      ? {
+          title: "Payroll readiness and policy flow",
+          description: "Stay close to payroll runs, workforce readiness, and the policies employees depend on every cycle.",
+          href: "/app/payroll",
+          label: "Payroll",
+          metric: allowedRouteSet.has("/app/resources") ? "2 lanes" : "Runs",
+          highlights: ["Payroll runs", "Readiness", allowedRouteSet.has("/app/resources") ? "Knowledge / SOPs" : "People ops"]
+        }
+      : null,
+  ].filter(Boolean) as Array<{ title: string; description: string; href: string; label?: string; metric?: string; highlights?: string[] }>;
 
   useEffect(() => {
     perf.markKpiRendered();
@@ -78,6 +111,12 @@ export const HRDashboard = ({
         <section className="space-y-4">
           <HRKpiWidget />
         </section>
+
+        {workspaceModules.length > 0 ? (
+          <DashboardPanel title="Workspace modules" subtitle="TailAdmin-style HR entry points for the routes that shape people operations most.">
+            <DashboardModuleDeck modules={workspaceModules} />
+          </DashboardPanel>
+        ) : null}
 
         <section className="space-y-4">
           <Suspense fallback={<div className="grid-3"><SkeletonCard rows={5} /><SkeletonChart /><SkeletonCard rows={6} /></div>}>
