@@ -17,6 +17,7 @@ import {
   ProfileTableShell,
   profileFieldClassName,
 } from "@/components/profile/ProfileSectionPrimitives";
+import { buildPublicWebsiteUrl } from "@/lib/site";
 
 const PAGE_SIZE = 8;
 
@@ -102,7 +103,7 @@ export const CorrectionReviewTable = ({
       const result = await approveAttendanceCorrectionRequest(row.id);
       if (!result.ok) {
         if (result.error === "Authentication required") {
-          window.location.href = "/login";
+          window.location.href = buildPublicWebsiteUrl("/sign-in", { next: "/app/attendance/review" });
           return;
         }
         if (result.error === "Permission denied") {
@@ -139,7 +140,7 @@ export const CorrectionReviewTable = ({
       const result = await rejectAttendanceCorrectionRequest(row.id, reason);
       if (!result.ok) {
         if (result.error === "Authentication required") {
-          window.location.href = "/login";
+          window.location.href = buildPublicWebsiteUrl("/sign-in", { next: "/app/attendance/review" });
           return;
         }
         if (result.error === "Permission denied") {

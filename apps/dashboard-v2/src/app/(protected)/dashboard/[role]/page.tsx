@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getServerSession } from "@/lib/server/auth";
 import { resolveDashboardPersona, type DashboardPersona } from "@/lib/dashboard/capabilities";
+import { buildPublicWebsiteUrl } from "@/lib/site";
 
 const ROLE_ROUTE_MAP: Record<string, DashboardPersona> = {
   employee: "employee",
@@ -23,7 +24,11 @@ export default async function DashboardRoleAliasPage({
 }) {
   const session = await getServerSession();
   if (!session.accessToken) {
-    redirect("/login");
+    redirect(
+      process.env.NODE_ENV === "production"
+        ? buildPublicWebsiteUrl("/sign-in", { next: "/app/dashboard" })
+        : "/login?next=%2Fapp%2Fdashboard"
+    );
   }
 
   const { role } = await params;

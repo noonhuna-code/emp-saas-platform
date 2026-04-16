@@ -34,6 +34,17 @@ export type SecurityAuditExportRow = {
   created_at: string;
 };
 
+export type SecurityAuditTimelineEventType = "login" | "account_lock" | "mfa_trigger";
+
+export type SecurityAuditTimelineRow = {
+  eventType: SecurityAuditTimelineEventType;
+  createdAt: string;
+  riskScore: number | null;
+  profileId: string | null;
+  summary: string;
+  details: Record<string, unknown> | null;
+};
+
 const sanitizeError = (message: string, fallback: string): string => {
   if (!message) return fallback;
   if (message.toLowerCase().includes("permission")) return "Permission denied";
@@ -43,6 +54,44 @@ const sanitizeError = (message: string, fallback: string): string => {
 
 const requireAuditExportEntitlement = async (ctx: ServiceContext): Promise<void> => {
   await requirePlanFeature(ctx, "feature.audit_export");
+};
+
+const SECURITY_AUDIT_EVENT_TYPES: SecurityAuditTimelineEventType[] = ["login", "account_lock", "mfa_trigger"];
+
+const isSecurityAuditEventType = (value: string): value is SecurityAuditTimelineEventType => {
+  return SECURITY_AUDIT_EVENT_TYPES.includes(value as SecurityAuditTimelineEventType);
+};
+
+const formatSecurityAuditSummary = (row: SecurityAuditExportRow): string => {
+  const details = row.details ?? {};
+
+  if (row.event_type === "login") {
+    const success = details.success === true;
+    const geoCountry = typeof details.geo_country === "string" && details.geo_country.trim() ? details.geo_country.trim() : null;
+    if (success && geoCountry) return `Successful login from ${geoCountry}`;
+    if (success) return "Successful login";
+    if (geoCountry) return `Login attempt from ${geoCountry}`;
+    return "Login event recorded";
+  }
+
+  if (row.event_type === "account_lock") {
+    const reason = typeof details.lock_reason === "string" && details.lock_reason.trim() ? details.lock_reason.trim() : "Account lock recorded";
+    const durationMinutes = typeof details.lock_duration_minutes === "number"
+      ? details.lock_duration_minutes
+      : Number(details.lock_duration_minutes ?? NaN);
+    if (Number.isFinite(durationMinutes) && durationMinutes > 0) {
+      return `${reason} (${durationMinutes} min lock)`;
+    }
+    return reason;
+  }
+
+  if (row.event_type === "mfa_trigger") {
+    const reason = typeof details.reason === "string" && details.reason.trim() ? details.reason.trim() : "Step-up MFA triggered";
+    const status = typeof details.status === "string" && details.status.trim() ? details.status.trim() : null;
+    return status ? `${reason} (${status})` : reason;
+  }
+
+  return "Security audit event recorded";
 };
 
 export const recordLoginEvent = async (
@@ -250,6 +299,61 @@ export const exportSecurityAudit = async (
     return { ok: true, data: { rows: (data ?? []) as SecurityAuditExportRow[] } };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "Security audit export failed" };
+  }
+};
+
+export const listSecurityAuditTimeline = async (
+  ctx: ServiceContext,
+  {
+    from,
+    to,
+    limit = 50,
+    eventType,
+  }: { from?: string; to?: string; limit?: number; eventType?: SecurityAuditTimelineEventType } = {}
+): Promise<ServiceResult<{ rows: SecurityAuditTimelineRow[] }>> => {
+  try {
+    await requireAuditExportEntitlement(ctx);
+    requirePermission("manage_company", ctx);
+
+    const safeLimit = Math.max(1, Math.min(limit, 200));
+    let query = ctx.supabase
+      .from("v_security_audit_export")
+      .select("event_type, company_id, profile_id, risk_score, details, created_at")
+      .eq("company_id", ctx.companyId)
+      .order("created_at", { ascending: false })
+      .limit(safeLimit);
+
+    if (eventType) {
+      query = query.eq("event_type", eventType);
+    }
+    if (from) {
+      query = query.gte("created_at", from);
+    }
+    if (to) {
+      query = query.lte("created_at", to);
+    }
+
+    const { data, error } = await query;
+    if (error) {
+      return { ok: false, error: "Security audit timeline failed" };
+    }
+
+    const rows = ((data ?? []) as SecurityAuditExportRow[]).flatMap((row) => {
+      if (!isSecurityAuditEventType(row.event_type)) return [];
+
+      return [{
+        eventType: row.event_type,
+        createdAt: row.created_at,
+        riskScore: row.risk_score ?? null,
+        profileId: row.profile_id ?? null,
+        summary: formatSecurityAuditSummary(row),
+        details: row.details ?? null,
+      }];
+    });
+
+    return { ok: true, data: { rows } };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Security audit timeline failed" };
   }
 };
 

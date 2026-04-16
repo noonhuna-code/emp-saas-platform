@@ -17,16 +17,16 @@ export const PayrollAnalyticsWidgetsSection = ({
   const { months, setMonths } = usePayrollAnalyticsRange(12);
 
   return (
-    <section className="stack" style={{ gap: 12 }}>
-      <div className="row" style={{ justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-        <div className="stack" style={{ gap: 2 }}>
-          <h2 style={{ margin: 0, fontSize: 18 }}>{title}</h2>
-          <p className="muted" style={{ margin: 0 }}>{subtitle}</p>
+    <section className="space-y-4">
+      <div className="flex flex-col gap-4 rounded-3xl border border-slate-200/80 bg-white/90 p-5 shadow-[0_16px_40px_rgba(15,23,42,0.05)] dark:border-slate-800 dark:bg-slate-950/70 lg:flex-row lg:items-center lg:justify-between">
+        <div className="min-w-0 space-y-1">
+          <h2 className="text-lg font-semibold tracking-[-0.03em] text-slate-950 dark:text-slate-50">{title}</h2>
+          <p className="text-sm leading-6 text-slate-500 dark:text-slate-400">{subtitle}</p>
         </div>
         <PayrollAnalyticsRangePicker months={months} onChange={setMonths} />
       </div>
 
-      <div className="grid-2">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <DashboardWidgetGuard widget="payroll_trend">
           <PayrollCostTrendWidget months={months} />
         </DashboardWidgetGuard>
@@ -35,7 +35,7 @@ export const PayrollAnalyticsWidgetsSection = ({
         </DashboardWidgetGuard>
       </div>
 
-      <div className="grid-2">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <DashboardWidgetGuard widget="payroll_closeout_latency">
           <PayrollCloseoutLatencyWidget months={months} />
         </DashboardWidgetGuard>

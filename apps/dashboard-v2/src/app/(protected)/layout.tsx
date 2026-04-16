@@ -2,13 +2,18 @@ import { redirect } from "next/navigation";
 import { AppShell } from "@/components/shell/AppShell";
 import { getServerSession } from "@/lib/server/auth";
 import { buildServiceContext } from "@/lib/server/service-context";
+import { buildPublicWebsiteUrl } from "@/lib/site";
 import { getBillingNavigationContext } from "@emp/services/billing.service";
 
 export default async function ProtectedAppLayout({ children }: { children: React.ReactNode }) {
   const session = await getServerSession();
 
   if (!session.accessToken) {
-    redirect("/login");
+    redirect(
+      process.env.NODE_ENV === "production"
+        ? buildPublicWebsiteUrl("/sign-in", { next: "/app/dashboard" })
+        : "/login?next=%2Fapp%2Fdashboard"
+    );
   }
 
   if (session.permissions.includes("view_all_companies") || session.permissions.includes("view_global_audit")) {

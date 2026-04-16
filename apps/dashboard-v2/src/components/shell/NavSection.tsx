@@ -90,7 +90,7 @@ export const NavSection = ({
         <section key={group.id} className="space-y-3">
           {!collapsed ? (
             <div className="px-3">
-              <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-sky-100/45">
+              <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-gray-400 dark:text-gray-500">
                 {group.label}
               </div>
             </div>
@@ -115,8 +115,8 @@ export const NavSection = ({
                     "group relative flex items-center gap-3 overflow-hidden rounded-[1.1rem] border px-3 py-3 text-sm transition-all duration-150 ease-out",
                     collapsed ? "justify-center px-0 py-3.5" : "py-2.5",
                     active
-                      ? "border-sky-400/25 bg-[linear-gradient(135deg,rgba(37,99,235,0.22),rgba(15,23,42,0.82))] text-white shadow-[0_16px_34px_rgba(2,6,23,0.24)]"
-                      : "border-transparent bg-transparent text-slate-300 hover:border-sky-300/12 hover:bg-white/[0.055] hover:text-white"
+                      ? "border-brand-200 bg-brand-50 text-brand-700 shadow-theme-xs dark:border-brand-500/20 dark:bg-brand-500/[0.12] dark:text-brand-400"
+                      : "border-transparent bg-transparent text-gray-700 hover:border-gray-200 hover:bg-gray-100 dark:text-gray-300 dark:hover:border-gray-800 dark:hover:bg-white/[0.03]"
                   )}
                   aria-current={active ? "page" : undefined}
                   title={collapsed ? item.label : undefined}
@@ -124,7 +124,7 @@ export const NavSection = ({
                   <span
                     className={cn(
                       "absolute inset-y-2 left-1.5 hidden w-1 rounded-full transition lg:block",
-                      active ? "bg-sky-300/85 shadow-[0_0_12px_rgba(125,211,252,0.55)]" : "bg-transparent"
+                      active ? "bg-brand-500" : "bg-transparent"
                     )}
                     aria-hidden="true"
                   />
@@ -133,8 +133,8 @@ export const NavSection = ({
                     className={cn(
                       "ml-1 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl border transition",
                       active
-                        ? "border-sky-300/18 bg-white/12 text-sky-100"
-                        : "border-white/6 bg-white/[0.04] text-slate-400 group-hover:border-white/10 group-hover:bg-white/[0.07] group-hover:text-slate-100",
+                        ? "border-brand-200 bg-white text-brand-600 dark:border-brand-500/20 dark:bg-gray-900 dark:text-brand-400"
+                        : "border-gray-200 bg-white text-gray-400 group-hover:border-gray-200 group-hover:bg-white group-hover:text-gray-700 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-500 dark:group-hover:border-gray-700 dark:group-hover:bg-gray-900 dark:group-hover:text-gray-300",
                       collapsed ? "ml-0" : ""
                     )}
                   >

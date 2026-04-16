@@ -12,10 +12,10 @@ const clampPercent = (value: number): number => Math.max(0, Math.min(100, Math.r
 const renderProgress = (label: string, used: number, limit: number | null): ReactNode => {
   if (limit === null || limit <= 0) {
     return (
-      <div className="stack" style={{ gap: 6 }}>
-        <div className="row" style={{ justifyContent: "space-between" }}>
-          <span className="muted">{label}</span>
-          <strong>{used}</strong>
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-sm text-slate-500 dark:text-slate-400">{label}</span>
+          <strong className="text-sm font-semibold text-slate-950 dark:text-slate-50">{used}</strong>
         </div>
       </div>
     );
@@ -23,14 +23,24 @@ const renderProgress = (label: string, used: number, limit: number | null): Reac
 
   const percent = clampPercent((used / limit) * 100);
   return (
-    <div className="stack" style={{ gap: 6 }}>
-      <div className="row" style={{ justifyContent: "space-between" }}>
-        <span className="muted">{label}</span>
-        <strong>{used} / {limit}</strong>
+    <div className="space-y-2">
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-sm text-slate-500 dark:text-slate-400">{label}</span>
+        <strong className="text-sm font-semibold text-slate-950 dark:text-slate-50">{used} / {limit}</strong>
       </div>
-      <div className="progress" aria-label={`${label} usage`}>
-        <div className="progress__bar" style={{ width: `${percent}%` }} />
-        <span className="progress__label">{percent}%</span>
+      <div
+        className="relative h-3 overflow-hidden rounded-full border border-slate-200 bg-slate-100 dark:border-slate-800 dark:bg-slate-900"
+        aria-label={`${label} usage`}
+      >
+        <div
+          className="h-full rounded-full bg-[linear-gradient(135deg,#1e62ff,#22c55e)] transition-all duration-300"
+          style={{ width: `${percent}%` }}
+        />
+      </div>
+      <div className="flex justify-end">
+        <span className="inline-flex rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300">
+          {percent}% used
+        </span>
       </div>
     </div>
   );
@@ -84,10 +94,9 @@ export const SubscriptionHealthPanel = ({
       {renderProgress("Billable seats", billing.seatSummary.activeBillable, seatLimit)}
       {typeof payrollRunsUsed === "number" ? renderProgress("Payroll runs (sample)", payrollRunsUsed, payrollRunLimit) : null}
       {typeof payslipRowsUsed === "number" ? renderProgress("Payslips (sample)", payslipRowsUsed, payslipEmailLimit) : null}
-      <div className="row" style={{ justifyContent: "flex-end" }}>
+      <div className="flex justify-end">
         <Link href="/app/billing" className="secondary-btn">Manage Billing</Link>
       </div>
     </DashboardPanel>
   );
 };
-

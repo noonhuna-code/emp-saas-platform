@@ -6,7 +6,8 @@
   "notes": [
     "No workbook or existing AtoZ/PlanMatrix source file was present in the repository during this implementation pass.",
     "This normalized companion artifact is the source-of-truth substitute for future workbook export or manual spreadsheet sync.",
-    "The exact file Product_PlanMatrix_FINALIZED_AtoZ is not present in the repository, so PTCL operations status was recorded in this companion artifact."
+    "The exact file Product_PlanMatrix_FINALIZED_AtoZ is not present in the repository, so PTCL operations status was recorded in this companion artifact.",
+    "A later experience pass unified production login entry toward the public website sign-in and expanded the role-aware TailAdmin shell navigation coverage in apps/dashboard-v2."
   ],
   "capabilities": [
     {
@@ -137,7 +138,7 @@
       "branch": "codex/web-final-premium",
       "app_commit": "30226b7",
       "db_backfill_commit": "5295d5e",
-      "active_alias": "https://dashboard-one-ecru-83.vercel.app"
+      "active_alias": "https://emp-saas-platform.vercel.app"
     },
     "capabilities": [
       {

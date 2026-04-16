@@ -109,7 +109,7 @@ export function Navbar() {
                     className="rounded-2xl px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:text-slate-950"
                     href="/sign-up"
                   >
-                    Sign up
+                    Request access
                   </Link>
                   <Link
                     data-analytics-action="primary-cta"

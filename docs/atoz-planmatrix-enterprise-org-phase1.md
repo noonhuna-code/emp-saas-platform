@@ -87,3 +87,10 @@ The exact file named `Product_PlanMatrix_FINALIZED_AtoZ` is not present in this 
 | Calendar state labels | Compact labels for `P`, `P (Late)`, `A`, `GO`, `P · GO`, `Off`, `Unpaid Leave`, leave labels | Done | Calendar shaping updated to reuse classifier truth |
 | Settings tables | Active sessions and known devices converted to compact searchable tables | Done | Settings visibility surface updated |
 | Live authenticated PTCL browser QA | Employee/supervisor authenticated runtime verification | Partial / pending | Code deployed, backend truth checked, but authenticated PTCL browser session QA was not completed from terminal |
+
+## Workbook Sync Notes
+
+- External workbook synced: `EMP_AtoZ_BillionDollar_2026.xlsx`
+- Latest feature sync: `feature.audit_timeline_dashboard` moved to implemented in the product pass, backed by the new monitoring security audit timeline in `apps/dashboard-v2`
+- Latest feature sync: `feature.people_directory_search` moved to implemented in the product pass, backed by the searchable employee directory in `apps/dashboard-v2`
+- Latest experience pass: `apps/dashboard-v2` login routing now prefers the public website sign-in in production, and the TailAdmin shell header/navigation was expanded for role-aware active-page coverage across workday, intelligence, operations, and control routes

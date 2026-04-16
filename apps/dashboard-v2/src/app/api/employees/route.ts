@@ -11,6 +11,7 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const page = Number(url.searchParams.get("page") ?? "1");
     const pageSize = Number(url.searchParams.get("pageSize") ?? "20");
+    const query = (url.searchParams.get("query") ?? "").trim() || undefined;
     const departmentId = url.searchParams.get("department_id") ?? undefined;
     const status = url.searchParams.get("status") ?? undefined;
 
@@ -19,7 +20,7 @@ export async function GET(request: Request) {
     }
 
     const ctx = route.ctx;
-    const result = await listEmployees(ctx, { page, pageSize, departmentId, status });
+    const result = await listEmployees(ctx, { query, page, pageSize, departmentId, status });
     if (!result.ok) {
       return finalizeRoute(
         route,

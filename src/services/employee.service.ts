@@ -6,6 +6,7 @@ import { assertEmployeeReadAccess, getAccessibleEmployeeScope } from "./access-s
 import { getOrganizationOverview } from "./org-chart.service";
 
 export type EmployeeListFilters = {
+  query?: string;
   departmentId?: string;
   status?: string;
   page?: number;
@@ -170,6 +171,26 @@ const normalizePaging = (filters?: EmployeeListFilters): { page: number; pageSiz
   return { page, pageSize };
 };
 
+const normalizeEmployeeSearchQuery = (value?: string): string => {
+  return (value ?? "").trim().toLowerCase().slice(0, 80);
+};
+
+const employeeMatchesSearch = (
+  row: EmployeeDirectoryRow,
+  search: string
+): boolean => {
+  if (!search) return true;
+
+  const haystacks = [
+    row.full_name,
+    row.employee_code,
+    row.employment_status,
+    row.job_level,
+  ];
+
+  return haystacks.some((value) => value?.toLowerCase().includes(search));
+};
+
 const resolveCurrentEmployeeId = async (ctx: ServiceContext): Promise<string | null> => {
   try {
     const { data, error } = await ctx.supabase.rpc("current_user_employee_id");
@@ -243,6 +264,7 @@ export const listEmployees = async (
     const { page, pageSize } = normalizePaging(filters);
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
+    const search = normalizeEmployeeSearchQuery(filters.query);
 
     if (!accessScope.broadAccess && accessScope.ids.size === 0) {
       return {
@@ -254,12 +276,58 @@ export const listEmployees = async (
       };
     }
 
+    const selectClause = "id, company_id, user_profile_id, department_id, team_id, manager_id, employment_status, job_level, employee_code, created_at, user_profiles(full_name, avatar_url)";
+
+    if (search) {
+      let searchQuery = ctx.supabase
+        .from("employees")
+        .select(selectClause)
+        .eq("company_id", ctx.companyId)
+        .is("is_deleted", false)
+        .order("created_at", { ascending: false });
+
+      if (!accessScope.broadAccess) {
+        searchQuery = searchQuery.in("id", Array.from(accessScope.ids));
+      }
+
+      if (filters.departmentId) {
+        searchQuery = searchQuery.eq("department_id", filters.departmentId);
+      }
+
+      if (filters.status) {
+        searchQuery = searchQuery.eq("employment_status", filters.status);
+      }
+
+      const { data, error } = await searchQuery;
+      if (error) {
+        return { ok: false, error: error.message };
+      }
+
+      const rows = (data ?? []).map((row) => {
+        const profile = Array.isArray((row as any).user_profiles)
+          ? (row as any).user_profiles[0]
+          : (row as any).user_profiles;
+        return {
+          ...row,
+          full_name: profile?.full_name ?? null,
+          avatar_url: profile?.avatar_url ?? null
+        };
+      }) as EmployeeDirectoryRow[];
+
+      const filteredRows = rows.filter((row) => employeeMatchesSearch(row, search));
+
+      return {
+        ok: true,
+        data: {
+          rows: filteredRows.slice(from, to + 1),
+          total: filteredRows.length
+        }
+      };
+    }
+
     let query = ctx.supabase
       .from("employees")
-      .select(
-        "id, company_id, user_profile_id, department_id, team_id, manager_id, employment_status, job_level, employee_code, created_at, user_profiles(full_name, avatar_url)",
-        { count: "exact" }
-      )
+      .select(selectClause, { count: "exact" })
       .eq("company_id", ctx.companyId)
       .is("is_deleted", false)
       .order("created_at", { ascending: false })

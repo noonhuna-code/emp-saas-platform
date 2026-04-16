@@ -24,7 +24,12 @@ import type {
   LeaveTypesResponse
 } from "@/lib/types/leave";
 import type { ApprovalsResponse } from "@/lib/types/approvals";
-import type { IdempotencyCleanupResponse, MonitoringOverview } from "@/lib/types/monitoring";
+import type {
+  IdempotencyCleanupResponse,
+  MonitoringOverview,
+  SecurityAuditTimelineEventType,
+  SecurityAuditTimelineResponse
+} from "@/lib/types/monitoring";
 import type {
   EmployeeReliabilityResponse,
   KudosHistoryResponse,
@@ -541,12 +546,14 @@ export const forgetSettingsDevice = async (
 };
 
 export const fetchEmployees = async (params: {
+  query?: string;
   departmentId?: string;
   status?: string;
   page?: number;
   pageSize?: number;
 } = {}): Promise<DashboardApiResult<EmployeeListResponse>> => {
   const query = new URLSearchParams();
+  if (params.query) query.set("query", params.query);
   if (params.departmentId) query.set("department_id", params.departmentId);
   if (params.status) query.set("status", params.status);
   if (typeof params.page === "number") query.set("page", String(params.page));
@@ -1185,6 +1192,22 @@ export const fetchKudosLeaderboards = async (): Promise<DashboardApiResult<Kudos
 
 export const fetchMonitoringOverview = async (): Promise<DashboardApiResult<MonitoringOverview>> => {
   const response = await fetchWithCache<MonitoringOverview>("/api/monitoring/overview");
+  return response;
+};
+
+export const fetchSecurityAuditTimeline = async (params: {
+  limit?: number;
+  eventType?: SecurityAuditTimelineEventType;
+  from?: string;
+  to?: string;
+} = {}): Promise<DashboardApiResult<SecurityAuditTimelineResponse>> => {
+  const query = new URLSearchParams();
+  if (typeof params.limit === "number") query.set("limit", String(params.limit));
+  if (params.eventType) query.set("eventType", params.eventType);
+  if (params.from) query.set("from", params.from);
+  if (params.to) query.set("to", params.to);
+  const suffix = query.toString() ? `?${query.toString()}` : "";
+  const response = await fetchWithCache<SecurityAuditTimelineResponse>(`/api/monitoring/security-audit${suffix}`);
   return response;
 };
 

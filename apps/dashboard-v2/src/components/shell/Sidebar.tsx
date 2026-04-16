@@ -13,10 +13,7 @@ export const SIDEBAR_COLLAPSED_WIDTH = "6.5rem";
 export const SIDEBAR_EXPANDED_WIDTH = "20.5rem";
 
 const SHARED_SIDEBAR_BACKGROUND =
-  "bg-[radial-gradient(circle_at_14%_8%,rgba(96,165,250,0.3),transparent_15%),radial-gradient(circle_at_18%_24%,rgba(59,130,246,0.16),transparent_26%),radial-gradient(circle_at_0%_62%,rgba(14,165,233,0.14),transparent_28%),radial-gradient(circle_at_24%_88%,rgba(37,99,235,0.18),transparent_32%),linear-gradient(180deg,#030816_0%,#071122_42%,#0a1730_100%)]";
-
-const SHARED_SIDEBAR_OVERLAY =
-  "bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(255,255,255,0.02)_14%,transparent_34%,transparent_72%,rgba(2,6,23,0.22)_100%),radial-gradient(circle_at_18%_38%,rgba(56,189,248,0.09),transparent_24%),radial-gradient(circle_at_bottom_left,rgba(37,99,235,0.12),transparent_30%)]";
+  "bg-white dark:bg-gray-900";
 
 const PERSONA_LABELS: Record<DashboardPersona, string> = {
   employee: "Employee workspace",
@@ -36,15 +33,15 @@ const SidebarBrand = ({
   persona: DashboardPersona;
   onToggleCollapsed: () => void;
 }) => (
-  <div className={cn("border-b border-white/8", collapsed ? "px-3 pb-4 pt-4" : "px-4 pb-4 pt-4")}>
+  <div className={cn("border-b border-gray-200 dark:border-gray-800", collapsed ? "px-3 pb-4 pt-4" : "px-4 pb-4 pt-4")}>
     {collapsed ? (
       <div className="flex flex-col items-center gap-4">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[1.15rem] border border-sky-300/20 bg-[linear-gradient(135deg,rgba(37,99,235,0.88),rgba(56,189,248,0.58))] text-sm font-semibold tracking-[0.18em] text-white shadow-[0_16px_34px_rgba(37,99,235,0.28)]">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-gray-200 bg-brand-500 text-sm font-semibold tracking-[0.18em] text-white shadow-theme-md dark:border-gray-800 dark:bg-brand-500">
           EMP
         </div>
         <button
           type="button"
-          className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-slate-300 transition hover:border-white/20 hover:bg-white/[0.08] hover:text-white lg:inline-flex"
+          className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-500 transition hover:bg-gray-50 hover:text-gray-700 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-white lg:inline-flex"
           onClick={onToggleCollapsed}
           aria-label="Expand sidebar"
         >
@@ -54,24 +51,25 @@ const SidebarBrand = ({
     ) : (
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 space-y-3">
-          <div className="inline-flex min-h-7 items-center rounded-full border border-sky-300/18 bg-sky-400/10 px-3 text-[10px] font-semibold uppercase tracking-[0.24em] text-sky-100/82">
+          <div className="inline-flex min-h-7 items-center rounded-full bg-brand-50 px-3 text-[10px] font-semibold uppercase tracking-[0.24em] text-brand-600 dark:bg-brand-500/10 dark:text-brand-400">
             {PERSONA_LABELS[persona]}
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[1.15rem] border border-sky-300/20 bg-[linear-gradient(135deg,rgba(37,99,235,0.88),rgba(56,189,248,0.58))] text-sm font-semibold tracking-[0.18em] text-white shadow-[0_16px_34px_rgba(37,99,235,0.28)]">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-gray-200 bg-brand-500 text-sm font-semibold tracking-[0.18em] text-white shadow-theme-md dark:border-gray-800 dark:bg-brand-500">
               EMP
             </div>
 
             <div className="min-w-0">
-              <div className="text-[1.7rem] font-semibold tracking-[-0.08em] text-white">EMP OS V2</div>
+              <div className="truncate text-[1.5rem] font-semibold tracking-[-0.06em] text-gray-900 dark:text-white/90">EMP Workforce OS</div>
+              <div className="mt-1 truncate text-sm text-gray-500 dark:text-gray-400">Role-aware TailAdmin workspace</div>
             </div>
           </div>
         </div>
 
         <button
           type="button"
-          className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-slate-300 transition hover:border-white/20 hover:bg-white/[0.08] hover:text-white lg:inline-flex"
+          className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-500 transition hover:bg-gray-50 hover:text-gray-700 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-white lg:inline-flex"
           onClick={onToggleCollapsed}
           aria-label="Collapse sidebar"
         >
@@ -111,15 +109,11 @@ export const Sidebar = ({
   return (
     <aside
       className={cn(
-        `fixed inset-y-0 left-0 z-40 flex h-dvh shrink-0 flex-col overflow-hidden border-r border-sky-300/10 ${SHARED_SIDEBAR_BACKGROUND} text-white shadow-[20px_0_50px_rgba(2,6,23,0.24)] transition-transform duration-200 lg:relative lg:inset-auto lg:z-20 lg:h-dvh lg:w-[var(--emp-sidebar-width)] lg:min-w-[var(--emp-sidebar-width)] lg:translate-x-0`,
+        `fixed inset-y-0 left-0 z-40 flex h-dvh shrink-0 flex-col overflow-hidden border-r border-gray-200 ${SHARED_SIDEBAR_BACKGROUND} text-gray-900 shadow-[0_1px_3px_rgba(16,24,40,0.1),0_12px_24px_rgba(16,24,40,0.08)] transition-transform duration-200 dark:border-gray-800 dark:text-white/90 lg:relative lg:inset-auto lg:z-20 lg:h-dvh lg:w-[var(--emp-sidebar-width)] lg:min-w-[var(--emp-sidebar-width)] lg:translate-x-0`,
         collapsed ? "w-[6.5rem]" : "w-[328px]",
         mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
       )}
     >
-      <div
-        aria-hidden="true"
-        className={`pointer-events-none absolute inset-0 ${SHARED_SIDEBAR_OVERLAY}`}
-      />
       <SidebarBrand collapsed={collapsed} persona={persona} onToggleCollapsed={onToggleCollapsed} />
 
       <div className="min-h-0 flex-1 overflow-hidden">

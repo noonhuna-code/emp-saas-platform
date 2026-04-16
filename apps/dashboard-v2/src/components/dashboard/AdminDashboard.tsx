@@ -70,6 +70,11 @@ const AdminDashboardCore = ({
     allowedRouteSet.has("/app/billing") ? { label: "Billing console", href: "/app/billing", caption: "Invoices, seats, and proofs" } : null,
     allowedRouteSet.has("/app/monitoring") ? { label: "System monitor", href: "/app/monitoring", caption: "Security and health" } : null,
   ].filter(Boolean) as Array<{ label: string; href: string; caption: string }>;
+  const heroSignals = [
+    { label: "People ops", value: peopleHref ? "Directory live" : "Scoped" },
+    { label: "Control", value: allowedRouteSet.has("/app/monitoring") ? "Security enabled" : "Core ops" },
+    { label: "Lanes", value: `${commandPaths.length} active` }
+  ];
 
   useEffect(() => {
     perf.markKpiRendered();
@@ -81,6 +86,7 @@ const AdminDashboardCore = ({
         title="Company operations and governance overview"
         subtitle="Tenant-scoped headcount, attendance, leave utilization, payroll snapshot, and recent security alerts."
         emphasis="executive"
+        heroSignals={heroSignals}
         actions={(
           <>
             {heroActions.map((action) => (

@@ -1,6 +1,5 @@
 import type { ServiceContext, ServiceResult } from "../lib/types";
 import { requirePermission } from "../lib/auth-wrapper";
-import { requireAnyPlanFeature } from "../lib/entitlements";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { getAttendanceToday, type AttendanceDayState, type AttendancePayrollImpact } from "./attendance.service";
 
@@ -204,10 +203,6 @@ const computeAttendanceStatus = (record: {
   return "not_clocked_in";
 };
 
-const requireDashboardEntitlement = async (ctx: ServiceContext): Promise<void> => {
-  await requireAnyPlanFeature(ctx, ["feature.analytics_standard", "feature.analytics_advanced"]);
-};
-
 const EMPLOYEE_DASHBOARD_CACHE_TTL_MS = 45000;
 type EmployeeDashboardCacheEntry = {
   ts: number;
@@ -221,7 +216,6 @@ export const clearEmployeeDashboardCache = (): void => {
 
 export const getEmployeeDashboard = async (ctx: ServiceContext, options?: { includeCollections?: boolean }): Promise<ServiceResult<EmployeeDashboardData>> => {
   try {
-    await requireDashboardEntitlement(ctx);
     const admin = createSupabaseAdminClient();
     const employeeId = await resolveCurrentEmployeeId(ctx);
     if (!employeeId) {
@@ -751,7 +745,6 @@ export const getEmployeeDashboard = async (ctx: ServiceContext, options?: { incl
 
 export const getManagerDashboard = async (ctx: ServiceContext): Promise<ServiceResult<ManagerDashboardData>> => {
   try {
-    await requireDashboardEntitlement(ctx);
     if (!ctx.permissions.includes("manage_attendance") && !ctx.permissions.includes("manage_employees")) {
       return { ok: false, error: "Permission denied" };
     }
@@ -875,7 +868,6 @@ export const getManagerDashboard = async (ctx: ServiceContext): Promise<ServiceR
 
 export const getAdminDashboard = async (ctx: ServiceContext): Promise<ServiceResult<AdminDashboardData>> => {
   try {
-    await requireDashboardEntitlement(ctx);
     requirePermission("manage_company", ctx);
 
     const [employees, activeEmployees] = await Promise.all([

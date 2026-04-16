@@ -2,6 +2,15 @@
 
 import Link from "next/link";
 import { Suspense, lazy, useMemo } from "react";
+import {
+  ArrowRight,
+  BriefcaseBusiness,
+  ChevronRight,
+  ClipboardCheck,
+  LayoutGrid,
+  ShieldCheck,
+  UsersRound
+} from "lucide-react";
 import { DashboardRoleFallback } from "@/components/dashboard/DashboardRoleFallback";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TENANT_NAVIGATION_GROUPS, resolveVisibleNavigationGroups } from "@/navigation/navigation.config";
@@ -40,8 +49,42 @@ const normalizeRole = (value: string | null) =>
     .replace(/[_-]+/g, "_")
     .replace(/\s+/g, "_");
 
+const PERSONA_COPY = {
+  employee: {
+    eyebrow: "Employee workspace",
+    title: "Your EMP command center",
+    subtitle: "Use one calmer workspace for self-service activity, personal records, notifications, and daily workflow context."
+  },
+  manager: {
+    eyebrow: "Manager dashboard",
+    title: "Team visibility and approvals in one flow",
+    subtitle: "Move across attendance, leave, team coordination, and follow-up work without leaving the dashboard shell."
+  },
+  admin_ops: {
+    eyebrow: "Operations workspace",
+    title: "Operational control with clearer routing",
+    subtitle: "Keep approvals, workforce controls, and admin actions in a layout built for volume, auditability, and speed."
+  },
+  finance: {
+    eyebrow: "Finance workspace",
+    title: "Payroll and billing oversight in one command layer",
+    subtitle: "Review payroll visibility, billing posture, and controlled finance actions from one internal dashboard."
+  },
+  executive: {
+    eyebrow: "Executive workspace",
+    title: "Leadership oversight without operational noise",
+    subtitle: "Track company posture, workforce health, monitoring, and enterprise workflows from one controlled executive surface."
+  },
+  platform_owner: {
+    eyebrow: "Platform oversight",
+    title: "Platform command center",
+    subtitle: "Cross-tenant governance, monitoring posture, and control-plane operations."
+  }
+} as const;
+
 export const DashboardPageClient = ({ role, permissions, hasEmployeeContext, entitlements }: DashboardPageClientProps) => {
   const persona = resolveDashboardPersona({ role, permissions });
+  const personaCopy = PERSONA_COPY[persona];
   const caps = resolveDashboardCapabilities({ role, permissions });
   const normalizedRole = normalizeRole(role);
   const isTeamLeadRole =
@@ -101,6 +144,60 @@ export const DashboardPageClient = ({ role, permissions, hasEmployeeContext, ent
   const canReviewLeave =
     (permissions.includes("manage_employees") || permissions.includes("manage_attendance"))
     && allowedRoutes.includes("/app/leave/review");
+  const quickLinks = useMemo(
+    () =>
+      visibleGroups
+        .flatMap((group) =>
+          group.items.map((item) => ({
+            href: item.href,
+            label: item.label,
+            description: item.description ?? `${group.label} workspace`,
+            groupLabel: group.label
+          }))
+        )
+        .slice(0, 6),
+    [visibleGroups]
+  );
+  const overviewStats = useMemo(
+    () => [
+      {
+        label: "Navigation groups",
+        value: String(visibleGroups.length).padStart(2, "0"),
+        hint: "Role-aware sections visible right now",
+        icon: LayoutGrid
+      },
+      {
+        label: "Accessible routes",
+        value: String(allowedRoutes.length).padStart(2, "0"),
+        hint: "Live routes currently enabled in this session",
+        icon: BriefcaseBusiness
+      },
+      {
+        label: "Session permissions",
+        value: String(permissions.length).padStart(2, "0"),
+        hint: "Capabilities driving the EMP workspace",
+        icon: ShieldCheck
+      }
+    ],
+    [allowedRoutes.length, permissions.length, visibleGroups.length]
+  );
+  const operationalSignals = useMemo(
+    () => [
+      {
+        label: "Persona mode",
+        value: personaCopy.eyebrow,
+      },
+      {
+        label: "Employee context",
+        value: hasEmployeeContext ? "Connected" : "Role-only",
+      },
+      {
+        label: "Review surfaces",
+        value: canReviewLeave ? "Leave review enabled" : "Standard routing",
+      }
+    ],
+    [canReviewLeave, hasEmployeeContext, personaCopy.eyebrow]
+  );
 
   const roleDashboard = useMemo(() => {
     switch (persona) {
@@ -140,5 +237,107 @@ export const DashboardPageClient = ({ role, permissions, hasEmployeeContext, ent
     );
   }
 
-  return <Suspense fallback={<DashboardRoleFallback />}>{roleDashboard}</Suspense>;
+  return (
+    <div className="space-y-6">
+      <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
+        <div className="grid gap-6 px-5 py-5 md:px-6 md:py-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
+          <div className="min-w-0">
+            <div className="inline-flex rounded-full bg-brand-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-600 dark:bg-brand-500/10 dark:text-brand-400">
+              {personaCopy.eyebrow}
+            </div>
+            <div className="mt-4 space-y-4">
+              <div>
+                <h2 className="max-w-4xl text-3xl font-semibold tracking-[-0.04em] text-gray-900 dark:text-white/90 xl:text-[2.4rem]">
+                  {personaCopy.title}
+                </h2>
+                <p className="mt-3 max-w-3xl text-sm leading-7 text-gray-500 dark:text-gray-400 sm:text-base">
+                  {personaCopy.subtitle}
+                </p>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-3">
+                {overviewStats.map((stat) => {
+                  const Icon = stat.icon;
+                  return (
+                    <article
+                      key={stat.label}
+                      className="rounded-2xl border border-gray-200 bg-gray-50/90 p-4 dark:border-gray-800 dark:bg-white/[0.03]"
+                    >
+                      <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white text-gray-800 shadow-theme-xs dark:bg-gray-800 dark:text-white/90">
+                        <Icon className="h-5 w-5" />
+                      </div>
+                      <p className="mt-4 text-xs font-medium uppercase tracking-[0.18em] text-gray-500 dark:text-gray-400">
+                        {stat.label}
+                      </p>
+                      <p className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-gray-900 dark:text-white/90">
+                        {stat.value}
+                      </p>
+                      <p className="mt-2 text-sm leading-6 text-gray-500 dark:text-gray-400">
+                        {stat.hint}
+                      </p>
+                    </article>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          <aside className="space-y-4">
+            <div className="rounded-2xl border border-gray-200 bg-gray-50/90 p-5 dark:border-gray-800 dark:bg-white/[0.03]">
+              <div className="flex items-center gap-2">
+                <ClipboardCheck className="h-5 w-5 text-brand-500 dark:text-brand-400" />
+                <p className="text-sm font-semibold text-gray-900 dark:text-white/90">Session signals</p>
+              </div>
+              <div className="mt-4 space-y-3">
+                {operationalSignals.map((signal) => (
+                  <div
+                    key={signal.label}
+                    className="flex items-start justify-between gap-4 rounded-xl border border-gray-200 bg-white px-4 py-3 dark:border-gray-800 dark:bg-gray-900"
+                  >
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{signal.label}</p>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-white/90">{signal.value}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
+              <div className="flex items-center gap-2">
+                <UsersRound className="h-5 w-5 text-brand-500 dark:text-brand-400" />
+                <p className="text-sm font-semibold text-gray-900 dark:text-white/90">Quick access</p>
+              </div>
+              <div className="mt-4 space-y-2">
+                {quickLinks.map((link) => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className="group flex items-start justify-between gap-3 rounded-xl border border-gray-200 px-4 py-3 transition hover:border-brand-200 hover:bg-brand-50/60 dark:border-gray-800 dark:hover:border-brand-500/30 dark:hover:bg-brand-500/5"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white/90">{link.label}</p>
+                      <p className="mt-1 text-sm leading-6 text-gray-500 dark:text-gray-400">{link.description}</p>
+                    </div>
+                    <div className="flex flex-none items-center gap-2 text-xs font-medium uppercase tracking-[0.16em] text-gray-400 transition group-hover:text-brand-500 dark:group-hover:text-brand-400">
+                      {link.groupLabel}
+                      <ChevronRight className="h-4 w-4" />
+                    </div>
+                  </Link>
+                ))}
+              </div>
+
+              <Link
+                href={quickLinks[0]?.href ?? "/app/dashboard"}
+                className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-brand-600 transition hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300"
+              >
+                Continue in workspace
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <Suspense fallback={<DashboardRoleFallback />}>{roleDashboard}</Suspense>
+    </div>
+  );
 };

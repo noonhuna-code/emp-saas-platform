@@ -1,9 +1,11 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
+import { buildPublicWebsiteUrl } from "./src/lib/site";
 
 const PROTECTED_PREFIX = "/app";
 const REFRESH_GRACE_SECONDS = 5 * 60;
 const AUTH_COOKIE_NAMES = ["lf_access_token", "lf_refresh_token", "lf_session", "lf_session_id", "lf_role", "lf_permissions"] as const;
+const LOGIN_REASON_SESSION_EXPIRED = "session_expired";
 
 const getCookieBaseOptions = (request: NextRequest) => ({
   httpOnly: true,
@@ -17,6 +19,37 @@ const clearAuthCookies = (response: NextResponse, request: NextRequest) => {
   for (const name of AUTH_COOKIE_NAMES) {
     response.cookies.set(name, "", { ...baseOptions, expires: new Date(0) });
   }
+};
+
+const buildLoginRedirect = (
+  request: NextRequest,
+  options?: {
+    reason?: string;
+    clearCookies?: boolean;
+  }
+) => {
+  const url =
+    process.env.NODE_ENV === "production"
+      ? new URL(buildPublicWebsiteUrl("/sign-in"))
+      : request.nextUrl.clone();
+
+  if (process.env.NODE_ENV !== "production") {
+    url.pathname = "/login";
+  }
+
+  url.searchParams.set("next", `${request.nextUrl.pathname}${request.nextUrl.search}`);
+
+  if (options?.reason) {
+    url.searchParams.set("reason", options.reason);
+  }
+
+  const response = NextResponse.redirect(url);
+
+  if (options?.clearCookies) {
+    clearAuthCookies(response, request);
+  }
+
+  return response;
 };
 
 const parseJwtExp = (token?: string | null): number | null => {
@@ -82,7 +115,7 @@ const refreshDashboardSession = async (refreshToken: string): Promise<{ accessTo
 };
 
 export async function middleware(request: NextRequest) {
-  const { pathname, search } = request.nextUrl;
+  const { pathname } = request.nextUrl;
 
   if (!pathname.startsWith(PROTECTED_PREFIX)) {
     return NextResponse.next();
@@ -90,12 +123,22 @@ export async function middleware(request: NextRequest) {
 
   const accessToken = request.cookies.get("lf_access_token")?.value;
   const refreshToken = request.cookies.get("lf_refresh_token")?.value;
+  const sessionId = request.cookies.get("lf_session_id")?.value;
+  const hasSessionMarker = Boolean(request.cookies.get("lf_session")?.value);
+  const hasAnyAuthCookie = Boolean(accessToken || refreshToken || sessionId || hasSessionMarker);
 
-  if (accessToken && !shouldRefreshAccessToken(accessToken)) {
+  if ((accessToken || refreshToken || hasSessionMarker) && !sessionId) {
+    return buildLoginRedirect(request, {
+      reason: LOGIN_REASON_SESSION_EXPIRED,
+      clearCookies: true
+    });
+  }
+
+  if (accessToken && sessionId && !shouldRefreshAccessToken(accessToken)) {
     return NextResponse.next();
   }
 
-  if (refreshToken) {
+  if (refreshToken && sessionId) {
     const session = await refreshDashboardSession(refreshToken);
     if (session) {
       const response = NextResponse.next();
@@ -106,18 +149,20 @@ export async function middleware(request: NextRequest) {
       return response;
     }
 
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    url.searchParams.set("next", `${pathname}${search}`);
-    const response = NextResponse.redirect(url);
-    clearAuthCookies(response, request);
-    return response;
+    return buildLoginRedirect(request, {
+      reason: LOGIN_REASON_SESSION_EXPIRED,
+      clearCookies: true
+    });
   }
 
-  const url = request.nextUrl.clone();
-  url.pathname = "/login";
-  url.searchParams.set("next", `${pathname}${search}`);
-  return NextResponse.redirect(url);
+  if (hasAnyAuthCookie) {
+    return buildLoginRedirect(request, {
+      reason: LOGIN_REASON_SESSION_EXPIRED,
+      clearCookies: true
+    });
+  }
+
+  return buildLoginRedirect(request);
 }
 
 export const config = {

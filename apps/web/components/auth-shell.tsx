@@ -11,6 +11,9 @@ type AuthShellProps = {
   bullets: string[];
   formAction?: string;
   nextPath?: string;
+  returnTo?: string;
+  initialError?: string | null;
+  initialNotice?: string | null;
   showForm?: boolean;
 };
 
@@ -22,6 +25,9 @@ export function AuthShell({
   bullets,
   formAction,
   nextPath,
+  returnTo,
+  initialError,
+  initialNotice,
   showForm = true
 }: AuthShellProps) {
   return (
@@ -104,7 +110,18 @@ export function AuthShell({
             ) : null}
           </div>
 
-          {showForm ? <div className="lg:sticky lg:top-20"><AuthForm mode={mode} actionUrl={formAction} nextPath={nextPath} /></div> : null}
+          {showForm ? (
+            <div className="lg:sticky lg:top-20">
+              <AuthForm
+                mode={mode}
+                actionUrl={formAction}
+                nextPath={nextPath}
+                returnTo={returnTo}
+                initialError={initialError}
+                initialNotice={initialNotice}
+              />
+            </div>
+          ) : null}
         </div>
       </div>
     </section>

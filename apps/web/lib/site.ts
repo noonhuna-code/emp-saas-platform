@@ -8,11 +8,11 @@ const siteUrl =
   normalizeAbsoluteUrl(process.env.NEXT_PUBLIC_SITE_URL) ??
   normalizeAbsoluteUrl(process.env.VERCEL_PROJECT_PRODUCTION_URL) ??
   normalizeAbsoluteUrl(process.env.VERCEL_URL) ??
-  "https://emp-marketing-site.vercel.app";
+  "https://emp-saas-platform.vercel.app";
 
 const dashboardUrl =
   normalizeAbsoluteUrl(process.env.NEXT_PUBLIC_DASHBOARD_URL) ??
-  "https://dashboard-one-ecru-83.vercel.app";
+  "https://emp-workforce-os.vercel.app";
 
 export const siteConfig = {
   name: "EMP Workforce OS",
@@ -26,7 +26,7 @@ export const siteConfig = {
   email: "noonhuna@gmail.com",
   founder: {
     name: "Muhammad Umair",
-    title: "Founder, EMP",
+    title: "Product Owner and Creator, EMP",
     email: "noonhuna@gmail.com",
     phone: "03106598623",
     image: "/founder/umair.png"
@@ -80,7 +80,7 @@ export const siteConfig = {
       title: "Access",
       links: [
         { href: "/sign-in", label: "Sign in" },
-        { href: "/sign-up", label: "Sign up" },
+        { href: "/sign-up", label: "Request access" },
         { href: "/demo", label: "Book demo" }
       ]
     }
@@ -114,4 +114,19 @@ export function buildDashboardLoginUrl(next = "/app/dashboard") {
 export function buildDashboardAuthActionUrl(path = "/api/auth/login") {
   const safePath = path.startsWith("/") ? path : "/api/auth/login";
   return `${siteConfig.dashboardUrl}${safePath}`;
+}
+
+export function buildSiteUrl(path = "/", searchParams?: Record<string, string | null | undefined>) {
+  const safePath = path.startsWith("/") ? path : `/${path}`;
+  const url = new URL(safePath, siteConfig.url);
+
+  if (searchParams) {
+    for (const [key, value] of Object.entries(searchParams)) {
+      if (typeof value === "string" && value.length > 0) {
+        url.searchParams.set(key, value);
+      }
+    }
+  }
+
+  return url.toString();
 }

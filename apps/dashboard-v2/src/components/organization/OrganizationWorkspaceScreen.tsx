@@ -35,6 +35,7 @@ import {
 import { DashboardRail, PageContainer, PageHeader, StatePanel, SurfacePanel } from "@/components/dashboard-v2/PagePrimitives";
 import { OrganizationOverviewScreen } from "./OrganizationOverviewScreen";
 import { getOrganizationCapabilities } from "./organization-access";
+import { buildPublicWebsiteUrl } from "@/lib/site";
 
 type TabId = "overview" | "structure" | "roles" | "assignments" | "approvals" | "explorer";
 
@@ -455,7 +456,7 @@ export function OrganizationWorkspaceScreen({
     const result = await mutateOrganizationAdmin({ resource, action, payload });
     if (!result.ok) {
       if (result.error === "Authentication required") {
-        window.location.href = "/login";
+        window.location.href = buildPublicWebsiteUrl("/sign-in", { next: "/app/organization" });
         return;
       }
       if (result.error === "Permission denied") {

@@ -18,6 +18,7 @@ import {
   UserRound,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
+import { buildPublicWebsiteUrl } from "@/lib/site";
 import { cn } from "@/lib/utils";
 import type { BillingNavigationContext } from "@/lib/types/billing";
 import type { DashboardPersona } from "@/lib/dashboard/capabilities";
@@ -76,7 +77,7 @@ const TopbarSearch = ({
   <button
     type="button"
     className={cn(
-      "flex h-10 w-full items-center justify-between gap-3 rounded-[16px] border border-slate-200/85 bg-white/92 px-3.5 text-left text-slate-500 shadow-[0_8px_20px_rgba(15,23,42,0.05)] transition hover:border-slate-300 hover:bg-white dark:border-slate-800 dark:bg-slate-950/72 dark:text-slate-300 dark:hover:border-slate-700 dark:hover:bg-slate-900",
+      "flex h-11 w-full items-center justify-between gap-3 rounded-xl border border-gray-200 bg-gray-50 px-4 text-left text-gray-500 shadow-theme-xs transition hover:border-gray-300 hover:bg-white dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400 dark:hover:border-gray-700 dark:hover:bg-white/[0.03]",
       className
     )}
     onClick={() => window.dispatchEvent(new CustomEvent("emp.commandPalette.toggle"))}
@@ -117,7 +118,7 @@ const TopbarTitleBlock = ({
       <h1
         className={cn(
           "truncate font-semibold tracking-[-0.04em] text-slate-950 dark:text-slate-50",
-          compact ? "text-[15px]" : constrained ? "text-[1.02rem] xl:text-[1.14rem]" : "text-[1.08rem] xl:text-[1.22rem]"
+          compact ? "text-[15px]" : constrained ? "text-[1rem] xl:text-[1.12rem]" : "text-[1.05rem] xl:text-[1.2rem]"
         )}
       >
         {title}
@@ -205,7 +206,7 @@ const TopbarProfileMenu = ({
         onClick={() => setOpen((current) => !current)}
         title={compactTrigger ? identityLabel : `${identityLabel} account`}
         className={cn(
-          "flex h-10 min-w-0 items-center rounded-[16px] border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/35 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 dark:hover:border-slate-700 dark:hover:bg-slate-900",
+          "flex h-11 min-w-0 items-center rounded-xl border border-gray-200 bg-white text-gray-700 shadow-theme-xs transition hover:border-gray-300 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/25 dark:border-gray-800 dark:bg-gray-900 dark:text-white/90 dark:hover:border-gray-700 dark:hover:bg-white/[0.03]",
           compactTrigger ? "min-w-[2.875rem] justify-center gap-1.5 px-1.5 pr-2" : "gap-2 px-2.5"
         )}
       >
@@ -227,13 +228,13 @@ const TopbarProfileMenu = ({
         ? createPortal(
             <div
               ref={panelRef}
-              className="fixed z-[90] w-[19rem] rounded-[20px] border border-slate-200/90 bg-white/98 p-3 shadow-[0_24px_70px_rgba(15,23,42,0.18)] backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/98"
+              className="fixed z-[90] w-[19rem] rounded-2xl border border-gray-200 bg-white p-3 shadow-[0_20px_40px_rgba(16,24,40,0.14)] backdrop-blur-xl dark:border-gray-800 dark:bg-gray-900"
               style={{ top: position.top, left: position.left }}
             >
-              <div className="rounded-[16px] border border-slate-200/80 bg-slate-50/70 px-3.5 py-3 dark:border-slate-800 dark:bg-slate-900/70">
+              <div className="rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-3 dark:border-gray-800 dark:bg-gray-800/80">
                 <div className="truncate text-sm font-semibold text-slate-950 dark:text-slate-50">{identityLabel}</div>
                 <div className="mt-1 truncate text-xs text-slate-500 dark:text-slate-400">{email ?? "No email available"}</div>
-                <div className="mt-2 inline-flex rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300">
+                <div className="mt-2 inline-flex rounded-full bg-brand-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-brand-600 dark:bg-brand-500/10 dark:text-brand-400">
                   {roleLabel}
                 </div>
               </div>
@@ -256,6 +257,7 @@ const TopbarProfileMenu = ({
                   Open profile
                 </Link>
                 <form action="/api/auth/logout" method="post">
+                  <input type="hidden" name="returnTo" value={buildPublicWebsiteUrl("/sign-in")} />
                   <button
                     type="submit"
                     className="flex w-full items-center gap-2 rounded-2xl px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 hover:text-slate-950 dark:text-slate-200 dark:hover:bg-slate-900 dark:hover:text-slate-50"
@@ -285,7 +287,7 @@ const TopbarContextRow = ({
   return (
     <div className="border-t border-slate-200/70 px-3 py-2.5 dark:border-slate-800/80 sm:px-4">
       <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
-        <div className="-mx-1 flex items-center overflow-x-auto px-1 pb-1">
+        <div className="-mx-1 flex items-center overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <div className="inline-flex min-w-max items-center gap-1 rounded-[16px] border border-slate-200/80 bg-slate-100/80 p-1 dark:border-slate-800 dark:bg-slate-900/75">
             {tabs.map((tab) => {
               const active = pathname === tab.href || pathname.startsWith(`${tab.href}/`);
@@ -294,7 +296,7 @@ const TopbarContextRow = ({
                   key={tab.href}
                   href={tab.href}
                   className={cn(
-                    "whitespace-nowrap rounded-[12px] px-3 py-1.5 text-sm font-medium transition",
+                    "shrink-0 whitespace-nowrap rounded-[12px] px-3 py-1.5 text-sm font-medium transition",
                     active
                       ? "bg-white text-slate-950 shadow-[0_6px_18px_rgba(15,23,42,0.12)] ring-1 ring-sky-500/15 dark:bg-slate-950 dark:text-slate-50 dark:ring-sky-400/20"
                       : "text-slate-600 hover:bg-white hover:text-slate-950 dark:text-slate-300 dark:hover:bg-slate-950 dark:hover:text-slate-50"
@@ -306,7 +308,7 @@ const TopbarContextRow = ({
             })}
           </div>
         </div>
-        <div className="-mx-1 flex items-center gap-2 overflow-x-auto px-1 pb-1 lg:justify-end">
+        <div className="-mx-1 flex items-center gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:justify-end">
           {chips.map((chip) => (
             <span
               key={chip}
@@ -435,15 +437,15 @@ export const Topbar = ({
   const sidebarExpanded = !sidebarCollapsed;
 
   return (
-    <header className="sticky top-0 z-30 border-b border-slate-200/75 bg-[linear-gradient(180deg,rgba(248,250,255,0.96),rgba(244,247,253,0.92))] backdrop-blur-xl dark:border-slate-800/80 dark:bg-[linear-gradient(180deg,rgba(2,6,23,0.9),rgba(8,15,28,0.86))]">
+    <header className="sticky top-0 z-30 border-b border-gray-200 bg-gray-50/95 backdrop-blur-xl dark:border-gray-800 dark:bg-gray-900/95">
       <div className="mx-auto w-full max-w-[1720px] px-4 py-3 sm:px-6 lg:px-8">
-        <div className="rounded-[20px] border border-slate-200/70 bg-white/82 shadow-[0_10px_28px_rgba(15,23,42,0.05)] dark:border-slate-800/70 dark:bg-slate-950/62">
+        <div className="rounded-2xl border border-gray-200 bg-white shadow-theme-sm dark:border-gray-800 dark:bg-gray-900">
           <div className="px-3 py-3 sm:px-4">
             <div className="flex items-center justify-between gap-3 lg:hidden">
               <div className="flex min-w-0 items-center gap-2.5">
                 <button
                   type="button"
-                  className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-[16px] border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-slate-700 dark:hover:bg-slate-900"
+                  className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-700 shadow-theme-xs transition hover:border-gray-300 hover:bg-gray-50 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300 dark:hover:border-gray-700 dark:hover:bg-white/[0.03]"
                   onClick={onToggleMobileSidebar}
                   aria-label="Open navigation"
                 >
@@ -460,7 +462,7 @@ export const Topbar = ({
               <div className="flex items-center gap-1.5">
                 <Link
                   href={notificationsHref}
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-[16px] border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-slate-700 dark:hover:bg-slate-900"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-700 shadow-theme-xs transition hover:border-gray-300 hover:bg-gray-50 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300 dark:hover:border-gray-700 dark:hover:bg-white/[0.03]"
                   aria-label="Notifications"
                   title="Notifications"
                 >
@@ -468,12 +470,12 @@ export const Topbar = ({
                 </Link>
                 <details className="relative">
                   <summary
-                    title="More actions"
-                    className="flex h-10 w-10 cursor-pointer list-none items-center justify-center rounded-[16px] border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-slate-700 dark:hover:bg-slate-900"
+                  title="More actions"
+                    className="flex h-10 w-10 cursor-pointer list-none items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-700 shadow-theme-xs transition hover:border-gray-300 hover:bg-gray-50 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300 dark:hover:border-gray-700 dark:hover:bg-white/[0.03]"
                   >
                     <MoreHorizontal className="h-4 w-4" />
                   </summary>
-                  <div className="absolute right-0 top-[calc(100%+0.75rem)] z-40 w-48 rounded-[20px] border border-slate-200/90 bg-white/96 p-2 shadow-[0_24px_60px_rgba(15,23,42,0.14)] dark:border-slate-800 dark:bg-slate-950/96">
+                  <div className="absolute right-0 top-[calc(100%+0.75rem)] z-40 w-48 rounded-2xl border border-gray-200 bg-white p-2 shadow-[0_20px_40px_rgba(16,24,40,0.14)] dark:border-gray-800 dark:bg-gray-900">
                     <Link
                       href={helpHref}
                       className="flex items-center gap-2 rounded-2xl px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 hover:text-slate-950 dark:text-slate-200 dark:hover:bg-slate-900 dark:hover:text-slate-50"
@@ -514,7 +516,7 @@ export const Topbar = ({
                 {onToggleSidebar ? (
                   <button
                     type="button"
-                    className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-[16px] border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-slate-700 dark:hover:bg-slate-900"
+                    className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-700 shadow-theme-xs transition hover:border-gray-300 hover:bg-gray-50 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300 dark:hover:border-gray-700 dark:hover:bg-white/[0.03]"
                     onClick={onToggleSidebar}
                     aria-label="Toggle sidebar"
                     title="Toggle sidebar"
@@ -544,7 +546,7 @@ export const Topbar = ({
               <div className="flex items-center justify-end gap-1.5 xl:gap-2">
                 <Link
                   href={notificationsHref}
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-[16px] border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-slate-700 dark:hover:bg-slate-900"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-700 shadow-theme-xs transition hover:border-gray-300 hover:bg-gray-50 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300 dark:hover:border-gray-700 dark:hover:bg-white/[0.03]"
                   aria-label="Notifications"
                   title="Notifications"
                 >
@@ -552,7 +554,7 @@ export const Topbar = ({
                 </Link>
                 <Link
                   href={helpHref}
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-[16px] border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-slate-700 dark:hover:bg-slate-900"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-700 shadow-theme-xs transition hover:border-gray-300 hover:bg-gray-50 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300 dark:hover:border-gray-700 dark:hover:bg-white/[0.03]"
                   aria-label="Help and resources"
                   title="Help and resources"
                 >

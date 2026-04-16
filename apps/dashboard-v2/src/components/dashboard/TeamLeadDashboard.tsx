@@ -68,6 +68,11 @@ export const TeamLeadDashboard = ({
       ? { href: peopleHref, label: "People Directory", tone: "secondary" as const }
       : null,
   ].filter(Boolean) as Array<{ href: string; label: string; tone: "primary" | "secondary" }>;
+  const heroSignals = [
+    { label: "Coverage", value: canViewTeamAttendance ? "Frontline live" : "Scoped routes" },
+    { label: "Shift control", value: allowedRouteSet.has("/app/attendance/shifts") ? "Assignments on" : "Read only" },
+    { label: "People", value: teamRowsLoading ? "Loading" : `${teamRows.length} scoped` }
+  ];
 
   useEffect(() => {
     perf.markKpiRendered();
@@ -163,6 +168,7 @@ export const TeamLeadDashboard = ({
         title="Daily team coordination"
         subtitle="Keep frontline coverage, approvals, and direct-report context in one action-ready team lead desk."
         emphasis="operations"
+        heroSignals={heroSignals}
         actions={(
           <>
             {heroActions.map((action) => (

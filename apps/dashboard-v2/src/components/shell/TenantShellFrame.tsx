@@ -6,6 +6,7 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { usePathname } from "next/navigation";
 import { Sidebar } from "./Sidebar";
 import { CommandPalette } from "./CommandPalette";
+import { ProductCredit } from "./ProductCredit";
 import { Topbar } from "./Topbar";
 import { PlanRouteGuard } from "@/components/guards/PlanRouteGuard";
 import { resolveDashboardPersona } from "@/lib/dashboard/capabilities";
@@ -113,7 +114,7 @@ export const TenantShellFrame = ({
   return (
     <div
       style={shellStyle}
-      className="h-dvh overflow-hidden bg-[radial-gradient(circle_at_top,#f8fbff_0%,#eef4ff_42%,#e7eef9_100%)] text-slate-950 dark:bg-[radial-gradient(circle_at_top,#081325_0%,#050b16_42%,#02050b_100%)] dark:text-slate-50"
+      className="h-dvh overflow-hidden bg-gray-50 text-slate-950 dark:bg-gray-950 dark:text-slate-50"
     >
       <div className="flex h-dvh overflow-hidden lg:grid lg:grid-cols-[var(--emp-sidebar-width)_minmax(0,1fr)]">
         <Sidebar
@@ -150,7 +151,10 @@ export const TenantShellFrame = ({
 
           <main className="emp-shell-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-y-contain">
             <div className="mx-auto w-full max-w-[1720px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-              <PlanRouteGuard entitlements={billingContext?.entitlements ?? null}>{children}</PlanRouteGuard>
+              <div className="space-y-6">
+                <PlanRouteGuard entitlements={billingContext?.entitlements ?? null}>{children}</PlanRouteGuard>
+                <ProductCredit />
+              </div>
             </div>
           </main>
         </div>

@@ -1,8 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { cleanupIdempotencyExpired, fetchMonitoringOverview } from "@/lib/client/api";
-import type { MonitoringOverview } from "@/lib/types/monitoring";
+import { cleanupIdempotencyExpired, fetchMonitoringOverview, fetchSecurityAuditTimeline } from "@/lib/client/api";
+import type {
+  MonitoringOverview,
+  SecurityAuditTimelineEventType,
+  SecurityAuditTimelineRow,
+} from "@/lib/types/monitoring";
 import {
   DashboardRail,
   FeatureCallout,
@@ -17,10 +21,48 @@ import { LoadingState } from "@/components/states/LoadingState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { StatusChip } from "@/components/ui/StatusChip";
 
+const TIMELINE_FILTERS: Array<{ key: "all" | SecurityAuditTimelineEventType; label: string }> = [
+  { key: "all", label: "All events" },
+  { key: "login", label: "Logins" },
+  { key: "account_lock", label: "Account locks" },
+  { key: "mfa_trigger", label: "MFA triggers" },
+];
+
+const TIMELINE_LIMITS = [25, 50, 100] as const;
+
 const formatStamp = (value: string) => {
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return value;
   return parsed.toLocaleString();
+};
+
+const formatDetails = (details: Record<string, unknown> | null) => {
+  if (!details) return "No extra details recorded.";
+  return JSON.stringify(details, null, 2);
+};
+
+const resolveTimelineTone = (eventType: SecurityAuditTimelineEventType) => {
+  switch (eventType) {
+    case "account_lock":
+      return "danger" as const;
+    case "mfa_trigger":
+      return "warning" as const;
+    case "login":
+    default:
+      return "info" as const;
+  }
+};
+
+const formatEventLabel = (eventType: SecurityAuditTimelineEventType) => {
+  switch (eventType) {
+    case "account_lock":
+      return "Account lock";
+    case "mfa_trigger":
+      return "MFA trigger";
+    case "login":
+    default:
+      return "Login";
+  }
 };
 
 export const MonitoringPageClient = () => {
@@ -30,7 +72,13 @@ export const MonitoringPageClient = () => {
   const [cleanupStatus, setCleanupStatus] = useState<string | null>(null);
   const [cleanupBusy, setCleanupBusy] = useState(false);
 
-  const load = useCallback(async () => {
+  const [timelineRows, setTimelineRows] = useState<SecurityAuditTimelineRow[]>([]);
+  const [timelineLoading, setTimelineLoading] = useState(true);
+  const [timelineError, setTimelineError] = useState<string | null>(null);
+  const [timelineFilter, setTimelineFilter] = useState<"all" | SecurityAuditTimelineEventType>("all");
+  const [timelineLimit, setTimelineLimit] = useState<(typeof TIMELINE_LIMITS)[number]>(50);
+
+  const loadOverview = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -49,9 +97,39 @@ export const MonitoringPageClient = () => {
     }
   }, []);
 
+  const loadTimeline = useCallback(async () => {
+    setTimelineLoading(true);
+    setTimelineError(null);
+    try {
+      const result = await fetchSecurityAuditTimeline({
+        limit: timelineLimit,
+        eventType: timelineFilter === "all" ? undefined : timelineFilter,
+      });
+      if (!result.ok || !result.data) {
+        setTimelineRows([]);
+        setTimelineError(result.error ?? "Unable to load security audit timeline");
+      } else {
+        setTimelineRows(result.data.rows);
+      }
+    } catch (err) {
+      setTimelineRows([]);
+      setTimelineError(err instanceof Error ? err.message : "Unable to load security audit timeline");
+    } finally {
+      setTimelineLoading(false);
+    }
+  }, [timelineFilter, timelineLimit]);
+
+  const loadAll = useCallback(async () => {
+    await Promise.all([loadOverview(), loadTimeline()]);
+  }, [loadOverview, loadTimeline]);
+
   useEffect(() => {
-    void load();
-  }, [load]);
+    void loadOverview();
+  }, [loadOverview]);
+
+  useEffect(() => {
+    void loadTimeline();
+  }, [loadTimeline]);
 
   const handleCleanup = async () => {
     setCleanupBusy(true);
@@ -63,7 +141,7 @@ export const MonitoringPageClient = () => {
         setCleanupStatus(result.error ?? "Cleanup failed");
       } else {
         setCleanupStatus(`Marked ${result.data.expired} keys as expired.`);
-        await load();
+        await loadOverview();
       }
     } catch (err) {
       setCleanupStatus(err instanceof Error ? err.message : "Cleanup failed");
@@ -81,15 +159,17 @@ export const MonitoringPageClient = () => {
     };
   }, [overview]);
 
+  const timelineUnavailable = timelineError === "Feature disabled by current plan";
+
   return (
     <PageContainer>
       <PageHeader
         eyebrow="System Monitor"
         title="Operational security and workflow integrity"
-        description="Keep rate-limit pressure, idempotency conflicts, and approval workflow failures visible in one review surface for IT and platform operations."
+        description="Keep rate-limit pressure, idempotency conflicts, approval workflow failures, and governance audit signals visible in one review surface for IT and platform operations."
         chips={["Integrity", "Operator ready", "Queue health", "Tenant safe"]}
         actions={(
-          <button type="button" className="secondary-btn" onClick={() => void load()}>
+          <button type="button" className="secondary-btn" onClick={() => void loadAll()}>
             Refresh
           </button>
         )}
@@ -98,7 +178,7 @@ export const MonitoringPageClient = () => {
       <FeatureCallout
         badge="Operational health"
         title="A calm monitoring surface for the signals that matter first."
-        description="This workspace stays focused on integrity problems that can affect approvals, billing-safe mutations, and tenant-wide request pressure instead of burying operators under decorative telemetry."
+        description="This workspace stays focused on integrity problems that can affect approvals, billing-safe mutations, tenant-wide request pressure, and governance review without burying operators under decorative telemetry."
       />
 
       <StatGrid>
@@ -118,78 +198,165 @@ export const MonitoringPageClient = () => {
       {!loading && error ? <ErrorState message={error} /> : null}
 
       {!loading && overview ? (
-        <DashboardRail>
+        <>
+          <DashboardRail>
+            <SurfacePanel
+              title="System signals"
+              description="Current operational pressure across rate limiting, request integrity, and approval endpoints."
+              actions={(
+                <button type="button" className="secondary-btn" onClick={handleCleanup} disabled={cleanupBusy}>
+                  {cleanupBusy ? "Cleaning..." : "Mark expired keys"}
+                </button>
+              )}
+            >
+              <div className="space-y-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  <StatusChip label={`${overview.rateLimitBreaches.length} breach records`} tone={overview.rateLimitBreaches.length > 0 ? "warning" : "success"} />
+                  <StatusChip label={`${overview.idempotencyConflicts.length} conflict endpoints`} tone={overview.idempotencyConflicts.length > 0 ? "warning" : "success"} />
+                  <StatusChip label={`${overview.approvalFailures.length} approval endpoints`} tone={overview.approvalFailures.length > 0 ? "danger" : "success"} />
+                </div>
+
+                <div className="grid gap-4 xl:grid-cols-3">
+                  <div className="space-y-3 rounded-[22px] border border-slate-200/80 bg-slate-50/70 p-4">
+                    <h3 className="text-sm font-semibold text-slate-950">Rate-limit breaches</h3>
+                    {overview.rateLimitBreaches.length === 0 ? (
+                      <EmptyState title="No breaches detected" subtitle="Thresholds are currently stable." compact />
+                    ) : (
+                      overview.rateLimitBreaches.map((row) => (
+                        <div key={`${row.endpoint}-${row.window_start}`} className="rounded-2xl border border-slate-200 bg-white/80 p-3">
+                          <p className="text-sm font-semibold text-slate-950">{row.endpoint}</p>
+                          <p className="text-xs text-slate-500">{formatStamp(row.window_start)}</p>
+                          <p className="mt-2 text-sm text-slate-600">{row.request_count} requests in the breached window</p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  <div className="space-y-3 rounded-[22px] border border-slate-200/80 bg-slate-50/70 p-4">
+                    <h3 className="text-sm font-semibold text-slate-950">Idempotency conflicts</h3>
+                    {overview.idempotencyConflicts.length === 0 ? (
+                      <EmptyState title="No conflicts detected" subtitle="No duplicate request collisions were recorded." compact />
+                    ) : (
+                      overview.idempotencyConflicts.map((row) => (
+                        <div key={row.endpoint} className="rounded-2xl border border-slate-200 bg-white/80 p-3">
+                          <p className="text-sm font-semibold text-slate-950">{row.endpoint}</p>
+                          <p className="mt-2 text-sm text-slate-600">{row.count} conflict events</p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  <div className="space-y-3 rounded-[22px] border border-slate-200/80 bg-slate-50/70 p-4">
+                    <h3 className="text-sm font-semibold text-slate-950">Approval failures</h3>
+                    {overview.approvalFailures.length === 0 ? (
+                      <EmptyState title="No failures detected" subtitle="Approval endpoints are currently healthy." compact />
+                    ) : (
+                      overview.approvalFailures.map((row) => (
+                        <div key={row.endpoint} className="rounded-2xl border border-slate-200 bg-white/80 p-3">
+                          <p className="text-sm font-semibold text-slate-950">{row.endpoint}</p>
+                          <p className="mt-2 text-sm text-slate-600">{row.count} failed requests</p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </div>
+            </SurfacePanel>
+
+            <SurfacePanel title="Operator notes" description="How to use this surface during review and incident response.">
+              <div className="space-y-3 text-sm leading-6 text-slate-600">
+                <p>Start with approval failures when the queue is blocked, then move to integrity conflicts that could indicate duplicate client submissions or retry storms.</p>
+                <p>Rate-limit breaches are usually the next priority because they affect user experience before they become a data problem.</p>
+                <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Generated {formatStamp(overview.generated_at)}</p>
+              </div>
+            </SurfacePanel>
+          </DashboardRail>
+
           <SurfacePanel
-            title="System signals"
-            description="Current operational pressure across rate limiting, request integrity, and approval endpoints."
+            title="Security audit timeline"
+            description="Tenant-scoped governance events for login activity, account locks, and MFA triggers."
             actions={(
-              <button type="button" className="secondary-btn" onClick={handleCleanup} disabled={cleanupBusy}>
-                {cleanupBusy ? "Cleaning..." : "Mark expired keys"}
-              </button>
+              <div className="flex flex-wrap items-center gap-2">
+                {TIMELINE_LIMITS.map((value) => (
+                  <button
+                    key={value}
+                    type="button"
+                    className={value === timelineLimit ? "primary-btn" : "secondary-btn"}
+                    onClick={() => setTimelineLimit(value)}
+                  >
+                    Latest {value}
+                  </button>
+                ))}
+              </div>
             )}
           >
             <div className="space-y-4">
               <div className="flex flex-wrap items-center gap-2">
-                <StatusChip label={`${overview.rateLimitBreaches.length} breach records`} tone={overview.rateLimitBreaches.length > 0 ? "warning" : "success"} />
-                <StatusChip label={`${overview.idempotencyConflicts.length} conflict endpoints`} tone={overview.idempotencyConflicts.length > 0 ? "warning" : "success"} />
-                <StatusChip label={`${overview.approvalFailures.length} approval endpoints`} tone={overview.approvalFailures.length > 0 ? "danger" : "success"} />
+                {TIMELINE_FILTERS.map((filter) => (
+                  <button
+                    key={filter.key}
+                    type="button"
+                    className={filter.key === timelineFilter ? "primary-btn" : "secondary-btn"}
+                    onClick={() => setTimelineFilter(filter.key)}
+                  >
+                    {filter.label}
+                  </button>
+                ))}
               </div>
 
-              <div className="grid gap-4 xl:grid-cols-3">
-                <div className="space-y-3 rounded-[22px] border border-slate-200/80 bg-slate-50/70 p-4">
-                  <h3 className="text-sm font-semibold text-slate-950">Rate-limit breaches</h3>
-                  {overview.rateLimitBreaches.length === 0 ? (
-                    <EmptyState title="No breaches detected" subtitle="Thresholds are currently stable." compact />
-                  ) : (
-                    overview.rateLimitBreaches.map((row) => (
-                      <div key={`${row.endpoint}-${row.window_start}`} className="rounded-2xl border border-slate-200 bg-white/80 p-3">
-                        <p className="text-sm font-semibold text-slate-950">{row.endpoint}</p>
-                        <p className="text-xs text-slate-500">{formatStamp(row.window_start)}</p>
-                        <p className="mt-2 text-sm text-slate-600">{row.request_count} requests in the breached window</p>
-                      </div>
-                    ))
-                  )}
-                </div>
+              {timelineLoading ? <LoadingState label="Loading security audit timeline..." /> : null}
 
-                <div className="space-y-3 rounded-[22px] border border-slate-200/80 bg-slate-50/70 p-4">
-                  <h3 className="text-sm font-semibold text-slate-950">Idempotency conflicts</h3>
-                  {overview.idempotencyConflicts.length === 0 ? (
-                    <EmptyState title="No conflicts detected" subtitle="No duplicate request collisions were recorded." compact />
-                  ) : (
-                    overview.idempotencyConflicts.map((row) => (
-                      <div key={row.endpoint} className="rounded-2xl border border-slate-200 bg-white/80 p-3">
-                        <p className="text-sm font-semibold text-slate-950">{row.endpoint}</p>
-                        <p className="mt-2 text-sm text-slate-600">{row.count} conflict events</p>
-                      </div>
-                    ))
-                  )}
-                </div>
+              {!timelineLoading && timelineUnavailable ? (
+                <EmptyState
+                  title="Timeline unavailable on current plan"
+                  subtitle="This governance timeline follows the current audit export entitlement. The rest of monitoring remains available."
+                  compact
+                />
+              ) : null}
 
-                <div className="space-y-3 rounded-[22px] border border-slate-200/80 bg-slate-50/70 p-4">
-                  <h3 className="text-sm font-semibold text-slate-950">Approval failures</h3>
-                  {overview.approvalFailures.length === 0 ? (
-                    <EmptyState title="No failures detected" subtitle="Approval endpoints are currently healthy." compact />
-                  ) : (
-                    overview.approvalFailures.map((row) => (
-                      <div key={row.endpoint} className="rounded-2xl border border-slate-200 bg-white/80 p-3">
-                        <p className="text-sm font-semibold text-slate-950">{row.endpoint}</p>
-                        <p className="mt-2 text-sm text-slate-600">{row.count} failed requests</p>
+              {!timelineLoading && !timelineUnavailable && timelineError ? <ErrorState message={timelineError} /> : null}
+
+              {!timelineLoading && !timelineError && timelineRows.length === 0 ? (
+                <EmptyState
+                  title="No audit events found"
+                  subtitle="No governance events matched the current filter and time window."
+                  compact
+                />
+              ) : null}
+
+              {!timelineLoading && !timelineError && timelineRows.length > 0 ? (
+                <div className="space-y-3">
+                  {timelineRows.map((row) => (
+                    <div key={`${row.eventType}-${row.createdAt}-${row.profileId ?? "none"}`} className="rounded-[22px] border border-slate-200/80 bg-white/90 p-4 shadow-sm">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div className="space-y-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <StatusChip label={formatEventLabel(row.eventType)} tone={resolveTimelineTone(row.eventType)} compact />
+                            {row.riskScore !== null ? <StatusChip label={`Risk ${row.riskScore}`} tone={row.riskScore >= 80 ? "danger" : row.riskScore >= 60 ? "warning" : "info"} compact /> : null}
+                          </div>
+                          <p className="text-sm font-semibold text-slate-950">{row.summary}</p>
+                          <p className="text-xs text-slate-500">{formatStamp(row.createdAt)}</p>
+                        </div>
+                        {row.profileId ? (
+                          <p className="text-xs text-slate-500">Profile {row.profileId}</p>
+                        ) : (
+                          <p className="text-xs text-slate-400">No profile linked</p>
+                        )}
                       </div>
-                    ))
-                  )}
+
+                      <details className="mt-3 rounded-2xl border border-slate-200 bg-slate-50/80 p-3">
+                        <summary className="cursor-pointer text-sm font-medium text-slate-700">Inspect event details</summary>
+                        <pre className="mt-3 overflow-x-auto whitespace-pre-wrap break-words text-xs leading-6 text-slate-600">
+                          {formatDetails(row.details)}
+                        </pre>
+                      </details>
+                    </div>
+                  ))}
                 </div>
-              </div>
+              ) : null}
             </div>
           </SurfacePanel>
-
-          <SurfacePanel title="Operator notes" description="How to use this surface during review and incident response.">
-            <div className="space-y-3 text-sm leading-6 text-slate-600">
-              <p>Start with approval failures when the queue is blocked, then move to integrity conflicts that could indicate duplicate client submissions or retry storms.</p>
-              <p>Rate-limit breaches are usually the next priority because they affect user experience before they become a data problem.</p>
-              <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Generated {formatStamp(overview.generated_at)}</p>
-            </div>
-          </SurfacePanel>
-        </DashboardRail>
+        </>
       ) : null}
     </PageContainer>
   );

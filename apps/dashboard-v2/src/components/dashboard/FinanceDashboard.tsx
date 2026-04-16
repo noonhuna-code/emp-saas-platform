@@ -119,6 +119,11 @@ export const FinanceDashboard = ({
     allowedRouteSet.has("/app/billing") ? { label: "Billing console", href: "/app/billing", caption: "Invoices and proofs" } : null,
     allowedRouteSet.has("/app/approvals") ? { label: "Approvals queue", href: "/app/approvals", caption: "Pending blockers" } : null,
   ].filter(Boolean) as Array<{ label: string; href: string; caption: string }>;
+  const heroSignals = [
+    { label: "Billing", value: billing?.subscription?.status ?? "Loading" },
+    { label: "Runs", value: runs?.rows.length ? `${runs.rows.length} in view` : "Ready" },
+    { label: "Payslips", value: payslips?.rows.length ? `${payslips.rows.length} rows` : "Snapshot ready" }
+  ];
 
   if (loading) return <LoadingState label="Loading finance dashboard..." />;
   if (error || !billing) return <ErrorState message={error ?? "Finance dashboard unavailable"} />;
@@ -129,6 +134,7 @@ export const FinanceDashboard = ({
         title="Payroll and billing operations"
         subtitle="Track invoice health, payroll runs, and payslip output from one operational view."
         emphasis="operations"
+        heroSignals={heroSignals}
         actions={(
           <>
             {heroActions.map((action) => (

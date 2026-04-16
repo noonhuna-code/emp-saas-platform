@@ -4,6 +4,7 @@ import { beginRoute, finalizeRoute } from "@/lib/server/route-helpers";
 import { createUserScopedSupabaseServerClient } from "@/lib/server/supabase-server";
 import { enforceAuthRateLimit } from "@emp/lib/auth-rate-limit";
 import { revokeAuthSession } from "@/lib/server/auth";
+import { buildPublicWebsiteUrl, resolveSafeExternalReturnTo } from "@/lib/site";
 
 const clearAuthCookies = (response: NextResponse) => {
   const secure = process.env.NODE_ENV === "production";
@@ -12,8 +13,26 @@ const clearAuthCookies = (response: NextResponse) => {
   }
 };
 
-const buildSafeRedirect = (request: Request, target = "/login") => {
-  const response = NextResponse.redirect(new URL(target, request.url));
+const buildSafeRedirect = (
+  request: Request,
+  target = "/login",
+  searchParams?: Record<string, string>,
+  returnTo?: string | null,
+  status = 307
+) => {
+  const url = returnTo
+    ? new URL(resolveSafeExternalReturnTo(returnTo))
+    : process.env.NODE_ENV === "production"
+      ? new URL(buildPublicWebsiteUrl("/sign-in"))
+      : new URL(target, request.url);
+
+  if (searchParams) {
+    for (const [key, value] of Object.entries(searchParams)) {
+      url.searchParams.set(key, value);
+    }
+  }
+
+  const response = NextResponse.redirect(url, { status });
   clearAuthCookies(response);
   return response;
 };
@@ -21,6 +40,10 @@ const buildSafeRedirect = (request: Request, target = "/login") => {
 const handleLogout = async (request: Request, applyRateLimit: boolean) => {
   const route = await beginRoute();
   const endpoint = "/api/auth/logout";
+  const returnTo =
+    request.method === "POST"
+      ? String((await request.clone().formData().catch(() => new FormData())).get("returnTo") ?? "").trim() || null
+      : new URL(request.url).searchParams.get("returnTo");
 
   try {
     if (applyRateLimit) {
@@ -34,11 +57,13 @@ const handleLogout = async (request: Request, applyRateLimit: boolean) => {
           lockMinutes: 1
         });
       } catch {
-        const response = NextResponse.redirect(
-          new URL(`/login?error=${encodeURIComponent("Too many requests. Try again later.")}`, request.url),
-          { status: 429 }
+        const response = buildSafeRedirect(
+          request,
+          "/login",
+          { error: "Too many requests. Try again later." },
+          returnTo,
+          429
         );
-        clearAuthCookies(response);
         return finalizeRoute(route, endpoint, response);
       }
     }
@@ -54,9 +79,9 @@ const handleLogout = async (request: Request, applyRateLimit: boolean) => {
       }
     }
 
-    return finalizeRoute(route, endpoint, buildSafeRedirect(request, "/login"));
+    return finalizeRoute(route, endpoint, buildSafeRedirect(request, "/login", { reason: "signed_out" }, returnTo));
   } catch {
-    return finalizeRoute(route, endpoint, buildSafeRedirect(request, "/login"));
+    return finalizeRoute(route, endpoint, buildSafeRedirect(request, "/login", { reason: "signed_out" }, returnTo));
   }
 };
 

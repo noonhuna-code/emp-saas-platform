@@ -1,6 +1,5 @@
 import { memo, useMemo } from "react";
 import { Bell, CalendarDays, MessageSquare, Sparkles, Timer } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/EmptyState";
 
 export type ActivityItem = {
@@ -43,18 +42,13 @@ const ActivityFeedComponent = ({ items }: { items: ActivityItem[] }) => {
   );
 
   return (
-    <Card className="activity-feed-card rounded-xl border-border shadow-sm">
-      <CardHeader className="p-5 pb-3">
-        <CardTitle className="text-lg">Activity feed</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3 p-5 pt-0">
-        {items.length === 0 ? (
-          <EmptyState title="Your workspace is up to date" subtitle="No recent activity to display." compact />
-        ) : (
-          rendered
-        )}
-      </CardContent>
-    </Card>
+    <div className="space-y-3">
+      {items.length === 0 ? (
+        <EmptyState title="Your workspace is up to date" subtitle="No recent activity to display." compact />
+      ) : (
+        rendered
+      )}
+    </div>
   );
 };
 

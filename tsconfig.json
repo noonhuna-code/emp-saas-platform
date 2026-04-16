@@ -1,4 +1,4 @@
 {
-  "extends": "./EMP/src/tsconfig.json",
-  "include": ["EMP/src/**/*.ts", "EMP/src/**/*.d.ts"]
+  "extends": "./src/tsconfig.json",
+  "include": ["src/**/*.ts", "src/**/*.d.ts"]
 }

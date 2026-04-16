@@ -6,11 +6,11 @@ import { breadcrumbSchema, softwareApplicationSchema } from "@/lib/schema";
 
 export const metadata: Metadata = {
   ...buildMetadata({
-  title: "Sign Up",
+  title: "Request Access",
   description:
     "Request EMP workspace access for guided onboarding and account setup.",
   path: "/sign-up",
-  keywords: ["sign up", "create account", "workspace onboarding", "enterprise signup ui"]
+  keywords: ["request access", "workspace onboarding", "guided onboarding", "enterprise signup ui"]
   }),
   robots: {
     index: false,
@@ -24,13 +24,13 @@ export default function SignUpPage() {
       <JsonLd
         data={[
           softwareApplicationSchema(
-            "EMP Sign Up",
-            "Sign-up entry point for EMP workspace creation and onboarding.",
+            "EMP Request Access",
+            "Request-access entry point for EMP workspace onboarding.",
             "/sign-up"
           ),
           breadcrumbSchema([
             { name: "Home", path: "/" },
-            { name: "Sign Up", path: "/sign-up" }
+            { name: "Request Access", path: "/sign-up" }
           ])
         ]}
       />

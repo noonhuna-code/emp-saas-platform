@@ -58,9 +58,17 @@ export function Footer() {
               EMP helps teams keep org hierarchy, reporting lines, leave approvals, attendance
               exceptions, employee records, project coordination, payroll visibility, and admin controls in one calmer workspace.
             </p>
-            <div className="mt-6 rounded-[1.5rem] border border-slate-200 bg-white/80 p-5">
-              <div className="flex items-center gap-4">
-                <div className="h-14 w-14 overflow-hidden rounded-[1rem] border border-slate-200 bg-slate-100">
+            <div className="mt-6 overflow-hidden rounded-[1.75rem] border border-slate-200/90 bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.14),transparent_32%),linear-gradient(135deg,rgba(255,255,255,0.98),rgba(248,250,252,0.94))] p-5 shadow-[0_18px_40px_rgba(15,23,42,0.06)]">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-700">
+                  Product Signature
+                </span>
+                <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-600">
+                  EMP Workforce OS
+                </span>
+              </div>
+              <div className="mt-4 flex items-center gap-4">
+                <div className="h-14 w-14 overflow-hidden rounded-[1rem] border border-slate-200 bg-slate-100 shadow-[0_10px_24px_rgba(15,23,42,0.08)]">
                   <Image
                     alt={`${siteConfig.founder.name}, founder of EMP`}
                     className="h-full w-full object-cover object-top"
@@ -71,13 +79,10 @@ export function Footer() {
                   />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">Founder note</p>
+                  <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">Product Owner and Creator</p>
+                  <p className="mt-1 text-lg font-semibold text-slate-950">{siteConfig.founder.name}</p>
                   <p className="mt-1 text-sm font-medium text-slate-700">{siteConfig.founder.title}</p>
-                  <p className="mt-1 text-sm text-slate-600">{siteConfig.founder.name}</p>
-                  <a className="mt-2 block text-base font-semibold text-slate-950 underline" href={`mailto:${siteConfig.founder.email}`}>
-                    {siteConfig.founder.email}
-                  </a>
-                  <a className="mt-1 block text-sm font-medium text-slate-700 underline" href={`tel:${siteConfig.founder.phone}`}>
+                  <a className="mt-2 inline-flex items-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-950 shadow-[0_8px_18px_rgba(15,23,42,0.06)] transition hover:border-slate-300" href={`tel:${siteConfig.founder.phone}`}>
                     {siteConfig.founder.phone}
                   </a>
                 </div>
@@ -86,9 +91,14 @@ export function Footer() {
                 Reach out directly for demos, rollout planning, or product questions about how EMP
                 fits your company structure, approval model, and operating workflows.
               </p>
-              <Link className="mt-4 inline-flex text-sm font-semibold text-slate-950 underline" href="/company">
-                Read why EMP exists
-              </Link>
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                <a className="inline-flex text-sm font-semibold text-slate-950 underline" href={`mailto:${siteConfig.founder.email}`}>
+                  {siteConfig.founder.email}
+                </a>
+                <Link className="inline-flex text-sm font-semibold text-slate-950 underline" href="/company">
+                  Read why EMP exists
+                </Link>
+              </div>
             </div>
           </div>
 

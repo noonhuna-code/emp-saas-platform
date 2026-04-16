@@ -14,6 +14,7 @@ import {
 } from "@emp/services/security.service";
 import { buildAuthContextFromAccessToken, createAuthSession, revokeAllActiveSessions } from "@/lib/server/auth";
 import { auditAuthByUserId } from "@/lib/server/auth-audit";
+import { buildPublicWebsiteUrl, resolveSafeExternalReturnTo } from "@/lib/site";
 
 type LoginErrorCode =
   | "INVALID_CREDENTIALS"
@@ -22,8 +23,65 @@ type LoginErrorCode =
   | "INTERNAL_ERROR"
   | "RATE_LIMITED";
 
-const redirectToLoginWithErrorCode = (request: Request, code: LoginErrorCode): NextResponse => {
-  return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(code)}`, request.url), { status: 303 });
+const buildRedirectTarget = (
+  request: Request,
+  options: {
+    error?: LoginErrorCode;
+    reason?: string;
+    next?: string;
+    returnTo?: string | null;
+  }
+): URL => {
+  if (options.returnTo) {
+    const url = new URL(resolveSafeExternalReturnTo(options.returnTo));
+    if (options.error) {
+      url.searchParams.set("error", options.error);
+    }
+    if (options.reason) {
+      url.searchParams.set("reason", options.reason);
+    }
+    if (options.next && options.next.startsWith("/")) {
+      url.searchParams.set("next", options.next);
+    }
+    return url;
+  }
+
+  if (process.env.NODE_ENV === "production") {
+    const url = new URL(buildPublicWebsiteUrl("/sign-in"));
+    if (options.error) {
+      url.searchParams.set("error", options.error);
+    }
+    if (options.reason) {
+      url.searchParams.set("reason", options.reason);
+    }
+    if (options.next && options.next.startsWith("/")) {
+      url.searchParams.set("next", options.next);
+    }
+    return url;
+  }
+
+  const url = new URL("/login", request.url);
+  if (options.error) {
+    url.searchParams.set("error", options.error);
+  }
+  if (options.reason) {
+    url.searchParams.set("reason", options.reason);
+  }
+  if (options.next && options.next.startsWith("/")) {
+    url.searchParams.set("next", options.next);
+  }
+  return url;
+};
+
+const redirectToLoginWithErrorCode = (
+  request: Request,
+  code: LoginErrorCode,
+  options?: { next?: string; returnTo?: string | null }
+): NextResponse => {
+  return NextResponse.redirect(
+    buildRedirectTarget(request, { error: code, next: options?.next, returnTo: options?.returnTo }),
+    { status: 303 }
+  );
 };
 
 const getAuthCookieOptions = () => ({
@@ -33,14 +91,17 @@ const getAuthCookieOptions = () => ({
   secure: process.env.NODE_ENV === "production",
 });
 
-const parseLoginInput = async (request: Request): Promise<{ email: string; password: string; next: string }> => {
+const parseLoginInput = async (
+  request: Request
+): Promise<{ email: string; password: string; next: string; returnTo: string | null }> => {
   const contentType = request.headers.get("content-type") ?? "";
   if (contentType.includes("application/json")) {
-    const body = (await request.json()) as { email?: string; password?: string; next?: string } | null;
+    const body = (await request.json()) as { email?: string; password?: string; next?: string; returnTo?: string } | null;
     return {
       email: String(body?.email ?? "").trim(),
       password: String(body?.password ?? ""),
-      next: String(body?.next ?? "/app/dashboard")
+      next: String(body?.next ?? "/app/dashboard"),
+      returnTo: typeof body?.returnTo === "string" && body.returnTo.trim().length > 0 ? body.returnTo.trim() : null
     };
   }
 
@@ -48,7 +109,8 @@ const parseLoginInput = async (request: Request): Promise<{ email: string; passw
   return {
     email: String(formData.get("email") ?? "").trim(),
     password: String(formData.get("password") ?? ""),
-    next: String(formData.get("next") ?? "/app/dashboard")
+    next: String(formData.get("next") ?? "/app/dashboard"),
+    returnTo: String(formData.get("returnTo") ?? "").trim() || null
   };
 };
 
@@ -82,7 +144,8 @@ const mapLoginErrorCode = (error: unknown): LoginErrorCode => {
 
 export async function GET(request: Request) {
   const route = await beginRoute();
-  const response = NextResponse.redirect(new URL("/login", request.url));
+  const next = new URL(request.url).searchParams.get("next") ?? undefined;
+  const response = NextResponse.redirect(buildRedirectTarget(request, { next }), { status: 303 });
   return finalizeRoute(route, "/api/auth/login", response);
 }
 
@@ -94,12 +157,16 @@ export async function POST(request: Request) {
   const MFA_THRESHOLD = 60;
   const HARD_FLAG_THRESHOLD = 80;
   const LOCK_THRESHOLD = 90;
+  let next = "/app/dashboard";
+  let returnTo: string | null = null;
 
   try {
-    const { email, password, next } = await parseLoginInput(request);
+    const { email, password, next: parsedNext, returnTo: parsedReturnTo } = await parseLoginInput(request);
+    next = parsedNext;
+    returnTo = parsedReturnTo;
 
     if (!email || !password) {
-      const response = redirectToLoginWithErrorCode(request, "INTERNAL_ERROR");
+      const response = redirectToLoginWithErrorCode(request, "INTERNAL_ERROR", { next, returnTo });
       return finalizeRoute(route, endpoint, response);
     }
 
@@ -124,7 +191,7 @@ export async function POST(request: Request) {
         const isBlocked = reason.includes("AUTH_RATE_LIMITED");
         logAuthStage(route.requestId, isBlocked ? "rate_limit_blocked" : "rate_limit_unavailable", { emailHash, reason });
         if (isBlocked) {
-          const response = redirectToLoginWithErrorCode(request, "RATE_LIMITED");
+          const response = redirectToLoginWithErrorCode(request, "RATE_LIMITED", { next, returnTo });
           return finalizeRoute(route, endpoint, response);
         }
       }
@@ -150,7 +217,7 @@ export async function POST(request: Request) {
           riskScore: 0
         });
       }
-      const response = redirectToLoginWithErrorCode(request, "INVALID_CREDENTIALS");
+      const response = redirectToLoginWithErrorCode(request, "INVALID_CREDENTIALS", { next, returnTo });
       return finalizeRoute(route, endpoint, response);
     }
 
@@ -170,13 +237,13 @@ export async function POST(request: Request) {
 
           if (audit.profile !== "exists") {
             await supabase.auth.signOut();
-            const response = redirectToLoginWithErrorCode(request, "PROVISIONING_INCOMPLETE");
+            const response = redirectToLoginWithErrorCode(request, "PROVISIONING_INCOMPLETE", { next, returnTo });
             return finalizeRoute(route, endpoint, response);
           }
 
           if (audit.membership !== "exists") {
             await supabase.auth.signOut();
-            const response = redirectToLoginWithErrorCode(request, "ROLE_MISSING");
+            const response = redirectToLoginWithErrorCode(request, "ROLE_MISSING", { next, returnTo });
             return finalizeRoute(route, endpoint, response);
           }
         }
@@ -251,7 +318,7 @@ export async function POST(request: Request) {
       } catch {
         // Ignore sign-out failures; we still clear cookies.
       }
-      const response = redirectToLoginWithErrorCode(request, "RATE_LIMITED");
+      const response = redirectToLoginWithErrorCode(request, "RATE_LIMITED", { next, returnTo });
       for (const name of ["lf_access_token", "lf_refresh_token", "lf_session", "lf_session_id", "lf_role", "lf_permissions"]) {
         response.cookies.set(name, "", { ...getAuthCookieOptions(), expires: new Date(0) });
       }
@@ -277,14 +344,14 @@ export async function POST(request: Request) {
         error: errorFinal instanceof Error ? errorFinal.message : "Unknown error"
       });
       await supabase.auth.signOut();
-      const response = redirectToLoginWithErrorCode(request, mapLoginErrorCode(errorFinal));
+      const response = redirectToLoginWithErrorCode(request, mapLoginErrorCode(errorFinal), { next, returnTo });
       return finalizeRoute(route, endpoint, response);
     }
   } catch (errorTop) {
     logAuthStage(route.requestId, "login_route_failed", {
       error: errorTop instanceof Error ? errorTop.message : "Unknown error"
     });
-    const response = redirectToLoginWithErrorCode(request, mapLoginErrorCode(errorTop));
+    const response = redirectToLoginWithErrorCode(request, mapLoginErrorCode(errorTop), { next, returnTo });
     return finalizeRoute(route, endpoint, response);
   }
 }

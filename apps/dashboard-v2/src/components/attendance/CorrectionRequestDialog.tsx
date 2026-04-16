@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createAttendanceCorrectionRequest } from "@/lib/client/api";
 import type { AttendanceHistoryRow } from "@/lib/types/attendance";
+import { buildPublicWebsiteUrl } from "@/lib/site";
 
 const toDateTimeLocalValue = (value: string | null | undefined): string => {
   if (!value) return "";
@@ -77,7 +78,7 @@ export const CorrectionRequestDialog = ({
 
       if (!result.ok) {
         if (result.error === "Authentication required") {
-          window.location.href = "/login";
+          window.location.href = buildPublicWebsiteUrl("/sign-in", { next: "/app/attendance" });
           return;
         }
         if (result.error === "Permission denied") {
@@ -192,4 +193,3 @@ export const CorrectionRequestDialog = ({
     </div>
   );
 };
-

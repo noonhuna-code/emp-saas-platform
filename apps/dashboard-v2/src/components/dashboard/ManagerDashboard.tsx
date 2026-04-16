@@ -59,6 +59,11 @@ export const ManagerDashboard = ({
     hasEmployees ? { label: "People directory", href: peopleHref!, caption: "Direct reports and profiles" } : null,
     hasProjects ? { label: "Projects", href: "/app/projects", caption: "Execution and staffing" } : null,
   ].filter(Boolean) as Array<{ label: string; href: string; caption: string }>;
+  const heroSignals = [
+    { label: "Coverage", value: canViewTeamAttendance ? "Live team view" : "Scoped routes" },
+    { label: "Approvals", value: canReviewLeave ? "Leave enabled" : "Standard routing" },
+    { label: "Routes", value: `${actionPaths.length} active` }
+  ];
 
   useEffect(() => {
     perf.markKpiRendered();
@@ -70,6 +75,7 @@ export const ManagerDashboard = ({
       title="Team operations control center"
       subtitle="Monitor team attendance coverage, approvals, staffing pressure, and execution signals with the routes you can act on now."
       emphasis="operations"
+      heroSignals={heroSignals}
       actions={(
         <>
           {heroActions.map((action) => (

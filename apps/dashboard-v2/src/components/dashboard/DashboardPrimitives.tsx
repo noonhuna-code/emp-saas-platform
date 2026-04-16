@@ -1,6 +1,30 @@
 "use client";
 
 import type { ReactNode } from "react";
+import type { LucideIcon } from "lucide-react";
+import {
+  BadgeCheck,
+  BellDot,
+  BookOpenText,
+  BriefcaseBusiness,
+  CalendarClock,
+  CalendarDays,
+  CalendarRange,
+  ChartColumnBig,
+  Clock3,
+  HandCoins,
+  LayoutGrid,
+  MessageSquare,
+  Network,
+  ReceiptText,
+  RefreshCw,
+  ScrollText,
+  Settings2,
+  ShieldCheck,
+  UserRound,
+  Users,
+  WalletCards
+} from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { MetricCard } from "@/components/ui/MetricCard";
 import { SectionContainer } from "@/components/ui/SectionContainer";
@@ -39,15 +63,17 @@ export const DashboardHero = ({
   title,
   subtitle,
   actions,
-  emphasis = "default"
+  emphasis = "default",
+  signals
 }: {
   eyebrow?: string;
   title: string;
   subtitle: string;
   actions?: ReactNode;
   emphasis?: "default" | "executive" | "operations";
+  signals?: Array<{ label: string; value: string }>;
 }) => {
-  const signals = HERO_SIGNALS[emphasis] ?? HERO_SIGNALS.default;
+  const resolvedSignals = signals?.length ? signals : HERO_SIGNALS[emphasis] ?? HERO_SIGNALS.default;
 
   return (
     <Card
@@ -69,7 +95,7 @@ export const DashboardHero = ({
         </div>
         <div className="dashboard-hero__aside min-w-0">
           <div className="dashboard-hero__signal-grid">
-            {signals.map((signal) => (
+            {resolvedSignals.map((signal) => (
               <div key={`${signal.label}-${signal.value}`} className="dashboard-hero__signal-card">
                 <span className="dashboard-hero__signal-label">{signal.label}</span>
                 <span className="dashboard-hero__signal-value">{signal.value}</span>
@@ -121,6 +147,7 @@ export const DashboardScaffold = ({
   onViewChange,
   modeTitle = "Workspace lenses",
   modeSubtitle = "Move between overview, analytics, and operations without losing context.",
+  heroSignals,
   children,
 }: {
   eyebrow?: string;
@@ -132,12 +159,13 @@ export const DashboardScaffold = ({
   onViewChange: (value: DashboardView) => void;
   modeTitle?: string;
   modeSubtitle?: string;
+  heroSignals?: Array<{ label: string; value: string }>;
   children: ReactNode;
 }) => {
   return (
     <div className="dashboard-page page-wrap space-y-8 fade-in">
       <div className="dashboard-page__masthead">
-        <DashboardHero eyebrow={eyebrow} title={title} subtitle={subtitle} actions={actions} emphasis={emphasis} />
+        <DashboardHero eyebrow={eyebrow} title={title} subtitle={subtitle} actions={actions} emphasis={emphasis} signals={heroSignals} />
         <DashboardModeSwitch value={value} onChange={onViewChange} title={modeTitle} subtitle={modeSubtitle} />
       </div>
       <div className="dashboard-page__body space-y-8">{children}</div>
@@ -233,12 +261,18 @@ export const DashboardSection = ({
 export const QuickActionGrid = ({
   actions
 }: {
-  actions: Array<{ label: string; href: string; caption?: string }>;
+  actions: Array<{ label: string; href: string; caption?: string; icon?: LucideIcon }>;
 }) => {
   return (
     <div className="dashboard-quick-grid">
       {actions.map((action) => (
-        <ActionCard key={`${action.href}-${action.label}`} href={action.href} title={action.label} description={action.caption} />
+        <ActionCard
+          key={`${action.href}-${action.label}`}
+          href={action.href}
+          title={action.label}
+          description={action.caption}
+          icon={action.icon ?? resolveQuickActionIcon(action.href, action.label)}
+        />
       ))}
     </div>
   );
@@ -290,6 +324,32 @@ export const TimelineList = ({
       ))}
     </div>
   );
+};
+
+const resolveQuickActionIcon = (href: string, label: string): LucideIcon => {
+  const fingerprint = `${href} ${label}`.toLowerCase();
+
+  if (fingerprint.includes("monitor")) return ShieldCheck;
+  if (fingerprint.includes("billing") || fingerprint.includes("invoice")) return ReceiptText;
+  if (fingerprint.includes("payroll")) return WalletCards;
+  if (fingerprint.includes("payslip")) return ScrollText;
+  if (fingerprint.includes("approval")) return BadgeCheck;
+  if (fingerprint.includes("people") || fingerprint.includes("employee")) return Users;
+  if (fingerprint.includes("profile")) return UserRound;
+  if (fingerprint.includes("organiz") || fingerprint.includes("org chart")) return Network;
+  if (fingerprint.includes("project")) return BriefcaseBusiness;
+  if (fingerprint.includes("attendance")) return Clock3;
+  if (fingerprint.includes("leave")) return CalendarRange;
+  if (fingerprint.includes("shift")) return CalendarClock;
+  if (fingerprint.includes("calendar")) return CalendarDays;
+  if (fingerprint.includes("loan") || fingerprint.includes("advance")) return HandCoins;
+  if (fingerprint.includes("chat") || fingerprint.includes("message")) return MessageSquare;
+  if (fingerprint.includes("notification")) return BellDot;
+  if (fingerprint.includes("resource") || fingerprint.includes("knowledge") || fingerprint.includes("sop")) return BookOpenText;
+  if (fingerprint.includes("analytics") || fingerprint.includes("trend")) return ChartColumnBig;
+  if (fingerprint.includes("setting")) return Settings2;
+  if (fingerprint.includes("swap") || fingerprint.includes("change")) return RefreshCw;
+  return LayoutGrid;
 };
 
 

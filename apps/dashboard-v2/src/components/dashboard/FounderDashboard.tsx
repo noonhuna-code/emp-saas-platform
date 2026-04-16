@@ -149,6 +149,11 @@ export const FounderDashboard = ({
     allowedRouteSet.has("/app/approvals") ? { label: "Approvals queue", href: "/app/approvals", caption: "Operational backlog" } : null,
     peopleHref ? { label: "People directory", href: peopleHref, caption: "Headcount view" } : null,
   ].filter(Boolean) as Array<{ label: string; href: string; caption: string }>;
+  const heroSignals = [
+    { label: "Plan", value: billing?.subscription?.planName ?? "Executive view" },
+    { label: "Risks", value: `${riskCounts.breaches + riskCounts.idempotency + riskCounts.approvals} monitored` },
+    { label: "Lanes", value: `${executiveActions.length} active` }
+  ];
 
   if (loading) return <LoadingState label="Loading founder dashboard..." />;
   if (error || !adminData || !monitoring || !payrollRuns) return <ErrorState message={error ?? "Founder dashboard unavailable"} />;
@@ -159,6 +164,7 @@ export const FounderDashboard = ({
         title="Founder and CEO command view"
         subtitle="Read-only executive visibility across workforce, payroll lifecycle, and operational risk signals with tenant-safe summaries only."
         emphasis="executive"
+        heroSignals={heroSignals}
         actions={(
           <>
             {heroActions.map((action) => (
@@ -253,10 +259,12 @@ export const FounderDashboard = ({
 
           {securityIntelligenceEnabled ? (
             <WorkflowPanel title="Security pressure" subtitle="Recent lock alerts">
-              <div className="row" style={{ justifyContent: "space-between" }}>
-                <div className="stack" style={{ gap: 4 }}>
-                  <span className="muted" style={{ fontSize: 12 }}>Security alerts (30d)</span>
-                  <strong style={{ fontSize: 22 }}>{adminData.securityAlerts.length}</strong>
+              <div className="flex items-start justify-between gap-4 rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4 dark:border-slate-800 dark:bg-slate-900/70">
+                <div className="space-y-1">
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Security alerts (30d)</span>
+                  <strong className="text-2xl font-semibold tracking-[-0.04em] text-slate-950 dark:text-slate-50">
+                    {adminData.securityAlerts.length}
+                  </strong>
                 </div>
                 <Donut value={Math.min(100, adminData.securityAlerts.length * 10)} />
               </div>
@@ -282,18 +290,25 @@ export const FounderDashboard = ({
         </div>
 
         <DashboardPanel title="Run actions" subtitle="Read-only drilldown links">
-          {payrollRuns.rows.slice(0, 6).map((run) => (
-            <div key={run.id} className="row" style={{ justifyContent: "space-between" }}>
-              <div className="stack" style={{ gap: 4 }}>
-                <strong>{String(run.month).padStart(2, "0")}/{run.year}</strong>
-                <span className="muted">{run.id}</span>
+          <div className="space-y-3">
+            {payrollRuns.rows.slice(0, 6).map((run) => (
+              <div
+                key={run.id}
+                className="flex flex-col gap-3 rounded-2xl border border-slate-200/80 bg-white/90 p-4 dark:border-slate-800 dark:bg-slate-950/70 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div className="space-y-1">
+                  <strong className="text-sm font-semibold text-slate-950 dark:text-slate-50">
+                    {String(run.month).padStart(2, "0")}/{run.year}
+                  </strong>
+                  <span className="block text-xs text-slate-500 dark:text-slate-400">{run.id}</span>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <StatusBadge status={run.status} />
+                  {allowedRouteSet.has("/app/payroll") ? <Link href={`/app/payroll/${run.id}/timeline`} className="secondary-btn">Timeline</Link> : null}
+                </div>
               </div>
-              <div className="row">
-                <StatusBadge status={run.status} />
-                {allowedRouteSet.has("/app/payroll") ? <Link href={`/app/payroll/${run.id}/timeline`} className="secondary-btn">Timeline</Link> : null}
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </DashboardPanel>
       </DashboardSection>
     </DashboardScaffold>

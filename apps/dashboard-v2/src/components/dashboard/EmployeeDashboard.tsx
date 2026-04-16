@@ -217,16 +217,22 @@ export const EmployeeDashboard = ({
     workspace?.teamLead?.full_name ? `Team lead: ${workspace.teamLead.full_name}` : "Team lead not assigned",
     workspace?.manager?.full_name ? `Manager: ${workspace.manager.full_name}` : "Manager not assigned",
   ];
+  const heroSignals = [
+    { label: "Day state", value: attendance ? dayState : "Loading" },
+    { label: "Leave left", value: `${remainingLeave} days` },
+    { label: "Updates", value: `${unreadNotifications} unread` }
+  ];
 
   if (error && !data) {
     return <ErrorState message={error} />;
   }
 
   return (
-    <DashboardScaffold
+      <DashboardScaffold
         eyebrow="Employee Workspace"
         title="Your day, requests, records, and support context in one premium lane"
         subtitle="Stay on top of the self-service tools, records, and shared support context available in your workspace without leaving the employee shell."
+        heroSignals={heroSignals}
         value={view}
         onViewChange={setView}
         modeTitle="Employee control lanes"

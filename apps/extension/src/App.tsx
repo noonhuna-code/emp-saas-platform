@@ -55,7 +55,9 @@ const FEATURE_MAP: Record<Role, Feature[]> = {
 };
 const PROFILE_TIMEOUT_MS = 7000;
 const DRAFT_EMAIL_KEY = "leaveflow_popup_email";
-const DASHBOARD_BASE = (import.meta.env.VITE_DASHBOARD_URL as string | undefined)?.trim() || "";
+const DASHBOARD_BASE =
+  (import.meta.env.VITE_DASHBOARD_URL as string | undefined)?.trim() ||
+  "https://emp-saas-platform.vercel.app";
 const ROLE_HOME_MAP: Record<Role, string> = {
   agent: "/agent/overview",
   supervisor: "/supervisor/overview",
@@ -735,6 +737,18 @@ export default function App() {
           </button>
 
           {state.error ? <p style={styles.warningText}>{state.error}</p> : null}
+
+          <section style={styles.signatureCard}>
+            <div style={styles.signatureBadgeRow}>
+              <span style={styles.signatureBadgePrimary}>EMP Signature</span>
+              <span style={styles.signatureBadgeSecondary}>Muhammad Umair</span>
+            </div>
+            <p style={styles.signatureTitle}>Product Owner and Creator</p>
+            <p style={styles.signatureName}>Muhammad Umair</p>
+            <a href="tel:03106598623" style={styles.signaturePhone}>
+              03106598623
+            </a>
+          </section>
         </div>
       </div>
 
@@ -1020,6 +1034,72 @@ const styles: Record<string, CSSProperties> = {
     margin: 0,
     color: "#fcd34d",
     fontSize: 12,
+  },
+  signatureCard: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 6,
+    padding: 11,
+    borderRadius: 14,
+    border: "1px solid rgba(148,163,184,0.24)",
+    background:
+      "linear-gradient(145deg, rgba(255,255,255,0.08), rgba(15,23,42,0.44)), radial-gradient(circle at top right, rgba(16,185,129,0.18), transparent 36%)",
+    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.08)",
+  },
+  signatureBadgeRow: {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: 6,
+  },
+  signatureBadgePrimary: {
+    borderRadius: 999,
+    padding: "4px 9px",
+    fontSize: 10,
+    fontWeight: 700,
+    letterSpacing: 0.8,
+    textTransform: "uppercase",
+    color: "#d1fae5",
+    border: "1px solid rgba(16,185,129,0.38)",
+    background: "rgba(6,95,70,0.34)",
+  },
+  signatureBadgeSecondary: {
+    borderRadius: 999,
+    padding: "4px 9px",
+    fontSize: 10,
+    fontWeight: 700,
+    letterSpacing: 0.8,
+    textTransform: "uppercase",
+    color: "#e2e8f0",
+    border: "1px solid rgba(148,163,184,0.22)",
+    background: "rgba(15,23,42,0.44)",
+  },
+  signatureTitle: {
+    margin: 0,
+    fontSize: 11,
+    fontWeight: 700,
+    letterSpacing: 0.9,
+    textTransform: "uppercase",
+    color: "#94a3b8",
+  },
+  signatureName: {
+    margin: 0,
+    fontSize: 15,
+    fontWeight: 700,
+    color: "#f8fafc",
+  },
+  signaturePhone: {
+    display: "inline-flex",
+    alignSelf: "flex-start",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 10,
+    padding: "7px 10px",
+    border: "1px solid rgba(16,185,129,0.38)",
+    color: "#d1fae5",
+    background: "rgba(6,95,70,0.28)",
+    textDecoration: "none",
+    fontSize: 12,
+    fontWeight: 700,
   },
   errorText: {
     margin: 0,

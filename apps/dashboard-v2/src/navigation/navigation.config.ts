@@ -501,7 +501,7 @@ export const resolveShellHeaderMeta = (
     pathname.startsWith("/app/org-chart/")
   ) {
     return {
-      groupLabel: "People",
+      groupLabel: "People & Org",
       itemLabel:
         pathname === "/app/people" || pathname.startsWith("/app/people/")
           ? "People"
@@ -542,8 +542,63 @@ export const resolveShellHeaderMeta = (
     pathname.startsWith("/app/shifts/") ||
     pathname === "/app/leave" ||
     pathname.startsWith("/app/leave/") ||
+    pathname === "/app/calendar" ||
+    pathname.startsWith("/app/calendar/") ||
+    pathname === "/app/overtime" ||
+    pathname.startsWith("/app/overtime/") ||
+    pathname === "/app/loans" ||
+    pathname.startsWith("/app/loans/") ||
+    pathname === "/app/payslips" ||
+    pathname.startsWith("/app/payslips/") ||
     pathname === "/app/attendance/shift-swaps" ||
-    pathname.startsWith("/app/attendance/shift-swaps/") ||
+    pathname.startsWith("/app/attendance/shift-swaps/")
+  ) {
+    return {
+      groupLabel: "Workday",
+      itemLabel: fallbackItemLabel,
+      title: fallbackItemLabel,
+      subtitle: fallbackSubtitle,
+      searchPlaceholder: "Search attendance, leave, shifts, calendar, overtime, payslips, and employee workday tools",
+      tabs: pickVisibleTabs(
+        [
+          "/app/attendance",
+          "/app/leave",
+          "/app/shifts",
+          "/app/attendance/shift-swaps",
+          "/app/calendar",
+          "/app/overtime",
+          "/app/loans",
+          "/app/payslips"
+        ],
+        visibleGroups
+      )
+    };
+  }
+
+  if (
+    pathname === "/app/analytics" ||
+    pathname.startsWith("/app/analytics/") ||
+    pathname === "/app/intelligence/kudos" ||
+    pathname.startsWith("/app/intelligence/kudos/") ||
+    pathname === "/app/intelligence/reliability" ||
+    pathname.startsWith("/app/intelligence/reliability/") ||
+    pathname === "/app/intelligence/feedback" ||
+    pathname.startsWith("/app/intelligence/feedback/")
+  ) {
+    return {
+      groupLabel: "Intelligence",
+      itemLabel: fallbackItemLabel,
+      title: fallbackItemLabel,
+      subtitle: fallbackSubtitle,
+      searchPlaceholder: "Search recognition, reliability, feedback, and workforce insight surfaces",
+      tabs: pickVisibleTabs(
+        ["/app/intelligence/kudos", "/app/intelligence/reliability", "/app/intelligence/feedback", "/app/analytics"],
+        visibleGroups
+      )
+    };
+  }
+
+  if (
     pathname === "/app/approvals" ||
     pathname.startsWith("/app/approvals/") ||
     pathname === "/app/payroll" ||
@@ -556,14 +611,12 @@ export const resolveShellHeaderMeta = (
       itemLabel: fallbackItemLabel,
       title: fallbackItemLabel,
       subtitle: fallbackSubtitle,
-      searchPlaceholder: "Search attendance, leave, shift swaps, approvals, payroll, and project workflows",
-      tabs: pickVisibleTabs(["/app/attendance", "/app/leave", "/app/shifts", "/app/attendance/shift-swaps", "/app/approvals", "/app/payroll", "/app/projects"], visibleGroups)
+      searchPlaceholder: "Search approvals, payroll, projects, and execution workflows",
+      tabs: pickVisibleTabs(["/app/approvals", "/app/projects", "/app/payroll"], visibleGroups)
     };
   }
 
   if (
-    pathname === "/app/analytics" ||
-    pathname.startsWith("/app/analytics/") ||
     pathname === "/app/settings" ||
     pathname.startsWith("/app/settings/") ||
     pathname === "/app/billing" ||
@@ -572,12 +625,12 @@ export const resolveShellHeaderMeta = (
     pathname.startsWith("/app/monitoring/")
   ) {
     return {
-      groupLabel: "Platform",
+      groupLabel: "Control Center",
       itemLabel: fallbackItemLabel,
       title: fallbackItemLabel,
       subtitle: fallbackSubtitle,
-      searchPlaceholder: "Search analytics, settings, billing, and monitoring controls",
-      tabs: pickVisibleTabs(["/app/analytics", "/app/settings", "/app/billing", "/app/monitoring"], visibleGroups)
+      searchPlaceholder: "Search settings, billing, monitoring, and workspace control surfaces",
+      tabs: pickVisibleTabs(["/app/settings", "/app/billing", "/app/monitoring"], visibleGroups)
     };
   }
 

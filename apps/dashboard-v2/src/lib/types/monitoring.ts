@@ -24,3 +24,18 @@ export type MonitoringOverview = {
 export type IdempotencyCleanupResponse = {
   expired: number;
 };
+
+export type SecurityAuditTimelineEventType = "login" | "account_lock" | "mfa_trigger";
+
+export type SecurityAuditTimelineRow = {
+  eventType: SecurityAuditTimelineEventType;
+  createdAt: string;
+  riskScore: number | null;
+  profileId: string | null;
+  summary: string;
+  details: Record<string, unknown> | null;
+};
+
+export type SecurityAuditTimelineResponse = {
+  rows: SecurityAuditTimelineRow[];
+};

@@ -10,12 +10,22 @@ type AuthFormProps = {
   mode: AuthMode;
   actionUrl?: string;
   nextPath?: string;
+  returnTo?: string;
+  initialError?: string | null;
+  initialNotice?: string | null;
 };
 
-export function AuthForm({ mode, actionUrl, nextPath = "/app/dashboard" }: AuthFormProps) {
+export function AuthForm({
+  mode,
+  actionUrl,
+  nextPath = "/app/dashboard",
+  returnTo,
+  initialError = null,
+  initialNotice = null
+}: AuthFormProps) {
   const [submitted, setSubmitted] = useState<string | null>(null);
   const [isPending, setIsPending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(initialError);
   const isSignIn = mode === "sign-in";
   const pathname = usePathname();
 
@@ -72,7 +82,7 @@ export function AuthForm({ mode, actionUrl, nextPath = "/app/dashboard" }: AuthF
                 }`}
                 href="/sign-up"
               >
-                Sign up
+                Request access
               </Link>
             </div>
 
@@ -145,6 +155,7 @@ export function AuthForm({ mode, actionUrl, nextPath = "/app/dashboard" }: AuthF
             }
           >
             {isSignIn ? <input type="hidden" name="next" value={nextPath} /> : null}
+            {isSignIn && returnTo ? <input type="hidden" name="returnTo" value={returnTo} /> : null}
             {!isSignIn ? <input type="hidden" name="sourcePath" value={pathname ?? "/"} /> : null}
             {!isSignIn ? <input autoComplete="off" className="hidden" name="website" tabIndex={-1} type="text" /> : null}
             {!isSignIn ? (
@@ -221,6 +232,16 @@ export function AuthForm({ mode, actionUrl, nextPath = "/app/dashboard" }: AuthF
                 <span className="text-slate-500">Guided workspace setup</span>
               )}
             </div>
+
+            {initialNotice && !submitted ? (
+              <div
+                aria-live="polite"
+                className="rounded-[1.25rem] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700"
+                role="status"
+              >
+                {initialNotice}
+              </div>
+            ) : null}
 
             {error ? (
               <div
