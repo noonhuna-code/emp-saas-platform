@@ -8,6 +8,7 @@ import {
   ChevronRight,
   ClipboardCheck,
   LayoutGrid,
+  Layers3,
   ShieldCheck,
   UsersRound
 } from "lucide-react";
@@ -156,6 +157,17 @@ export const DashboardPageClient = ({ role, permissions, hasEmployeeContext, ent
           }))
         )
         .slice(0, 6),
+    [visibleGroups]
+  );
+  const groupHighlights = useMemo(
+    () =>
+      visibleGroups.slice(0, 4).map((group) => ({
+        label: group.label,
+        description: group.description ?? "Role-aware workspace section",
+        count: group.items.length,
+        routes: group.items.slice(0, 3),
+        href: group.items[0]?.href ?? "/app/dashboard",
+      })),
     [visibleGroups]
   );
   const overviewStats = useMemo(
@@ -336,6 +348,49 @@ export const DashboardPageClient = ({ role, permissions, hasEmployeeContext, ent
           </aside>
         </div>
       </section>
+
+      {groupHighlights.length > 0 ? (
+        <section className="grid gap-4 lg:grid-cols-2 xl:grid-cols-4">
+          {groupHighlights.map((group) => (
+            <Link
+              key={group.label}
+              href={group.href}
+              className="group rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-xs transition hover:border-brand-200 hover:bg-brand-50/40 hover:shadow-sm dark:border-gray-800 dark:bg-gray-900 dark:hover:border-brand-500/30 dark:hover:bg-brand-500/5"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="space-y-2">
+                  <div className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-gray-200 bg-gray-50 text-gray-700 dark:border-gray-800 dark:bg-gray-800 dark:text-white/90">
+                    <Layers3 className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-white/90">{group.label}</p>
+                    <p className="mt-1 text-sm leading-6 text-gray-500 dark:text-gray-400">{group.description}</p>
+                  </div>
+                </div>
+                <span className="inline-flex rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-500 dark:border-gray-800 dark:bg-gray-800 dark:text-gray-300">
+                  {String(group.count).padStart(2, "0")} routes
+                </span>
+              </div>
+
+              <div className="mt-4 flex flex-wrap gap-2">
+                {group.routes.map((route) => (
+                  <span
+                    key={route.href}
+                    className="inline-flex rounded-full border border-gray-200 bg-white px-2.5 py-1 text-xs font-medium text-gray-600 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-300"
+                  >
+                    {route.label}
+                  </span>
+                ))}
+              </div>
+
+              <div className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-brand-600 transition group-hover:text-brand-700 dark:text-brand-400 dark:group-hover:text-brand-300">
+                Open section
+                <ArrowRight className="h-4 w-4" />
+              </div>
+            </Link>
+          ))}
+        </section>
+      ) : null}
 
       <Suspense fallback={<DashboardRoleFallback />}>{roleDashboard}</Suspense>
     </div>

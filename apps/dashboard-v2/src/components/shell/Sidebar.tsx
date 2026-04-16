@@ -24,6 +24,63 @@ const PERSONA_LABELS: Record<DashboardPersona, string> = {
   platform_owner: "Platform oversight"
 };
 
+const SidebarUtilityPanel = ({
+  collapsed,
+  persona,
+  groupCount,
+  itemCount,
+}: {
+  collapsed: boolean;
+  persona: DashboardPersona;
+  groupCount: number;
+  itemCount: number;
+}) => {
+  if (collapsed) {
+    return (
+      <div className="border-t border-gray-200 px-2 py-3 dark:border-gray-800">
+        <button
+          type="button"
+          className="flex h-11 w-full items-center justify-center rounded-2xl border border-gray-200 bg-white text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-500 transition hover:border-brand-200 hover:bg-brand-50 hover:text-brand-600 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400 dark:hover:border-brand-500/30 dark:hover:bg-brand-500/10 dark:hover:text-brand-300"
+          onClick={() => window.dispatchEvent(new CustomEvent("emp.commandPalette.open"))}
+          aria-label="Open command palette"
+          title="Open command palette"
+        >
+          CMD
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="border-t border-gray-200 px-4 py-4 dark:border-gray-800">
+      <div className="rounded-[1.25rem] border border-gray-200 bg-gray-50/90 p-4 shadow-theme-xs dark:border-gray-800 dark:bg-white/[0.03]">
+        <div className="space-y-1">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-gray-400 dark:text-gray-500">
+            TailAdmin utilities
+          </p>
+          <p className="text-sm font-semibold text-gray-900 dark:text-white/90">{PERSONA_LABELS[persona]}</p>
+          <p className="text-xs leading-5 text-gray-500 dark:text-gray-400">
+            {groupCount} navigation groups and {itemCount} live routes available in this session.
+          </p>
+        </div>
+
+        <div className="mt-4 flex items-center gap-2">
+          <button
+            type="button"
+            className="inline-flex flex-1 items-center justify-center rounded-xl border border-brand-200 bg-brand-50 px-3 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-brand-700 transition hover:border-brand-300 hover:bg-brand-100 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-brand-300 dark:hover:border-brand-500/40 dark:hover:bg-brand-500/15"
+            onClick={() => window.dispatchEvent(new CustomEvent("emp.commandPalette.open"))}
+          >
+            Open command bar
+          </button>
+          <span className="inline-flex items-center rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-500 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400">
+            Ctrl/Cmd + K
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const SidebarBrand = ({
   collapsed,
   persona,
@@ -123,6 +180,8 @@ export const Sidebar = ({
           </div>
         </div>
       </div>
+
+      <SidebarUtilityPanel collapsed={collapsed} persona={persona} groupCount={groups.length} itemCount={groups.flatMap((group) => group.items).length} />
     </aside>
   );
 };

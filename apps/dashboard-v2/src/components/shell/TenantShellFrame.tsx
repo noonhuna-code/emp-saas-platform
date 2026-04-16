@@ -13,6 +13,8 @@ import { resolveDashboardPersona } from "@/lib/dashboard/capabilities";
 import { prewarmDashboardData, prewarmRouteData, setClientCacheScope } from "@/lib/client/api";
 import { SIDEBAR_COLLAPSED_WIDTH, SIDEBAR_EXPANDED_WIDTH } from "./Sidebar";
 
+const RECENT_ROUTES_STORAGE_KEY = "emp-v2.recent-routes";
+
 export const TenantShellFrame = ({
   session,
   billingContext,
@@ -66,6 +68,20 @@ export const TenantShellFrame = ({
 
   useEffect(() => {
     if (pathname) prewarmRouteData(pathname);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!pathname || (!pathname.startsWith("/app") && !pathname.startsWith("/platform"))) return;
+
+    try {
+      const parsed = JSON.parse(window.localStorage.getItem(RECENT_ROUTES_STORAGE_KEY) ?? "[]");
+      const routes = Array.isArray(parsed) ? parsed.filter((value): value is string => typeof value === "string") : [];
+      const nextRoutes = [pathname, ...routes.filter((route) => route !== pathname)].slice(0, 8);
+      window.localStorage.setItem(RECENT_ROUTES_STORAGE_KEY, JSON.stringify(nextRoutes));
+      window.dispatchEvent(new CustomEvent("emp.commandPalette.historyUpdated"));
+    } catch {
+      // no-op
+    }
   }, [pathname]);
 
   useEffect(() => {
