@@ -6,13 +6,13 @@ import {
   addEmployeeDocument,
   createWorkspaceNote,
   deleteWorkspaceNote,
-  fetchEmployeeDocumentDownloadUrl,
   fetchEmployeeMe,
   fetchWorkspaceNotes,
   peekCachedResult,
   updateWorkspaceNote,
   uploadEmployeeDocumentVersion,
 } from "@/lib/client/api";
+import { buildEmployeeDocumentViewerHref, parseEmployeeDocumentDownloadPath } from "@/lib/documents/viewer";
 import type { WorkspaceNote } from "@/lib/types/workspace";
 import { LoadingState } from "@/components/states/LoadingState";
 import { ErrorState } from "@/components/states/ErrorState";
@@ -47,7 +47,6 @@ const emptyForm = {
   isPinned: false,
 };
 
-const INTERNAL_DOWNLOAD_PATH = /^\/api\/employees\/([^/]+)\/documents\/([^/?]+)\/download(?:\?.*)?$/i;
 const PAGE_SIZE = 8;
 const iconActionClassName =
   "h-9 w-9 rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700";
@@ -91,21 +90,6 @@ const NotesPageClient = () => {
       }
     })();
   }, [hasCachedNotes]);
-
-  const resolveAttachment = async (rawUrl: string | null | undefined) => {
-    if (!rawUrl) return null;
-    const internalMatch = rawUrl.match(INTERNAL_DOWNLOAD_PATH);
-    if (!internalMatch) return rawUrl;
-    const [, matchedEmployeeId, documentId] = internalMatch;
-    if (!matchedEmployeeId || !documentId) {
-      throw new Error("Unable to resolve attached file");
-    }
-    const result = await fetchEmployeeDocumentDownloadUrl(matchedEmployeeId, documentId);
-    if (!result.ok || !result.data?.url) {
-      throw new Error(result.error ?? "Unable to open attached file");
-    }
-    return result.data.url;
-  };
 
   const uploadAttachmentIfNeeded = async (
     currentEmployeeId: string,
@@ -240,12 +224,24 @@ const NotesPageClient = () => {
   const handleOpenAttachment = async (note: WorkspaceNote) => {
     setError(null);
     try {
-      const url = await resolveAttachment(note.file_url);
-      if (!url) {
+      if (!note.file_url) {
         setError("No attachment available for this note");
         return;
       }
-      window.open(url, "_blank", "noopener,noreferrer");
+
+      const parsed = parseEmployeeDocumentDownloadPath(note.file_url);
+      if (parsed) {
+        const href = buildEmployeeDocumentViewerHref({
+          ...parsed,
+          fileName: note.file_name ?? "Attachment",
+          title: note.file_name ?? note.title,
+          source: "notes",
+        });
+        window.open(href, "_blank", "noopener,noreferrer");
+        return;
+      }
+
+      window.open(note.file_url, "_blank", "noopener,noreferrer");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to open file");
     }

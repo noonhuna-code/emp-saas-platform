@@ -5,10 +5,10 @@ import { FilePenLine, FolderOpen, Search, Trash2, Upload } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { StatusBadge } from "@/components/shared/StatusBadge";
+import { buildEmployeeDocumentViewerHref, parseEmployeeDocumentDownloadPath } from "@/lib/documents/viewer";
 import { cn } from "@/lib/utils";
 import type { EmployeeDocument } from "@/lib/types/profile";
 import {
-  fetchEmployeeDocumentDownloadUrl,
   uploadEmployeeDocumentVersion,
 } from "@/lib/client/api";
 import {
@@ -211,12 +211,28 @@ export const DocumentsSection = ({
   const handleOpen = async (doc: EmployeeDocument) => {
     setActionError(null);
     if (doc.storage_path) {
-      const result = await fetchEmployeeDocumentDownloadUrl(employeeId, doc.id);
-      if (result.ok && result.data?.url) {
-        window.open(result.data.url, "_blank", "noopener,noreferrer");
-        return;
-      }
-      setActionError(result.error ?? "Unable to open document");
+      const href = buildEmployeeDocumentViewerHref({
+        employeeId,
+        documentId: doc.id,
+        fileName: doc.document_name ?? doc.document_type,
+        mimeType: doc.storage_mime_type,
+        title: doc.document_name ?? doc.document_type,
+        source: "profile",
+      });
+      window.open(href, "_blank", "noopener,noreferrer");
+      return;
+    }
+
+    const parsed = parseEmployeeDocumentDownloadPath(doc.file_url);
+    if (parsed) {
+      const href = buildEmployeeDocumentViewerHref({
+        ...parsed,
+        fileName: doc.document_name ?? doc.document_type,
+        mimeType: doc.storage_mime_type,
+        title: doc.document_name ?? doc.document_type,
+        source: "profile",
+      });
+      window.open(href, "_blank", "noopener,noreferrer");
       return;
     }
 
