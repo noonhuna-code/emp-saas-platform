@@ -20,7 +20,6 @@ const FEATURE_RULES: Array<{ prefix: string; rule: FeatureRule }> = [
   { prefix: "/app/leave", rule: { featureKey: "feature.core_leave_management" } },
   { prefix: "/app/overtime", rule: { featureKey: "feature.core_attendance" } },
   { prefix: "/app/employees", rule: { featureKey: "feature.core_employee_management" } },
-  { prefix: "/app/profile", rule: { featureKey: "feature.core_employee_management" } },
   { prefix: "/app/org-chart", rule: { featureKey: "feature.core_employee_management" } },
   { prefix: "/app/approvals", rule: { featureKey: "feature.unified_approvals_workspace" } },
   { prefix: "/app/payroll", rule: { featureKey: "feature.payroll_runs" } },

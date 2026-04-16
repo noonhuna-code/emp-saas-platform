@@ -18,12 +18,19 @@ import {
   type DashboardView
 } from "@/components/dashboard/DashboardPrimitives";
 
+const EMPTY_MONITORING_OVERVIEW: MonitoringOverview = {
+  rateLimitBreaches: [],
+  idempotencyConflicts: [],
+  approvalFailures: [],
+  generated_at: "-"
+};
+
 export const ITDashboard = ({
   allowedRoutes = [],
 }: {
   allowedRoutes?: string[];
 }) => {
-  const [monitoring, setMonitoring] = useState<MonitoringOverview | null>(null);
+  const [monitoring, setMonitoring] = useState<MonitoringOverview>(EMPTY_MONITORING_OVERVIEW);
   const [billing, setBilling] = useState<BillingOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -35,17 +42,22 @@ export const ITDashboard = ({
     setLoading(true);
     setError(null);
 
-    void Promise.all([fetchMonitoringOverview(), fetchBillingOverview()])
-      .then(([monitoringResult, billingResult]) => {
+    void Promise.allSettled([fetchMonitoringOverview(), fetchBillingOverview()])
+      .then(([monitoringSettled, billingSettled]) => {
         if (!active) return;
 
-        if (!monitoringResult.ok || !monitoringResult.data) {
-          setError(monitoringResult.error ?? "Unable to load IT dashboard");
+        const monitoringResult = monitoringSettled.status === "fulfilled" ? monitoringSettled.value : null;
+        const billingResult = billingSettled.status === "fulfilled" ? billingSettled.value : null;
+
+        setMonitoring(monitoringResult?.ok && monitoringResult.data ? monitoringResult.data : EMPTY_MONITORING_OVERVIEW);
+        setBilling(billingResult?.ok ? billingResult.data ?? null : null);
+
+        if (!monitoringResult?.ok || !monitoringResult.data) {
+          setError(monitoringResult?.error ?? "Unable to load IT dashboard");
           return;
         }
 
-        setMonitoring(monitoringResult.data);
-        setBilling(billingResult.ok ? billingResult.data ?? null : null);
+        setError(null);
       })
       .catch((err: unknown) => {
         if (!active) return;
@@ -109,7 +121,7 @@ export const ITDashboard = ({
   ].filter(Boolean) as Array<{ label: string; href: string; caption: string }>;
 
   if (loading) return <LoadingState label="Loading IT dashboard..." />;
-  if (error || !monitoring) return <ErrorState message={error ?? "IT dashboard unavailable"} />;
+  if (error && monitoring.generated_at === "-") return <ErrorState message={error} />;
 
   return (
     <DashboardScaffold

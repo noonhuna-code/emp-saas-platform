@@ -1,5 +1,7 @@
 import { MyProfileScreen } from "@/components/profile/MyProfileScreen";
+import { getServerSession } from "@/lib/server/auth";
 
-export default function MyProfilePage() {
-  return <MyProfileScreen />;
+export default async function MyProfilePage() {
+  const session = await getServerSession();
+  return <MyProfileScreen initialEmployeeId={session.employeeId ?? null} />;
 }

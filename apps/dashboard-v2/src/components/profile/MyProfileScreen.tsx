@@ -7,13 +7,20 @@ import { LoadingState } from "@/components/states/LoadingState";
 import { ErrorState } from "@/components/states/ErrorState";
 import { PageContainer, PageHeader } from "@/components/dashboard-v2/PagePrimitives";
 
-export const MyProfileScreen = () => {
+export const MyProfileScreen = ({ initialEmployeeId = null }: { initialEmployeeId?: string | null }) => {
   const cachedEmployee = peekCachedResult<{ employeeId: string }>("/api/employees/me");
-  const [employeeId, setEmployeeId] = useState<string | null>(cachedEmployee?.ok ? (cachedEmployee.data?.employeeId ?? null) : null);
-  const [loading, setLoading] = useState(!(cachedEmployee?.ok && cachedEmployee.data?.employeeId));
+  const resolvedInitialEmployeeId = cachedEmployee?.ok ? (cachedEmployee.data?.employeeId ?? null) : initialEmployeeId;
+  const [employeeId, setEmployeeId] = useState<string | null>(resolvedInitialEmployeeId);
+  const [loading, setLoading] = useState(!resolvedInitialEmployeeId);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (resolvedInitialEmployeeId) {
+      setEmployeeId(resolvedInitialEmployeeId);
+      setLoading(false);
+      return;
+    }
+
     let active = true;
     setError(null);
 
@@ -37,7 +44,7 @@ export const MyProfileScreen = () => {
     return () => {
       active = false;
     };
-  }, []);
+  }, [resolvedInitialEmployeeId]);
 
   if (loading) {
     return (

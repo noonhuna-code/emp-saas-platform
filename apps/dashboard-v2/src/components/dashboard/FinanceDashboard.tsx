@@ -25,14 +25,23 @@ import {
 const asCurrency = (value: number): string =>
   new Intl.NumberFormat(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 2 }).format(value);
 
+const EMPTY_PAYROLL_RUNS: PayrollRunsResponse = { rows: [] };
+const EMPTY_PAYSLIPS: PayslipHistoryResponse = {
+  rows: [],
+  page: 1,
+  pageSize: 20,
+  hasMore: false,
+  viewerScope: "self"
+};
+
 export const FinanceDashboard = ({
   allowedRoutes = [],
 }: {
   allowedRoutes?: string[];
 }) => {
   const [billing, setBilling] = useState<BillingOverview | null>(null);
-  const [runs, setRuns] = useState<PayrollRunsResponse | null>(null);
-  const [payslips, setPayslips] = useState<PayslipHistoryResponse | null>(null);
+  const [runs, setRuns] = useState<PayrollRunsResponse>(EMPTY_PAYROLL_RUNS);
+  const [payslips, setPayslips] = useState<PayslipHistoryResponse>(EMPTY_PAYSLIPS);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState<DashboardView>("workspace");
@@ -43,26 +52,33 @@ export const FinanceDashboard = ({
     setLoading(true);
     setError(null);
 
-    void Promise.all([
+    void Promise.allSettled([
       fetchBillingOverview(),
       fetchPayrollRuns({ limit: 8 }),
       fetchPayslipHistory({ page: 1, pageSize: 20 })
     ])
-      .then(([billingResult, runsResult, payslipsResult]) => {
+      .then(([billingSettled, runsSettled, payslipsSettled]) => {
         if (!active) return;
 
-        if (!billingResult.ok || !billingResult.data) {
-          setError(billingResult.error ?? "Unable to load finance dashboard");
+        const billingResult = billingSettled.status === "fulfilled" ? billingSettled.value : null;
+        const runsResult = runsSettled.status === "fulfilled" ? runsSettled.value : null;
+        const payslipsResult = payslipsSettled.status === "fulfilled" ? payslipsSettled.value : null;
+
+        setBilling(billingResult?.ok && billingResult.data ? billingResult.data : null);
+        setRuns(runsResult?.ok && runsResult.data ? runsResult.data : EMPTY_PAYROLL_RUNS);
+        setPayslips(payslipsResult?.ok && payslipsResult.data ? payslipsResult.data : EMPTY_PAYSLIPS);
+
+        if ((!billingResult?.ok || !billingResult.data) && (!runsResult?.ok || !runsResult.data) && (!payslipsResult?.ok || !payslipsResult.data)) {
+          setError(
+            billingResult?.error
+            ?? runsResult?.error
+            ?? payslipsResult?.error
+            ?? "Unable to load finance dashboard"
+          );
           return;
         }
-        setBilling(billingResult.data);
 
-        setRuns(runsResult.ok && runsResult.data ? runsResult.data : { rows: [] });
-        setPayslips(
-          payslipsResult.ok && payslipsResult.data
-            ? payslipsResult.data
-            : { rows: [], page: 1, pageSize: 20, hasMore: false, viewerScope: "self" }
-        );
+        setError(null);
       })
       .catch((err: unknown) => {
         if (!active) return;
@@ -119,6 +135,13 @@ export const FinanceDashboard = ({
     allowedRouteSet.has("/app/billing") ? { label: "Billing console", href: "/app/billing", caption: "Invoices and proofs" } : null,
     allowedRouteSet.has("/app/approvals") ? { label: "Approvals queue", href: "/app/approvals", caption: "Pending blockers" } : null,
   ].filter(Boolean) as Array<{ label: string; href: string; caption: string }>;
+  const seatSummary = billing?.seatSummary ?? {
+    activeTotal: 0,
+    activeBillable: 0,
+    seatLimit: null,
+    seatsRemaining: null
+  };
+  const recentInvoices = billing?.recentInvoices ?? [];
   const heroSignals = [
     { label: "Billing", value: billing?.subscription?.status ?? "Loading" },
     { label: "Runs", value: runs?.rows.length ? `${runs.rows.length} in view` : "Ready" },
@@ -126,7 +149,9 @@ export const FinanceDashboard = ({
   ];
 
   if (loading) return <LoadingState label="Loading finance dashboard..." />;
-  if (error || !billing) return <ErrorState message={error ?? "Finance dashboard unavailable"} />;
+  if (error && !billing && runs.rows.length === 0 && payslips.rows.length === 0) {
+    return <ErrorState message={error} />;
+  }
 
   return (
     <DashboardScaffold
@@ -154,14 +179,14 @@ export const FinanceDashboard = ({
         <div className="dashboard-kpi-grid">
           <DashboardKpiTile
             label="Subscription"
-            value={billing.subscription?.status ?? "-"}
-            hint={billing.subscription?.planName ?? "No active plan"}
-            accent={billing.subscription?.status === "past_due" ? "warning" : "success"}
+            value={billing?.subscription?.status ?? "-"}
+            hint={billing?.subscription?.planName ?? "No active plan"}
+            accent={billing?.subscription?.status === "past_due" ? "warning" : "success"}
           />
           <DashboardKpiTile
             label="Active seats"
-            value={billing.seatSummary.activeBillable}
-            hint={billing.seatSummary.seatLimit ? `Limit ${billing.seatSummary.seatLimit}` : "Custom limit"}
+            value={seatSummary.activeBillable}
+            hint={seatSummary.seatLimit ? `Limit ${seatSummary.seatLimit}` : "Custom limit"}
             accent="info"
           />
           <DashboardKpiTile
@@ -193,10 +218,10 @@ export const FinanceDashboard = ({
 
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
           <ChartPanel title="Billing summary" subtitle="Current period health">
-            <SignalRow label="Plan" value={billing.subscription?.planName ?? "-"} />
-            <SignalRow label="Status" value={<StatusBadge status={billing.subscription?.status ?? "unknown"} />} />
-            <SignalRow label="Period end" value={billing.subscription?.currentPeriodEnd ?? "-"} />
-            <SignalRow label="Recent invoices" value={billing.recentInvoices.length} />
+            <SignalRow label="Plan" value={billing?.subscription?.planName ?? "-"} />
+            <SignalRow label="Status" value={<StatusBadge status={billing?.subscription?.status ?? "unknown"} />} />
+            <SignalRow label="Period end" value={billing?.subscription?.currentPeriodEnd ?? "-"} />
+            <SignalRow label="Recent invoices" value={recentInvoices.length} />
           </ChartPanel>
 
           <ChartPanel title="Payroll trend" subtitle="Recent run lifecycle statuses">
@@ -208,8 +233,8 @@ export const FinanceDashboard = ({
       <DashboardSection visible={view === "operations"}>
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
           <WorkflowPanel title="Recent invoices" subtitle="Latest billing documents">
-            {billing.recentInvoices.length === 0 ? <p className="muted">No invoices found.</p> : null}
-            {billing.recentInvoices.slice(0, 8).map((invoice) => (
+            {recentInvoices.length === 0 ? <p className="muted">No invoices found.</p> : null}
+            {recentInvoices.slice(0, 8).map((invoice) => (
               <div key={invoice.id} className="row" style={{ justifyContent: "space-between" }}>
                 <div className="stack" style={{ gap: 4 }}>
                   <strong>{invoice.invoiceNumber}</strong>
@@ -225,7 +250,7 @@ export const FinanceDashboard = ({
 
           <WorkflowPanel title="Finance action paths" subtitle="Fast routes for closeout, invoice review, and payroll delivery">
             <QuickActionGrid actions={actionPaths} />
-            <SignalRow label="Invoice count in view" value={billing.recentInvoices.length} />
+            <SignalRow label="Invoice count in view" value={recentInvoices.length} />
             <SignalRow label="Paid payslips" value={totals.paid} tone="success" />
           </WorkflowPanel>
         </div>

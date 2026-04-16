@@ -31,15 +31,33 @@ import {
 const currency = (value: number) =>
   new Intl.NumberFormat(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 2 }).format(value);
 
+const EMPTY_ADMIN_DASHBOARD: AdminDashboardResponse = {
+  headcount: { total: 0, active: 0 },
+  attendanceRate: null,
+  leaveUtilization: null,
+  payrollSnapshot: null,
+  securityAlerts: [],
+  departmentBreakdown: []
+};
+
+const EMPTY_MONITORING_OVERVIEW: MonitoringOverview = {
+  rateLimitBreaches: [],
+  idempotencyConflicts: [],
+  approvalFailures: [],
+  generated_at: "-"
+};
+
+const EMPTY_PAYROLL_RUNS: PayrollRunsResponse = { rows: [] };
+
 export const FounderDashboard = ({
   allowedRoutes = [],
 }: {
   allowedRoutes?: string[];
 }) => {
-  const [adminData, setAdminData] = useState<AdminDashboardResponse | null>(null);
+  const [adminData, setAdminData] = useState<AdminDashboardResponse>(EMPTY_ADMIN_DASHBOARD);
   const [billing, setBilling] = useState<BillingOverview | null>(null);
-  const [monitoring, setMonitoring] = useState<MonitoringOverview | null>(null);
-  const [payrollRuns, setPayrollRuns] = useState<PayrollRunsResponse | null>(null);
+  const [monitoring, setMonitoring] = useState<MonitoringOverview>(EMPTY_MONITORING_OVERVIEW);
+  const [payrollRuns, setPayrollRuns] = useState<PayrollRunsResponse>(EMPTY_PAYROLL_RUNS);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState<DashboardView>("workspace");
@@ -50,36 +68,35 @@ export const FounderDashboard = ({
     setLoading(true);
     setError(null);
 
-    void Promise.all([
+    void Promise.allSettled([
       fetchAdminDashboard(),
       fetchMonitoringOverview(),
       fetchPayrollRuns({ limit: 12 }),
       fetchBillingOverview()
     ])
-      .then(([adminResult, monitoringResult, runsResult, billingResult]) => {
+      .then(([adminSettled, monitoringSettled, runsSettled, billingSettled]) => {
         if (!active) return;
-        if (!adminResult.ok || !adminResult.data) {
-          setError(adminResult.error ?? "Unable to load executive dashboard");
-          return;
-        }
-        if (!monitoringResult.ok || !monitoringResult.data) {
-          setError(monitoringResult.error ?? "Unable to load monitoring summary");
-          return;
-        }
-        if (!runsResult.ok || !runsResult.data) {
-          setError(runsResult.error ?? "Unable to load payroll runs");
+        const adminResult = adminSettled.status === "fulfilled" ? adminSettled.value : null;
+        const monitoringResult = monitoringSettled.status === "fulfilled" ? monitoringSettled.value : null;
+        const runsResult = runsSettled.status === "fulfilled" ? runsSettled.value : null;
+        const billingResult = billingSettled.status === "fulfilled" ? billingSettled.value : null;
+
+        setAdminData(adminResult?.ok && adminResult.data ? adminResult.data : EMPTY_ADMIN_DASHBOARD);
+        setMonitoring(monitoringResult?.ok && monitoringResult.data ? monitoringResult.data : EMPTY_MONITORING_OVERVIEW);
+        setPayrollRuns(runsResult?.ok && runsResult.data ? runsResult.data : EMPTY_PAYROLL_RUNS);
+        setBilling(billingResult?.ok && billingResult.data ? billingResult.data : null);
+
+        if ((!adminResult?.ok || !adminResult.data) && (!monitoringResult?.ok || !monitoringResult.data) && (!runsResult?.ok || !runsResult.data)) {
+          setError(
+            adminResult?.error
+            ?? monitoringResult?.error
+            ?? runsResult?.error
+            ?? "Unable to load founder dashboard"
+          );
           return;
         }
 
-        setAdminData(adminResult.data);
-        setMonitoring(monitoringResult.data);
-        setPayrollRuns(runsResult.data);
-
-        if (billingResult.ok && billingResult.data) {
-          setBilling(billingResult.data);
-        } else {
-          setBilling(null);
-        }
+        setError(null);
       })
       .catch((err: unknown) => {
         if (!active) return;
@@ -156,7 +173,9 @@ export const FounderDashboard = ({
   ];
 
   if (loading) return <LoadingState label="Loading founder dashboard..." />;
-  if (error || !adminData || !monitoring || !payrollRuns) return <ErrorState message={error ?? "Founder dashboard unavailable"} />;
+  if (error && adminData.headcount.total === 0 && monitoring.generated_at === "-" && payrollRuns.rows.length === 0) {
+    return <ErrorState message={error} />;
+  }
 
   return (
     <DashboardScaffold

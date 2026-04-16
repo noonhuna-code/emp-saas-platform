@@ -604,7 +604,6 @@ export const getEmployeeProfile = async (
   employeeId: string
 ): Promise<ServiceResult<EmployeeProfile>> => {
   try {
-    await requireEmployeeModuleEntitlement(ctx);
     await requireSelfOrManageEmployees(ctx, employeeId);
 
     const { data: employee, error } = await ctx.supabase
@@ -819,7 +818,6 @@ export const upsertEmployeePersonalDetails = async (
   payload: PersonalDetailsInput
 ): Promise<ServiceResult<EmployeePersonalDetails>> => {
   try {
-    await requireEmployeeModuleEntitlement(ctx);
     await requireSelfOrManageEmployees(ctx, employeeId);
 
     const admin = createSupabaseAdminClient();
@@ -855,7 +853,6 @@ export const upsertEmployeeSensitiveData = async (
   payload: SensitiveDataInput
 ): Promise<ServiceResult<EmployeeSensitiveData>> => {
   try {
-    await requireEmployeeModuleEntitlement(ctx);
     requirePermission("manage_employees", ctx);
 
     const admin = createSupabaseAdminClient();
@@ -906,7 +903,6 @@ export const updateEmployeeEmploymentInfo = async (
   payload: EmploymentInfoInput
 ): Promise<ServiceResult<Record<string, unknown>>> => {
   try {
-    await requireEmployeeModuleEntitlement(ctx);
     requirePermission("manage_employees", ctx);
     assertEmployeeScope(employeeId, ctx);
 
@@ -945,7 +941,6 @@ export const addEmployeeDocument = async (
   payload: EmployeeDocumentInput
 ): Promise<ServiceResult<EmployeeDocument>> => {
   try {
-    await requireEmployeeModuleEntitlement(ctx);
     await requireSelfOrManageEmployees(ctx, employeeId);
     const admin = createSupabaseAdminClient();
 
@@ -972,7 +967,6 @@ export const updateEmployeeDocument = async (
   payload: EmployeeDocumentInput
 ): Promise<ServiceResult<EmployeeDocument>> => {
   try {
-    await requireEmployeeModuleEntitlement(ctx);
     await requireSelfOrManageEmployees(ctx, employeeId);
     const admin = createSupabaseAdminClient();
 
@@ -1002,7 +996,6 @@ export const deleteEmployeeDocument = async (
   documentId: string
 ): Promise<ServiceResult<{ id: string }>> => {
   try {
-    await requireEmployeeModuleEntitlement(ctx);
     await requireSelfOrManageEmployees(ctx, employeeId);
     const admin = createSupabaseAdminClient();
 
@@ -1038,7 +1031,6 @@ export const addEmployeeFamilyMember = async (
   payload: EmployeeFamilyInput
 ): Promise<ServiceResult<EmployeeFamilyMember>> => {
   try {
-    await requireEmployeeModuleEntitlement(ctx);
     await requireSelfOrManageEmployees(ctx, employeeId);
 
     const { data, error } = await ctx.supabase
@@ -1064,7 +1056,6 @@ export const updateEmployeeFamilyMember = async (
   payload: EmployeeFamilyInput
 ): Promise<ServiceResult<EmployeeFamilyMember>> => {
   try {
-    await requireEmployeeModuleEntitlement(ctx);
     await requireSelfOrManageEmployees(ctx, employeeId);
 
     const { data, error } = await ctx.supabase
@@ -1093,7 +1084,6 @@ export const deleteEmployeeFamilyMember = async (
   memberId: string
 ): Promise<ServiceResult<{ id: string }>> => {
   try {
-    await requireEmployeeModuleEntitlement(ctx);
     await requireSelfOrManageEmployees(ctx, employeeId);
 
     const { error } = await ctx.supabase
@@ -1126,7 +1116,6 @@ export const addEmployeeSkill = async (
   payload: EmployeeSkillInput
 ): Promise<ServiceResult<EmployeeSkill>> => {
   try {
-    await requireEmployeeModuleEntitlement(ctx);
     await requireSelfOrManageEmployees(ctx, employeeId);
 
     const { data, error } = await ctx.supabase
@@ -1152,7 +1141,6 @@ export const updateEmployeeSkill = async (
   payload: EmployeeSkillInput
 ): Promise<ServiceResult<EmployeeSkill>> => {
   try {
-    await requireEmployeeModuleEntitlement(ctx);
     await requireSelfOrManageEmployees(ctx, employeeId);
 
     const { data, error } = await ctx.supabase
@@ -1181,7 +1169,6 @@ export const deleteEmployeeSkill = async (
   skillId: string
 ): Promise<ServiceResult<{ id: string }>> => {
   try {
-    await requireEmployeeModuleEntitlement(ctx);
     await requireSelfOrManageEmployees(ctx, employeeId);
 
     const { error } = await ctx.supabase
@@ -1214,7 +1201,6 @@ export const addEmployeeEducation = async (
   payload: EmployeeEducationInput
 ): Promise<ServiceResult<EmployeeEducation>> => {
   try {
-    await requireEmployeeModuleEntitlement(ctx);
     await requireSelfOrManageEmployees(ctx, employeeId);
 
     const { data, error } = await ctx.supabase
@@ -1240,7 +1226,6 @@ export const updateEmployeeEducation = async (
   payload: EmployeeEducationInput
 ): Promise<ServiceResult<EmployeeEducation>> => {
   try {
-    await requireEmployeeModuleEntitlement(ctx);
     await requireSelfOrManageEmployees(ctx, employeeId);
 
     const { data, error } = await ctx.supabase
@@ -1269,7 +1254,6 @@ export const deleteEmployeeEducation = async (
   educationId: string
 ): Promise<ServiceResult<{ id: string }>> => {
   try {
-    await requireEmployeeModuleEntitlement(ctx);
     await requireSelfOrManageEmployees(ctx, employeeId);
 
     const { error } = await ctx.supabase
@@ -1306,7 +1290,6 @@ export const listEmployeeLookups = async (
   ctx: ServiceContext
 ): Promise<ServiceResult<EmployeeLookups>> => {
   try {
-    await requireEmployeeModuleEntitlement(ctx);
     const accessScope = await getAccessibleEmployeeScope(ctx);
     const admin = createSupabaseAdminClient();
 
