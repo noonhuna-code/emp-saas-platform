@@ -286,8 +286,8 @@ const TopbarContextRow = ({
 
   return (
     <div className="border-t border-slate-200/70 px-3 py-2.5 dark:border-slate-800/80 sm:px-4">
-      <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
-        <div className="-mx-1 flex items-center overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="flex flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
+        <div className="-mx-1 flex min-w-0 items-center overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden xl:flex-1">
           <div className="inline-flex min-w-max items-center gap-1 rounded-[16px] border border-slate-200/80 bg-slate-100/80 p-1 dark:border-slate-800 dark:bg-slate-900/75">
             {tabs.map((tab) => {
               const active = pathname === tab.href || pathname.startsWith(`${tab.href}/`);
@@ -308,7 +308,7 @@ const TopbarContextRow = ({
             })}
           </div>
         </div>
-        <div className="-mx-1 flex items-center gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:justify-end">
+        <div className="-mx-1 flex items-center gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden xl:justify-end">
           {chips.map((chip) => (
             <span
               key={chip}
