@@ -1,4 +1,4 @@
-export type DocumentPreviewKind = "pdf" | "image" | "text" | "unsupported";
+export type DocumentPreviewKind = "pdf" | "image" | "text" | "sheet" | "word" | "unsupported";
 
 export type EmployeeDocumentViewerDescriptor = {
   employeeId: string;
@@ -24,10 +24,12 @@ const TEXT_MIME_PATTERNS = [
 
 const IMAGE_MIME_PATTERNS = [/^image\//i];
 
-const TEXT_EXTENSIONS = new Set(["txt", "md", "csv", "json", "log", "xml", "yml", "yaml", "ini", "tsv"]);
+const TEXT_EXTENSIONS = new Set(["txt", "md", "json", "log", "xml", "yml", "yaml", "ini"]);
+const SHEET_EXTENSIONS = new Set(["csv", "tsv", "xls", "xlsx"]);
+const WORD_EXTENSIONS = new Set(["docx"]);
 const IMAGE_EXTENSIONS = new Set(["png", "jpg", "jpeg", "gif", "webp", "bmp", "svg"]);
 
-const inferExtension = (fileName?: string | null) => {
+export const inferExtension = (fileName?: string | null) => {
   if (!fileName) return null;
   const normalized = fileName.trim().toLowerCase();
   const dotIndex = normalized.lastIndexOf(".");
@@ -48,6 +50,22 @@ export const resolveDocumentPreviewKind = (
 
   if (IMAGE_MIME_PATTERNS.some((pattern) => pattern.test(normalizedMime)) || (extension && IMAGE_EXTENSIONS.has(extension))) {
     return "image";
+  }
+
+  if (
+    normalizedMime.includes("spreadsheet")
+    || normalizedMime.includes("excel")
+    || normalizedMime.includes("sheet")
+    || (extension && SHEET_EXTENSIONS.has(extension))
+  ) {
+    return "sheet";
+  }
+
+  if (
+    normalizedMime === "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    || (extension && WORD_EXTENSIONS.has(extension))
+  ) {
+    return "word";
   }
 
   if (TEXT_MIME_PATTERNS.some((pattern) => pattern.test(normalizedMime)) || (extension && TEXT_EXTENSIONS.has(extension))) {
