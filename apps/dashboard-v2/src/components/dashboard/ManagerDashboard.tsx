@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Suspense, lazy, useEffect, useState } from "react";
 import { DashboardPerfMarker, useDashboardPerf } from "@/components/dashboard/useDashboardPerf";
 import { DashboardWidgetBoundary } from "@/components/dashboard/DashboardWidgetBoundary";
+import { syncRoleWorkspaceModules } from "@/components/dashboard/roleModuleSync";
 import {
   ChartPanel,
   DashboardModuleDeck,
@@ -92,6 +93,11 @@ export const ManagerDashboard = ({
         }
       : null,
   ].filter(Boolean) as Array<{ title: string; description: string; href: string; label?: string; metric?: string; highlights?: string[] }>;
+  const syncedWorkspaceModules = syncRoleWorkspaceModules({
+    baseModules: workspaceModules,
+    allowedRoutes: allowedRouteSet,
+    preferredRoutes: ["/app/attendance/review", "/app/organization", "/app/notifications", "/app/calendar", "/app/resources", "/app/settings"],
+  });
   const heroSignals = [
     { label: "Coverage", value: canViewTeamAttendance ? "Live team view" : "Scoped routes" },
     { label: "Approvals", value: canReviewLeave ? "Leave enabled" : "Standard routing" },
@@ -129,9 +135,9 @@ export const ManagerDashboard = ({
           <ManagerKpiWidget variant="manager" />
         </section>
 
-        {workspaceModules.length > 0 ? (
+        {syncedWorkspaceModules.length > 0 ? (
           <DashboardPanel title="Workspace modules" subtitle="TailAdmin-style modules for the manager surfaces that need fast attention.">
-            <DashboardModuleDeck modules={workspaceModules} />
+            <DashboardModuleDeck modules={syncedWorkspaceModules} />
           </DashboardPanel>
         ) : null}
 

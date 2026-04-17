@@ -42,6 +42,14 @@ export const UnifiedApprovalsTable = ({
     if (!typeFilter || typeFilter === "all") return items;
     return items.filter((item) => item.type === typeFilter);
   }, [items, typeFilter]);
+  const counts = useMemo(
+    () => ({
+      all: items.length,
+      leave: items.filter((item) => item.type === "leave").length,
+      attendance: items.filter((item) => item.type === "attendance").length,
+    }),
+    [items]
+  );
 
   return (
     <div className="space-y-5">
@@ -64,9 +72,26 @@ export const UnifiedApprovalsTable = ({
               }`}
               onClick={() => onTypeFilterChange?.(option.id)}
             >
-              {option.label}
+              {option.label} {counts[option.id]}
             </button>
           ))}
+        </div>
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-3">
+        <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 px-4 py-3">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Visible now</p>
+          <p className="mt-2 text-lg font-semibold text-slate-950 dark:text-slate-50">{filteredItems.length}</p>
+        </div>
+        <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 px-4 py-3">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Current filter</p>
+          <p className="mt-2 text-lg font-semibold text-slate-950 dark:text-slate-50">
+            {(typeFilter ?? "all") === "all" ? "Mixed queue" : (typeFilter ?? "all") === "leave" ? "Leave only" : "Attendance only"}
+          </p>
+        </div>
+        <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 px-4 py-3">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Decision mode</p>
+          <p className="mt-2 text-lg font-semibold text-slate-950 dark:text-slate-50">{busy ? "Updating..." : "Ready"}</p>
         </div>
       </div>
 

@@ -5,6 +5,7 @@ import type { OrganizationAdminData, OrganizationOverview } from "@emp/lib/types
 import { Badge } from "@/components/ui/badge";
 import {
   FeatureCallout,
+  OverviewChips,
   PageContainer,
   PageHeader,
   StatePanel,
@@ -15,6 +16,7 @@ import {
 } from "@/components/dashboard-v2/PagePrimitives";
 import { adminInputClassName, AdminTable } from "./OrganizationAdminPrimitives";
 import { getOrganizationCapabilities } from "./organization-access";
+import { OrganizationSectionNav } from "./OrganizationSectionNav";
 
 type PeopleRow = {
   id: string;
@@ -179,6 +181,7 @@ export function OrganizationPeopleScreen({
 
   return (
     <PageContainer>
+      <OrganizationSectionNav capabilities={capabilities} className="mb-6" />
       <PageHeader
         eyebrow="People"
         title="People directory"
@@ -207,7 +210,17 @@ export function OrganizationPeopleScreen({
         title="Workspace modules"
         description="TailAdmin-style directory modules for people search, structure context, and relationship visibility."
       >
-        <WorkspaceModuleGrid modules={workspaceModules} />
+        <OverviewChips
+          chips={[
+            `${overview.employees.length} employees`,
+            scope === "my-team" ? "My team view" : "Company scope",
+            `${filteredRows.length} currently visible`,
+            capabilities.isManagerial ? "Manager-aware" : "Role-aware",
+          ]}
+        />
+        <div className="mt-4">
+          <WorkspaceModuleGrid modules={workspaceModules} />
+        </div>
       </SurfacePanel>
 
       <SurfacePanel

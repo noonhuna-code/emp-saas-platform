@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Button } from "@/components/ui/button";
 import {
   approveAttendanceCorrectionRequest,
   approveLeaveRequest,
@@ -121,6 +122,23 @@ export const ApprovalsPageClient = () => {
     const queue = typeFilter === "all" ? items : items.filter((item) => item.type === typeFilter);
     return queue.slice(0, 5);
   }, [items, typeFilter]);
+  const filteredStats = useMemo(() => {
+    const queue = typeFilter === "all" ? items : items.filter((item) => item.type === typeFilter);
+    const oldestHours = queue.length > 0 ? Math.max(...queue.map((item) => toHours(item.submitted_at))) : 0;
+    return {
+      total: queue.length,
+      oldestHours,
+    };
+  }, [items, typeFilter]);
+  const queueFocusChips = useMemo(
+    () => [
+      typeFilter === "all" ? "All request types" : typeFilter === "leave" ? "Leave-only focus" : "Attendance-only focus",
+      `${filteredStats.total} visible in lane`,
+      filteredStats.oldestHours > 0 ? `Oldest visible ${filteredStats.oldestHours}h` : "No aging requests",
+      busy ? "Decision in progress" : "Decision lane ready",
+    ],
+    [busy, filteredStats.oldestHours, filteredStats.total, typeFilter]
+  );
   const workspaceModules = [
     {
       title: "Unified approval queue",
@@ -157,6 +175,9 @@ export const ApprovalsPageClient = () => {
         chips={["Unified queue", "Role-aware review", "Leave + attendance", "Escalation ready"]}
         actions={(
           <>
+            <Button type="button" variant="secondary" className="rounded-full" onClick={() => void load()} disabled={loading || busy}>
+              {loading ? "Refreshing..." : "Refresh queue"}
+            </Button>
             <Link href="/app/leave/review" className="secondary-btn">Leave review</Link>
             <Link href="/app/attendance/review" className="secondary-btn">Attendance review</Link>
           </>
@@ -192,6 +213,37 @@ export const ApprovalsPageClient = () => {
           title="Approval queue"
           description="Triage the oldest requests first, then move into the dedicated review pages only when deeper context is needed."
         >
+          <div className="mb-5 space-y-4">
+            <OverviewChips chips={queueFocusChips} />
+            <div className="grid gap-3 md:grid-cols-3">
+              <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Current lane</p>
+                <p className="mt-2 text-lg font-semibold text-slate-950">
+                  {typeFilter === "all" ? "Unified queue" : typeFilter === "leave" ? "Leave approvals" : "Attendance corrections"}
+                </p>
+                <p className="mt-1 text-sm leading-6 text-slate-600">
+                  Work the oldest items first so staffing and correction backlog does not spill into payroll or coverage issues.
+                </p>
+              </div>
+              <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Visible requests</p>
+                <p className="mt-2 text-lg font-semibold text-slate-950">{filteredStats.total}</p>
+                <p className="mt-1 text-sm leading-6 text-slate-600">
+                  This reflects the currently focused lane, not the full mixed queue.
+                </p>
+              </div>
+              <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Review pace</p>
+                <p className="mt-2 text-lg font-semibold text-slate-950">
+                  {filteredStats.oldestHours > 0 ? `${filteredStats.oldestHours}h oldest` : "Queue fresh"}
+                </p>
+                <p className="mt-1 text-sm leading-6 text-slate-600">
+                  Use the dedicated review pages only when a request needs deeper context or escalation routing.
+                </p>
+              </div>
+            </div>
+          </div>
+
           {notice ? (
             <div className="mb-4 rounded-2xl border border-emerald-200 bg-emerald-50/80 px-4 py-3 text-sm text-emerald-700">
               {notice}
@@ -227,6 +279,14 @@ export const ApprovalsPageClient = () => {
               <p className="text-sm leading-6 text-slate-600">
                 Keep this queue focused on requests that affect staffing, payroll-adjacent corrections, and operational accountability. Older requests should be escalated first.
               </p>
+              <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Suggested handling order</p>
+                <div className="mt-3 space-y-2 text-sm leading-6 text-slate-600">
+                  <p>1. Oldest mixed queue items.</p>
+                  <p>2. Requests with coverage impact or unresolved attendance correction risk.</p>
+                  <p>3. Deeper route-level review in leave or attendance only when ownership or detail is unclear.</p>
+                </div>
+              </div>
               <WorkspaceModuleGrid
                 className="xl:grid-cols-1"
                 modules={[

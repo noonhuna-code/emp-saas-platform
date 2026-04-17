@@ -1,17 +1,20 @@
 "use client";
-
 import { Badge } from "@/components/ui/badge";
 import type { OrganizationDepartmentSummary, OrganizationOverview, OrganizationReportingSummary, OrganizationTeamSummary } from "@emp/lib/types";
 import {
   DashboardRail,
   FeatureCallout,
+  OverviewChips,
   PageContainer,
   PageHeader,
   StatePanel,
   StatCard,
   StatGrid,
   SurfacePanel,
+  WorkspaceModuleGrid,
 } from "@/components/dashboard-v2/PagePrimitives";
+import { getOrganizationCapabilities } from "./organization-access";
+import { OrganizationSectionNav } from "./OrganizationSectionNav";
 
 const personLabel = (person?: { full_name: string; employee_code?: string | null } | null) => {
   if (!person) return "Not assigned";
@@ -70,11 +73,16 @@ export function OrganizationOverviewScreen({
   overview,
   error,
   embedded = false,
+  viewerRole = null,
+  viewerPermissions = [],
 }: {
   overview: OrganizationOverview | null;
   error?: string | null;
   embedded?: boolean;
+  viewerRole?: string | null;
+  viewerPermissions?: string[];
 }) {
+  const capabilities = getOrganizationCapabilities(viewerRole, viewerPermissions);
   if (error) {
     return (
       <PageContainer>
@@ -115,6 +123,7 @@ export function OrganizationOverviewScreen({
 
   return (
     <PageContainer>
+      {!embedded ? <OrganizationSectionNav capabilities={capabilities} className="mb-6" /> : null}
       {!embedded ? (
         <PageHeader
           eyebrow="Organization"
@@ -135,6 +144,51 @@ export function OrganizationOverviewScreen({
             </div>
           }
         />
+      ) : null}
+
+      {!embedded ? (
+        <SurfacePanel
+          title="Organization routes"
+          description="Move between overview, people, org chart, and the broader workspace without losing structure context."
+        >
+          <OverviewChips
+            chips={[
+              `${overview.departments.length} departments`,
+              `${overview.teams.length} teams`,
+              `${overview.employees.length} employees`,
+              foundation ? "Foundation ready" : "Overview only",
+            ]}
+          />
+          <div className="mt-4">
+            <WorkspaceModuleGrid
+              modules={[
+                {
+                  title: "People directory",
+                  description: "Open the searchable employee directory when structure review turns into people lookup.",
+                  href: "/app/people",
+                  label: "People",
+                  metric: `${overview.employees.length} employees`,
+                  highlights: ["Profiles", "Managers", "Directory"],
+                },
+                {
+                  title: "Org chart view",
+                  description: "Switch to the relationship-first view for reporting and placement context.",
+                  href: "/app/org-chart",
+                  label: "Org chart",
+                  metric: `${overview.teams.length} teams`,
+                  highlights: ["Relationships", "Managers", "Placement"],
+                },
+                {
+                  title: "Enterprise workspace",
+                  description: "Return to the full organization workspace for structure, roles, and assignment administration.",
+                  href: "/app/organization",
+                  label: "Workspace",
+                  highlights: ["Structure", "Assignments", "Governance"],
+                },
+              ]}
+            />
+          </div>
+        </SurfacePanel>
       ) : null}
 
       {!embedded ? (

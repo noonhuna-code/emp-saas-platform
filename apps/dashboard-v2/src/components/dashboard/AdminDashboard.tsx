@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Suspense, lazy, useEffect, useState } from "react";
 import { HRDashboard } from "@/components/dashboard/HRDashboard";
 import { ITDashboard } from "@/components/dashboard/ITDashboard";
+import { syncRoleWorkspaceModules } from "@/components/dashboard/roleModuleSync";
 import { DashboardPerfMarker, useDashboardPerf } from "@/components/dashboard/useDashboardPerf";
 import { DashboardWidgetBoundary } from "@/components/dashboard/DashboardWidgetBoundary";
 import {
@@ -103,6 +104,11 @@ const AdminDashboardCore = ({
         }
       : null,
   ].filter(Boolean) as Array<{ title: string; description: string; href: string; label?: string; metric?: string; highlights?: string[] }>;
+  const syncedWorkspaceModules = syncRoleWorkspaceModules({
+    baseModules: workspaceModules,
+    allowedRoutes: allowedRouteSet,
+    preferredRoutes: ["/app/organization", "/app/payroll", "/app/settings", "/app/notifications", "/app/resources", "/app/analytics"],
+  });
   const heroSignals = [
     { label: "People ops", value: peopleHref ? "Directory live" : "Scoped" },
     { label: "Control", value: allowedRouteSet.has("/app/monitoring") ? "Security enabled" : "Core ops" },
@@ -140,9 +146,9 @@ const AdminDashboardCore = ({
           <AdminKpiWidget />
         </section>
 
-        {workspaceModules.length > 0 ? (
+        {syncedWorkspaceModules.length > 0 ? (
           <DashboardPanel title="Workspace modules" subtitle="TailAdmin-style entry lanes for the admin controls you use most.">
-            <DashboardModuleDeck modules={workspaceModules} />
+            <DashboardModuleDeck modules={syncedWorkspaceModules} />
           </DashboardPanel>
         ) : null}
 

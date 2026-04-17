@@ -32,8 +32,9 @@ import {
   adminInputClassName,
   adminTextAreaClassName,
 } from "./OrganizationAdminPrimitives";
-import { DashboardRail, PageContainer, PageHeader, StatePanel, SurfacePanel } from "@/components/dashboard-v2/PagePrimitives";
+import { DashboardRail, FeatureCallout, OverviewChips, PageContainer, PageHeader, StatePanel, StatCard, StatGrid, SurfacePanel, WorkspaceModuleGrid } from "@/components/dashboard-v2/PagePrimitives";
 import { OrganizationOverviewScreen } from "./OrganizationOverviewScreen";
+import { OrganizationSectionNav } from "./OrganizationSectionNav";
 import { getOrganizationCapabilities } from "./organization-access";
 import { buildPublicWebsiteUrl } from "@/lib/site";
 
@@ -48,6 +49,33 @@ const TAB_BY_ID: Record<TabId, { id: TabId; label: string }> = {
   assignments: { id: "assignments", label: "Assignments & Reporting" },
   approvals: { id: "approvals", label: "Approvals & Delegation" },
   explorer: { id: "explorer", label: "Explorer" },
+};
+
+const TAB_COPY: Record<TabId, { title: string; description: string }> = {
+  overview: {
+    title: "Organization overview",
+    description: "Read structure, reporting, and foundation coverage before opening deeper admin controls.",
+  },
+  structure: {
+    title: "Structure management",
+    description: "Create and maintain org unit types and the enterprise hierarchy in a controlled lane.",
+  },
+  roles: {
+    title: "Roles and positions",
+    description: "Manage role families, job roles, positions, and structural authority relationships.",
+  },
+  assignments: {
+    title: "Assignments and reporting",
+    description: "Connect people to positions and reporting lines without losing future-dated planning context.",
+  },
+  approvals: {
+    title: "Approvals and delegation",
+    description: "Control approval delegation and routing ownership across org, role, and employee context.",
+  },
+  explorer: {
+    title: "Explorer and audit context",
+    description: "Search the organization model and assignment snapshot with scoped filters and relationship context.",
+  },
 };
 
 const UNIT_CATEGORIES: OrgUnitCategory[] = ["ownership", "business", "geography", "functional", "workspace", "temporary"];
@@ -566,6 +594,79 @@ export function OrganizationWorkspaceScreen({
     if (adminData && capabilities.canViewExplorer) next.push(TAB_BY_ID.explorer);
     return next;
   }, [adminData, capabilities, overview]);
+  const activeTabCopy = TAB_COPY[tab];
+  const topModules = useMemo(
+    () =>
+      [
+        capabilities.canReadOrganization
+          ? {
+              title: "Organization workspace",
+              description: "Stay in the main organization control surface for structure, reporting, and governance changes.",
+              href: "/app/organization",
+              label: "Workspace",
+              metric: visibleTabs.length ? `${visibleTabs.length} sections` : "Overview",
+              highlights: ["Structure", "Reporting", "Governance"],
+            }
+          : null,
+        capabilities.canViewPeople
+          ? {
+              title: "People directory",
+              description: "Switch to the readable directory view when employee search and reporting context matter more than admin forms.",
+              href: "/app/people",
+              label: "People",
+              metric: overview ? `${overview.employees.length} employees` : "Directory",
+              highlights: ["Profiles", "Managers", "Role families"],
+            }
+          : null,
+        capabilities.canViewOrgChart
+          ? {
+              title: "Org chart view",
+              description: "Open the relationship-first view when reporting paths and placement need a cleaner visual read.",
+              href: "/app/org-chart",
+              label: "Org chart",
+              metric: overview ? `${overview.teams.length} teams` : "Relationships",
+              highlights: ["Managers", "Placement", "Relationships"],
+            }
+          : null,
+        {
+          title: "Dashboard return",
+          description: "Jump back to the role dashboard after reviewing organization context or completing admin work.",
+          href: "/app/dashboard",
+          label: "Navigation",
+          highlights: ["Role home", "Workspace", "Follow-up"],
+        },
+      ].filter(Boolean),
+    [capabilities.canReadOrganization, capabilities.canViewOrgChart, capabilities.canViewPeople, overview, visibleTabs.length]
+  ) as Array<{ title: string; description: string; href: string; label?: string; metric?: string; highlights?: string[] }>;
+  const summaryChips = [
+    capabilities.isReadOnly ? "Read-safe organization view" : "Admin-capable organization view",
+    activeTabCopy.title,
+    `${visibleTabs.length} visible sections`,
+    overview ? `${overview.departments.length} departments` : "Overview pending",
+    adminData?.identity_reference_strategy ?? "Profile-backed identity",
+  ];
+  const summaryStats = [
+    {
+      label: "Visible sections",
+      value: visibleTabs.length,
+      hint: "Workspace tabs available to the current role",
+    },
+    {
+      label: "Departments",
+      value: overview?.departments.length ?? 0,
+      hint: "Current structure visible in organization scope",
+    },
+    {
+      label: "Teams",
+      value: overview?.teams.length ?? 0,
+      hint: "Execution units currently visible",
+    },
+    {
+      label: "Explorer rows",
+      value: adminData?.assignment_snapshot.length ?? 0,
+      hint: capabilities.canViewExplorer ? "Assignment snapshot rows returned" : "Explorer hidden for this role",
+    },
+  ];
 
   useEffect(() => {
     const firstVisibleTab = visibleTabs[0];
@@ -653,6 +754,20 @@ export function OrganizationWorkspaceScreen({
         }
       />
 
+      <OrganizationSectionNav capabilities={capabilities} className="mb-6" />
+
+      <FeatureCallout
+        badge={capabilities.isReadOnly ? "Scoped reader" : "Organization control"}
+        title={activeTabCopy.title}
+        description={activeTabCopy.description}
+      />
+
+      <StatGrid>
+        {summaryStats.map((stat) => (
+          <StatCard key={stat.label} label={stat.label} value={stat.value} hint={stat.hint} />
+        ))}
+      </StatGrid>
+
       <DashboardRail className="xl:grid-cols-[minmax(0,1fr)]">
         <SurfacePanel
           title="Workspace sections"
@@ -661,9 +776,10 @@ export function OrganizationWorkspaceScreen({
               ? "Your current role can review the organization surface without seeing admin-only controls."
               : "Use the tabs below to manage structure, positions, reporting, delegations, and approvals from one place."
           }
-          actions={<AdminTabs value={tab} onChange={(value) => setTab(value as TabId)} tabs={visibleTabs} />}
         >
           <div className="space-y-4">
+            <OverviewChips chips={summaryChips} />
+            <AdminTabs value={tab} onChange={(value) => setTab(value as TabId)} tabs={visibleTabs} />
             {mutationMessage ? <AdminInlineMessage tone="success">{mutationMessage}</AdminInlineMessage> : null}
             {mutationError ? <AdminInlineMessage tone="error">{mutationError}</AdminInlineMessage> : null}
             {error ? <AdminInlineMessage tone="error">{error}</AdminInlineMessage> : null}
@@ -673,6 +789,13 @@ export function OrganizationWorkspaceScreen({
               </AdminInlineMessage>
             ) : null}
           </div>
+        </SurfacePanel>
+
+        <SurfacePanel
+          title="Cross-workspace routes"
+          description="Move between structure, people visibility, org chart context, and the main role dashboard without losing your current operating lane."
+        >
+          <WorkspaceModuleGrid className="xl:grid-cols-2" modules={topModules} />
         </SurfacePanel>
 
         {capabilities.canReadOrganization && adminData && !capabilities.isReadOnly ? (
@@ -749,7 +872,7 @@ export function OrganizationWorkspaceScreen({
       </DashboardRail>
 
       {tab === "overview" ? (
-        <OrganizationOverviewScreen overview={overview} error={error} embedded />
+        <OrganizationOverviewScreen overview={overview} error={error} embedded viewerRole={viewerRole} viewerPermissions={viewerPermissions} />
       ) : null}
 
       {tab === "structure" ? (

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { fetchBillingOverview, fetchPayrollRuns, fetchPayslipHistory } from "@/lib/client/api";
+import { syncRoleWorkspaceModules } from "@/components/dashboard/roleModuleSync";
 import { PayrollAnalyticsWidgetsSection } from "@/components/dashboard/payroll-analytics/PayrollAnalyticsWidgetsSection";
 import type { BillingOverview } from "@/lib/types/billing";
 import type { PayrollRunsResponse, PayslipHistoryResponse } from "@/lib/types/payroll";
@@ -168,6 +169,11 @@ export const FinanceDashboard = ({
         }
       : null,
   ].filter(Boolean) as Array<{ title: string; description: string; href: string; label?: string; metric?: string; highlights?: string[] }>;
+  const syncedWorkspaceModules = syncRoleWorkspaceModules({
+    baseModules: workspaceModules,
+    allowedRoutes: allowedRouteSet,
+    preferredRoutes: ["/app/notifications", "/app/approvals", "/app/settings", "/app/analytics", "/app/resources"],
+  });
   const seatSummary = billing?.seatSummary ?? {
     activeTotal: 0,
     activeBillable: 0,
@@ -236,9 +242,9 @@ export const FinanceDashboard = ({
           />
         </div>
 
-        {workspaceModules.length > 0 ? (
+        {syncedWorkspaceModules.length > 0 ? (
           <ChartPanel title="Workspace modules" subtitle="TailAdmin-style finance modules for payroll, billing, and employee-facing delivery.">
-            <DashboardModuleDeck modules={workspaceModules} />
+            <DashboardModuleDeck modules={syncedWorkspaceModules} />
           </ChartPanel>
         ) : null}
 

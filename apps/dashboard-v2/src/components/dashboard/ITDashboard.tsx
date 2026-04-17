@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { fetchBillingOverview, fetchMonitoringOverview } from "@/lib/client/api";
+import { syncRoleWorkspaceModules } from "@/components/dashboard/roleModuleSync";
 import type { BillingOverview } from "@/lib/types/billing";
 import type { MonitoringOverview } from "@/lib/types/monitoring";
 import { LoadingState } from "@/components/states/LoadingState";
@@ -152,6 +153,11 @@ export const ITDashboard = ({
         }
       : null,
   ].filter(Boolean) as Array<{ title: string; description: string; href: string; label?: string; metric?: string; highlights?: string[] }>;
+  const syncedWorkspaceModules = syncRoleWorkspaceModules({
+    baseModules: workspaceModules,
+    allowedRoutes: allowedRouteSet,
+    preferredRoutes: ["/app/settings", "/app/approvals", "/app/analytics", "/app/resources", "/app/people", "/app/employees"],
+  });
 
   if (loading) return <LoadingState label="Loading IT dashboard..." />;
   if (error && monitoring.generated_at === "-") return <ErrorState message={error} />;
@@ -191,9 +197,9 @@ export const ITDashboard = ({
           />
         </div>
 
-        {workspaceModules.length > 0 ? (
+        {syncedWorkspaceModules.length > 0 ? (
           <ChartPanel title="Workspace modules" subtitle="TailAdmin-style IT entry points for response, monitoring, and license posture.">
-            <DashboardModuleDeck modules={workspaceModules} />
+            <DashboardModuleDeck modules={syncedWorkspaceModules} />
           </ChartPanel>
         ) : null}
 

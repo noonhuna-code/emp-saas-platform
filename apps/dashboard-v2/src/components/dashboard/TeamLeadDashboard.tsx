@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Suspense, lazy, useEffect, useMemo, useState } from "react";
+import { syncRoleWorkspaceModules } from "@/components/dashboard/roleModuleSync";
 import { DashboardPerfMarker, useDashboardPerf } from "@/components/dashboard/useDashboardPerf";
 import { DashboardWidgetBoundary } from "@/components/dashboard/DashboardWidgetBoundary";
 import {
@@ -194,6 +195,11 @@ export const TeamLeadDashboard = ({
         }
       : null,
   ].filter(Boolean) as Array<{ title: string; description: string; href: string; label?: string; metric?: string; highlights?: string[] }>;
+  const syncedWorkspaceModules = syncRoleWorkspaceModules({
+    baseModules: workspaceModules,
+    allowedRoutes: allowedRouteSet,
+    preferredRoutes: ["/app/attendance/review", "/app/chat", "/app/notifications", "/app/calendar", "/app/resources", "/app/settings"],
+  });
 
   return (
     <DashboardScaffold
@@ -222,9 +228,9 @@ export const TeamLeadDashboard = ({
           <ManagerKpiWidget variant="team_lead" />
         </section>
 
-        {workspaceModules.length > 0 ? (
+        {syncedWorkspaceModules.length > 0 ? (
           <DashboardPanel title="Workspace modules" subtitle="TailAdmin-style team lead modules for frontline coverage, approvals, and assignments.">
-            <DashboardModuleDeck modules={workspaceModules} />
+            <DashboardModuleDeck modules={syncedWorkspaceModules} />
           </DashboardPanel>
         ) : null}
 

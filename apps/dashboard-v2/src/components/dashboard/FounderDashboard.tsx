@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { fetchAdminDashboard, fetchBillingOverview, fetchMonitoringOverview, fetchPayrollRuns } from "@/lib/client/api";
+import { syncRoleWorkspaceModules } from "@/components/dashboard/roleModuleSync";
 import { getLimitInteger, isFeatureEnabled } from "@/lib/client/entitlements";
 import type { BillingOverview } from "@/lib/types/billing";
 import type { AdminDashboardResponse } from "@/lib/types/dashboard";
@@ -199,6 +200,11 @@ export const FounderDashboard = ({
         }
       : null,
   ].filter(Boolean) as Array<{ title: string; description: string; href: string; label?: string; metric?: string; highlights?: string[] }>;
+  const syncedWorkspaceModules = syncRoleWorkspaceModules({
+    baseModules: workspaceModules,
+    allowedRoutes: allowedRouteSet,
+    preferredRoutes: ["/app/analytics", "/app/organization", "/app/approvals", "/app/settings", "/app/notifications", "/app/resources"],
+  });
   const heroSignals = [
     { label: "Plan", value: billing?.subscription?.planName ?? "Executive view" },
     { label: "Risks", value: `${riskCounts.breaches + riskCounts.idempotency + riskCounts.approvals} monitored` },
@@ -256,9 +262,9 @@ export const FounderDashboard = ({
           />
         </div>
 
-        {workspaceModules.length > 0 ? (
+        {syncedWorkspaceModules.length > 0 ? (
           <DashboardPanel title="Workspace modules" subtitle="TailAdmin-style executive modules for people posture, payroll, and governance.">
-            <DashboardModuleDeck modules={workspaceModules} />
+            <DashboardModuleDeck modules={syncedWorkspaceModules} />
           </DashboardPanel>
         ) : null}
 

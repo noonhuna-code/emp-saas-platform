@@ -49,6 +49,19 @@ export function OrganizationSectionNav({
           </Link>
         );
       })}
+      {capabilities.canReadOrganization ? (
+        <Link
+          className={cn(
+            "rounded-full border px-4 py-2 text-sm font-medium transition",
+            pathname === "/app/dashboard"
+              ? "border-blue-200 bg-blue-50 text-blue-700 shadow-sm"
+              : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900"
+          )}
+          href="/app/dashboard"
+        >
+          Dashboard
+        </Link>
+      ) : null}
       <Badge className="rounded-full border-slate-200 bg-white/90 text-slate-700">
         {capabilities.roleLabel}
       </Badge>

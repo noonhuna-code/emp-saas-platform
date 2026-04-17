@@ -24,6 +24,7 @@ import { ActionCard } from "@/components/ui/ActionCard";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { DashboardPerfMarker, useDashboardPerf } from "@/components/dashboard/useDashboardPerf";
 import { DashboardWidgetBoundary } from "@/components/dashboard/DashboardWidgetBoundary";
+import { syncRoleWorkspaceModules } from "@/components/dashboard/roleModuleSync";
 import {
   ChartPanel,
   DashboardModuleDeck,
@@ -265,6 +266,11 @@ export const EmployeeDashboard = ({
         }
       : null,
   ].filter(Boolean) as Array<{ title: string; description: string; href: string; label?: string; metric?: string; highlights?: string[] }>;
+  const syncedWorkspaceModules = syncRoleWorkspaceModules({
+    baseModules: workspaceModules,
+    allowedRoutes: allowedRouteSet,
+    preferredRoutes: ["/app/profile", "/app/notifications", "/app/calendar", "/app/settings", "/app/payslips", "/app/resources"],
+  });
 
   if (error && !data) {
     return <ErrorState message={error} />;
@@ -414,10 +420,10 @@ export const EmployeeDashboard = ({
           )}
         </section>
 
-        {workspaceModules.length > 0 ? (
+        {syncedWorkspaceModules.length > 0 ? (
           <section className="space-y-4">
             <h2 className="text-xl font-semibold">Workspace Modules</h2>
-            <DashboardModuleDeck modules={workspaceModules} />
+            <DashboardModuleDeck modules={syncedWorkspaceModules} />
           </section>
         ) : null}
 

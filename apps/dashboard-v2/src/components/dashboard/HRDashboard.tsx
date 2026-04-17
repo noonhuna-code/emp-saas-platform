@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Suspense, lazy, useEffect, useMemo, useState } from "react";
+import { syncRoleWorkspaceModules } from "@/components/dashboard/roleModuleSync";
 import { DashboardPerfMarker, useDashboardPerf } from "@/components/dashboard/useDashboardPerf";
 import { DashboardWidgetBoundary } from "@/components/dashboard/DashboardWidgetBoundary";
 import {
@@ -81,6 +82,11 @@ export const HRDashboard = ({
         }
       : null,
   ].filter(Boolean) as Array<{ title: string; description: string; href: string; label?: string; metric?: string; highlights?: string[] }>;
+  const syncedWorkspaceModules = syncRoleWorkspaceModules({
+    baseModules: workspaceModules,
+    allowedRoutes: allowedRouteSet,
+    preferredRoutes: ["/app/organization", "/app/approvals", "/app/notifications", "/app/resources", "/app/settings", "/app/analytics"],
+  });
 
   useEffect(() => {
     perf.markKpiRendered();
@@ -112,9 +118,9 @@ export const HRDashboard = ({
           <HRKpiWidget />
         </section>
 
-        {workspaceModules.length > 0 ? (
+        {syncedWorkspaceModules.length > 0 ? (
           <DashboardPanel title="Workspace modules" subtitle="TailAdmin-style HR entry points for the routes that shape people operations most.">
-            <DashboardModuleDeck modules={workspaceModules} />
+            <DashboardModuleDeck modules={syncedWorkspaceModules} />
           </DashboardPanel>
         ) : null}
 
