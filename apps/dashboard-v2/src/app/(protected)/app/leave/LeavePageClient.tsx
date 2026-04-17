@@ -204,7 +204,7 @@ export const LeavePageClient = () => {
           </SurfacePanel>
 
           {activeTab === "apply" ? (
-            <div className="grid gap-6 xl:grid-cols-[minmax(0,1.45fr)_minmax(360px,0.85fr)]">
+            <div className="space-y-6">
               <SurfacePanel title="Apply for leave" description="Submit one request without leaving the employee workspace.">
                 <LeaveApplyForm
                   onSubmit={handleApply}
@@ -216,7 +216,7 @@ export const LeavePageClient = () => {
               </SurfacePanel>
               <SurfacePanel
                 title="Latest request status"
-                description="Track the current stage and next approver for your latest request without switching screens."
+                description="Track the current stage and next approver for your latest request in the second row."
               >
                 <LeaveStatusTimeline request={selectedRequest} />
               </SurfacePanel>

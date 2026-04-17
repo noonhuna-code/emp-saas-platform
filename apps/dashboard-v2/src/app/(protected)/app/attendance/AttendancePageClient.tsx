@@ -9,6 +9,7 @@ import { ClockActions } from "@/components/attendance/ClockActions";
 import { AttendanceHistoryTable } from "@/components/attendance/AttendanceHistoryTable";
 import { CorrectionRequestDialog } from "@/components/attendance/CorrectionRequestDialog";
 import { ErrorState } from "@/components/states/ErrorState";
+import { EmployeeWorkspaceSetupState, isEmployeeWorkspaceSetupIssue } from "@/components/states/EmployeeWorkspaceSetupState";
 import { LoadingState } from "@/components/states/LoadingState";
 import {
   DashboardRail,
@@ -305,7 +306,16 @@ export const AttendancePageClient = ({
       />
 
       {loadingToday ? <LoadingState label="Loading attendance command center" /> : null}
-      {!loadingToday && todayError && !todayData ? <ErrorState message={todayError} /> : null}
+      {!loadingToday && todayError && !todayData ? (
+        isEmployeeWorkspaceSetupIssue(todayError) ? (
+          <EmployeeWorkspaceSetupState
+            title="Attendance access is not ready yet"
+            description="This route needs a linked employee attendance record or self-service attendance scope before today’s attendance data can render."
+          />
+        ) : (
+          <ErrorState message={todayError} />
+        )
+      ) : null}
 
       {!loadingToday && todayData ? (
         <>

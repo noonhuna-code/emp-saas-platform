@@ -33,6 +33,7 @@ import { QualificationsSection } from "@/components/profile/QualificationsSectio
 import { EmployeeProfileHeader } from "@/components/profile/EmployeeProfileHeader";
 import { Tabs } from "@/components/shared/Tabs";
 import { ErrorState } from "@/components/states/ErrorState";
+import { EmployeeWorkspaceSetupState, isEmployeeWorkspaceSetupIssue } from "@/components/states/EmployeeWorkspaceSetupState";
 import { LoadingState } from "@/components/states/LoadingState";
 import {
   DashboardRail,
@@ -158,7 +159,14 @@ export const EmployeeProfileScreen = ({ employeeId }: { employeeId: string }) =>
     return (
       <PageContainer>
         <PageHeader eyebrow="Profile" title="Profile workspace" description="Manage your personal, employment, family, skill, and document records." />
-        <ErrorState message={error ?? "Employee profile unavailable"} />
+        {isEmployeeWorkspaceSetupIssue(error) ? (
+          <EmployeeWorkspaceSetupState
+            title="Profile workspace needs employee access"
+            description="The employee-linked record for this profile route is not available in the current session, so the editable profile sections cannot load yet."
+          />
+        ) : (
+          <ErrorState message={error ?? "Employee profile unavailable"} />
+        )}
       </PageContainer>
     );
   }

@@ -215,13 +215,23 @@ export type ShiftSwapRequest = {
   employee_id: string;
   employee_name: string | null;
   attendance_date: string;
+  request_mode: "shift_change" | "swap_with_agent";
   old_shift_template_id: string;
   old_shift_name: string | null;
   requested_shift_template_id: string;
   requested_shift_name: string | null;
+  target_employee_id: string | null;
+  target_employee_name: string | null;
+  target_employee_shift_template_id: string | null;
+  target_employee_shift_name: string | null;
   reason: string;
-  status: "pending" | "approved" | "rejected";
+  status: "pending_team_lead" | "pending_hr" | "approved" | "rejected";
+  status_label: string;
+  current_stage_label: string;
+  next_approver_name: string | null;
   created_at: string;
+  team_lead_reviewed_at: string | null;
+  hr_reviewed_at: string | null;
   reviewed_at: string | null;
   reviewed_by: string | null;
 };
@@ -237,5 +247,29 @@ export type ShiftSwapCreateResponse = {
 
 export type ShiftSwapReviewResponse = {
   requestId: string;
-  status: "approved" | "rejected";
+  status: "pending_hr" | "approved" | "rejected";
+};
+
+export type ShiftChangeCandidate = {
+  employee_id: string;
+  full_name: string | null;
+  employee_code: string | null;
+  designation: string | null;
+  department_name: string | null;
+  team_name: string | null;
+  is_direct_report: boolean;
+  shift_template_id: string | null;
+  shift_name: string | null;
+  shift_start_time: string | null;
+  shift_end_time: string | null;
+};
+
+export type ShiftChangeCandidatesResponse = {
+  attendanceDate: string;
+  actorEmployeeId: string;
+  actorShiftTemplateId: string | null;
+  actorShiftName: string | null;
+  actorShiftStartTime: string | null;
+  actorShiftEndTime: string | null;
+  rows: ShiftChangeCandidate[];
 };

@@ -61,8 +61,8 @@ const SidebarBrand = ({
             </div>
 
             <div className="min-w-0">
-              <div className="truncate text-[1.5rem] font-semibold tracking-[-0.06em] text-gray-900 dark:text-white/90">EMP Workforce OS</div>
-              <div className="mt-1 truncate text-sm text-gray-500 dark:text-gray-400">Role-aware TailAdmin workspace</div>
+              <div className="truncate text-[1.28rem] font-semibold tracking-[-0.05em] text-gray-900 dark:text-white/90">EMP Workforce OS</div>
+              <div className="mt-1 truncate text-[13px] text-gray-500 dark:text-gray-400">Role-aware workforce workspace</div>
             </div>
           </div>
         </div>

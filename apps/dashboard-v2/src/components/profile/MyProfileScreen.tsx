@@ -5,6 +5,7 @@ import { fetchCurrentEmployeeId, peekCachedResult } from "@/lib/client/api";
 import { EmployeeProfileScreen } from "@/components/profile/EmployeeProfileScreen";
 import { LoadingState } from "@/components/states/LoadingState";
 import { ErrorState } from "@/components/states/ErrorState";
+import { EmployeeWorkspaceSetupState, isEmployeeWorkspaceSetupIssue } from "@/components/states/EmployeeWorkspaceSetupState";
 import { PageContainer, PageHeader } from "@/components/dashboard-v2/PagePrimitives";
 
 export const MyProfileScreen = ({ initialEmployeeId = null }: { initialEmployeeId?: string | null }) => {
@@ -67,7 +68,14 @@ export const MyProfileScreen = ({ initialEmployeeId = null }: { initialEmployeeI
           title="My profile"
           description="Review and update your employee profile, documents, family details, and skill inventory."
         />
-        <ErrorState message={error ?? "Employee profile unavailable"} />
+        {isEmployeeWorkspaceSetupIssue(error) || !employeeId ? (
+          <EmployeeWorkspaceSetupState
+            title="Profile setup is not ready yet"
+            description="This signed-in account does not currently resolve to a self-service employee profile inside the workspace."
+          />
+        ) : (
+          <ErrorState message={error ?? "Employee profile unavailable"} />
+        )}
       </PageContainer>
     );
   }

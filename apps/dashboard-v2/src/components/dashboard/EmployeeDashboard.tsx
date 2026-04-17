@@ -19,6 +19,7 @@ import {
 import { fetchEmployeeDashboard, peekCachedResult } from "@/lib/client/api";
 import type { EmployeeDashboardResponse } from "@/lib/types/dashboard";
 import { ErrorState } from "@/components/states/ErrorState";
+import { EmployeeWorkspaceSetupState, isEmployeeWorkspaceSetupIssue } from "@/components/states/EmployeeWorkspaceSetupState";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { ActionCard } from "@/components/ui/ActionCard";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -273,6 +274,14 @@ export const EmployeeDashboard = ({
   });
 
   if (error && !data) {
+    if (isEmployeeWorkspaceSetupIssue(error)) {
+      return (
+        <EmployeeWorkspaceSetupState
+          title="Employee dashboard needs a linked employee record"
+          description="The shell loaded, but this account is missing the employee mapping or self-service access needed for the employee dashboard widgets."
+        />
+      );
+    }
     return <ErrorState message={error} />;
   }
 

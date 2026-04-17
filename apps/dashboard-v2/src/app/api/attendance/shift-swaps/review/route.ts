@@ -33,12 +33,12 @@ export async function POST(request: Request) {
       return finalizeRoute(
         route,
         endpoint,
-        jsonError(sanitizeServiceError(result.error, "Unable to review shift swap request"), mapServiceErrorStatus(result.error), route.requestId)
+        jsonError(sanitizeServiceError(result.error, "Unable to review shift change request"), mapServiceErrorStatus(result.error), route.requestId)
       );
     }
 
     return finalizeRoute(route, endpoint, NextResponse.json({ ok: true, data: result.data, requestId: route.requestId }, { status: 200 }));
   } catch (error) {
-    return finalizeRoute(route, endpoint, handleRouteError(error, "Unable to review shift swap request", route.requestId));
+    return finalizeRoute(route, endpoint, handleRouteError(error, "Unable to review shift change request", route.requestId));
   }
 }

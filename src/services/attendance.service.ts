@@ -269,20 +269,47 @@ export type ShiftAssignableEmployeeRow = {
   is_direct_report: boolean;
 };
 
+export type ShiftChangeRequestMode = "shift_change" | "swap_with_agent";
+export type ShiftChangeRequestStatus = "pending_team_lead" | "pending_hr" | "approved" | "rejected";
+
 export type ShiftSwapRequestRow = {
   id: string;
   employee_id: string;
   employee_name: string | null;
   attendance_date: string;
+  request_mode: ShiftChangeRequestMode;
   old_shift_template_id: string;
   old_shift_name: string | null;
   requested_shift_template_id: string;
   requested_shift_name: string | null;
+  target_employee_id: string | null;
+  target_employee_name: string | null;
+  target_employee_shift_template_id: string | null;
+  target_employee_shift_name: string | null;
   reason: string;
-  status: "pending" | "approved" | "rejected";
+  status: ShiftChangeRequestStatus;
+  status_label: string;
+  current_stage_label: string;
+  next_approver_name: string | null;
   created_at: string;
+  team_lead_reviewed_at: string | null;
+  hr_reviewed_at: string | null;
   reviewed_at: string | null;
   reviewed_by: string | null;
+};
+
+export type ShiftChangeCandidateRow = {
+  employee_id: string;
+  full_name: string | null;
+  employee_code: string | null;
+  designation: string | null;
+  department_name: string | null;
+  team_name: string | null;
+  is_direct_report: boolean;
+  shift_template_id: string | null;
+  shift_name: string | null;
+  shift_start_time: string | null;
+  shift_end_time: string | null;
 };
 
 type AttendanceRecordForCorrection = {
@@ -368,6 +395,47 @@ type EmployeeDayStateSnapshot = {
   late_login_request: AttendanceLateLoginRequest;
   break_summary: string | null;
   latestGeoEvent: AttendanceTodayResponse["latestGeoEvent"] | null;
+};
+
+type ShiftChangeApprovalDirectoryRow = {
+  id: string;
+  manager_id?: string | null;
+  designation?: string | null;
+  user_profile_id?: string | null;
+  user_profiles?: {
+    full_name?: string | null;
+    user_id?: string | null;
+  } | null;
+};
+
+type ShiftChangeApprovalDirectoryEntry = {
+  employeeId: string;
+  managerId: string | null;
+  designation: string | null;
+  userProfileId: string | null;
+  userId: string | null;
+  fullName: string | null;
+  roleName: string | null;
+};
+
+type ShiftChangeApprovalRole =
+  | "employee"
+  | "team_lead"
+  | "manager"
+  | "hr"
+  | "admin"
+  | "finance"
+  | "executive"
+  | "other";
+
+type ActiveShiftSnapshot = {
+  assignment_id: string;
+  shift_template_id: string;
+  shift_name: string | null;
+  start_time: string | null;
+  end_time: string | null;
+  effective_from: string;
+  effective_to: string | null;
 };
 
 const currentDateText = (): string => new Date().toISOString().slice(0, 10);
@@ -879,16 +947,346 @@ const loadOpenBreak = async (
   };
 };
 
-const requireShiftSwapReviewAccess = (ctx: ServiceContext): void => {
-  if (
-    ctx.permissions.includes("manage_attendance")
-    || ctx.permissions.includes("manage_employees")
-    || ctx.permissions.includes("assign_shifts")
-    || ctx.permissions.includes("approve_attendance")
-  ) {
+const normalizeApprovalRoleName = (value?: string | null): string =>
+  (value ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .replace(/[_-]+/g, " ");
+
+const SHIFT_CHANGE_ROLE_PRIORITY = [
+  ["founder", "ceo", "founder ceo", "ceo founder"],
+  ["admin", "org owner", "org_owner"],
+  ["hr"],
+  ["finance manager", "finance", "finance admin", "finance lead"],
+  ["director", "senior manager", "manager", "supervisor"],
+  ["team lead", "team_lead", "teamlead"],
+  ["employee"]
+] as const;
+
+const selectPrimaryApprovalRoleName = (roleNames: string[]): string | null => {
+  if (roleNames.length === 0) return null;
+
+  const rank = (name: string): number => {
+    const normalized = normalizeApprovalRoleName(name);
+    const index = SHIFT_CHANGE_ROLE_PRIORITY.findIndex((aliases) =>
+      aliases.some((alias) => normalizeApprovalRoleName(alias) === normalized)
+    );
+    return index >= 0 ? index : Number.MAX_SAFE_INTEGER;
+  };
+
+  return [...roleNames].sort((left, right) => {
+    const leftRank = rank(left);
+    const rightRank = rank(right);
+    if (leftRank !== rightRank) return leftRank - rightRank;
+    return left.localeCompare(right);
+  })[0] ?? null;
+};
+
+const classifyShiftChangeApprovalRole = (
+  entry?: ShiftChangeApprovalDirectoryEntry | null
+): ShiftChangeApprovalRole => {
+  if (!entry) return "other";
+
+  const role = normalizeApprovalRoleName(entry.roleName);
+  const designation = normalizeApprovalRoleName(entry.designation);
+  const text = `${role} ${designation}`.trim();
+
+  if (text.includes("founder") || text.includes("ceo") || text.includes("chief")) return "executive";
+  if (text.includes(" hr") || text.startsWith("hr") || text.includes("human resources")) return "hr";
+  if (text.includes("admin")) return "admin";
+  if (text.includes("finance")) return "finance";
+  if (text.includes("team lead") || text.includes("teamlead") || text.includes("supervisor")) return "team_lead";
+  if (text.includes("manager") || text.includes("director") || text.includes("lead manager")) return "manager";
+  if (text.includes("employee") || text.includes("agent") || text.includes("associate")) return "employee";
+  return "other";
+};
+
+const loadShiftChangeApprovalDirectory = async (
+  ctx: ServiceContext,
+  client: SupabaseClient
+): Promise<Map<string, ShiftChangeApprovalDirectoryEntry>> => {
+  const { data: employees, error: employeeError } = await client
+    .from("employees")
+    .select("id, manager_id, designation, user_profile_id, user_profiles(full_name, user_id)")
+    .eq("company_id", ctx.companyId)
+    .is("is_deleted", false);
+
+  if (employeeError) {
+    throw new Error(employeeError.message);
+  }
+
+  const employeeRows = (employees ?? []) as ShiftChangeApprovalDirectoryRow[];
+  const userIds = Array.from(
+    new Set(
+      employeeRows
+        .map((row) => row.user_profiles?.user_id ?? null)
+        .filter((value): value is string => Boolean(value))
+    )
+  );
+
+  const roleNamesByUserId = new Map<string, string[]>();
+
+  if (userIds.length > 0) {
+    const { data: userRoles, error: roleError } = await client
+      .from("user_roles")
+      .select("user_id, roles(name)")
+      .eq("company_id", ctx.companyId)
+      .in("user_id", userIds);
+
+    if (roleError) {
+      throw new Error(roleError.message);
+    }
+
+    for (const row of (userRoles ?? []) as Array<{ user_id?: string | null; roles?: { name?: string | null } | null }>) {
+      const userId = row.user_id ?? null;
+      const roleName = row.roles?.name ?? null;
+      if (!userId || !roleName) continue;
+      const values = roleNamesByUserId.get(userId) ?? [];
+      values.push(roleName);
+      roleNamesByUserId.set(userId, values);
+    }
+  }
+
+  const directory = new Map<string, ShiftChangeApprovalDirectoryEntry>();
+  for (const row of employeeRows) {
+    const userId = row.user_profiles?.user_id ?? null;
+    directory.set(row.id, {
+      employeeId: row.id,
+      managerId: row.manager_id ?? null,
+      designation: row.designation ?? null,
+      userProfileId: row.user_profile_id ?? null,
+      userId,
+      fullName: row.user_profiles?.full_name ?? null,
+      roleName: userId ? selectPrimaryApprovalRoleName(roleNamesByUserId.get(userId) ?? []) : null
+    });
+  }
+
+  return directory;
+};
+
+const firstShiftChangeEntryByRole = (
+  directory: Map<string, ShiftChangeApprovalDirectoryEntry>,
+  role: ShiftChangeApprovalRole,
+  excludeEmployeeIds: string[] = []
+): ShiftChangeApprovalDirectoryEntry | null => {
+  for (const entry of directory.values()) {
+    if (excludeEmployeeIds.includes(entry.employeeId)) continue;
+    if (classifyShiftChangeApprovalRole(entry) === role) return entry;
+  }
+  return null;
+};
+
+const resolveShiftChangeReviewers = (
+  employeeId: string,
+  directory: Map<string, ShiftChangeApprovalDirectoryEntry>
+): {
+  requester: ShiftChangeApprovalDirectoryEntry | null;
+  teamLeadApprover: ShiftChangeApprovalDirectoryEntry | null;
+  hrApprover: ShiftChangeApprovalDirectoryEntry | null;
+} => {
+  const requester = directory.get(employeeId) ?? null;
+  const directManager = requester?.managerId ? directory.get(requester.managerId) ?? null : null;
+  const teamLeadApprover =
+    directManager
+    ?? firstShiftChangeEntryByRole(directory, "team_lead", [employeeId])
+    ?? firstShiftChangeEntryByRole(directory, "manager", [employeeId])
+    ?? firstShiftChangeEntryByRole(directory, "admin", [employeeId])
+    ?? null;
+  const hrApprover =
+    firstShiftChangeEntryByRole(directory, "hr", [employeeId, teamLeadApprover?.employeeId ?? ""])
+    ?? firstShiftChangeEntryByRole(directory, "admin", [employeeId, teamLeadApprover?.employeeId ?? ""])
+    ?? firstShiftChangeEntryByRole(directory, "finance", [employeeId, teamLeadApprover?.employeeId ?? ""])
+    ?? null;
+
+  return {
+    requester,
+    teamLeadApprover,
+    hrApprover,
+  };
+};
+
+const getShiftChangeStageLabel = (status: ShiftChangeRequestStatus): string => {
+  if (status === "pending_team_lead") return "Waiting on team lead";
+  if (status === "pending_hr") return "Waiting on HR salary review";
+  if (status === "approved") return "Approved";
+  return "Rejected";
+};
+
+const getShiftChangeStatusLabel = (status: ShiftChangeRequestStatus): string => {
+  if (status === "pending_team_lead") return "Pending team lead";
+  if (status === "pending_hr") return "Pending HR";
+  if (status === "approved") return "Approved";
+  return "Rejected";
+};
+
+const canActorReviewShiftChangeRequest = (args: {
+  ctx: ServiceContext;
+  actorEmployeeId: string | null;
+  actorRole: ShiftChangeApprovalRole;
+  requestStatus: ShiftChangeRequestStatus;
+  reviewers: {
+    teamLeadApprover: ShiftChangeApprovalDirectoryEntry | null;
+    hrApprover: ShiftChangeApprovalDirectoryEntry | null;
+  };
+}): boolean => {
+  const { ctx, actorEmployeeId, actorRole, requestStatus, reviewers } = args;
+
+  if (ctx.permissions.includes("manage_company")) return true;
+
+  if (requestStatus === "pending_team_lead") {
+    if (actorEmployeeId && reviewers.teamLeadApprover?.employeeId === actorEmployeeId) return true;
+    if (
+      ctx.permissions.includes("manage_attendance")
+      || ctx.permissions.includes("assign_shifts")
+      || ctx.permissions.includes("approve_attendance")
+    ) {
+      return true;
+    }
+    return actorRole === "team_lead" || actorRole === "manager" || actorRole === "admin" || actorRole === "executive";
+  }
+
+  if (requestStatus === "pending_hr") {
+    if (actorEmployeeId && reviewers.hrApprover?.employeeId === actorEmployeeId) return true;
+    if (ctx.permissions.includes("manage_payroll")) return true;
+    return actorRole === "hr" || actorRole === "admin" || actorRole === "finance" || actorRole === "executive";
+  }
+
+  return false;
+};
+
+const loadActiveShiftSnapshot = async (
+  client: SupabaseClient,
+  ctx: ServiceContext,
+  employeeId: string,
+  attendanceDate: string
+): Promise<ActiveShiftSnapshot | null> => {
+  const { data, error } = await client
+    .from("employee_shift_assignments")
+    .select("id, shift_template_id, effective_from, effective_to, shift_templates(name, start_time, end_time)")
+    .eq("company_id", ctx.companyId)
+    .eq("employee_id", employeeId)
+    .lte("effective_from", attendanceDate)
+    .or(`effective_to.is.null,effective_to.gte.${attendanceDate}`)
+    .is("is_deleted", false)
+    .order("effective_from", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  if (!data?.id || !data.shift_template_id) {
+    return null;
+  }
+
+  return {
+    assignment_id: data.id as string,
+    shift_template_id: data.shift_template_id as string,
+    shift_name: (data.shift_templates as { name?: string | null } | null)?.name ?? null,
+    start_time: (data.shift_templates as { start_time?: string | null } | null)?.start_time ?? null,
+    end_time: (data.shift_templates as { end_time?: string | null } | null)?.end_time ?? null,
+    effective_from: data.effective_from as string,
+    effective_to: (data.effective_to as string | null) ?? null,
+  };
+};
+
+const previousDateText = (dateText: string): string => {
+  const parsed = parseIsoDate(dateText);
+  if (!parsed) {
+    throw new Error("Invalid attendance date");
+  }
+  parsed.setUTCDate(parsed.getUTCDate() - 1);
+  return parsed.toISOString().slice(0, 10);
+};
+
+const applyShiftAssignmentChangeForDate = async (args: {
+  ctx: ServiceContext;
+  adminClient: SupabaseClient;
+  employeeId: string;
+  shiftTemplateId: string;
+  effectiveFrom: string;
+  actorProfileId: string;
+  assignmentType: string;
+}): Promise<void> => {
+  const { ctx, adminClient, employeeId, shiftTemplateId, effectiveFrom, actorProfileId, assignmentType } = args;
+  const activeAssignment = await loadActiveShiftSnapshot(adminClient, ctx, employeeId, effectiveFrom);
+
+  if (!activeAssignment) {
+    const { error: insertError } = await adminClient
+      .from("employee_shift_assignments")
+      .insert({
+        company_id: ctx.companyId,
+        employee_id: employeeId,
+        shift_template_id: shiftTemplateId,
+        effective_from: effectiveFrom,
+        assigned_by: actorProfileId,
+        assignment_type: assignmentType,
+        created_by: actorProfileId,
+        updated_by: actorProfileId
+      });
+
+    if (insertError) {
+      throw new Error(insertError.message);
+    }
     return;
   }
-  throw new Error("Permission denied");
+
+  if (activeAssignment.effective_from === effectiveFrom) {
+    if (activeAssignment.shift_template_id === shiftTemplateId) {
+      return;
+    }
+
+    const { error: updateError } = await adminClient
+      .from("employee_shift_assignments")
+      .update({
+        shift_template_id: shiftTemplateId,
+        assigned_by: actorProfileId,
+        assignment_type: assignmentType,
+        updated_by: actorProfileId
+      })
+      .eq("company_id", ctx.companyId)
+      .eq("id", activeAssignment.assignment_id)
+      .is("is_deleted", false);
+
+    if (updateError) {
+      throw new Error(updateError.message);
+    }
+    return;
+  }
+
+  const { error: closeCurrentError } = await adminClient
+    .from("employee_shift_assignments")
+    .update({
+      effective_to: previousDateText(effectiveFrom),
+      updated_by: actorProfileId
+    })
+    .eq("company_id", ctx.companyId)
+    .eq("id", activeAssignment.assignment_id)
+    .is("is_deleted", false);
+
+  if (closeCurrentError) {
+    throw new Error(closeCurrentError.message);
+  }
+
+  const { error: insertError } = await adminClient
+    .from("employee_shift_assignments")
+    .insert({
+      company_id: ctx.companyId,
+      employee_id: employeeId,
+      shift_template_id: shiftTemplateId,
+      effective_from: effectiveFrom,
+      effective_to: activeAssignment.effective_to,
+      assigned_by: actorProfileId,
+      assignment_type: assignmentType,
+      created_by: actorProfileId,
+      updated_by: actorProfileId
+    });
+
+  if (insertError) {
+    throw new Error(insertError.message);
+  }
 };
 
 const parseIsoDate = (value: string): Date | null => {
@@ -2048,14 +2446,16 @@ export const removeEmployeeBreakAssignment = async (
 
 export const listShiftSwapRequests = async (
   ctx: ServiceContext,
-  options: { scope?: "mine" | "review"; status?: "pending" | "approved" | "rejected"; limit?: number } = {}
+  options: { scope?: "mine" | "review"; status?: ShiftChangeRequestStatus; limit?: number } = {}
 ): Promise<ServiceResult<{ scope: "mine" | "review"; rows: ShiftSwapRequestRow[] }>> => {
   try {
     await requireAttendanceEntitlement(ctx);
     const scope = options.scope === "review" ? "review" : "mine";
     const limit = Math.max(1, Math.min(options.limit ?? 100, 250));
+    const adminClient = createSupabaseAdminClient();
 
     let actorEmployeeId: string | null = null;
+    let actorRole: ShiftChangeApprovalRole = "other";
     if (scope === "mine") {
       await requireSelfAttendanceAccess(ctx);
       actorEmployeeId = await resolveCurrentEmployeeId(ctx.supabase, ctx);
@@ -2063,109 +2463,138 @@ export const listShiftSwapRequests = async (
         return { ok: false, error: "Employee record not found" };
       }
     } else {
-      requireShiftSwapReviewAccess(ctx);
+      actorEmployeeId = await resolveCurrentEmployeeId(ctx.supabase, ctx);
     }
 
-    let rows: ShiftSwapRequestRow[] = [];
+    const directory = await loadShiftChangeApprovalDirectory(ctx, adminClient);
+    const actorEntry = actorEmployeeId ? directory.get(actorEmployeeId) ?? null : null;
+    actorRole = classifyShiftChangeApprovalRole(actorEntry);
+
+    if (scope === "review") {
+      const hasReviewPresence =
+        ctx.permissions.includes("manage_company")
+        || ctx.permissions.includes("manage_payroll")
+        || ctx.permissions.includes("manage_attendance")
+        || ctx.permissions.includes("manage_employees")
+        || ctx.permissions.includes("assign_shifts")
+        || ctx.permissions.includes("approve_attendance")
+        || actorRole === "team_lead"
+        || actorRole === "manager"
+        || actorRole === "hr"
+        || actorRole === "admin"
+        || actorRole === "finance"
+        || actorRole === "executive";
+
+      if (!hasReviewPresence) {
+        return { ok: false, error: "Permission denied" };
+      }
+    }
+
+    let requestQuery = adminClient
+      .from("shift_change_requests")
+      .select(
+        "id, employee_id, attendance_date, request_mode, old_shift_template_id, requested_shift_template_id, target_employee_id, target_employee_shift_template_id, reason, status, created_at, team_lead_reviewed_at, hr_reviewed_at, reviewed_at, reviewed_by"
+      )
+      .eq("company_id", ctx.companyId)
+      .is("is_deleted", false)
+      .order("created_at", { ascending: false })
+      .limit(limit);
 
     if (scope === "mine" && actorEmployeeId) {
-      let mineQuery = ctx.supabase
-        .from("shift_change_requests")
-        .select("id, employee_id, attendance_date, old_shift_template_id, requested_shift_template_id, reason, status, created_at, reviewed_at, reviewed_by")
+      requestQuery = requestQuery.eq("employee_id", actorEmployeeId);
+    }
+
+    if (options.status) {
+      requestQuery = requestQuery.eq("status", options.status);
+    }
+
+    const { data: requestData, error: requestError } = await requestQuery;
+    if (requestError) {
+      return { ok: false, error: sanitizeError(requestError.message, "Unable to load shift change requests") };
+    }
+
+    const shiftTemplateIds = Array.from(
+      new Set(
+        (requestData ?? [])
+          .flatMap((row) => [
+            row.old_shift_template_id as string | null,
+            row.requested_shift_template_id as string | null,
+            (row.target_employee_shift_template_id as string | null) ?? null,
+          ])
+          .filter((value): value is string => Boolean(value))
+      )
+    );
+
+    const templateNameById = new Map<string, string>();
+    if (shiftTemplateIds.length > 0) {
+      const { data: templates, error: templatesError } = await adminClient
+        .from("shift_templates")
+        .select("id, name")
         .eq("company_id", ctx.companyId)
-        .eq("employee_id", actorEmployeeId)
         .is("is_deleted", false)
-        .order("created_at", { ascending: false })
-        .limit(limit);
+        .in("id", shiftTemplateIds);
 
-      if (options.status) {
-        mineQuery = mineQuery.eq("status", options.status);
+      if (templatesError) {
+        return { ok: false, error: sanitizeError(templatesError.message, "Unable to load shift change requests") };
       }
 
-      const { data: mineData, error: mineError } = await mineQuery;
-      if (mineError) {
-        return { ok: false, error: sanitizeError(mineError.message, "Unable to load shift swap requests") };
+      for (const row of templates ?? []) {
+        templateNameById.set(row.id as string, row.name as string);
       }
+    }
 
-      const shiftTemplateIds = Array.from(
-        new Set(
-          (mineData ?? [])
-            .flatMap((row) => [row.old_shift_template_id as string | null, row.requested_shift_template_id as string | null])
-            .filter((value): value is string => Boolean(value))
-        )
-      );
+    let rows: ShiftSwapRequestRow[] = (requestData ?? []).map((row) => {
+      const employeeId = row.employee_id as string;
+      const targetEmployeeId = (row.target_employee_id as string | null) ?? null;
+      const status = (row.status as ShiftChangeRequestStatus) ?? "pending_team_lead";
+      const reviewers = resolveShiftChangeReviewers(employeeId, directory);
 
-      let templateNameById = new Map<string, string>();
-      if (shiftTemplateIds.length > 0) {
-        const { data: templates, error: templatesError } = await ctx.supabase
-          .from("shift_templates")
-          .select("id, name")
-          .eq("company_id", ctx.companyId)
-          .is("is_deleted", false)
-          .in("id", shiftTemplateIds);
-
-        if (templatesError) {
-          return { ok: false, error: sanitizeError(templatesError.message, "Unable to load shift swap requests") };
-        }
-
-        templateNameById = new Map((templates ?? []).map((row) => [row.id as string, row.name as string]));
-      }
-
-      rows = (mineData ?? []).map((row) => ({
+      return {
         id: row.id as string,
-        employee_id: row.employee_id as string,
-        employee_name: null,
+        employee_id: employeeId,
+        employee_name: directory.get(employeeId)?.fullName ?? null,
         attendance_date: row.attendance_date as string,
+        request_mode: ((row.request_mode as ShiftChangeRequestMode | null) ?? "shift_change"),
         old_shift_template_id: row.old_shift_template_id as string,
         old_shift_name: templateNameById.get(row.old_shift_template_id as string) ?? null,
         requested_shift_template_id: row.requested_shift_template_id as string,
         requested_shift_name: templateNameById.get(row.requested_shift_template_id as string) ?? null,
+        target_employee_id: targetEmployeeId,
+        target_employee_name: targetEmployeeId ? directory.get(targetEmployeeId)?.fullName ?? null : null,
+        target_employee_shift_template_id: (row.target_employee_shift_template_id as string | null) ?? null,
+        target_employee_shift_name: row.target_employee_shift_template_id
+          ? templateNameById.get(row.target_employee_shift_template_id as string) ?? null
+          : null,
         reason: row.reason as string,
-        status: (row.status as "pending" | "approved" | "rejected") ?? "pending",
+        status,
+        status_label: getShiftChangeStatusLabel(status),
+        current_stage_label: getShiftChangeStageLabel(status),
+        next_approver_name: status === "pending_team_lead"
+          ? reviewers.teamLeadApprover?.fullName ?? "Team lead"
+          : status === "pending_hr"
+            ? reviewers.hrApprover?.fullName ?? "HR"
+            : null,
         created_at: row.created_at as string,
+        team_lead_reviewed_at: (row.team_lead_reviewed_at as string | null) ?? null,
+        hr_reviewed_at: (row.hr_reviewed_at as string | null) ?? null,
         reviewed_at: (row.reviewed_at as string | null) ?? null,
-        reviewed_by: (row.reviewed_by as string | null) ?? null
-      }));
-    } else {
-      let reviewQuery = ctx.supabase
-        .from("shift_change_requests")
-        .select(
-          "id, employee_id, attendance_date, old_shift_template_id, requested_shift_template_id, reason, status, created_at, reviewed_at, reviewed_by, employees!shift_change_requests_employee_id_fkey(user_profiles(full_name)), old_shift:shift_templates!shift_change_requests_old_shift_template_id_fkey(name), requested_shift:shift_templates!shift_change_requests_requested_shift_template_id_fkey(name)"
-        )
-        .eq("company_id", ctx.companyId)
-        .is("is_deleted", false)
-        .order("created_at", { ascending: false })
-        .limit(limit);
+        reviewed_by: (row.reviewed_by as string | null) ?? null,
+      };
+    });
 
-      if (options.status) {
-        reviewQuery = reviewQuery.eq("status", options.status);
-      }
-
-      const { data: reviewData, error: reviewError } = await reviewQuery;
-      if (reviewError) {
-        return { ok: false, error: sanitizeError(reviewError.message, "Unable to load shift swap requests") };
-      }
-
-      rows = (reviewData ?? []).map((row: any) => ({
-        id: row.id as string,
-        employee_id: row.employee_id as string,
-        employee_name: (row.employees?.user_profiles?.full_name as string | null) ?? null,
-        attendance_date: row.attendance_date as string,
-        old_shift_template_id: row.old_shift_template_id as string,
-        old_shift_name: (row.old_shift?.name as string | null) ?? null,
-        requested_shift_template_id: row.requested_shift_template_id as string,
-        requested_shift_name: (row.requested_shift?.name as string | null) ?? null,
-        reason: row.reason as string,
-        status: (row.status as "pending" | "approved" | "rejected") ?? "pending",
-        created_at: row.created_at as string,
-        reviewed_at: (row.reviewed_at as string | null) ?? null,
-        reviewed_by: (row.reviewed_by as string | null) ?? null
+    if (scope === "review") {
+      rows = rows.filter((row) => canActorReviewShiftChangeRequest({
+        ctx,
+        actorEmployeeId,
+        actorRole,
+        requestStatus: row.status,
+        reviewers: resolveShiftChangeReviewers(row.employee_id, directory),
       }));
     }
 
     return { ok: true, data: { scope, rows } };
   } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : "Shift swap lookup failed" };
+    return { ok: false, error: err instanceof Error ? err.message : "Shift change lookup failed" };
   }
 };
 
@@ -2481,12 +2910,154 @@ const loadEmployeeDateStates = async (
   return snapshots;
 };
 
+export const listShiftChangeCandidates = async (
+  ctx: ServiceContext,
+  options: { attendanceDate: string; query?: string; limit?: number }
+): Promise<ServiceResult<{
+  attendanceDate: string;
+  actorEmployeeId: string;
+  actorShiftTemplateId: string | null;
+  actorShiftName: string | null;
+  actorShiftStartTime: string | null;
+  actorShiftEndTime: string | null;
+  rows: ShiftChangeCandidateRow[];
+}>> => {
+  try {
+    await requireAttendanceEntitlement(ctx);
+    await requireSelfAttendanceAccess(ctx);
+
+    const attendanceDate = options.attendanceDate?.trim();
+    if (!attendanceDate || !parseIsoDate(attendanceDate)) {
+      return { ok: false, error: "Invalid attendance date" };
+    }
+
+    const actorEmployeeId = await resolveCurrentEmployeeId(ctx.supabase, ctx);
+    if (!actorEmployeeId) {
+      return { ok: false, error: "Employee record not found" };
+    }
+
+    const adminClient = createSupabaseAdminClient();
+    const actorScope = await loadEmployeeScopeRow(adminClient, ctx.companyId, actorEmployeeId);
+    if (!actorScope) {
+      return { ok: false, error: "Employee record not found" };
+    }
+
+    const safeLimit = Math.max(1, Math.min(options.limit ?? 60, 100));
+    const normalizedQuery = options.query?.trim().toLowerCase() ?? "";
+
+    let employeeQuery = adminClient
+      .from("employees")
+      .select("id, employee_code, designation, manager_id, department_id, team_id, user_profiles(full_name), departments(name), teams(name)")
+      .eq("company_id", ctx.companyId)
+      .neq("id", actorEmployeeId)
+      .is("is_deleted", false)
+      .order("created_at", { ascending: true })
+      .limit(safeLimit * 2);
+
+    if (actorScope.team_id) {
+      employeeQuery = employeeQuery.eq("team_id", actorScope.team_id);
+    } else if (actorScope.department_id) {
+      employeeQuery = employeeQuery.eq("department_id", actorScope.department_id);
+    }
+
+    const { data: employees, error: employeesError } = await employeeQuery;
+    if (employeesError) {
+      return { ok: false, error: sanitizeError(employeesError.message, "Unable to load shift change candidates") };
+    }
+
+    const candidateEmployees = (employees ?? []).filter((row: any) => {
+      if (!normalizedQuery) return true;
+      return [
+        row.user_profiles?.full_name,
+        row.employee_code,
+        row.designation,
+        row.departments?.name,
+        row.teams?.name,
+      ]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(normalizedQuery));
+    });
+
+    const actorShift = await loadActiveShiftSnapshot(adminClient, ctx, actorEmployeeId, attendanceDate);
+    const candidateIds = candidateEmployees.map((row: any) => row.id as string);
+
+    const shiftMap = new Map<string, ActiveShiftSnapshot>();
+    if (candidateIds.length > 0) {
+      const { data: assignments, error: assignmentsError } = await adminClient
+        .from("employee_shift_assignments")
+        .select("id, employee_id, shift_template_id, effective_from, effective_to, shift_templates(name, start_time, end_time)")
+        .eq("company_id", ctx.companyId)
+        .in("employee_id", candidateIds)
+        .lte("effective_from", attendanceDate)
+        .or(`effective_to.is.null,effective_to.gte.${attendanceDate}`)
+        .is("is_deleted", false)
+        .order("effective_from", { ascending: false });
+
+      if (assignmentsError) {
+        return { ok: false, error: sanitizeError(assignmentsError.message, "Unable to load shift change candidates") };
+      }
+
+      for (const row of assignments ?? []) {
+        const employeeId = row.employee_id as string;
+        if (shiftMap.has(employeeId)) continue;
+        if (!row.id || !row.shift_template_id) continue;
+        shiftMap.set(employeeId, {
+          assignment_id: row.id as string,
+          shift_template_id: row.shift_template_id as string,
+          shift_name: (row.shift_templates as { name?: string | null } | null)?.name ?? null,
+          start_time: (row.shift_templates as { start_time?: string | null } | null)?.start_time ?? null,
+          end_time: (row.shift_templates as { end_time?: string | null } | null)?.end_time ?? null,
+          effective_from: row.effective_from as string,
+          effective_to: (row.effective_to as string | null) ?? null,
+        });
+      }
+    }
+
+    const rows: ShiftChangeCandidateRow[] = candidateEmployees
+      .map((row: any) => {
+        const employeeId = row.id as string;
+        const candidateShift = shiftMap.get(employeeId) ?? null;
+        return {
+          employee_id: employeeId,
+          full_name: (row.user_profiles?.full_name as string | null) ?? null,
+          employee_code: (row.employee_code as string | null) ?? null,
+          designation: (row.designation as string | null) ?? null,
+          department_name: (row.departments?.name as string | null) ?? null,
+          team_name: (row.teams?.name as string | null) ?? null,
+          is_direct_report: (row.manager_id as string | null) === actorEmployeeId,
+          shift_template_id: candidateShift?.shift_template_id ?? null,
+          shift_name: candidateShift?.shift_name ?? null,
+          shift_start_time: candidateShift?.start_time ?? null,
+          shift_end_time: candidateShift?.end_time ?? null,
+        };
+      })
+      .slice(0, safeLimit);
+
+    return {
+      ok: true,
+      data: {
+        attendanceDate,
+        actorEmployeeId,
+        actorShiftTemplateId: actorShift?.shift_template_id ?? null,
+        actorShiftName: actorShift?.shift_name ?? null,
+        actorShiftStartTime: actorShift?.start_time ?? null,
+        actorShiftEndTime: actorShift?.end_time ?? null,
+        rows,
+      }
+    };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Shift change candidates lookup failed" };
+  }
+};
+
 export const createShiftSwapRequest = async (
   ctx: ServiceContext,
   payload: {
     attendanceDate: string;
     requestedShiftTemplateId: string;
     reason: string;
+    requestMode?: ShiftChangeRequestMode;
+    targetEmployeeId?: string;
   }
 ): Promise<ServiceResult<{ requestId: string }>> => {
   try {
@@ -2498,6 +3069,8 @@ export const createShiftSwapRequest = async (
     const attendanceDate = payload.attendanceDate?.trim();
     const requestedShiftTemplateId = payload.requestedShiftTemplateId?.trim();
     const reason = payload.reason?.trim();
+    const requestMode = payload.requestMode === "swap_with_agent" ? "swap_with_agent" : "shift_change";
+    const targetEmployeeId = payload.targetEmployeeId?.trim() || null;
 
     if (!attendanceDate || !requestedShiftTemplateId || !reason) {
       return { ok: false, error: "Attendance date, requested shift, and reason are required" };
@@ -2512,32 +3085,15 @@ export const createShiftSwapRequest = async (
       return { ok: false, error: "Actor profile not found" };
     }
 
-    const { data: currentAssignment, error: assignmentError } = await ctx.supabase
-      .from("employee_shift_assignments")
-      .select("id, shift_template_id")
-      .eq("company_id", ctx.companyId)
-      .eq("employee_id", employeeId)
-      .lte("effective_from", attendanceDate)
-      .or(`effective_to.is.null,effective_to.gte.${attendanceDate}`)
-      .is("is_deleted", false)
-      .order("effective_from", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (assignmentError) {
-      return { ok: false, error: sanitizeError(assignmentError.message, "Unable to validate current shift") };
-    }
+    const adminClient = createSupabaseAdminClient();
+    const currentAssignment = await loadActiveShiftSnapshot(adminClient, ctx, employeeId, attendanceDate);
     if (!currentAssignment?.shift_template_id) {
       return { ok: false, error: "No active shift assignment for selected date" };
     }
 
-    if ((currentAssignment.shift_template_id as string) === requestedShiftTemplateId) {
-      return { ok: false, error: "Requested shift is same as current shift" };
-    }
-
-    const { data: requestedShift, error: requestedShiftError } = await ctx.supabase
+    const { data: requestedShift, error: requestedShiftError } = await adminClient
       .from("shift_templates")
-      .select("id")
+      .select("id, name, start_time, end_time")
       .eq("company_id", ctx.companyId)
       .eq("id", requestedShiftTemplateId)
       .eq("is_active", true)
@@ -2548,31 +3104,76 @@ export const createShiftSwapRequest = async (
       return { ok: false, error: "Requested shift template not found" };
     }
 
-    const { data: pendingExisting } = await ctx.supabase
+    if (requestMode === "shift_change" && currentAssignment.shift_template_id === requestedShiftTemplateId) {
+      return { ok: false, error: "Requested shift is same as current shift" };
+    }
+
+    let targetAssignment: ActiveShiftSnapshot | null = null;
+    if (requestMode === "swap_with_agent") {
+      if (!targetEmployeeId) {
+        return { ok: false, error: "Select another agent for shift swap" };
+      }
+      if (targetEmployeeId === employeeId) {
+        return { ok: false, error: "Choose another agent for a swap request" };
+      }
+
+      const [actorScope, targetScope] = await Promise.all([
+        loadEmployeeScopeRow(adminClient, ctx.companyId, employeeId),
+        loadEmployeeScopeRow(adminClient, ctx.companyId, targetEmployeeId),
+      ]);
+
+      if (!actorScope || !targetScope) {
+        return { ok: false, error: "Selected agent not found" };
+      }
+
+      const sameTeam = Boolean(actorScope.team_id && targetScope.team_id && actorScope.team_id === targetScope.team_id);
+      const sameDepartment = !sameTeam && Boolean(actorScope.department_id && targetScope.department_id && actorScope.department_id === targetScope.department_id);
+      if (!sameTeam && !sameDepartment) {
+        return { ok: false, error: "Selected agent must be from your team or department" };
+      }
+
+      targetAssignment = await loadActiveShiftSnapshot(adminClient, ctx, targetEmployeeId, attendanceDate);
+      if (!targetAssignment?.shift_template_id) {
+        return { ok: false, error: "Selected agent has no active shift on the requested date" };
+      }
+
+      if (targetAssignment.shift_template_id === currentAssignment.shift_template_id) {
+        return { ok: false, error: "Selected agent already has the same shift" };
+      }
+
+      if (requestedShiftTemplateId !== targetAssignment.shift_template_id) {
+        return { ok: false, error: "Requested shift must match the selected agent's live shift" };
+      }
+    }
+
+    const { data: pendingExisting } = await adminClient
       .from("shift_change_requests")
       .select("id")
       .eq("company_id", ctx.companyId)
       .eq("employee_id", employeeId)
       .eq("attendance_date", attendanceDate)
-      .eq("status", "pending")
+      .in("status", ["pending_team_lead", "pending_hr"])
       .is("is_deleted", false)
       .limit(1)
       .maybeSingle();
 
     if (pendingExisting?.id) {
-      return { ok: false, error: "A pending shift swap request already exists for this date" };
+      return { ok: false, error: "A live shift change request already exists for this date" };
     }
 
-    const { data, error } = await ctx.supabase
+    const { data, error } = await adminClient
       .from("shift_change_requests")
       .insert({
         company_id: ctx.companyId,
         employee_id: employeeId,
         attendance_date: attendanceDate,
-        old_shift_template_id: currentAssignment.shift_template_id as string,
+        request_mode: requestMode,
+        old_shift_template_id: currentAssignment.shift_template_id,
         requested_shift_template_id: requestedShiftTemplateId,
+        target_employee_id: targetEmployeeId,
+        target_employee_shift_template_id: targetAssignment?.shift_template_id ?? null,
         reason,
-        status: "pending",
+        status: "pending_team_lead",
         requested_by: actorProfileId,
         created_by: actorProfileId,
         updated_by: actorProfileId
@@ -2581,44 +3182,38 @@ export const createShiftSwapRequest = async (
       .single();
 
     if (error || !data) {
-      return { ok: false, error: sanitizeError(error?.message, "Unable to create shift swap request") };
+      return { ok: false, error: sanitizeError(error?.message, "Unable to create shift change request") };
     }
 
-    const { data: actorEmployee } = await ctx.supabase
+    const directory = await loadShiftChangeApprovalDirectory(ctx, adminClient);
+    const reviewers = resolveShiftChangeReviewers(employeeId, directory);
+    const { data: actorEmployee } = await adminClient
       .from("employees")
-      .select("manager_id, user_profiles(full_name)")
+      .select("manager_id, user_profile_id, user_profiles(full_name)")
       .eq("company_id", ctx.companyId)
       .eq("id", employeeId)
       .is("is_deleted", false)
       .maybeSingle();
 
-    if (actorEmployee?.manager_id) {
-      const { data: manager } = await ctx.supabase
-        .from("employees")
-        .select("user_profile_id")
-        .eq("company_id", ctx.companyId)
-        .eq("id", actorEmployee.manager_id as string)
-        .is("is_deleted", false)
-        .maybeSingle();
-
-      if (manager?.user_profile_id) {
-        await ctx.supabase.from("notifications").insert({
+    if (reviewers.teamLeadApprover?.userProfileId) {
+      await adminClient.from("notifications").insert({
           company_id: ctx.companyId,
-          recipient_profile_id: manager.user_profile_id as string,
-          type: "shift_swap_request",
-          title: "Shift swap request submitted",
-          message: `${(actorEmployee.user_profiles as { full_name?: string | null } | null)?.full_name ?? "Employee"} requested a shift swap for ${attendanceDate}.`,
+          recipient_profile_id: reviewers.teamLeadApprover.userProfileId,
+          type: "shift_change_request",
+          title: requestMode === "swap_with_agent" ? "Shift swap request submitted" : "Shift change request submitted",
+          message: requestMode === "swap_with_agent"
+            ? `${(actorEmployee?.user_profiles as { full_name?: string | null } | null)?.full_name ?? "Employee"} requested to swap ${currentAssignment.shift_name ?? "their shift"} with another agent on ${attendanceDate}.`
+            : `${(actorEmployee?.user_profiles as { full_name?: string | null } | null)?.full_name ?? "Employee"} requested ${requestedShift.name as string} for ${attendanceDate}.`,
           reference_type: "shift_change_request",
           reference_id: data.id as string,
           created_by: actorProfileId,
           updated_by: actorProfileId
         });
-      }
     }
 
     return { ok: true, data: { requestId: data.id as string } };
   } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : "Shift swap request failed" };
+    return { ok: false, error: err instanceof Error ? err.message : "Shift change request failed" };
   }
 };
 
@@ -2629,10 +3224,9 @@ export const reviewShiftSwapRequest = async (
     decision: "approved" | "rejected";
     note?: string;
   }
-): Promise<ServiceResult<{ requestId: string; status: "approved" | "rejected" }>> => {
+): Promise<ServiceResult<{ requestId: string; status: "pending_hr" | "approved" | "rejected" }>> => {
   try {
     await requireAttendanceEntitlement(ctx);
-    requireShiftSwapReviewAccess(ctx);
 
     const requestId = payload.requestId?.trim();
     const decision = payload.decision;
@@ -2644,9 +3238,10 @@ export const reviewShiftSwapRequest = async (
     const actorProfileId = await getActorProfileId(ctx.supabase, ctx);
     if (!actorProfileId) return { ok: false, error: "Actor profile not found" };
 
-    const { data: requestRow, error: requestError } = await ctx.supabase
+    const adminClient = createSupabaseAdminClient();
+    const { data: requestRow, error: requestError } = await adminClient
       .from("shift_change_requests")
-      .select("id, employee_id, attendance_date, requested_shift_template_id, status, reason")
+      .select("id, employee_id, attendance_date, request_mode, old_shift_template_id, requested_shift_template_id, target_employee_id, target_employee_shift_template_id, status, reason")
       .eq("company_id", ctx.companyId)
       .eq("id", requestId)
       .is("is_deleted", false)
@@ -2656,88 +3251,189 @@ export const reviewShiftSwapRequest = async (
       return { ok: false, error: sanitizeError(requestError.message, "Unable to load shift swap request") };
     }
     if (!requestRow?.id) {
-      return { ok: false, error: "Shift swap request not found" };
-    }
-    if ((requestRow.status as string) !== "pending") {
-      return { ok: false, error: "Shift swap request already processed" };
+      return { ok: false, error: "Shift change request not found" };
     }
 
-    if (decision === "approved") {
+    const currentStatus = (requestRow.status as ShiftChangeRequestStatus | null) ?? null;
+    if (!currentStatus || currentStatus === "approved" || currentStatus === "rejected") {
+      return { ok: false, error: "Shift change request already processed" };
+    }
+
+    const actorEmployeeId = await resolveCurrentEmployeeId(ctx.supabase, ctx);
+    const directory = await loadShiftChangeApprovalDirectory(ctx, adminClient);
+    const actorRole = classifyShiftChangeApprovalRole(actorEmployeeId ? directory.get(actorEmployeeId) ?? null : null);
+    const reviewers = resolveShiftChangeReviewers(requestRow.employee_id as string, directory);
+
+    if (!canActorReviewShiftChangeRequest({
+      ctx,
+      actorEmployeeId,
+      actorRole,
+      requestStatus: currentStatus,
+      reviewers,
+    })) {
+      return { ok: false, error: "Permission denied" };
+    }
+
+    const now = new Date().toISOString();
+    let nextStatus: "pending_hr" | "approved" | "rejected" = decision === "rejected" ? "rejected" : "approved";
+
+    if (decision === "approved" && currentStatus === "pending_team_lead") {
+      nextStatus = "pending_hr";
+
+      const { error: teamLeadUpdateError } = await adminClient
+        .from("shift_change_requests")
+        .update({
+          status: "pending_hr",
+          team_lead_reviewed_by: actorProfileId,
+          team_lead_reviewed_at: now,
+          team_lead_note: note ?? null,
+          updated_by: actorProfileId,
+        })
+        .eq("company_id", ctx.companyId)
+        .eq("id", requestId)
+        .eq("status", "pending_team_lead")
+        .is("is_deleted", false);
+
+      if (teamLeadUpdateError) {
+        return { ok: false, error: sanitizeError(teamLeadUpdateError.message, "Unable to update shift change request") };
+      }
+
+      const notifications: Array<Record<string, unknown>> = [];
+      if (reviewers.hrApprover?.userProfileId) {
+        notifications.push({
+          company_id: ctx.companyId,
+          recipient_profile_id: reviewers.hrApprover.userProfileId,
+          type: "shift_change_hr_review",
+          title: "Shift change waiting on HR",
+          message: `${directory.get(requestRow.employee_id as string)?.fullName ?? "Employee"} now needs HR salary review for ${requestRow.attendance_date as string}.`,
+          reference_type: "shift_change_request",
+          reference_id: requestId,
+          created_by: actorProfileId,
+          updated_by: actorProfileId,
+        });
+      }
+
+      const requesterProfileId = directory.get(requestRow.employee_id as string)?.userProfileId ?? null;
+      if (requesterProfileId) {
+        notifications.push({
+          company_id: ctx.companyId,
+          recipient_profile_id: requesterProfileId,
+          type: "shift_change_team_lead_approved",
+          title: "Shift change moved to HR",
+          message: "Your request cleared team lead review and is now waiting on HR salary review.",
+          reference_type: "shift_change_request",
+          reference_id: requestId,
+          created_by: actorProfileId,
+          updated_by: actorProfileId,
+        });
+      }
+
+      if (notifications.length > 0) {
+        await adminClient.from("notifications").insert(notifications);
+      }
+
+      return { ok: true, data: { requestId, status: nextStatus } };
+    }
+
+    if (decision === "approved" && currentStatus === "pending_hr") {
       const employeeId = requestRow.employee_id as string;
       const effectiveFrom = requestRow.attendance_date as string;
+      const requestMode = ((requestRow.request_mode as ShiftChangeRequestMode | null) ?? "shift_change");
       const requestedShiftTemplateId = requestRow.requested_shift_template_id as string;
 
-      const { data: existingAssignment, error: existingAssignmentError } = await ctx.supabase
-        .from("employee_shift_assignments")
-        .select("id, shift_template_id")
-        .eq("company_id", ctx.companyId)
-        .eq("employee_id", employeeId)
-        .eq("effective_from", effectiveFrom)
-        .is("is_deleted", false)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (existingAssignmentError) {
-        return { ok: false, error: sanitizeError(existingAssignmentError.message, "Unable to apply approved shift swap") };
-      }
-
-      if (existingAssignment?.id) {
-        if ((existingAssignment.shift_template_id as string) !== requestedShiftTemplateId) {
-          const { error: updateAssignmentError } = await ctx.supabase
-            .from("employee_shift_assignments")
-            .update({
-              shift_template_id: requestedShiftTemplateId,
-              assigned_by: actorProfileId,
-              updated_by: actorProfileId
-            })
-            .eq("company_id", ctx.companyId)
-            .eq("id", existingAssignment.id as string)
-            .is("is_deleted", false);
-
-          if (updateAssignmentError) {
-            return { ok: false, error: sanitizeError(updateAssignmentError.message, "Unable to apply approved shift swap") };
+      try {
+        if (requestMode === "swap_with_agent") {
+          const targetEmployeeId = (requestRow.target_employee_id as string | null) ?? null;
+          const targetShiftTemplateId = (requestRow.target_employee_shift_template_id as string | null) ?? null;
+          if (!targetEmployeeId || !targetShiftTemplateId) {
+            return { ok: false, error: "Selected agent data is missing for this swap request" };
           }
-        }
-      } else {
-        const { error: createAssignmentError } = await ctx.supabase
-          .from("employee_shift_assignments")
-          .insert({
-            company_id: ctx.companyId,
-            employee_id: employeeId,
-            shift_template_id: requestedShiftTemplateId,
-            effective_from: effectiveFrom,
-            assigned_by: actorProfileId,
-            created_by: actorProfileId,
-            updated_by: actorProfileId
+
+          const [currentEmployeeShift, currentTargetShift] = await Promise.all([
+            loadActiveShiftSnapshot(adminClient, ctx, employeeId, effectiveFrom),
+            loadActiveShiftSnapshot(adminClient, ctx, targetEmployeeId, effectiveFrom),
+          ]);
+
+          if (!currentEmployeeShift?.shift_template_id || !currentTargetShift?.shift_template_id) {
+            return { ok: false, error: "One of the employees no longer has an active shift on this date" };
+          }
+
+          if (currentTargetShift.shift_template_id !== targetShiftTemplateId) {
+            return { ok: false, error: "Selected agent's shift changed before HR approval. Please submit a fresh request." };
+          }
+
+          await applyShiftAssignmentChangeForDate({
+            ctx,
+            adminClient,
+            employeeId,
+            shiftTemplateId: requestedShiftTemplateId,
+            effectiveFrom,
+            actorProfileId,
+            assignmentType: "shift_swap_approved",
           });
 
-        if (createAssignmentError) {
-          return { ok: false, error: sanitizeError(createAssignmentError.message, "Unable to apply approved shift swap") };
+          await applyShiftAssignmentChangeForDate({
+            ctx,
+            adminClient,
+            employeeId: targetEmployeeId,
+            shiftTemplateId: requestRow.old_shift_template_id as string,
+            effectiveFrom,
+            actorProfileId,
+            assignmentType: "shift_swap_approved",
+          });
+        } else {
+          await applyShiftAssignmentChangeForDate({
+            ctx,
+            adminClient,
+            employeeId,
+            shiftTemplateId: requestedShiftTemplateId,
+            effectiveFrom,
+            actorProfileId,
+            assignmentType: "shift_change_approved",
+          });
         }
+      } catch (assignmentError) {
+        return {
+          ok: false,
+          error: sanitizeError(
+            assignmentError instanceof Error ? assignmentError.message : "Unable to apply approved shift change",
+            "Unable to apply approved shift change"
+          )
+        };
       }
     }
 
-    const updatedReason = note ? `${requestRow.reason as string}\n\nReview note: ${note}` : (requestRow.reason as string);
-    const { error: updateError } = await ctx.supabase
+    const updatePayload: Record<string, unknown> = {
+      status: nextStatus,
+      reviewed_by: actorProfileId,
+      reviewed_at: now,
+      updated_by: actorProfileId
+    };
+
+    if (currentStatus === "pending_team_lead") {
+      updatePayload.team_lead_reviewed_by = actorProfileId;
+      updatePayload.team_lead_reviewed_at = now;
+      updatePayload.team_lead_note = note ?? null;
+    }
+    if (currentStatus === "pending_hr") {
+      updatePayload.hr_reviewed_by = actorProfileId;
+      updatePayload.hr_reviewed_at = now;
+      updatePayload.hr_note = note ?? null;
+    }
+
+    const { error: updateError } = await adminClient
       .from("shift_change_requests")
-      .update({
-        status: decision,
-        reason: updatedReason,
-        reviewed_by: actorProfileId,
-        reviewed_at: new Date().toISOString(),
-        updated_by: actorProfileId
-      })
+      .update(updatePayload)
       .eq("company_id", ctx.companyId)
       .eq("id", requestId)
-      .eq("status", "pending")
+      .eq("status", currentStatus)
       .is("is_deleted", false);
 
     if (updateError) {
-      return { ok: false, error: sanitizeError(updateError.message, "Unable to update shift swap request") };
+      return { ok: false, error: sanitizeError(updateError.message, "Unable to update shift change request") };
     }
 
-    const { data: employeeRow } = await ctx.supabase
+    const { data: employeeRow } = await adminClient
       .from("employees")
       .select("user_profile_id")
       .eq("company_id", ctx.companyId)
@@ -2745,15 +3441,16 @@ export const reviewShiftSwapRequest = async (
       .is("is_deleted", false)
       .maybeSingle();
 
+    const notificationRows: Array<Record<string, unknown>> = [];
     if (employeeRow?.user_profile_id) {
-      await ctx.supabase.from("notifications").insert({
+      notificationRows.push({
         company_id: ctx.companyId,
         recipient_profile_id: employeeRow.user_profile_id as string,
-        type: "shift_swap_review",
-        title: `Shift swap ${decision}`,
-        message: decision === "approved"
-          ? "Your shift swap request has been approved and your schedule was updated."
-          : "Your shift swap request was rejected.",
+        type: "shift_change_review",
+        title: nextStatus === "approved" ? "Shift change approved" : "Shift change rejected",
+        message: nextStatus === "approved"
+          ? "Your shift change request has been approved and the schedule update is now effective."
+          : "Your shift change request was rejected.",
         reference_type: "shift_change_request",
         reference_id: requestId,
         created_by: actorProfileId,
@@ -2761,9 +3458,40 @@ export const reviewShiftSwapRequest = async (
       });
     }
 
-    return { ok: true, data: { requestId, status: decision } };
+    if (nextStatus === "approved" && (requestRow.request_mode as ShiftChangeRequestMode | null) === "swap_with_agent") {
+      const targetEmployeeId = (requestRow.target_employee_id as string | null) ?? null;
+      if (targetEmployeeId) {
+        const { data: targetEmployee } = await adminClient
+          .from("employees")
+          .select("user_profile_id")
+          .eq("company_id", ctx.companyId)
+          .eq("id", targetEmployeeId)
+          .is("is_deleted", false)
+          .maybeSingle();
+
+        if (targetEmployee?.user_profile_id) {
+          notificationRows.push({
+            company_id: ctx.companyId,
+            recipient_profile_id: targetEmployee.user_profile_id as string,
+            type: "shift_swap_approved",
+            title: "Shift swap approved",
+            message: "A shift swap involving your schedule was approved by HR and is now effective.",
+            reference_type: "shift_change_request",
+            reference_id: requestId,
+            created_by: actorProfileId,
+            updated_by: actorProfileId
+          });
+        }
+      }
+    }
+
+    if (notificationRows.length > 0) {
+      await adminClient.from("notifications").insert(notificationRows);
+    }
+
+    return { ok: true, data: { requestId, status: nextStatus } };
   } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : "Shift swap review failed" };
+    return { ok: false, error: err instanceof Error ? err.message : "Shift change review failed" };
   }
 };
 

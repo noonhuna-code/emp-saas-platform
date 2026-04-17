@@ -126,9 +126,9 @@ export const TENANT_NAVIGATION_ITEMS: NavigationItem[] = [
   }),
   item({
     href: "/app/attendance/shift-swaps",
-    label: "Shift Swaps",
+    label: "Shift Change",
     icon: "refresh-cw",
-    description: "Request or review shift exchange coverage",
+    description: "Request shift changes or review swap coverage",
     personas: ["employee", "manager", "admin_ops", "finance", "executive"],
     requiresEmployeeContext: true,
     requiredFeatureAnyKeys: ["feature.core_leave_management", "feature.core_attendance"]

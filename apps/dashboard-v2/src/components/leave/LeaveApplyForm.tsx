@@ -61,7 +61,7 @@ export const LeaveApplyForm = ({
 
   return (
     <form className="space-y-4" onSubmit={submit}>
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,7fr)_minmax(280px,3fr)]">
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,72fr)_minmax(280px,28fr)]">
         <div className={panelClassName}>
           <div className="space-y-4">
             <label className={labelClassName}>

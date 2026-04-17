@@ -5,6 +5,7 @@ import type {
   AttendanceCorrectionRequestResponse,
   AttendanceCorrectionReviewMutationResponse,
   AttendanceHistoryResponse,
+  ShiftChangeCandidatesResponse,
   ShiftSwapCreateResponse,
   ShiftSwapRequestsResponse,
   ShiftSwapReviewResponse,
@@ -1868,7 +1869,7 @@ export const removeBreakAssignment = async (
 
 export const fetchShiftSwapRequests = async (params: {
   scope?: "mine" | "review";
-  status?: "pending" | "approved" | "rejected";
+  status?: "pending_team_lead" | "pending_hr" | "approved" | "rejected";
   limit?: number;
 } = {}): Promise<DashboardApiResult<ShiftSwapRequestsResponse>> => {
   const query = new URLSearchParams();
@@ -1884,6 +1885,8 @@ export const requestShiftSwap = async (payload: {
   attendanceDate: string;
   requestedShiftTemplateId: string;
   reason: string;
+  requestMode?: "shift_change" | "swap_with_agent";
+  targetEmployeeId?: string;
 }): Promise<DashboardApiResult<ShiftSwapCreateResponse>> => {
   const result = await postJson<ShiftSwapCreateResponse>(
     "/api/attendance/shift-swaps",
@@ -1910,6 +1913,19 @@ export const reviewShiftSwap = async (payload: {
     invalidateShiftWorkspaceCache();
   }
   return result;
+};
+
+export const fetchShiftChangeCandidates = async (params: {
+  attendanceDate: string;
+  query?: string;
+  limit?: number;
+}): Promise<DashboardApiResult<ShiftChangeCandidatesResponse>> => {
+  const query = new URLSearchParams();
+  query.set("attendanceDate", params.attendanceDate);
+  if (params.query) query.set("query", params.query);
+  if (typeof params.limit === "number") query.set("limit", String(params.limit));
+  const response = await fetchWithCache<ShiftChangeCandidatesResponse>(`/api/attendance/shift-swaps/candidates?${query.toString()}`, 30000);
+  return response;
 };
 
 
